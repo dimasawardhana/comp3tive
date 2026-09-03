@@ -61,9 +61,9 @@ _Avoid_: squad, side, lineup
 A player assigned to a team beyond its minimum size, available for rotation.
 _Avoid_: bench, reserve
 
-**Fair split**:
-Dividing a session's player pool into teams of roughly equal strength — measured by average strength when sizes differ — while honoring role coverage and size constraints.
-_Avoid_: balanced composition
+**Split** (module): The deep computation module for fair split — takes a player pool, discipline, and team count; produces a `SplitResult`. Separate from session persistence (`Session` adapter) and tournament submission (`Tournament` adapter). Internal seams: `swapPlayers`, `recomputeResult`, `freshSplit`. Tests hit the interface, not the internal seams.
+_Avoid_: split-screen (UI term only), split-result (use `SplitResult` type)
 
 **Role-complete team**:
 A single team whose required roles are all filled, built from the pool. Secondary mode; fair split is the primary mode.
+_Avoid_: complete-lineup, full-roles

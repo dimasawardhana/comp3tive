@@ -185,7 +185,11 @@ export function SplitScreen({ session, discipline, roster, onPersistResult, onSu
 
   return (
     <>
-      <div className="kicker">Tonight&apos;s match</div>
+      <div className="breadcrumb">
+        <a href="#" onClick={(e) => { e.preventDefault(); /* back handled via app */ }}>Match setup</a>
+        <span className="sep">/</span>
+        <span>Split result</span>
+      </div>
       <h1>Tonight&apos;s teams</h1>
       {swapMode && (
         <p className="status">

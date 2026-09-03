@@ -28,10 +28,19 @@ export function MatchScreen(props: Props) {
   const capable = roster.filter((p) => capabilityFor(p, discipline) !== undefined);
   const selectedCapable = capable.filter((p) => selectedIds.includes(p.id));
   const excluded = roster.some((p) => capabilityFor(p, discipline) === undefined);
+  const minSize = discipline.team.minTeamSize;
+  const seatsNeeded = teamCount * minSize;
+  const notEnoughPlayers = selectedCapable.length < seatsNeeded;
+  const maxPossibleTeams = Math.floor(selectedCapable.length / minSize);
+  const teamCountTooHigh = teamCount > maxPossibleTeams;
 
   return (
     <>
-      <div className="kicker">Tonight&apos;s match</div>
+      <div className="breadcrumb">
+        <a href="#" onClick={(e) => { e.preventDefault(); props.onBack(); }}>Games</a>
+        <span className="sep">/</span>
+        <span>Match setup</span>
+      </div>
       <h1>Who&apos;s here?</h1>
       <p className="lede">Tap everyone who showed up tonight.</p>
       <div className="chips">
@@ -43,10 +52,10 @@ export function MatchScreen(props: Props) {
             <button
               key={p.id}
               type="button"
+              data-testid={`player-chip-${p.id}`}
               className="chip"
               disabled={disabled}
               aria-pressed={selected}
-              onClick={() => props.onTogglePlayer(p.id)}
             >
               {p.name} <span className="str">{disabled ? "\u2014" : strength.toFixed(1)}</span>
             </button>
@@ -97,7 +106,11 @@ export function MatchScreen(props: Props) {
           +
         </button>
         <span className="hint">
-          {props.lockedTeamCount ? `${teamCount} teams, locked by the tournament` : gameSub(discipline)}
+          {props.lockedTeamCount
+            ? `${teamCount} teams, locked by the tournament`
+            : teamCountTooHigh
+              ? `${minSize} per team · max ${maxPossibleTeams} team${maxPossibleTeams === 1 ? "" : "s"} from ${selectedCapable.length} eligible`
+              : gameSub(discipline)}
         </span>
       </div>
 
@@ -107,11 +120,19 @@ export function MatchScreen(props: Props) {
         </button>
         <button
           type="button"
+          data-testid="split-button"
           className="btn btn-primary"
-          disabled={selectedCapable.length === 0}
+          disabled={selectedCapable.length === 0 || notEnoughPlayers}
           onClick={props.onSplit}
+          title={
+            notEnoughPlayers
+              ? `Need ${seatsNeeded} eligible players for ${teamCount} team${teamCount === 1 ? "" : "s"} — have ${selectedCapable.length}`
+              : undefined
+          }
         >
-          Split {selectedCapable.length}/{capable.length}
+          {notEnoughPlayers
+            ? `Need ${seatsNeeded - selectedCapable.length} more`
+            : `Split ${selectedCapable.length}/${capable.length}`}
         </button>
       </div>
     </>

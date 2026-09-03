@@ -239,7 +239,11 @@ export function TournamentScreen({ tournament, disciplines, onBack, onSplit, onR
 
   return (
     <>
-      <h1>{tournament.name}</h1>
+      <div className="breadcrumb">
+        <a href="#" onClick={(e) => { e.preventDefault(); onBack(); }}>Games</a>
+        <span className="sep">/</span>
+        <span>{tournament.name}</span>
+      </div>
       <div className="tournament-meta">
         <span className="kicker">{discipline?.shortName ?? "Unknown"}</span>
         <span>Format<strong>{FORMAT_LABEL[tournament.format]}</strong></span>

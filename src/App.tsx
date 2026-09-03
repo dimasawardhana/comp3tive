@@ -142,7 +142,12 @@ export default function App() {
     } else {
       el.dataset.theme = themePref;
     }
-  }, [themePref]);
+    if (layoutPref === "auto") {
+      delete el.dataset.layout;
+    } else {
+      el.dataset.layout = layoutPref;
+    }
+  }, [themePref, layoutPref]);
 
   const disciplines = catalog.disciplines;
   const disciplinesById = new Map(disciplines.map((d) => [d.id, d]));
@@ -359,8 +364,10 @@ export default function App() {
     ) {
       return;
     }
+    // v1 backups (e.g. mpl-id-roster.json): adopt players into active community, not synthetic default.
+    const importCommunityId = activeCommunity?.id ?? newCommunities[0]?.id ?? "community-default";
     for (const c of newCommunities) await communityStore.saveCommunity(c);
-    for (const p of newPlayers) await roster.savePlayer(p);
+    for (const p of newPlayers) await roster.savePlayer({ ...p, communityId: importCommunityId });
     for (const s of newSessions) await sessionStore.saveSession(s);
     for (const t of newTournaments) await tournamentStore.saveTournament(t);
     setImportError(null);
@@ -633,8 +640,8 @@ export default function App() {
   };
 
   return (
-    <div className="app" data-theme={effectiveTheme} data-layout={effectiveLayout}>
-      <header className="topbar">
+    <div className="app" data-layout={effectiveLayout}>
+      <header className="topbar-wrap topbar">
         <div className="wordmark">
           <span className="sq">●</span>
           <span>Team Builder</span>
@@ -677,75 +684,38 @@ export default function App() {
             </button>
           )}
         </div>
-        <button
-          type="button"
-          className="icon-btn"
-          aria-label="Settings"
-          title="Settings"
-          onClick={() => setShowSettings((s) => !s)}
-        >
-          ⚙
-        </button>
+        <div className="settings-trigger">
+          <button
+            type="button"
+            className="icon-btn"
+            aria-label="Settings"
+            title="Settings"
+            onClick={() => setShowSettings((s) => !s)}
+          >
+            ⚙
+          </button>
+          {showSettings && (
+            <div className="settings-popover" role="dialog" aria-label="Settings">
+              <div className="settings-section">
+                <div className="settings-label">Theme</div>
+                <div className="settings-options">
+                  <button type="button" className={`settings-chip ${themePref === "light" ? "active" : ""}`} onClick={() => setThemePref("light")}>Light</button>
+                  <button type="button" className={`settings-chip ${themePref === "dark" ? "active" : ""}`} onClick={() => setThemePref("dark")}>Dark</button>
+                  <button type="button" className={`settings-chip ${themePref === "auto" ? "active" : ""}`} onClick={() => setThemePref("auto")}>Auto</button>
+                </div>
+              </div>
+              <div className="settings-section">
+                <div className="settings-label">Layout</div>
+                <div className="settings-options">
+                  <button type="button" className={`settings-chip ${layoutPref === "auto" ? "active" : ""}`} onClick={() => setLayoutPref("auto")}>Auto</button>
+                  <button type="button" className={`settings-chip ${layoutPref === "mobile" ? "active" : ""}`} onClick={() => setLayoutPref("mobile")}>Mobile</button>
+                  <button type="button" className={`settings-chip ${layoutPref === "desktop" ? "active" : ""}`} onClick={() => setLayoutPref("desktop")}>Desktop</button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
       </header>
-      {showSettings && (
-        <>
-          <div className="settings-backdrop" onClick={() => setShowSettings(false)} />
-          <div className="settings-popover" role="dialog" aria-label="Settings">
-            <div className="settings-section">
-              <div className="settings-label">Theme</div>
-              <div className="settings-options">
-                <button
-                  type="button"
-                  className={`settings-chip ${themePref === "light" ? "active" : ""}`}
-                  onClick={() => setThemePref("light")}
-                >
-                  Light
-                </button>
-                <button
-                  type="button"
-                  className={`settings-chip ${themePref === "dark" ? "active" : ""}`}
-                  onClick={() => setThemePref("dark")}
-                >
-                  Dark
-                </button>
-                <button
-                  type="button"
-                  className={`settings-chip ${themePref === "auto" ? "active" : ""}`}
-                  onClick={() => setThemePref("auto")}
-                >
-                  Auto
-                </button>
-              </div>
-            </div>
-            <div className="settings-section">
-              <div className="settings-label">Layout</div>
-              <div className="settings-options">
-                <button
-                  type="button"
-                  className={`settings-chip ${layoutPref === "auto" ? "active" : ""}`}
-                  onClick={() => setLayoutPref("auto")}
-                >
-                  Auto
-                </button>
-                <button
-                  type="button"
-                  className={`settings-chip ${layoutPref === "mobile" ? "active" : ""}`}
-                  onClick={() => setLayoutPref("mobile")}
-                >
-                  Mobile
-                </button>
-                <button
-                  type="button"
-                  className={`settings-chip ${layoutPref === "desktop" ? "active" : ""}`}
-                  onClick={() => setLayoutPref("desktop")}
-                >
-                  Desktop
-                </button>
-              </div>
-            </div>
-          </div>
-        </>
-      )}
       {view.mode === "roster" && (
         <div className="screen">
           <div className="kicker">Match Sheet · 01</div>
@@ -823,13 +793,6 @@ export default function App() {
                 <div className="roster-toolbar-spacer" />
                 <button className="btn btn-ghost" onClick={handleExport}>
                   Export
-                </button>
-                <button
-                  className="btn btn-ghost"
-                  onClick={clearData}
-                  title="Erase all communities, players, sessions, and tournaments"
-                >
-                  Clear all
                 </button>
               </div>
 

@@ -24,6 +24,19 @@ export function useSessions(store: SessionStore) {
   useEffect(() => {
     void refresh();
   }, [refresh]);
+  const saveSession = useCallback(
+    async (session: Session) => {
+      await store.saveSession(session);
+      setSessions((prev) => {
+        const i = prev.findIndex((s) => s.id === session.id);
+        if (i === -1) return [session, ...prev].sort((a, b) => b.createdAt - a.createdAt);
+        const next = [...prev];
+        next[i] = session;
+        return next;
+      });
+    },
+    [store],
+  );
 
   const deleteSession = useCallback(
     async (id: Id) => {
@@ -33,5 +46,5 @@ export function useSessions(store: SessionStore) {
     [store],
   );
 
-  return { sessions, loading, error, refresh, deleteSession };
+  return { sessions, loading, error, refresh, saveSession, deleteSession };
 }
