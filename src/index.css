@@ -132,6 +132,7 @@ body {
   display: flex;
   flex-direction: column;
   background: var(--surface);
+  padding-bottom: calc(64px + env(safe-area-inset-bottom));
 }
 @media (min-width: 720px) {
   .app {
@@ -318,23 +319,112 @@ body {
 .squad-switcher .kicker::before {
   content: "";
 }
-.squad-select {
+.squad-dropdown {
+  position: relative;
   flex: 1 1 auto;
   min-width: 0;
+}
+.squad-select {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
   border: none;
   background: transparent;
-  font-family: "Familjen Grotesk", sans-serif;
-  font-size: 14px;
+  font-family: "Familjen Grotesk", "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 15px;
   font-weight: 600;
   color: var(--text);
-  padding: 2px 4px;
+  padding: 4px 4px 4px 2px;
   cursor: pointer;
   outline: none;
+  letter-spacing: 0;
+  text-align: left;
+}
+.squad-select-value {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.squad-select-caret {
+  flex-shrink: 0;
+  font-size: 10px;
+  color: var(--text-2);
+  transition: transform 0.15s;
+}
+.squad-select[aria-expanded="true"] .squad-select-caret {
+  transform: rotate(180deg);
 }
 .squad-select:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
   border-radius: 4px;
+}
+.squad-menu-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 58;
+}
+.squad-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 59;
+  list-style: none;
+  margin: 0;
+  padding: 4px;
+  background: var(--surface);
+  border: 1.5px solid var(--hairline);
+  border-radius: var(--r-md);
+  box-shadow: var(--shadow);
+  max-height: 240px;
+  overflow-y: auto;
+  min-width: 180px;
+}
+.squad-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 10px;
+  border: none;
+  background: transparent;
+  font-family: "Familjen Grotesk", sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+  border-radius: var(--r-sm);
+  transition: background 0.1s, color 0.1s;
+}
+.squad-menu-item:hover {
+  background: var(--surface-2);
+  color: var(--text);
+}
+.squad-menu-item.active {
+  background: var(--text);
+  color: var(--surface);
+  font-weight: 600;
+}
+.squad-menu-item.active .squad-menu-dot {
+  background: var(--surface);
+}
+.squad-menu-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--whistle);
+  flex-shrink: 0;
+  opacity: 0;
+}
+.squad-menu-item.active .squad-menu-dot {
+  opacity: 1;
 }
 @media (max-width: 600px) {
   .squad-switcher {
@@ -384,16 +474,44 @@ body {
 }
 .add-community {
   display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 12px;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 16px;
   background: var(--surface-2);
   border: 1.5px solid var(--hairline);
   border-radius: var(--r-md);
+  margin: 0 16px;
+  min-width: 280px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+.add-community .form-label {
+  font-family: "Chakra Petch", sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-2);
+}
+.add-community .form-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 .add-community input {
   flex: 1 1 auto;
   min-width: 0;
+  font-family: "Familjen Grotesk", sans-serif;
+  font-size: 15px;
+  padding: 8px 10px;
+  border: 1.5px solid var(--hairline);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  color: var(--text);
+}
+.add-community input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+  border-color: var(--accent);
 }
 .pref {
   background: none;

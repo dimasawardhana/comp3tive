@@ -123,7 +123,17 @@ export default function App() {
   const [randomPreview, setRandomPreview] = useState<Player | null>(null);
   const [communityName, setCommunityName] = useState("");
   const [showAddCommunity, setShowAddCommunity] = useState(false);
+  const [showCommunityMenu, setShowCommunityMenu] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [toasts, setToasts] = useState<Array<{ id: string; text: string; type: "success" | "error" | "info" }>>([]);
+  const notify = (text: string, type: "success" | "error" | "info" = "info") => {
+    const id = crypto.randomUUID();
+    setToasts((prev) => [...prev, { id, text, type }]);
+    setTimeout(() => {
+      setToasts((prev) => prev.filter((t) => t.id !== id));
+    }, 3000);
+  };
+  const formatError = (err: unknown) => (err instanceof Error ? err.message : String(err));
   const [editingPlayer, setEditingPlayer] = useState<Player | null | "new">(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [themePref, setThemePref] = useStoredPref("tb-theme", "auto");
@@ -402,6 +412,11 @@ export default function App() {
     setShowAddCommunity(false);
   };
 
+  const cancelAddCommunity = () => {
+    setCommunityName("");
+    setShowAddCommunity(false);
+  };
+
   const savePlayer = async (player: Player) => {
     await roster.savePlayer(player);
   };
@@ -411,11 +426,21 @@ export default function App() {
   };
 
   const saveDiscipline = async (d: Discipline) => {
-    await disciplineStore.saveDiscipline(d);
+    try {
+      await catalog.saveDiscipline(d);
+    } catch (err) {
+      notify(`Could not save discipline: ${formatError(err)}`, "error");
+      throw err;
+    }
   };
 
   const deleteDiscipline = async (id: Id) => {
-    await disciplineStore.deleteDiscipline(id);
+    try {
+      await catalog.deleteDiscipline(id);
+    } catch (err) {
+      notify(`Could not delete discipline: ${formatError(err)}`, "error");
+      throw err;
+    }
   };
   const handlePlayerImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -648,23 +673,57 @@ export default function App() {
         </div>
         <div className="squad-switcher">
           <span className="kicker">Community</span>
-          <select
-            value={activeCommunity?.id ?? ""}
-            onChange={(e) => setActiveCommunity(e.target.value || null)}
-            className="squad-select"
-            aria-label="Active community"
-          >
-            <option value="">— No community —</option>
-            {communities.communities.map((c) => (
-              <option key={c.id} value={c.id}>{c.name}</option>
-            ))}
-          </select>
+          <div className="squad-dropdown">
+            <button
+              type="button"
+              className="squad-select"
+              onClick={() => setShowCommunityMenu((s) => !s)}
+              aria-haspopup="listbox"
+              aria-expanded={showCommunityMenu}
+              aria-label="Active community"
+            >
+              <span className="squad-select-value">{activeCommunity?.name ?? "— No community —"}</span>
+              <span className="squad-select-caret" aria-hidden="true">▾</span>
+            </button>
+            {showCommunityMenu && (
+              <>
+                <div className="squad-menu-backdrop" onClick={() => setShowCommunityMenu(false)} />
+                <ul className="squad-menu" role="listbox" aria-label="Communities">
+                  <li>
+                    <button
+                      type="button"
+                      className={`squad-menu-item ${!activeCommunity ? "active" : ""}`}
+                      onClick={() => { setActiveCommunity(null); setShowCommunityMenu(false); }}
+                      role="option"
+                      aria-selected={!activeCommunity}
+                    >
+                      — No community —
+                    </button>
+                  </li>
+                  {communities.communities.map((c) => (
+                    <li key={c.id}>
+                      <button
+                        type="button"
+                        className={`squad-menu-item ${activeCommunity?.id === c.id ? "active" : ""}`}
+                        onClick={() => { setActiveCommunity(c.id); setShowCommunityMenu(false); }}
+                        role="option"
+                        aria-selected={activeCommunity?.id === c.id}
+                      >
+                        <span className="squad-menu-dot" aria-hidden="true" />
+                        {c.name}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )}
+          </div>
           <button
             type="button"
             className="icon-btn"
             aria-label="New community"
             title="New community"
-            onClick={() => setShowAddCommunity((s) => !s)}
+            onClick={() => { setShowAddCommunity((s) => !s); setShowCommunityMenu(false); }}
           >
             ✚
           </button>
@@ -730,15 +789,22 @@ export default function App() {
 
           {showAddCommunity && (
             <div className="add-community">
-              <input
-                type="text"
-                value={communityName}
-                onChange={(e) => setCommunityName(e.target.value)}
-                placeholder="New community name"
-                onKeyDown={(e) => e.key === "Enter" && createCommunity()}
-                autoFocus
-              />
-              <button className="btn btn-primary" onClick={createCommunity}>Create</button>
+              <div className="form-label">New community</div>
+              <div className="form-row">
+                <input
+                  type="text"
+                  value={communityName}
+                  onChange={(e) => setCommunityName(e.target.value)}
+                  placeholder="e.g. Sunday League"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") createCommunity();
+                    if (e.key === "Escape") cancelAddCommunity();
+                  }}
+                  autoFocus
+                />
+                <button className="btn btn-primary" onClick={createCommunity}>Create</button>
+                <button className="btn btn-ghost" onClick={cancelAddCommunity} aria-label="Cancel">Cancel</button>
+              </div>
             </div>
           )}
           {communities.communities.length === 0 && !showAddCommunity && (
@@ -932,8 +998,8 @@ export default function App() {
         <DisciplinesScreen
           disciplines={disciplines}
           loading={catalog.loading}
-          onSave={async (d) => { await disciplineStore.saveDiscipline(d); }}
-          onDelete={async (id) => { await disciplineStore.deleteDiscipline(id); }}
+          onSave={saveDiscipline}
+          onDelete={deleteDiscipline}
           onBack={goHome}
         />
       )}
@@ -955,6 +1021,13 @@ export default function App() {
         />
       )}
 
+      <div className="toast-container" aria-live="polite">
+        {toasts.map((t) => (
+          <div key={t.id} className={`toast toast--${t.type}`} role="status">
+            {t.text}
+          </div>
+        ))}
+      </div>
       <nav className="bottom-nav" aria-label="Primary">
         <button className={`nav-link ${view.mode === "roster" ? "nav-active" : ""}`} onClick={goHome} aria-label="Roster">
           <span className="nav-icon" aria-hidden="true">◉</span>

@@ -14,7 +14,7 @@ export function DisciplinesScreen({ disciplines, loading, onSave, onDelete, onBa
   const [editing, setEditing] = useState<Discipline | null | "new">(null);
 
   return (
-    <>
+    <div className="screen">
       <div className="kicker">Catalog</div>
       <h1>Disciplines</h1>
       <p className="lede">The activities you build teams for. Futsal and MLBB ship built-in; add your own.</p>
@@ -84,6 +84,6 @@ export function DisciplinesScreen({ disciplines, loading, onSave, onDelete, onBa
           }}
         />
       )}
-    </>
+    </div>
   );
 }
