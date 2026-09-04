@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import type { Discipline, Id, Player, Session, SplitResult, TeamAssignment } from "../domain/types";
+import type { Capability, Discipline, Id, Player, Session, SplitResult, TeamAssignment } from "../domain/types";
 import { describeFlags, teamName } from "./flow";
 import { freshSplit, swapPlayers } from "./edit";
 
@@ -8,11 +8,20 @@ interface Props {
   discipline: Discipline;
   roster: Player[];
   onPersistResult: (result: SplitResult) => Promise<void>;
-  /** Tournament mode: submit the current teams into the tournament. */
   onSubmitTournament?: (teams: TeamAssignment[]) => void;
+  onBack?: () => void;
+}
+const BIB = ["a", "b", "c", "d", "e"];
+
+function playerCapability(player: Player, discipline: Discipline): Capability | undefined {
+  return player.capabilities.find((c) => c.disciplineId === discipline.id);
 }
 
-const BIB = ["a", "b", "c", "d", "e"];
+function strengthFromRatings(cap: Capability, discipline: Discipline): number {
+  const vals = discipline.attributes.map((a) => cap.attributeRatings[a.id] ?? 0);
+  if (vals.length === 0) return 0;
+  return vals.reduce((s, v) => s + v, 0) / vals.length;
+}
 
 interface TeamCardProps {
   team: TeamAssignment;
@@ -26,11 +35,15 @@ interface TeamCardProps {
 function TeamCard({ team, discipline, roster, swapMode, pick, onPick }: TeamCardProps) {
   return (
     <div className={`team ${BIB[team.index % BIB.length] ?? "a"}`}>
-      <span className="tname">{teamName(team.index)}</span>
+      <div className="tname">
+        <span className="tname-label">{teamName(team.index)}</span>
+        <span className="tname-avg">{team.avgStrength.toFixed(1)}</span>
+      </div>
       <ul>
         {team.slots.map((slot) => {
           const player = roster.find((p) => p.id === slot.playerId);
           const role = slot.roleId ? discipline.roles.find((r) => r.id === slot.roleId)?.name : undefined;
+          const cap = player ? playerCapability(player, discipline) : undefined;
           const picked = pick?.teamIndex === team.index && pick.playerId === slot.playerId;
           return (
             <li
@@ -46,8 +59,34 @@ function TeamCard({ team, discipline, roster, swapMode, pick, onPick }: TeamCard
                 }
               }}
             >
-              <span>{player?.name ?? "?"}</span>
-              {role && <span className="role">{role}</span>}
+              <div className="player-row">
+                <div className="player-head">
+                  <span className="player-name">{player?.name ?? "?"}</span>
+                  {cap && (
+                    <span className="player-overall" title="Overall rating (avg of all attributes)">
+                      {strengthFromRatings(cap, discipline).toFixed(1)}
+                    </span>
+                  )}
+                </div>
+                {role && <span className="role">{role}</span>}
+                {cap && (
+                  <div className="player-ratings" aria-label="Attribute ratings">
+                    {discipline.attributes.map((a) => {
+                      const v = cap.attributeRatings[a.id] ?? 0;
+                      return (
+                        <div key={a.id} className="rating-cell" title={`${a.name}: ${v}/5`}>
+                          <span className="rating-label">{a.name.slice(0, 3).toUpperCase()}</span>
+                          <span className="rating-dots">
+                            {[1, 2, 3, 4, 5].map((n) => (
+                              <span key={n} className={`dot ${n <= v ? "on" : ""}`} />
+                            ))}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
             </li>
           );
         })}
@@ -71,26 +110,25 @@ function GapMeter({ result, balanced }: { result: SplitResult; balanced: boolean
   return (
     <>
       <div className="scale">
-        <div className="num left">{result.teams[0] ? result.teams[0].avgStrength.toFixed(1) : ''}</div>
-        <div className="track" />
-        <div className="tick" style={{ left: "25%" }} />
-        <div className="tick" style={{ left: "75%" }} />
-        <div className="tick center" style={{ left: "50%" }} />
-        <div className="pivot" />
-        <div
-          className={`needle${balanced ? " balanced" : ""}`}
-          style={{ transform: `translate(-50%,-100%) rotate(${deg}deg)` }}
-        />
-        <div className="num right">{result.teams[1] ? result.teams[1].avgStrength.toFixed(1) : ''}</div>
+        <div className="track">
+          <div className="tick left" />
+          <div className="tick center" />
+          <div className="tick right" />
+          <div className="pivot" />
+          <div className={`needle ${balanced ? "balanced" : ""}`} style={{ transform: `translateX(-50%) rotate(${deg}deg)` }} />
+        </div>
+        <div className="num left">{gap.toFixed(1)}</div>
+        <div className="num right">{gap.toFixed(1)}</div>
       </div>
       <div className="readout">
         {balanced ? (
-          <>
-            Dead even. <span className="fine">Fair game.</span>
-          </>
+          <>Dead even. <span className="fine">Fair game.</span></>
         ) : (
           <>
-            {teamName(leader!.index)} is {gap.toFixed(1)} ahead. <span className="fine">Swap to even it up.</span>
+            Gap {gap.toFixed(1)}.{" "}
+            <span className="fine">
+              {leader ? teamName(leader.index) : "?"} leads.
+            </span>
           </>
         )}
       </div>
@@ -98,20 +136,23 @@ function GapMeter({ result, balanced }: { result: SplitResult; balanced: boolean
   );
 }
 
-export function SplitScreen({ session, discipline, roster, onPersistResult, onSubmitTournament }: Props) {
+export function SplitScreen({ session, discipline, roster, onPersistResult, onSubmitTournament, onBack }: Props) {
   const [editable, setEditable] = useState<SplitResult>(session.result);
   const [swapMode, setSwapMode] = useState(false);
   const [pick, setPick] = useState<{ teamIndex: number; playerId: Id } | null>(null);
   const [rerollCount, setRerollCount] = useState(1);
   const pitchRef = useRef<HTMLDivElement>(null);
 
-  // The one orchestrated moment: teams deal in (reduced-motion collapses this).
   useEffect(() => {
+    if (!pitchRef.current) return;
     const el = pitchRef.current;
-    if (!el) return;
+    if (typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) {
+      el.classList.add("in");
+      return;
+    }
     el.classList.remove("in");
-    const raf = requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add("in")));
-    return () => cancelAnimationFrame(raf);
+    const t = window.setTimeout(() => el.classList.add("in"), 20);
+    return () => window.clearTimeout(t);
   }, [editable]);
 
   const result = editable;
@@ -125,7 +166,7 @@ export function SplitScreen({ session, discipline, roster, onPersistResult, onSu
     try {
       await onPersistResult(next);
     } catch {
-      // Non-fatal: the on-screen result still stands.
+      /* ignore */
     }
   };
 
@@ -134,43 +175,30 @@ export function SplitScreen({ session, discipline, roster, onPersistResult, onSu
       setPick({ teamIndex, playerId });
       return;
     }
-    if (pick.teamIndex === teamIndex && pick.playerId === playerId) {
-      setPick(null); // tap again to unselect
-      return;
-    }
     if (pick.teamIndex === teamIndex) {
-      setPick({ teamIndex, playerId }); // reselect within the same team
+      setPick(null);
       return;
     }
-    const next = swapPlayers(result, roster, discipline, pick, { teamIndex, playerId });
-    setPick(null);
+    const a = { teamIndex: pick.teamIndex, playerId: pick.playerId };
+    const b = { teamIndex, playerId };
+    const next = swapPlayers(result, roster, discipline, a, b);
     void commit(next);
+    setPick(null);
   };
 
   const reroll = () => {
-    // A deterministic exact solver returns the same optimum; sample different
-    // near-optimal splits and retry until the result actually changes.
-    const sig = (result: SplitResult) =>
-      result.teams
-        .map((t) => t.slots.map((s) => s.playerId).sort().join(","))
-        .sort()
-        .join("|");
-    const current = sig(editable);
-    for (let attempt = 0; attempt < 6; attempt++) {
-      const next = freshSplit(session.poolPlayerIds, roster, discipline, session.settings, {
-        variety: rerollCount + attempt,
-      });
-      if (sig(next) !== current || attempt === 5) {
-        setRerollCount((c) => c + attempt + 1);
-        setPick(null);
-        void commit(next);
-        return;
-      }
-    }
+    const next = freshSplit(
+      result.teams.flatMap((t) => t.slots.map((s) => s.playerId)),
+      roster,
+      discipline,
+      { teamCount: result.teams.length },
+    );
+    void commit(next);
+    setRerollCount((n) => n + 1);
   };
 
   const toggleSwapMode = () => {
-    setSwapMode((on) => !on);
+    setSwapMode((s) => !s);
     setPick(null);
   };
 
@@ -184,19 +212,31 @@ export function SplitScreen({ session, discipline, roster, onPersistResult, onSu
   });
 
   return (
-    <>
+    <div className="screen split-screen">
       <div className="breadcrumb">
         <a href="#" onClick={(e) => { e.preventDefault(); /* back handled via app */ }}>Match setup</a>
         <span className="sep">/</span>
         <span>Split result</span>
       </div>
-      <h1>Tonight&apos;s teams</h1>
+
+      <div className="split-head">
+        <h1>Tonight&apos;s teams</h1>
+        <div className="split-head-meta">
+          <span className="badge badge--generic">{discipline.name}</span>
+          <span className="badge badge--generic">{result.teams.length} teams</span>
+          {rerollCount > 1 && <span className="badge badge--generic">Roll #{rerollCount}</span>}
+        </div>
+      </div>
+
       {swapMode && (
-        <p className="status">
-          {pick
-            ? `Now tap a player on the other team to swap with ${roster.find((p) => p.id === pick.playerId)?.name ?? "?"}.`
-            : "Tap one player on each team to swap them."}
-        </p>
+        <div className="swap-banner">
+          <span className="swap-banner-icon" aria-hidden="true">⇄</span>
+          <span>
+            {pick
+              ? `Now tap a player on the other team to swap with ${roster.find((p) => p.id === pick.playerId)?.name ?? "?"}.`
+              : "Tap one player on each team to swap them."}
+          </span>
+        </div>
       )}
 
       {result.teams.length === 2 ? (
@@ -205,7 +245,7 @@ export function SplitScreen({ session, discipline, roster, onPersistResult, onSu
             <TeamCard {...teamCardProps(result.teams[0])} />
             <div className="mid">
               <span className="tag">VS</span>
-              <span className="tag">{balanced ? "OK" : result.gap.toFixed(1)}</span>
+              <span className="tag tag-gap">{balanced ? "OK" : result.gap.toFixed(1)}</span>
             </div>
             <TeamCard {...teamCardProps(result.teams[1])} />
           </div>
@@ -215,9 +255,7 @@ export function SplitScreen({ session, discipline, roster, onPersistResult, onSu
         <div ref={pitchRef} className="pitch">
           <div className="readout">
             {balanced ? (
-              <>
-                Dead even. <span className="fine">Fair game.</span>
-              </>
+              <>Dead even. <span className="fine">Fair game.</span></>
             ) : (
               <>
                 Gap {result.gap.toFixed(1)}.{" "}
@@ -237,18 +275,25 @@ export function SplitScreen({ session, discipline, roster, onPersistResult, onSu
         </div>
       )}
 
-      <div className="flags">
-        {displayFlags.map((f, i) => (
-          <div key={i} className="flag">
-            {f}
-          </div>
-        ))}
-      </div>
+      {displayFlags.length > 0 && (
+        <div className="flags">
+          {displayFlags.map((f, i) => (
+            <div key={i} className="flag">
+              {f}
+            </div>
+          ))}
+        </div>
+      )}
 
-      <div className="bar">
+      <div className="bar split-bar">
+        {onBack && !swapMode && (
+          <button type="button" className="btn btn-ghost" onClick={onBack} data-testid="back-button">
+            ← Roster
+          </button>
+        )}
         {swapMode ? (
           <button type="button" className="btn btn-primary" onClick={toggleSwapMode}>
-            Done
+            Done swapping
           </button>
         ) : onSubmitTournament ? (
           <>
@@ -278,6 +323,6 @@ export function SplitScreen({ session, discipline, roster, onPersistResult, onSu
           </>
         )}
       </div>
-    </>
+    </div>
   );
 }

@@ -745,6 +745,27 @@ h1 {
 .row:active {
   transform: translateY(1px);
 }
+.history-time {
+  display: block;
+  font-family: "Familjen Grotesk", sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-2);
+  letter-spacing: 0.02em;
+  margin-top: 3px;
+  text-transform: none;
+}
+.history-row .name {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.history-row .badges {
+  margin-top: 4px;
+}
+.history-list {
+  gap: 8px;
+}
 .row:focus-visible {
   outline: 3px solid var(--accent);
   outline-offset: 2px;
@@ -1290,9 +1311,10 @@ h1 {
   cursor: pointer;
 }
 .chip[aria-pressed="true"] {
-  background: var(--chip-on);
-  border-color: var(--chip-on);
-  color: var(--chip-on-text);
+  background: var(--whistle);
+  border-color: var(--whistle);
+  color: var(--whistle-ink);
+  box-shadow: 0 1px 0 var(--whistle), 0 2px 6px rgba(230, 57, 70, 0.25);
 }
 .chip.active {
   background: var(--chip-on);
@@ -1470,6 +1492,185 @@ h1 {
   }
 }
 
+/* ---------- match setup ---------- */
+.match-setup {
+  gap: 28px;
+}
+.match-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.match-section-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1.5px solid var(--hairline);
+}
+.match-step {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--text);
+  color: var(--surface);
+  font-family: "Chakra Petch", sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.match-section-title {
+  font-family: "Chakra Petch", sans-serif;
+  font-weight: 600;
+  font-size: 15px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text);
+  margin: 0;
+  flex: 1 1 auto;
+}
+.match-count {
+  font-family: "Familjen Grotesk", sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-2);
+  background: var(--surface-2);
+  padding: 3px 8px;
+  border-radius: 999px;
+  border: 1.5px solid var(--hairline);
+}
+.match-setup .games {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.match-setup .game {
+  position: relative;
+  padding: 14px;
+  text-align: left;
+  background: var(--surface-2);
+  border: 1.5px solid var(--hairline);
+  border-radius: var(--r-md);
+  cursor: pointer;
+  transition: border-color 0.12s, background 0.12s, transform 0.08s;
+}
+.match-setup .game:hover:not(:disabled) {
+  border-color: var(--text-2);
+}
+.match-setup .game.active {
+  border-color: var(--text);
+  background: var(--text);
+  color: var(--surface);
+}
+.match-setup .game.active .game-sub {
+  color: var(--surface);
+  opacity: 0.8;
+}
+.match-setup .game:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.match-setup .game-name {
+  font-family: "Chakra Petch", sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+.match-setup .game-sub {
+  font-family: "Familjen Grotesk", sans-serif;
+  font-size: 12px;
+  color: var(--text-2);
+  margin-top: 4px;
+}
+.match-setup .game-check {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  font-size: 12px;
+  color: var(--whistle);
+  font-weight: 700;
+}
+.match-setup .game.active .game-check {
+  color: var(--surface);
+}
+.match-setup .chip {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 10px 14px;
+}
+.match-setup .chip-name {
+  font-family: "Familjen Grotesk", sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+}
+.match-setup .chip-note {
+  font-family: "Familjen Grotesk", sans-serif;
+  font-size: 11px;
+  color: var(--text-2);
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: 0;
+}
+.match-setup .chip[aria-pressed="true"] .chip-note {
+  color: var(--whistle-ink);
+  opacity: 0.8;
+}
+.match-setup .chip-roles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  margin-top: 4px;
+}
+.match-setup .chip-role {
+  display: inline-block;
+  font-family: "Chakra Petch", sans-serif;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 2px 6px;
+  border-radius: 3px;
+  background: var(--surface-2);
+  color: var(--text-2);
+  border: 1px solid var(--hairline);
+  line-height: 1.2;
+}
+.match-setup .chip-role--preferred {
+  background: var(--text);
+  color: var(--surface);
+  border-color: var(--text);
+  font-weight: 800;
+}
+.match-setup .chip[aria-pressed="true"] .chip-role {
+  background: transparent;
+  color: var(--whistle-ink);
+  border-color: var(--whistle-ink);
+  opacity: 0.7;
+}
+.match-setup .chip[aria-pressed="true"] .chip-role--preferred {
+  background: var(--surface);
+  color: var(--text);
+  border-color: var(--surface);
+  opacity: 1;
+  font-weight: 800;
+}
+.match-bar {
+  position: sticky;
+  bottom: 64px;
+  z-index: 30;
+  background: var(--surface);
+  border-top: 1.5px solid var(--hairline);
+  margin-top: 8px;
+  padding-top: 12px;
+  padding-bottom: 12px;
+}
+
 /* ---------- match ---------- */
 .games {
   display: grid;
@@ -1563,7 +1764,9 @@ h1 {
 .team {
   border-radius: var(--r-md);
   padding: 12px 12px 10px;
-  background: var(--panel-card);
+  background: var(--surface-2);
+  border: 1.5px solid var(--hairline);
+  color: var(--text);
 }
 .team .tname {
   font-family: "Chakra Petch", sans-serif;
@@ -1574,7 +1777,7 @@ h1 {
   padding: 5px 10px;
   border-radius: 999px;
   display: inline-block;
-  color: var(--text);
+  color: #ffffff;
   margin-bottom: 10px;
 }
 .team.a .tname {
@@ -1604,7 +1807,7 @@ h1 {
   gap: 8px;
   font-size: 14px;
   font-weight: 500;
-  color: var(--panel-text);
+  color: var(--text);
 }
 .team li .role {
   font-size: 11px;
@@ -1767,6 +1970,167 @@ h1 {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 10px;
+}
+
+/* ---------- split screen ---------- */
+.split-screen {
+  gap: 20px;
+}
+.split-head {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1.5px solid var(--hairline);
+}
+.split-head-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.swap-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  background: var(--whistle);
+  color: var(--whistle-ink);
+  border-radius: var(--r-md);
+  font-family: "Familjen Grotesk", sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+}
+.swap-banner-icon {
+  font-size: 18px;
+  font-weight: 700;
+}
+.player-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+}
+.player-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+}
+.player-overall {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 22px;
+  padding: 0 6px;
+  font-family: "Chakra Petch", sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  background: var(--text);
+  color: var(--surface);
+  border: 1.5px solid var(--text);
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+[data-theme="dark"] .player-overall {
+  background: #f2efe7;
+  color: #14161a;
+  border-color: #f2efe7;
+}
+.player-name {
+  font-family: "Familjen Grotesk", sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.3;
+}
+[data-theme="dark"] .player-name {
+  color: #f2efe7 !important;
+}
+.player-ratings {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  margin-top: 2px;
+}
+.rating-cell {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.rating-label {
+  font-family: "Chakra Petch", sans-serif;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--text);
+}
+.rating-dots {
+  display: inline-flex;
+  gap: 2px;
+}
+.rating-dots .dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--hairline);
+  border: 1px solid var(--text-2);
+}
+.rating-dots .dot.on {
+  background: var(--text);
+  border-color: var(--text);
+}
+.team li .player-ratings {
+  opacity: 0.85;
+}
+.team li.swappable {
+  cursor: pointer;
+}
+.team li.picked {
+  outline: 2px solid var(--whistle);
+  outline-offset: -2px;
+  background: var(--panel-card);
+}
+.tname {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 12px !important;
+}
+.tname-label {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tname-avg {
+  font-family: "Chakra Petch", sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  background: rgba(20, 22, 26, 0.85);
+  color: #ffffff;
+  padding: 2px 8px;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+.tag-gap {
+  font-family: "Chakra Petch", sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+}
+.split-bar {
+  position: sticky;
+  bottom: 64px;
+  z-index: 30;
+  background: var(--surface);
+  border-top: 1.5px solid var(--hairline);
+  margin-top: 8px;
+  padding-top: 12px;
+  padding-bottom: 12px;
 }
 
 /* split deal-in: the one orchestrated moment */

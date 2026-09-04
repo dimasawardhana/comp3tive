@@ -951,6 +951,7 @@ export default function App() {
         </div>
       )}
       {view.mode === "games" && (
+        <div className="screen">
         <GamesScreen
           tournaments={tournaments.tournaments}
           disciplines={disciplines}
@@ -958,6 +959,7 @@ export default function App() {
           onOpen={openTournament}
           onDelete={deleteTournament}
         />
+        </div>
       )}
       {view.mode === "tournament" && viewTournament && (
         <TournamentScreen
@@ -980,6 +982,14 @@ export default function App() {
             // Update session with new result
             const updatedSession = { ...view.session!, result };
             await sessionStore.saveSession(updatedSession);
+          }}
+          onBack={() => {
+            // Go back to match setup if a setup exists, otherwise roster
+            if (setup) {
+              setView({ mode: "match" });
+            } else {
+              setView({ mode: "roster" });
+            }
           }}
         />
       )}

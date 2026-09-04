@@ -101,6 +101,7 @@ export function GamesScreen({ tournaments, disciplines, onCreate, onOpen, onDele
         <span className="sep">/</span>
         <span>Series list</span>
       </div>
+      <h1>Games</h1>
       {tournaments.length === 0 ? (
         <div className="empty">
           <div className="kicker">No games yet</div>

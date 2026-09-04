@@ -19,9 +19,14 @@ function relativeTime(ts: number): string {
   return new Date(ts).toLocaleDateString();
 }
 
+function formatTime(ts: number): string {
+  return new Date(ts).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
+
 export function HistoryScreen({ sessions, loading, disciplines, onReopen, onDelete }: Props) {
   return (
-    <>
+    <div className="screen">
+      <div className="kicker">Game Tape · 02</div>
       <h1>History</h1>
       <p className="lede">Every team-building run you&apos;ve done. Reopen one to re-split the same pool.</p>
 
@@ -34,7 +39,7 @@ export function HistoryScreen({ sessions, loading, disciplines, onReopen, onDele
           <p>Split your first teams and they&apos;ll be saved automatically.</p>
         </div>
       ) : (
-        <ul className="roster">
+        <ul className="roster history-list">
           {sessions.map((s) => {
             const discipline = disciplines.find((d) => d.id === s.disciplineId);
             const sizes = s.result.teams.map((t) => t.slots.length);
@@ -46,7 +51,7 @@ export function HistoryScreen({ sessions, loading, disciplines, onReopen, onDele
             return (
               <li
                 key={s.id}
-                className="row row-clickable"
+                className="row row-clickable history-row"
                 style={{ ["--stripe" as string]: stripeVar }}
                 onClick={() => onReopen(s)}
                 onKeyDown={(e) => {
@@ -59,7 +64,12 @@ export function HistoryScreen({ sessions, loading, disciplines, onReopen, onDele
                 tabIndex={0}
               >
                 <div className="who">
-                  <div className="name">{discipline?.shortName ?? "Unknown"} session</div>
+                  <div className="name">
+                    {discipline?.shortName ?? "Unknown"} session
+                    <span className="history-time" title={new Date(s.createdAt).toLocaleString()}>
+                      {relativeTime(s.createdAt)} · {formatTime(s.createdAt)}
+                    </span>
+                  </div>
                   <div className="badges">
                     <span className="badge badge--generic">
                       {sizes.length} teams ({summary})
@@ -91,6 +101,6 @@ export function HistoryScreen({ sessions, loading, disciplines, onReopen, onDele
           })}
         </ul>
       )}
-    </>
+    </div>
   );
 }
