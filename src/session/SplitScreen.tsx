@@ -9,8 +9,12 @@ interface Props {
   roster: Player[];
   onPersistResult: (result: SplitResult) => Promise<void>;
   onSubmitTournament?: (teams: TeamAssignment[]) => void;
+  /** Tournament mode: true when splitting inside a tournament draft. */
+  inTournament?: boolean;
+  /** Go back to the match setup screen to change the roster. */
   onBack?: () => void;
 }
+
 const BIB = ["a", "b", "c", "d", "e"];
 
 function playerCapability(player: Player, discipline: Discipline): Capability | undefined {
@@ -136,7 +140,7 @@ function GapMeter({ result, balanced }: { result: SplitResult; balanced: boolean
   );
 }
 
-export function SplitScreen({ session, discipline, roster, onPersistResult, onSubmitTournament, onBack }: Props) {
+export function SplitScreen({ session, discipline, roster, onPersistResult, onSubmitTournament, inTournament, onBack }: Props) {
   const [editable, setEditable] = useState<SplitResult>(session.result);
   const [swapMode, setSwapMode] = useState(false);
   const [pick, setPick] = useState<{ teamIndex: number; playerId: Id } | null>(null);
@@ -224,6 +228,7 @@ export function SplitScreen({ session, discipline, roster, onPersistResult, onSu
         <div className="split-head-meta">
           <span className="badge badge--generic">{discipline.name}</span>
           <span className="badge badge--generic">{result.teams.length} teams</span>
+          {inTournament && <span className="badge badge--generic badge--tournament">Tournament squad</span>}
           {rerollCount > 1 && <span className="badge badge--generic">Roll #{rerollCount}</span>}
         </div>
       </div>
@@ -286,9 +291,14 @@ export function SplitScreen({ session, discipline, roster, onPersistResult, onSu
       )}
 
       <div className="bar split-bar">
-        {onBack && !swapMode && (
+        {onBack && !swapMode && !inTournament && (
           <button type="button" className="btn btn-ghost" onClick={onBack} data-testid="back-button">
             ← Roster
+          </button>
+        )}
+        {inTournament && !swapMode && (
+          <button type="button" className="btn btn-ghost" onClick={onBack} data-testid="back-to-tournament">
+            ← Tournament
           </button>
         )}
         {swapMode ? (
@@ -296,31 +306,19 @@ export function SplitScreen({ session, discipline, roster, onPersistResult, onSu
             Done swapping
           </button>
         ) : onSubmitTournament ? (
-          <>
-            <button type="button" className="btn btn-ghost" onClick={toggleSwapMode}>
-              Swap
-            </button>
-            <button type="button" className="btn btn-ghost" onClick={() => void reroll()}>
-              Re-roll
-            </button>
-            <button
-              type="button"
-              className="btn btn-primary"
-              disabled={result.teams.length < 2}
-              onClick={() => onSubmitTournament(result.teams)}
-            >
-              Submit teams
-            </button>
-          </>
+          <button
+            type="button"
+            className="btn btn-primary"
+            disabled={result.teams.length < 2}
+            onClick={() => onSubmitTournament(result.teams)}
+            data-testid="submit-tournament-squad"
+          >
+            Save tournament squad →
+          </button>
         ) : (
-          <>
-            <button type="button" className="btn btn-ghost" onClick={toggleSwapMode}>
-              Swap
-            </button>
-            <button type="button" className="btn btn-primary" onClick={() => void reroll()}>
-              Re-roll
-            </button>
-          </>
+          <button type="button" className="btn btn-primary" onClick={() => void reroll()}>
+            Re-roll
+          </button>
         )}
       </div>
     </div>

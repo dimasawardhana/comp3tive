@@ -2340,6 +2340,193 @@ h1 {
   font-weight: 600;
   margin-left: 4px;
 }
+.tournament-header {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-bottom: 12px;
+  border-bottom: 1.5px solid var(--hairline);
+}
+.tournament-header h1 {
+  margin: 0;
+  font-size: 28px;
+  letter-spacing: -0.01em;
+}
+.tournament-subtitle {
+  font-family: "Familjen Grotesk", sans-serif;
+  font-size: 14px;
+  color: var(--text-2);
+}
+.tournament-meta-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+@media (min-width: 600px) {
+  .tournament-meta-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+.tournament-meta-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 14px;
+  background: var(--surface-2);
+  border: 1.5px solid var(--hairline);
+  border-radius: var(--r-md);
+}
+.tournament-meta-card-label {
+  font-family: "Chakra Petch", sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-2);
+  display: block;
+}
+.tournament-meta-card-value {
+  font-family: "Chakra Petch", sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.1;
+  display: block;
+}
+.tournament-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px 18px;
+  background: var(--surface-2);
+  border: 1.5px solid var(--hairline);
+  border-radius: var(--r-md);
+}
+.tournament-preview-label {
+  font-family: "Chakra Petch", sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-2);
+}
+.tournament-preview-text {
+  font-family: "Familjen Grotesk", sans-serif;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--text);
+  line-height: 1.45;
+}
+.tournament-preview-text strong {
+  font-weight: 700;
+  color: var(--whistle);
+}
+.tournament-preview .btn {
+  margin-top: 4px;
+}
+.review-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 18px;
+  background: var(--surface-2);
+  border: 1.5px solid var(--hairline);
+  border-radius: var(--r-md);
+}
+.review-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1.5px solid var(--hairline);
+}
+.review-panel-head h2 {
+  font-family: "Chakra Petch", sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text);
+  margin: 0;
+}
+.review-balance {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: "Familjen Grotesk", sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+.review-balance-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--ok);
+}
+.review-balance-dot.unbalanced {
+  background: var(--whistle);
+}
+.review-teams {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.review-team {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px;
+  background: var(--surface);
+  border: 1.5px solid var(--hairline);
+  border-radius: var(--r-md);
+  border-left: 4px solid var(--text);
+}
+.review-team.a { border-left-color: var(--bib-a); }
+.review-team.b { border-left-color: var(--bib-b); }
+.review-team.c { border-left-color: var(--bib-c); }
+.review-team.d { border-left-color: var(--bib-d); }
+.review-team.e { border-left-color: var(--bib-e); }
+.review-team-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.review-team-name {
+  font-family: "Chakra Petch", sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text);
+}
+.review-team-avg {
+  font-family: "Chakra Petch", sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-2);
+}
+.review-team-players {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-family: "Familjen Grotesk", sans-serif;
+  font-size: 13px;
+  color: var(--text);
+}
+.review-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-top: 10px;
+  border-top: 1.5px solid var(--hairline);
+}
+.review-actions .btn-primary {
+  flex: 1 1 auto;
+}
 .status-banner {
   display: flex;
   align-items: center;

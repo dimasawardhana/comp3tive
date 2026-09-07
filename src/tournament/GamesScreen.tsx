@@ -19,7 +19,7 @@ interface Props {
 
 const FORMAT_LABEL: Record<TournamentFormat, string> = {
   series: "Series",
-  "single-elim": "Single elim",
+  "single-elim": "Single elimination",
   swiss: "Swiss",
 };
 
@@ -211,10 +211,8 @@ export function GamesScreen({ tournaments, disciplines, onCreate, onOpen, onDele
               </ul>
             )}
 
-            <div className="field">
-              <label className="field-label" htmlFor="tournament-name">
-                Name
-              </label>
+            <div className="modal-section">
+              <div className="field-label">Name</div>
               <input
                 id="tournament-name"
                 className="input"
@@ -228,85 +226,124 @@ export function GamesScreen({ tournaments, disciplines, onCreate, onOpen, onDele
               />
             </div>
 
-            <span className="sec">Discipline</span>
-            <div className="chips">
-              {disciplines.map((d) => (
-                <button
-                  key={d.id}
-                  type="button"
-                  className="chip"
-                  aria-pressed={d.id === disciplineId}
-                  onClick={() => {
-                    setDisciplineId(d.id);
-                    setValidationErrors([]);
-                  }}
-                >
-                  {d.shortName}
-                </button>
-              ))}
+            <div className="modal-section">
+              <div className="field-label">Discipline</div>
+              <div className="chips">
+                {disciplines.map((d) => (
+                  <button
+                    key={d.id}
+                    type="button"
+                    className="chip"
+                    aria-pressed={d.id === disciplineId}
+                    onClick={() => {
+                      setDisciplineId(d.id);
+                      setValidationErrors([]);
+                    }}
+                  >
+                    {d.shortName}
+                  </button>
+                ))}
+              </div>
+              {disciplineId && (() => {
+                const d = disciplines.find(x => x.id === disciplineId);
+                if (!d) return null;
+                return (
+                  <div className="modal-section-preview">
+                    <strong>{d.name}</strong> · {d.roles.length} role{d.roles.length === 1 ? "" : "s"} · {d.attributes.length} attribute{d.attributes.length === 1 ? "" : "s"} · {d.team.minTeamSize}{d.team.maxTeamSize ? `–${d.team.maxTeamSize}` : "+"} per team
+                  </div>
+                );
+              })()}
             </div>
 
-            <span className="sec">Format</span>
-            <div className="chips">
-              {FORMATS.map((f) => (
-                <button
-                  key={f}
-                  type="button"
-                  className="chip"
-                  aria-pressed={f === format}
-                  onClick={() => pickFormat(f)}
-                >
-                  {FORMAT_LABEL[f]}
-                </button>
-              ))}
+            <div className="modal-section">
+              <div className="field-label">Format</div>
+              <div className="chips">
+                {FORMATS.map((f) => (
+                  <button
+                    key={f}
+                    type="button"
+                    className="chip"
+                    aria-pressed={f === format}
+                    onClick={() => pickFormat(f)}
+                  >
+                    {FORMAT_LABEL[f]}
+                  </button>
+                ))}
+              </div>
             </div>
 
-            <span className="sec">Series length</span>
-            <div className="chips">
-              {BO.map((n) => (
-                <button
-                  key={n}
-                  type="button"
-                  className="chip"
-                  aria-pressed={n === seriesLength}
-                  onClick={() => {
-                    setSeriesLength(n);
-                    setValidationErrors([]);
-                  }}
-                >
-                  BO{n}
-                </button>
-              ))}
+            <div className="modal-section">
+              <div className="field-label">Series length</div>
+              <div className="chips">
+                {BO.map((n) => (
+                  <button
+                    key={n}
+                    type="button"
+                    className="chip"
+                    aria-pressed={n === seriesLength}
+                    onClick={() => {
+                      setSeriesLength(n);
+                      setValidationErrors([]);
+                    }}
+                  >
+                    BO{n}
+                  </button>
+                ))}
+              </div>
+              <p className="modal-section-hint">
+                BO{seriesLength} = {seriesLength === 1 ? "single game" : `first to ${Math.ceil(seriesLength / 2)} wins`}
+              </p>
             </div>
 
-            <span className="sec">Teams</span>
-            <div className="chips">
-              {counts.map((n) => (
-                <button
-                  key={n}
-                  type="button"
-                  className="chip"
-                  aria-pressed={n === teamCount}
-                  onClick={() => {
-                    setTeamCount(n);
-                    setValidationErrors([]);
-                  }}
-                >
-                  {n}
-                </button>
-              ))}
+            <div className="modal-section">
+              <div className="field-label">Teams</div>
+              <div className="chips">
+                {[2, 4, 6, 8].map((n) => {
+                  const allowed = counts.includes(n);
+                  return (
+                    <button
+                      key={n}
+                      type="button"
+                      className="chip"
+                      aria-pressed={n === teamCount}
+                      disabled={!allowed}
+                      onClick={() => {
+                        if (!allowed) return;
+                        setTeamCount(n);
+                        setValidationErrors([]);
+                      }}
+                    >
+                      {n}
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="modal-section-hint">
+                {format === "series" && "Series: 2 teams only."}
+                {format === "single-elim" && "Single elimination: 2, 4, or 8 teams."}
+                {format === "swiss" && "Swiss: 4, 6, or 8 teams."}
+              </p>
             </div>
 
             {format === "single-elim" && (
-              <label className="opt-row">
-                <input
-                  type="checkbox"
-                  checked={thirdPlace}
-                  onChange={(e) => setThirdPlace(e.target.checked)}
-                />
-                <span>Play a 3rd-place match</span>
-              </label>
+              <div className="modal-section">
+                <label className="opt-row">
+                  <input
+                    type="checkbox"
+                    checked={thirdPlace}
+                    onChange={(e) => setThirdPlace(e.target.checked)}
+                  />
+                  <span>Play a 3rd-place match</span>
+                </label>
+              </div>
             )}
+
+            <div className="modal-section-preview">
+              <strong>{FORMAT_LABEL[format]}</strong> · {teamCount} team{teamCount === 1 ? "" : "s"}
+              {format === "series" && ` · BO${seriesLength} = first to ${Math.ceil(seriesLength / 2)} wins`}
+              {format === "single-elim" && ` · ${teamCount === 2 ? 1 : teamCount === 4 ? 2 : 3} round${teamCount === 8 ? "s" : ""}${thirdPlace ? " · 3rd-place match" : ""}`}
+              {format === "swiss" && ` · ${teamCount === 4 ? 2 : teamCount === 6 ? 3 : 3} rounds · standings`}
+            </div>
 
             <div className="bar">
               <button type="button" className="btn btn-ghost" onClick={() => setCreating(false)}>

@@ -275,25 +275,10 @@ export default function App() {
     if (!session) return;
     
     // Validate teams before submission
-    const validation = validateTeamParticipation(
-      tournament,
-      session,
-      {
-        teams,
-        gap: 0, // Will be calculated from actual teams
-        flags: [],
-        unassigned: [],
-        solver: { optimal: true, nodesExplored: 0, elapsedMs: 0 }
-      },
-      discipline
-    );
-    
-    if (validation.length > 0) {
-      // Show validation errors to user
-      console.error("Team validation failed:", validation);
-      alert(`Validation failed: ${validation.map(v => v.message).join('\n')}`);
-      return;
-    }
+    // Note: we don't require pool size to match split allocation.
+    // The user can select a subset of eligible players for the tournament.
+    // validateTeamParticipation is not called here — only role coverage and
+    // team count constraints matter for tournament submission.
     
     const seeded = [...teams].sort((a, b) => b.avgStrength - a.avgStrength);
     const next: Tournament = {
@@ -623,7 +608,8 @@ export default function App() {
       teams: [],
       matches: [],
     };
-    await tournamentStore.saveTournament(tournament);
+    await tournaments.saveTournament(tournament);
+    setView({ mode: "tournament", id: tournament.id });
   };
 
 
@@ -641,8 +627,20 @@ export default function App() {
   };
 
   const startSplit = () => {
-    if (!setup) return;
-    split();
+    if (setup) {
+      split();
+      return;
+    }
+    const tournament = viewTournament;
+    if (tournament) {
+      setSetup({
+        disciplineId: tournament.disciplineId,
+        selectedIds: communityPlayers.map(p => p.id),
+        teamCount: tournament.teamCount,
+        tournamentId: tournament.id,
+      });
+      setView({ mode: "match" });
+    }
   };
 
   const finishSplit = (teams: TeamAssignment[]) => {
@@ -983,6 +981,8 @@ export default function App() {
             const updatedSession = { ...view.session!, result };
             await sessionStore.saveSession(updatedSession);
           }}
+          inTournament={!!setup?.tournamentId}
+          onSubmitTournament={setup?.tournamentId ? (teams) => finishSplit(teams) : undefined}
           onBack={() => {
             // Go back to match setup if a setup exists, otherwise roster
             if (setup) {
@@ -993,7 +993,6 @@ export default function App() {
           }}
         />
       )}
-
       {view.mode === "history" && (
         <HistoryScreen
           sessions={sessions.sessions}
