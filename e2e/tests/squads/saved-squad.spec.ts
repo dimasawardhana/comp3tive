@@ -14,6 +14,8 @@ test("saved squad flow: save from split, list, use in tournament", async ({ page
   // Work in the active community (Default on a fresh profile). Re-imports
   // upsert by id, so reruns converge on the same 10 players.
   await expect(page.locator(".squad-select-value")).toBeVisible({ timeout: 5000 });
+    // The app lands on the Dashboard; the roster toolbar lives on the Roster hub.
+  await page.getByRole("button", { name: "Roster" }).click();
   await expect(page.getByText("+ Add Player")).toBeVisible({ timeout: 5000 });
 
   // Import a players-only roster (10 MLBB-eligible players) via the toolbar input.
@@ -62,7 +64,7 @@ test("saved squad flow: save from split, list, use in tournament", async ({ page
   await expect(modal).not.toBeVisible({ timeout: 5000 });
 
   // Squads tab lists it.
-  await page.locator(".bottom-nav .nav-link").nth(3).click();
+  await page.locator(".bottom-nav .nav-link").nth(4).click();
   await expect(page.locator(".screen h1")).toHaveText("Saved squads");
   await expect(page.getByText("Friday Scrims")).toBeVisible({ timeout: 5000 });
 

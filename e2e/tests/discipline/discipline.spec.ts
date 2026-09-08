@@ -4,8 +4,7 @@ test("discipline: layout padding + list refreshes after creation", async ({ page
   await page.goto("http://localhost:4173/");
   await expect(page.locator(".app")).toBeVisible({ timeout: 15000 });
 
-  // Disciplines moved out of the bottom nav (tab 4 is now Saved squads);
-  // it is reached from the Games screen toolbar.
+  // The app now lands on the Dashboard; Games is still nav index 1.
   await page.locator(".bottom-nav .nav-link").nth(1).click();
   await expect(page.locator(".screen h1")).toHaveText("Games");
   await page.getByRole("button", { name: "Disciplines" }).click();

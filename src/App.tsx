@@ -124,24 +124,16 @@ export default function App() {
   const communities = useCommunities(communityStore, rosterStore, sessionStore, squadStore);
   const tournaments = useTournaments(tournamentStore);
   const savedSquads = useSavedSquads(squadStore);
-  const [viewStack, setViewStack] = useState<View[]>([{ mode: "roster" }]);
+  const [viewStack, setViewStack] = useState<View[]>([{ mode: "dashboard" }]);
   const view = viewStack[viewStack.length - 1];
 
-  // Ticket 02 demo hook: render the dashboard for verification until ticket 03
-  // wires the Home tab and dashboard-first landing. Reaching it needs an
-  // explicit URL hash (#dashboard), so no existing flow or spec changes.
-  useEffect(() => {
-    if (window.location.hash === "#dashboard") {
-      setViewStack([{ mode: "dashboard" }]);
-    }
-  }, []);
   const [setup, setSetup] = useState<MatchSetup | null>(null);
   const [tournamentPrefill, setTournamentPrefill] = useState<{ disciplineId: Id; teamCount: number } | null>(null);
   const [filterIds, setFilterIds] = useState<string[]>([]);
 
   const pushView = (v: View) => setViewStack((s) => [...s, v]);
   const goBack = () => setViewStack((s) => (s.length > 1 ? s.slice(0, -1) : s));
-  const gotoHub = (hub: "roster" | "games" | "history" | "squads") => {
+  const gotoHub = (hub: "dashboard" | "roster" | "games" | "history" | "squads") => {
     setViewStack([{ mode: hub }]);
     setSetup(null);
   };
@@ -605,10 +597,6 @@ export default function App() {
     gotoHub("history");
   };
 
-  const goHome = () => {
-    gotoHub("roster");
-  };
-
   const showDisciplines = () => {
     goDisciplines();
   };
@@ -659,10 +647,6 @@ export default function App() {
 
   const enterMatchFlow = (tournamentId?: Id) => {
     startMatch("tournament", tournamentId);
-  };
-
-  const exitMatchFlow = () => {
-    gotoHub("roster");
   };
 
   const startSplit = () => {
@@ -806,7 +790,35 @@ export default function App() {
           )}
         </div>
       </header>
-      {/* Ticket 02 demo hook: temp flag until ticket 03 wires the Home tab / landing. */}
+
+      {showAddCommunity && (
+        <div className="add-community">
+          <div className="form-label">New community</div>
+          <div className="form-row">
+            <input
+              type="text"
+              value={communityName}
+              onChange={(e) => setCommunityName(e.target.value)}
+              placeholder="e.g. Sunday League"
+              onKeyDown={(e) => {
+                if (e.key === "Enter") createCommunity();
+                if (e.key === "Escape") cancelAddCommunity();
+              }}
+              autoFocus
+            />
+            <button className="btn btn-primary" onClick={createCommunity}>Create</button>
+            <button className="btn btn-ghost" onClick={cancelAddCommunity} aria-label="Cancel">Cancel</button>
+          </div>
+        </div>
+      )}
+      {communities.communities.length === 0 && !showAddCommunity && (
+        <div className="empty">
+          <div className="kicker">First whistle</div>
+          <div className="big">No communities yet</div>
+          <p>Hit ✚ in the topbar to create your first community.</p>
+        </div>
+      )}
+
       {view.mode === "dashboard" && (
         <DashboardScreen
           community={activeCommunity}
@@ -822,36 +834,6 @@ export default function App() {
           {activeCommunity && (
             <div className="lede">
               <strong>{activeCommunity.name}</strong> · {communityPlayers.length} player{communityPlayers.length === 1 ? "" : "s"} on the roster
-            </div>
-          )}
-
-
-
-          {showAddCommunity && (
-            <div className="add-community">
-              <div className="form-label">New community</div>
-              <div className="form-row">
-                <input
-                  type="text"
-                  value={communityName}
-                  onChange={(e) => setCommunityName(e.target.value)}
-                  placeholder="e.g. Sunday League"
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") createCommunity();
-                    if (e.key === "Escape") cancelAddCommunity();
-                  }}
-                  autoFocus
-                />
-                <button className="btn btn-primary" onClick={createCommunity}>Create</button>
-                <button className="btn btn-ghost" onClick={cancelAddCommunity} aria-label="Cancel">Cancel</button>
-              </div>
-            </div>
-          )}
-          {communities.communities.length === 0 && !showAddCommunity && (
-            <div className="empty">
-              <div className="kicker">First whistle</div>
-              <div className="big">No communities yet</div>
-              <p>Hit ✚ in the topbar to create your first community.</p>
             </div>
           )}
           
@@ -1117,6 +1099,15 @@ export default function App() {
         <button className={`nav-link ${viewStack[0].mode === "games" ? "nav-active" : ""}`} onClick={() => gotoHub("games")} aria-label="Games">
           <span className="nav-icon" aria-hidden="true">▣</span>
           <span>Games</span>
+        </button>
+        <button
+          className={`nav-link nav-link--home ${viewStack[0].mode === "dashboard" ? "nav-active" : ""}`}
+          onClick={() => gotoHub("dashboard")}
+          aria-label="Home"
+          aria-current={viewStack[0].mode === "dashboard" ? "page" : undefined}
+        >
+          <span className="nav-icon" aria-hidden="true">⌂</span>
+          <span>Home</span>
         </button>
         <button className={`nav-link ${viewStack[0].mode === "history" ? "nav-active" : ""}`} onClick={() => gotoHub("history")} aria-label="History">
           <span className="nav-icon" aria-hidden="true">≡</span>

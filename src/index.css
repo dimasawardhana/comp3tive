@@ -571,7 +571,7 @@ body {
   align-items: stretch;
   justify-content: space-around;
   gap: 0;
-  padding: 4px 8px calc(4px + env(safe-area-inset-bottom));
+  padding: 4px 5px calc(4px + env(safe-area-inset-bottom));
   width: 100%;
   background: var(--surface);
   border-top: 1.5px solid var(--hairline);
@@ -592,14 +592,14 @@ body {
   gap: 4px;
   flex: 1 1 0;
   min-width: 0;
-  padding: 10px 6px 8px;
+  padding: 10px 3px 8px;
   border-radius: 0;
   text-decoration: none;
   color: var(--text-2);
   font-family: "Familjen Grotesk", sans-serif;
   font-size: 10px;
   font-weight: 600;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
   transition: color 0.15s;
   border: none;
@@ -644,17 +644,48 @@ body {
   background: var(--whistle);
   border-radius: 0 0 3px 3px;
 }
+/* the centered Home slot: a filled accent disc + accent label so it reads as
+   the home affordance next to the flat text hubs. Active keeps the whistle
+   dot above but never recolors the glyph on the filled disc. */
+.bottom-nav .nav-link--home {
+  color: var(--text);
+}
+.bottom-nav .nav-link--home .nav-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-size: 17px;
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--text) 22%, transparent);
+}
+.bottom-nav .nav-link--home > span:last-child {
+  color: var(--accent);
+}
+.bottom-nav .nav-link--home:hover .nav-icon,
+.bottom-nav .nav-link--home.nav-active .nav-icon {
+  color: var(--accent-ink);
+  transform: scale(1.06);
+}
 @media (min-width: 768px) {
   .bottom-nav {
     padding: 6px 24px calc(6px + env(safe-area-inset-bottom));
   }
   .bottom-nav .nav-link {
     flex: 0 0 auto;
-    min-width: 96px;
-    padding: 12px 14px 10px;
+    min-width: 72px;
+    padding: 12px 8px 10px;
   }
   .bottom-nav .nav-link .nav-icon {
     font-size: 22px;
+  }
+  .bottom-nav .nav-link--home .nav-icon {
+    width: 36px;
+    height: 36px;
+    font-size: 19px;
   }
 }
 

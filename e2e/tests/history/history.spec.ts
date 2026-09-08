@@ -10,8 +10,8 @@ test("history: layout padding + kicker + lede + empty state", async ({ page }) =
   await page.locator(".add-community .btn-primary").click();
   await expect(page.locator(".add-community")).not.toBeVisible({ timeout: 3000 });
 
-  // Navigate to History via bottom nav (3rd tab)
-  await page.locator(".bottom-nav .nav-link").nth(2).click();
+  // Navigate to History via bottom nav (index 3; Home now sits at index 2).
+  await page.locator(".bottom-nav .nav-link").nth(3).click();
 
   // 1. .screen wrapper exists with proper padding
   const screen = page.locator(".screen");

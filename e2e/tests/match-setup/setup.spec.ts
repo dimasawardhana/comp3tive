@@ -10,6 +10,9 @@ test("match-setup: discipline first, then players, then teams", async ({ page })
   await page.locator(".add-community .btn-primary").click();
   await expect(page.locator(".add-community")).not.toBeVisible({ timeout: 3000 });
 
+  // The app lands on the Dashboard; the roster toolbar lives on the Roster hub.
+  await page.getByRole("button", { name: "Roster" }).click();
+
   // Add 2 players with Futsal capability via direct store manipulation
   // (skip the complex modal flow; just verify layout structure)
   // Add players via the simpler flow
