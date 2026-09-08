@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import type { Community, Id } from "../domain/types";
-import type { CommunityStore, RosterStore, SessionStore } from "../storage/types";
+import type { CommunityStore, RosterStore, SavedSquadStore, SessionStore } from "../storage/types";
 
 const ACTIVE_KEY = "tb-community";
 const DEFAULT_NAME = "Default";
@@ -26,12 +26,14 @@ function writeActive(id: string): void {
 /**
  * Communities (profiles): their own squads and history. The active community
  * drives every roster/session filter in the app. Deleting one cascades to its
- * players and sessions (a community owns them; they cannot be shared).
+ * players, sessions, and saved squads (a community owns them; they cannot be
+ * shared).
  */
 export function useCommunities(
   store: CommunityStore,
   rosterStore: RosterStore,
   sessionStore: SessionStore,
+  savedSquadStore: SavedSquadStore,
 ) {
   const [communities, setCommunities] = useState<Community[]>([]);
   const [activeId, setActiveIdState] = useState<string>(readActive);
@@ -90,11 +92,15 @@ export function useCommunities(
     async (id: Id) => {
       const current = await rosterStore.listPlayers();
       const sessions = await sessionStore.listSessions();
+      const squads = await savedSquadStore.listSavedSquads();
       for (const p of current) {
         if (p.communityId === id) await rosterStore.deletePlayer(p.id);
       }
       for (const s of sessions) {
         if (s.communityId === id) await sessionStore.deleteSession(s.id);
+      }
+      for (const q of squads) {
+        if (q.communityId === id) await savedSquadStore.deleteSavedSquad(q.id);
       }
       await store.deleteCommunity(id);
       setCommunities((prev) => {
@@ -107,7 +113,7 @@ export function useCommunities(
         return next;
       });
     },
-    [store, rosterStore, sessionStore, activeId],
+    [store, rosterStore, sessionStore, savedSquadStore, activeId],
   );
 
   return { communities, activeId, loading, error, refresh, setActiveId, create, remove };

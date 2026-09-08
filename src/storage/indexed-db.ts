@@ -1,14 +1,23 @@
-import type { Community, Discipline, Id, Player, Session, Tournament } from "../domain/types";
+import type { Community, Discipline, Id, Player, SavedSquad, Session, Tournament } from "../domain/types";
 import { SEED_DISCIPLINES } from "../domain/seed";
-import type { CommunityStore, DisciplineStore, RosterStore, SessionStore, TournamentStore } from "./types";
+import type {
+  CommunityStore,
+  DisciplineStore,
+  RosterStore,
+  SavedSquadStore,
+  SessionStore,
+  TournamentStore,
+} from "./types";
 
 const DEFAULT_DB = "team-builder";
-const DB_VERSION = 5;
+const DB_VERSION = 6;
 const COMMUNITY_STORE = "communities";
 const PLAYER_STORE = "players";
 const SESSION_STORE = "sessions";
 const DISCIPLINE_STORE = "disciplines";
 const TOURNAMENT_STORE = "tournaments";
+const SAVED_SQUAD_STORE = "saved-squads";
+
 function openDb(dbName: string): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
     const request = indexedDB.open(dbName, DB_VERSION);
@@ -25,6 +34,9 @@ function openDb(dbName: string): Promise<IDBDatabase> {
       }
       if (!db.objectStoreNames.contains(TOURNAMENT_STORE)) {
         db.createObjectStore(TOURNAMENT_STORE, { keyPath: "id" });
+      }
+      if (!db.objectStoreNames.contains(SAVED_SQUAD_STORE)) {
+        db.createObjectStore(SAVED_SQUAD_STORE, { keyPath: "id" });
       }
       if (!db.objectStoreNames.contains(DISCIPLINE_STORE)) {
         const store = db.createObjectStore(DISCIPLINE_STORE, { keyPath: "id" });
@@ -138,6 +150,18 @@ export function createIndexedDbTournamentStore(dbName = DEFAULT_DB): TournamentS
     deleteTournament: crud.remove,
     async replaceAllTournaments(tournaments: Tournament[]) {
       await replaceAll<Tournament>(dbName, TOURNAMENT_STORE, tournaments);
+    },
+  };
+}
+
+export function createIndexedDbSavedSquadStore(dbName = DEFAULT_DB): SavedSquadStore {
+  const crud = createCrud<SavedSquad>(dbName, SAVED_SQUAD_STORE);
+  return {
+    listSavedSquads: crud.list,
+    saveSavedSquad: crud.save,
+    deleteSavedSquad: crud.remove,
+    async replaceAllSavedSquads(squads: SavedSquad[]) {
+      await replaceAll<SavedSquad>(dbName, SAVED_SQUAD_STORE, squads);
     },
   };
 }

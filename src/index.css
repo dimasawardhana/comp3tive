@@ -319,11 +319,6 @@ body {
 .squad-switcher .kicker::before {
   content: "";
 }
-.squad-dropdown {
-  position: relative;
-  flex: 1 1 auto;
-  min-width: 0;
-}
 .squad-select {
   display: flex;
   align-items: center;
@@ -332,6 +327,8 @@ body {
   width: 100%;
   border: none;
   background: transparent;
+  appearance: none;
+  -webkit-appearance: none;
   font-family: "Familjen Grotesk", "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
   font-size: 15px;
   font-weight: 600;
@@ -2620,7 +2617,50 @@ h1 {
   color: var(--text);
   text-decoration: underline;
 }
-.breadcrumb .sep {
-  opacity: 0.4;
-  font-size: 10px;
+/* ---------- saved squads ---------- */
+.games-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin: 0 0 12px;
+}
+.tournament-squads {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1.5px solid var(--hairline);
+}
+.tournament-squad-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
+}
+.tournament-squad-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  text-align: left;
+  padding: 10px 12px;
+  background: var(--surface);
+  border: 1.5px solid var(--hairline);
+  border-radius: var(--r-md);
+  cursor: pointer;
+  font: inherit;
+  color: var(--text);
+}
+.tournament-squad-row:hover {
+  border-color: var(--accent);
+}
+.tournament-squad-name {
+  font-family: "Chakra Petch", sans-serif;
+  font-weight: 600;
+  font-size: 13px;
+}
+.tournament-squad-meta {
+  font-family: "Familjen Grotesk", sans-serif;
+  font-size: 12px;
+  color: var(--text-2);
+  flex-shrink: 0;
 }

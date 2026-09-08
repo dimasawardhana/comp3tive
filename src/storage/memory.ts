@@ -1,5 +1,5 @@
-import type { Discipline, Id, Player, Session } from "../domain/types";
-import type { DisciplineStore, RosterStore, SessionStore } from "./types";
+import type { Discipline, Id, Player, SavedSquad, Session } from "../domain/types";
+import type { DisciplineStore, RosterStore, SavedSquadStore, SessionStore } from "./types";
 
 /** In-memory stores: for tests and as a fallback when IndexedDB is absent. */
 export function createMemoryRosterStore(initial: Player[] = []): RosterStore {
@@ -36,6 +36,25 @@ export function createMemorySessionStore(initial: Session[] = []): SessionStore 
     async replaceAllSessions(items: Session[]) {
       sessions.clear();
       for (const s of items) sessions.set(s.id, structuredClone(s));
+    },
+  };
+}
+
+export function createMemorySavedSquadStore(initial: SavedSquad[] = []): SavedSquadStore {
+  const squads = new Map<Id, SavedSquad>(initial.map((s) => [s.id, structuredClone(s)]));
+  return {
+    async listSavedSquads() {
+      return [...squads.values()].map((s) => structuredClone(s));
+    },
+    async saveSavedSquad(squad: SavedSquad) {
+      squads.set(squad.id, structuredClone(squad));
+    },
+    async deleteSavedSquad(id: Id) {
+      squads.delete(id);
+    },
+    async replaceAllSavedSquads(items: SavedSquad[]) {
+      squads.clear();
+      for (const s of items) squads.set(s.id, structuredClone(s));
     },
   };
 }
