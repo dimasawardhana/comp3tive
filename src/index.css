@@ -972,6 +972,24 @@ h1 {
 .dashboard-empty {
   margin-top: 6px;
 }
+.dashboard-actions {
+  margin-top: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.dashboard-actions .btn {
+  flex: 1 0 auto;
+}
+.dashboard-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+}
+.dashboard-links .link {
+  font-size: 14px;
+  padding: 6px 2px;
+}
 
 /* ---------- buttons & bottom bar ---------- */
 .bar {

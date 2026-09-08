@@ -601,8 +601,32 @@ export default function App() {
     goDisciplines();
   };
 
-  const createTournament = async (spec: {
+  // Dashboard actions (ticket 04): every exit reuses an existing App flow —
+  // the roster "Split match" handler, the Games create flow, hub navigation,
+  // and the roster "+ Add Player" modal. Only the entry points differ.
+  const showSquads = () => {
+    gotoHub("squads");
+  };
 
+  const addPlayer = () => {
+    gotoHub("roster");
+    setEditingPlayer("new");
+  };
+
+  const startAdHocSplit = () => {
+    if (view.mode === "tournament" && viewTournament) {
+      startMatch("tournament", viewTournament.id);
+      return;
+    }
+    startMatch("ad-hoc");
+  };
+
+  const openNewTournament = () => {
+    setTournamentPrefill({ disciplineId: "", teamCount: 0 });
+    gotoHub("games");
+  };
+
+  const createTournament = async (spec: {
     name: string;
     disciplineId: Id;
     format: TournamentFormat;
@@ -825,6 +849,10 @@ export default function App() {
           players={communityPlayers}
           squads={communitySquads}
           tournaments={communityTournaments}
+          onSplitMatch={startAdHocSplit}
+          onNewTournament={openNewTournament}
+          onBrowseSquads={showSquads}
+          onAddPlayer={addPlayer}
         />
       )}
       {view.mode === "roster" && (

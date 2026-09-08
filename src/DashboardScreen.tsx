@@ -9,6 +9,14 @@ interface Props {
   squads: SavedSquad[];
   /** Active community's tournaments, already filtered at the App layer. */
   tournaments: Tournament[];
+  /** Start an ad-hoc split (Roster's "Split match" flow): lands on match setup. */
+  onSplitMatch: () => void;
+  /** Open the Games hub with the new-tournament create modal (fresh, unpolluted). */
+  onNewTournament: () => void;
+  /** Open the Saved Squads hub. */
+  onBrowseSquads: () => void;
+  /** Open the roster's add-player modal (Roster's "+ Add Player" flow). */
+  onAddPlayer: () => void;
 }
 
 /**
@@ -21,10 +29,21 @@ interface Props {
  * meta-card styling.
  *
  * The header follows the hub convention: kicker + h1 + a lede naming the
- * active community. This ticket ships the screen and its data wiring only;
- * navigation (Home tab), landing, and the action CTAs are later tickets.
+ * active community. The actions are the hub's exits: the primary CTA starts
+ * the ad-hoc split and the secondary links reach the other main flows. All
+ * navigation is delegated to App via the callback props — this screen never
+ * reimplements a flow.
  */
-export function DashboardScreen({ community, players, squads, tournaments }: Props) {
+export function DashboardScreen({
+  community,
+  players,
+  squads,
+  tournaments,
+  onSplitMatch,
+  onNewTournament,
+  onBrowseSquads,
+  onAddPlayer,
+}: Props) {
   if (!community) return null;
   const tournamentCount = tournaments.filter(
     (t) => t.status === "draft" || t.status === "active",
@@ -44,6 +63,11 @@ export function DashboardScreen({ community, players, squads, tournaments }: Pro
           <div className="kicker">First run</div>
           <div className="big">Run your first split</div>
           <p>Add players to the roster, then split them into fair teams for a match.</p>
+          <div className="actions">
+            <button type="button" className="btn btn-primary" onClick={onAddPlayer}>
+              + Add players
+            </button>
+          </div>
         </div>
       ) : (
         <div className="dashboard-stats">
@@ -61,6 +85,28 @@ export function DashboardScreen({ community, players, squads, tournaments }: Pro
           </div>
         </div>
       )}
+
+      <div className="dashboard-actions">
+        <button
+          type="button"
+          className="btn btn-primary"
+          onClick={onSplitMatch}
+          disabled={players.length === 0}
+        >
+          Split match
+        </button>
+        <div className="dashboard-links">
+          <button type="button" className="link" onClick={onNewTournament}>
+            + New tournament
+          </button>
+          <button type="button" className="link" onClick={onBrowseSquads}>
+            Browse saved squads
+          </button>
+          <button type="button" className="link" onClick={onAddPlayer}>
+            + Add player
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
