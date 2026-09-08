@@ -36,6 +36,7 @@ import { HistoryScreen } from "./session/HistoryScreen";
 import { useSessions } from "./session/useSessions";
 import { useSavedSquads } from "./session/useSavedSquads";
 import { SquadsScreen } from "./session/SquadsScreen";
+import { DashboardScreen } from "./DashboardScreen";
 import { capabilityFor, teamName } from "./session/flow";
 import { useTournaments } from "./tournament/useTournaments";
 import { GamesScreen } from "./tournament/GamesScreen";
@@ -55,6 +56,7 @@ type SplitSource = "ad-hoc" | "tournament" | "session" | "squad";
 
 type View =
   | { mode: "roster" }
+  | { mode: "dashboard" }
   | { mode: "games" }
   | { mode: "tournament"; id: Id }
   | { mode: "match"; source: SplitSource }
@@ -124,6 +126,15 @@ export default function App() {
   const savedSquads = useSavedSquads(squadStore);
   const [viewStack, setViewStack] = useState<View[]>([{ mode: "roster" }]);
   const view = viewStack[viewStack.length - 1];
+
+  // Ticket 02 demo hook: render the dashboard for verification until ticket 03
+  // wires the Home tab and dashboard-first landing. Reaching it needs an
+  // explicit URL hash (#dashboard), so no existing flow or spec changes.
+  useEffect(() => {
+    if (window.location.hash === "#dashboard") {
+      setViewStack([{ mode: "dashboard" }]);
+    }
+  }, []);
   const [setup, setSetup] = useState<MatchSetup | null>(null);
   const [tournamentPrefill, setTournamentPrefill] = useState<{ disciplineId: Id; teamCount: number } | null>(null);
   const [filterIds, setFilterIds] = useState<string[]>([]);
@@ -189,6 +200,9 @@ export default function App() {
     : [];
   const communityTournaments = activeCommunity
     ? tournaments.tournaments.filter((t) => t.communityId === activeCommunity.id)
+    : [];
+  const communitySquads = activeCommunity
+    ? savedSquads.squads.filter((q) => q.communityId === activeCommunity.id)
     : [];
   const visiblePlayers = filterIds.length === 0
     ? communityPlayers
@@ -792,6 +806,15 @@ export default function App() {
           )}
         </div>
       </header>
+      {/* Ticket 02 demo hook: temp flag until ticket 03 wires the Home tab / landing. */}
+      {view.mode === "dashboard" && (
+        <DashboardScreen
+          community={activeCommunity}
+          players={communityPlayers}
+          squads={communitySquads}
+          tournaments={communityTournaments}
+        />
+      )}
       {view.mode === "roster" && (
         <div className="screen">
           <div className="kicker">Match Sheet · 01</div>

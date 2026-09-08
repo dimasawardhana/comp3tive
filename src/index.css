@@ -920,6 +920,27 @@ h1 {
   display: flex;
   gap: 8px;
 }
+.dashboard-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+.dashboard-stats .dashboard-stat {
+  align-items: center;
+  text-align: center;
+  padding: 18px 10px 16px;
+}
+.dashboard-stat .tournament-meta-card-label {
+  font-size: 9px;
+}
+.dashboard-stat .tournament-meta-card-value {
+  font-size: 30px;
+  line-height: 1;
+  margin-top: 6px;
+}
+.dashboard-empty {
+  margin-top: 6px;
+}
 
 /* ---------- buttons & bottom bar ---------- */
 .bar {
