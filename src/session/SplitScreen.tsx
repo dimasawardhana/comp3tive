@@ -297,7 +297,7 @@ export function SplitScreen({ session, discipline, roster, onPersistResult, onSu
         <div className="split-head-meta">
           <span className="badge badge--generic">{discipline.name}</span>
           <span className="badge badge--generic">{result.teams.length} teams</span>
-          {source && <span className="badge badge--generic badge--tournament">Tournament squad</span>}
+          {source === "tournament" && <span className="badge badge--generic badge--tournament">Tournament squad</span>}
           {rerollCount > 1 && <span className="badge badge--generic">Roll #{rerollCount}</span>}
         </div>
       </div>
@@ -360,14 +360,9 @@ export function SplitScreen({ session, discipline, roster, onPersistResult, onSu
       )}
 
       <div className="bar split-bar">
-        {onBack && !swapMode && !source && (
+        {onBack && !swapMode && (
           <button type="button" className="btn btn-ghost" onClick={onBack} data-testid="back-button">
-            ← Roster
-          </button>
-        )}
-        {source && !swapMode && (
-          <button type="button" className="btn btn-ghost" onClick={onBack} data-testid="back-to-tournament">
-            ← Tournament
+            ← {source === "session" ? "History" : source === "squad" ? "Squad detail" : "Match setup"}
           </button>
         )}
         {onSaveSquad && !swapMode && (

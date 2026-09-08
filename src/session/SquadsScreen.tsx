@@ -115,7 +115,7 @@ export function SquadsScreen({ squads, loading, disciplines, roster, onBack, onR
         <div className="empty">
           <div className="kicker">Nothing saved yet</div>
           <div className="big">No saved squads</div>
-          <p>Run a split and hit Save squad — it shows up here, ready for a tournament.</p>
+          <p>Run a split and hit Save squad. It shows up here, ready for a tournament.</p>
         </div>
       ) : (
         <ul className="roster history-list">

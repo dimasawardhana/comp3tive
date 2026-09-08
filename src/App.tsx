@@ -298,8 +298,9 @@ export default function App() {
     };
     const built = buildBracket(next);
     void tournaments.saveTournament(built).then(() => {
-      // Replace stack: back from a submitted tournament goes to the Games hub.
-      setViewStack([{ mode: "tournament", id: built.id }]);
+      // Land on the tournament detail with the Games hub beneath it, so Back
+      // and the breadcrumb return to Games (FLOW P2: back to where you came from).
+      setViewStack([{ mode: "games" }, { mode: "tournament", id: built.id }]);
       setSetup(null);
     });
   };
@@ -376,7 +377,7 @@ export default function App() {
     try {
       data = parseBackup(await file.text());
     } catch (err) {
-      /* import error noted */
+      alert(`Import failed: ${err instanceof Error ? err.message : String(err)}`);
       return;
     }
     // Merge with existing data: add only new ids, never overwrite.
@@ -384,16 +385,18 @@ export default function App() {
     const existingPlayerIds = new Set(roster.players.map((p) => p.id));
     const existingSessionIds = new Set(sessions.sessions.map((s) => s.id));
     const existingTournamentIds = new Set(tournaments.tournaments.map((t) => t.id));
+    const existingSquadIds = new Set(savedSquads.squads.map((q) => q.id));
     const newCommunities = data.communities.filter((c) => !existingCommunityIds.has(c.id));
     const newPlayers = data.players.filter((p) => !existingPlayerIds.has(p.id));
     const newSessions = data.sessions.filter((s) => !existingSessionIds.has(s.id));
     const newTournaments = (data.tournaments ?? []).filter((t) => !existingTournamentIds.has(t.id));
+    const newSquads = (data.savedSquads ?? []).filter((q) => !existingSquadIds.has(q.id));
     const totalNew =
-      newCommunities.length + newPlayers.length + newSessions.length + newTournaments.length;
+      newCommunities.length + newPlayers.length + newSessions.length + newTournaments.length + newSquads.length;
     if (
       totalNew === 0 ||
       !window.confirm(
-        `Import ${newCommunities.length} new communit${newCommunities.length === 1 ? "y" : "ies"}, ${newPlayers.length} new player${newPlayers.length === 1 ? "" : "s"}, ${newSessions.length} session${newSessions.length === 1 ? "" : "s"} and ${newTournaments.length} tournament${newTournaments.length === 1 ? "" : "s"}? (Existing records with the same id are kept.)`,
+        `Import ${newCommunities.length} new communit${newCommunities.length === 1 ? "y" : "ies"}, ${newPlayers.length} new player${newPlayers.length === 1 ? "" : "s"}, ${newSessions.length} session${newSessions.length === 1 ? "" : "s"}, ${newTournaments.length} tournament${newTournaments.length === 1 ? "" : "s"} and ${newSquads.length} saved squad${newSquads.length === 1 ? "" : "s"}? (Existing records with the same id are kept.)`,
       )
     ) {
       return;
@@ -404,14 +407,12 @@ export default function App() {
     for (const p of newPlayers) await roster.savePlayer({ ...p, communityId: importCommunityId });
     for (const s of newSessions) await sessionStore.saveSession(s);
     for (const t of newTournaments) await tournamentStore.saveTournament(t);
+    for (const q of newSquads) await squadStore.saveSavedSquad({ ...q, communityId: importCommunityId });
 
   };
 
-  const clearData = () => { /* no-op */ };
 
-  const confirmClear = async () => { /* no-op */ };
 
-  const cancelClear = () => { /* no-op */ };
 
   const createCommunity = async () => {
     if (!communityName.trim()) return;
@@ -568,7 +569,6 @@ export default function App() {
     startMatch("ad-hoc");
   };
 
-  const randomizePreview = () => { /* preview removed */ };
 
   const filtersByDiscipline = (disciplineId: Id) => {
     setFilterIds(prev => prev.includes(disciplineId) ? prev.filter(id => id !== disciplineId) : [...prev, disciplineId]);
@@ -1000,10 +1000,12 @@ export default function App() {
           discipline={disciplines.find(d => d.id === view.session!.disciplineId) ?? disciplines[0]}
           roster={communityPlayers}
           onPersistResult={async (result) => {
-            // Ad-hoc/session sources persist; squad re-splits are synthetic and
-            // only persist when explicitly saved as a new squad; tournament
-            // splits persist via the bracket (no Session pollution).
-            if (view.source === "ad-hoc" || view.source === "session") {
+            // FLOW rule 3: only ad-hoc splits persist re-rolls/swaps to the
+            // Session log. Session/squad sources are synthetic — re-rolling a
+            // reopened History session must not mutate the archived raw log, and
+            // a squad re-split only persists when saved as a new squad.
+            // Tournament splits persist via the bracket (no Session pollution).
+            if (view.source === "ad-hoc") {
               const updatedSession = { ...view.session!, result };
               await sessionStore.saveSession(updatedSession);
             }
