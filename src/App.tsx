@@ -181,6 +181,15 @@ export default function App() {
   const communityPlayers = activeCommunity
     ? roster.players.filter((p) => p.communityId === activeCommunity.id)
     : [];
+  // Community scoping (CONTEXT): every list shows only the active community's
+  // records — sessions (History) and tournaments (Games) follow the players
+  // and saved squads, which already filter by communityId here.
+  const communitySessions = activeCommunity
+    ? sessions.sessions.filter((s) => s.communityId === activeCommunity.id)
+    : [];
+  const communityTournaments = activeCommunity
+    ? tournaments.tournaments.filter((t) => t.communityId === activeCommunity.id)
+    : [];
   const visiblePlayers = filterIds.length === 0
     ? communityPlayers
     : communityPlayers.filter((p) => p.capabilities.some((c) => filterIds.includes(c.disciplineId)));
@@ -960,16 +969,16 @@ export default function App() {
       )}
       {view.mode === "games" && (
         <div className="screen">
-        <GamesScreen
-          tournaments={tournaments.tournaments}
-          disciplines={disciplines}
-          onCreate={createTournament}
-          onOpen={openTournament}
-          onDelete={deleteTournament}
-          onManageDisciplines={() => goDisciplines()}
-          prefill={tournamentPrefill}
-          onPrefillConsumed={() => setTournamentPrefill(null)}
-        />
+          <GamesScreen
+            tournaments={communityTournaments}
+            disciplines={disciplines}
+            onCreate={createTournament}
+            onOpen={openTournament}
+            onDelete={deleteTournament}
+            onManageDisciplines={() => goDisciplines()}
+            prefill={tournamentPrefill}
+            onPrefillConsumed={() => setTournamentPrefill(null)}
+          />
         </div>
       )}
       {view.mode === "tournament" && viewTournament && (
@@ -1022,7 +1031,7 @@ export default function App() {
       )}
       {view.mode === "history" && (
         <HistoryScreen
-          sessions={sessions.sessions}
+          sessions={communitySessions}
           loading={sessions.loading}
           disciplines={disciplines}
           onReopen={(session) => pushView({ mode: "split", session, source: "session" })}
