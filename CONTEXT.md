@@ -7,8 +7,16 @@ A profile in the app with its own squad and history. Every player, session, tour
 _Avoid_: group, club, team, profile
 
 **Dashboard**:
-The home hub the app lands on at load. It shows the active community's state at a glance — players on the roster, saved squads, tournaments — and the most likely next actions.
+The home hub the app lands on at load. It shows the active community's state at a glance — players on the roster, saved squads, tournaments, and teasers of the most recent players and active tournaments — and the most likely next actions.
 _Avoid_: home screen (the bottom-nav label is Home; the screen's h1 is Dashboard), overview, landing page
+
+**Recent Player**:
+One of the most recently added players on the active community's roster, surfaced as a Dashboard teaser (name + the disciplines they can play). "Recently added" means last in the roster's insertion order; a Player carries no creation timestamp.
+_Avoid_: newest player, latest player
+
+**Active Tournament**:
+A Tournament whose status is active (teams submitted, not yet complete) — neither a draft nor complete. The Dashboard shows the three most recently created active tournaments as teasers (name, discipline, format, teams filled, status). A tournament carries no last-played timestamp, so "most recent active" ranks by creation time.
+_Avoid_: live tournament, ongoing tournament
 
 **Home**:
 The centered bottom-nav tab that opens the Dashboard. Tab labels name destinations, so "Home" is the tab and "Dashboard" is the screen it shows.

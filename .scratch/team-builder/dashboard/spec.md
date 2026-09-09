@@ -58,3 +58,43 @@ The app opens on a **Dashboard** — a home hub that shows the active community'
 - ADR-0005 records the dashboard-first decision; CONTEXT.md defines "Dashboard", "Home", and the community-scoping rule.
 - Existing e2e specs assume Roster-first or use positional `.nth()` on the 4-tab nav; they are re-anchored to the 5-tab layout as part of shipping (specs: saved-squad, setup, split, history, create).
 - The dashboard's kicker label should follow the existing section-label convention (numbered "Match Sheet · 01" / "Game Tape · 02") — the specific label is a micro-decision left to implementation.
+
+
+## Dashboard Teasers: Recent Players + Active Tournaments
+
+Follow-on to the dashboard spec. The Dashboard (already shipped per the sections above)
+gains two teaser sections below the stat cards: the three most recently added players and
+the three most recently created active tournaments, each card showing a little detail and
+drilling into the full record.
+
+## User Stories (follow-on)
+
+1. As an organizer, I want to see the three most recently added players on the Dashboard, so that I can tell at a glance who just joined my roster.
+2. As an organizer, I want each recent-player teaser to show the player's name and the disciplines they can play, so that I can gauge who is available without opening the roster.
+3. As an organizer, I want to tap a recent-player teaser and open that player's edit screen, so that I can act on a new sign-up immediately.
+4. As an organizer, I want to see the three most recently created active tournaments on the Dashboard, so that I know which competitions are live.
+5. As an organizer, I want each active-tournament teaser to show the name, discipline, format, teams filled out of the target, and status, so that I can assess progress at a glance.
+6. As an organizer, I want to tap an active-tournament teaser and open that tournament, so that I can record results or check the bracket.
+7. As an organizer, when a section has nothing to show, I want a one-line invite with a link to create the first record, so that the dashboard stays actionable rather than silently empty.
+
+## Implementation Decisions (follow-on)
+
+- **Sources**: both sections render from the already community-scoped lists the Dashboard receives (players and tournaments props) — no new data source.
+- **Recency semantics**: "recently added player" = last three of the roster's insertion order (a Player carries no creation timestamp; the roster list appends on add). "Most recent active tournament" = active-status tournaments ranked by createdAt descending (a tournament carries no last-played timestamp, so recency is creation time), take three.
+- **Sort logic lives in a pure helper module** so it is unit-testable at the repo's existing pure-module seam (the same seam solver/bracket/transfer use): functions that take the scoped list and return the top three with their order, handling fewer-than-three and empty inputs.
+- **Card content**: player = name + discipline short-name badges (Roster badge styling); tournament = name + discipline short name + format label + teams filled/target + status label.
+- **Click-through**: player teaser opens the roster's player-edit flow for that player; tournament teaser opens the tournament (reuse the App open flows; the Dashboard screen receives the callbacks as props, never reimplementing a flow).
+- **Empty sub-sections**: a section with nothing to show renders a one-line invite — "No active tournaments" with a create link, "No players yet" with an add-player link — rather than hiding.
+- **Placement**: below the stat cards, above the actions; two stacked sections, each a horizontal row of up to three cards.
+
+## Testing Decisions (follow-on)
+
+- **Unit**: the recency helpers are tested at the pure-module seam (what counts as top-three, order, fewer-than-three, empty, ties across equal createdAt).
+- **E2e**: the existing dashboard spec extends or a follow-on asserts the sections render the expected players/tournaments for a seeded community, update on community switch, drill to the right record on click, and show the one-line invite when a section is empty.
+- **Prior art**: unit tests mirror src/solver/solver.test.ts / src/tournament/bracket.test.ts style; e2e mirrors e2e/tests/dashboard/dashboard.spec.ts.
+
+## Out of Scope (follow-on)
+
+- Adding a createdAt to Player or an updatedAt/last-played timestamp to Tournament (recency uses insertion/creation order; a true "last played" ranking needs a schema change).
+- More than three teasers, paging, or a "view all" list on the dashboard.
+- Any change to the stat cards or the guided empty state.
