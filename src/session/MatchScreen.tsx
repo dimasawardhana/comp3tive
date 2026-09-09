@@ -144,7 +144,7 @@ export function MatchScreen(props: Props) {
             type="button"
             aria-label="Fewer teams"
             onClick={() => props.onTeamCountChange(Math.max(2, teamCount - 1))}
-            disabled={teamCount <= 2}
+            disabled={props.lockedTeamCount !== undefined || teamCount <= 2}
           >
             −
           </button>
@@ -153,12 +153,15 @@ export function MatchScreen(props: Props) {
             type="button"
             aria-label="More teams"
             onClick={() => props.onTeamCountChange(Math.min(8, teamCount + 1))}
-            disabled={teamCount >= 8}
+            disabled={props.lockedTeamCount !== undefined || teamCount >= 8}
           >
             +
           </button>
         </div>
-        {teamCountTooHigh && maxPossibleTeams > 0 && (
+        {props.lockedTeamCount !== undefined && (
+          <p className="status">Locked to {props.lockedTeamCount} teams by the tournament.</p>
+        )}
+        {!props.lockedTeamCount && teamCountTooHigh && maxPossibleTeams > 0 && (
           <p className="status">Max {maxPossibleTeams} teams from {selectedCapable.length} eligible players.</p>
         )}
       </section>

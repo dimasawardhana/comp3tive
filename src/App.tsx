@@ -303,6 +303,18 @@ export default function App() {
       notify("Could not save: the tournament is no longer in this community's list.", "error");
       return;
     }
+    // A bracket needs a team count its format supports (single elim: 2/4/8;
+    // series: 2; swiss: even). Guard before building so a mismatch is a clear
+    // message, not a crash inside buildBracket.
+    const n = teams.length;
+    const bracketOk =
+      tournament.format === "swiss" ? n >= 2 && n % 2 === 0
+      : tournament.format === "single-elim" ? (n === 2 || n === 4 || n === 8)
+      : n === 2; // series
+    if (!bracketOk) {
+      notify(`Could not save: a ${tournament.format} bracket needs a supported number of teams (got ${n}).`, "error");
+      return;
+    }
     const seeded = [...teams].sort((a, b) => b.avgStrength - a.avgStrength);
     const next: Tournament = {
       ...tournament,
@@ -314,8 +326,8 @@ export default function App() {
         players: t.slots.map((s) => s.playerId),
       })),
     };
-    const built = buildBracket(next);
     try {
+      const built = buildBracket(next);
       await tournaments.saveTournament(built);
       // Land on the tournament detail with the Games hub beneath it, so Back
       // and the breadcrumb return to Games (FLOW P2: back to where you came from).
