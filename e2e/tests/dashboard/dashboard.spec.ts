@@ -291,7 +291,9 @@ test("dashboard actions land on their destinations", async ({ page }) => {
 
   // + New tournament -> the Games hub with the create modal open.
   await page.getByRole("button", { name: "+ New tournament" }).click();
-  await expect(page.locator(".screen h1")).toHaveText("Games");
+  // The modal's h1 also lives inside .screen, so assert the hub title via the
+  // non-modal heading only (same pattern as the add-player assertion below).
+  await expect(page.locator(".screen h1:not(.modal-title)")).toHaveText("Games");
   await expect(page.locator(".modal-title")).toHaveText("New tournament");
   // The modal overlays the nav, so close it (X) before travelling Home.
   await page.locator(".modal-card .modal-close").click();
@@ -404,4 +406,138 @@ test("History and Games show only the active community's records and counts matc
   expect(await statValue(page, "Players")).toBe("1");
   expect(await statValue(page, "Saved squads")).toBe("0");
   expect(await statValue(page, "Tournaments")).toBe("0");
+});
+test("dashboard teasers show the newest players and active tournaments and drill in", async ({ page }) => {
+  const world: SeedWorld = {
+    communities: [{ id: "comm-alpha", name: "Alpha Crew", createdAt: 100 }],
+    players: [
+      { id: "al-1", communityId: "comm-alpha", name: "Alpha One" },
+      { id: "al-2", communityId: "comm-alpha", name: "Alpha Two" },
+      { id: "al-3", communityId: "comm-alpha", name: "Alpha Three" },
+      { id: "al-4", communityId: "comm-alpha", name: "Alpha Four" },
+    ],
+    sessions: [],
+    tournaments: [
+      // Newest first per the seed convention; two active + one draft + one complete.
+      {
+        id: "tr-live",
+        communityId: "comm-alpha",
+        disciplineId: MLBB_ID,
+        name: "Live Cup",
+        format: "series",
+        seriesLength: 3,
+        teamCount: 2,
+        thirdPlace: false,
+        createdAt: 900,
+        status: "active",
+        teams: [
+          { id: "team-1", bibIndex: 0, name: "Team A", strength: 4, players: ["al-1", "al-2"] },
+          { id: "team-2", bibIndex: 1, name: "Team B", strength: 4, players: ["al-3", "al-4"] },
+        ],
+        matches: [{ id: "m-1-0", round: 1, position: 0, teamAId: "team-1", teamBId: "team-2", games: [], winnerTeamId: null, winnerNext: null, loserNext: null }],
+      },
+      {
+        id: "tr-draft",
+        communityId: "comm-alpha",
+        disciplineId: MLBB_ID,
+        name: "Draft Cup",
+        format: "swiss",
+        seriesLength: 3,
+        teamCount: 4,
+        thirdPlace: false,
+        createdAt: 800,
+        status: "draft",
+        teams: [],
+        matches: [],
+      },
+      {
+        id: "tr-complete",
+        communityId: "comm-alpha",
+        disciplineId: MLBB_ID,
+        name: "Old Cup",
+        format: "series",
+        seriesLength: 1,
+        teamCount: 2,
+        thirdPlace: false,
+        createdAt: 700,
+        status: "complete",
+        teams: [],
+        matches: [],
+      },
+    ],
+    squads: [],
+    activeCommunityId: "comm-alpha",
+  };
+  await gotoSeeded(page, world);
+
+  await expect(page.locator(".screen h1")).toHaveText("Dashboard");
+  // Recent players: the three newest, in roster order (last three of the
+  // insertion order: Two, Three, Four), each with an MLBB badge.
+  const playerTeasers = page.locator('section[aria-label="Recent players"] .row');
+  await expect(playerTeasers).toHaveCount(3);
+  await expect(playerTeasers.first()).toContainText("Alpha Two");
+  await expect(playerTeasers.nth(1)).toContainText("Alpha Three");
+  await expect(playerTeasers.nth(2)).toContainText("Alpha Four");
+  await expect(page.locator('section[aria-label="Recent players"] .badge--mlbb')).toHaveCount(3);
+
+  // Tapping a player teaser opens that player's edit modal on the Roster.
+  await playerTeasers.nth(2).click();
+  await expect(page.locator(".modal-title")).toHaveText("Edit player");
+  await expect(page.locator("#player-name")).toHaveValue("Alpha Four");
+  await page.locator(".modal-card .modal-close").click();
+  await expect(page.locator(".modal-card")).not.toBeVisible();
+  await hub(page, "Home").click();
+  await expect(page.locator(".screen h1")).toHaveText("Dashboard");
+
+  // Active tournaments: the single active one only (draft and complete excluded),
+  // showing name, discipline, format, teams filled and status.
+  const tourneyTeasers = page.locator('section[aria-label="Active tournaments"] .row');
+  await expect(tourneyTeasers).toHaveCount(1);
+  await expect(tourneyTeasers.first()).toContainText("Live Cup");
+  await expect(tourneyTeasers.first()).toContainText("MLBB");
+  await expect(tourneyTeasers.first()).toContainText("Series");
+  await expect(tourneyTeasers.first()).toContainText("2/2 teams");
+  await expect(tourneyTeasers.first()).toContainText("In progress");
+  await expect(page.locator('section[aria-label="Active tournaments"]')).not.toContainText("Draft Cup");
+
+  // Tapping the tournament teaser opens that tournament.
+  await tourneyTeasers.first().click();
+  await expect(page.locator(".tournament-header h1")).toHaveText("Live Cup");
+});
+
+test("dashboard teasers empty invites reach the create flows and follow the community", async ({ page }) => {
+  const world: SeedWorld = {
+    communities: [
+      { id: "comm-alpha", name: "Alpha Crew", createdAt: 100 },
+      { id: "comm-beta", name: "Beta Guild", createdAt: 200 },
+    ],
+    // Alpha: players but no tournaments. Beta: nothing at all.
+    players: [
+      { id: "al-1", communityId: "comm-alpha", name: "Alpha One" },
+      { id: "be-1", communityId: "comm-beta", name: "Beta One" },
+    ],
+    sessions: [],
+    tournaments: [],
+    squads: [],
+    activeCommunityId: "comm-alpha",
+  };
+  await gotoSeeded(page, world);
+
+  // Alpha has players (so the stat view shows) but no active tournaments:
+  // the Active tournaments section shows the one-line invite.
+  await expect(page.locator(".screen h1")).toHaveText("Dashboard");
+  const activeSection = page.locator('section[aria-label="Active tournaments"]');
+  await expect(activeSection).toContainText("No active tournaments.");
+  await activeSection.getByRole("button", { name: "+ Create one" }).click();
+  await expect(page.locator(".modal-title")).toHaveText("New tournament");
+  await page.locator(".modal-card .modal-close").click();
+  await hub(page, "Home").click();
+  await expect(page.locator(".screen h1")).toHaveText("Dashboard");
+
+  // Switch to Beta: nothing of its own, so its only roster entry is gone.
+  await page.getByRole("button", { name: "Active community" }).click();
+  await page.locator(".squad-menu-item", { hasText: "Beta Guild" }).click();
+  await expect(page.locator(".squad-select-value")).toHaveText("Beta Guild");
+  await expect(page.locator(".screen h1")).toHaveText("Dashboard");
+  await expect(activeSection).toContainText("No active tournaments.");
 });

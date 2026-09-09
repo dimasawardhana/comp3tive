@@ -849,10 +849,16 @@ export default function App() {
           players={communityPlayers}
           squads={communitySquads}
           tournaments={communityTournaments}
+          disciplines={disciplines}
           onSplitMatch={startAdHocSplit}
           onNewTournament={openNewTournament}
           onBrowseSquads={showSquads}
           onAddPlayer={addPlayer}
+          onOpenPlayer={(player) => {
+            gotoHub("roster");
+            setEditingPlayer(player);
+          }}
+          onOpenTournament={(tournament) => openTournament(tournament.id)}
         />
       )}
       {view.mode === "roster" && (

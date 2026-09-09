@@ -972,6 +972,41 @@ h1 {
 .dashboard-empty {
   margin-top: 6px;
 }
+.dashboard-teasers {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.dashboard-teasers-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+.dashboard-teasers-head h2 {
+  font-family: "Chakra Petch", sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text);
+}
+.dashboard-teasers-head .kicker {
+  margin: 0;
+  color: var(--text-2);
+  font-size: 9px;
+  letter-spacing: 0.14em;
+}
+.dashboard-teasers-head .kicker::before {
+  content: "";
+}
+.dashboard-teasers-empty {
+  font-size: 14px;
+  color: var(--text-2);
+}
+.dashboard-teasers-empty .link {
+  font-size: 14px;
+}
 .dashboard-actions {
   margin-top: 18px;
   display: flex;
