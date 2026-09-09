@@ -267,24 +267,22 @@ export function TournamentScreen({ tournament, disciplines, matchingSquads, rost
           {discipline?.shortName ?? "Unknown"} · {FORMAT_LABEL[tournament.format]} · BO{tournament.seriesLength}
         </div>
       </div>
-      <div className="tournament-meta-grid">
-        <div className="tournament-meta-card">
-          <span className="tournament-meta-card-label">Format</span>
-          <span className="tournament-meta-card-value">{FORMAT_LABEL[tournament.format]}</span>
+      <div className="tournament-meta-strip" role="list" aria-label="Tournament details">
+        <div className="tms-item" role="listitem">
+          <span className="tms-label">Format</span>
+          <span className="tms-value">{FORMAT_LABEL[tournament.format]}</span>
         </div>
-        <div className="tournament-meta-card">
-          <span className="tournament-meta-card-label">Series</span>
-          <span className="tournament-meta-card-value">BO{tournament.seriesLength}</span>
+        <div className="tms-item" role="listitem">
+          <span className="tms-label">Series</span>
+          <span className="tms-value">BO{tournament.seriesLength}</span>
         </div>
-        <div className="tournament-meta-card">
-          <span className="tournament-meta-card-label">Teams</span>
-          <span className="tournament-meta-card-value">{tournament.teams.length}/{tournament.teamCount}</span>
+        <div className="tms-item" role="listitem">
+          <span className="tms-label">Teams</span>
+          <span className="tms-value">{tournament.teams.length}/{tournament.teamCount}</span>
         </div>
-        <div className="tournament-meta-card">
-          <span className="tournament-meta-card-label">Status</span>
-          <span className="tournament-meta-card-value">
-            {tournament.status === "draft" ? "Draft" : tournament.status === "active" ? "In progress" : "Complete"}
-          </span>
+        <div className="tms-item" role="listitem">
+          <span className="tms-label">Status</span>
+          <span className="tms-value">{tournament.status === "draft" ? "Draft" : tournament.status === "active" ? "In progress" : "Complete"}</span>
         </div>
       </div>
 
@@ -330,13 +328,7 @@ export function TournamentScreen({ tournament, disciplines, matchingSquads, rost
           )}
         </div>
       ) : reviewing ? (
-        <ReviewPanel
-          tournament={tournament}
-          roster={roster}
-          onConfirm={() => setReviewing(false)}
-          onReroll={() => { onReroll?.(); setReviewing(true); }}
-          onBack={onBack}
-        />
+        <ReviewPanel tournament={tournament} roster={roster} />
       ) : (
         <>
           {champ && (
@@ -384,6 +376,20 @@ export function TournamentScreen({ tournament, disciplines, matchingSquads, rost
               Delete tournament
             </button>
           </>
+        ) : reviewing ? (
+          <>
+            <button type="button" className="btn btn-ghost" onClick={onBack} data-testid="review-back">
+              Back
+            </button>
+            {onReroll && (
+              <button type="button" className="btn btn-ghost" onClick={() => { onReroll(); setReviewing(true); }}>
+                Re-split
+              </button>
+            )}
+            <button type="button" className="btn btn-primary" onClick={() => setReviewing(false)} data-testid="confirm-teams">
+              Confirm teams →
+            </button>
+          </>
         ) : (
           <>
             <button type="button" className="btn btn-ghost" onClick={onBack}>
@@ -400,12 +406,9 @@ export function TournamentScreen({ tournament, disciplines, matchingSquads, rost
 }
 
 
-function ReviewPanel({ tournament, roster, onConfirm, onReroll, onBack }: {
+function ReviewPanel({ tournament, roster }: {
   tournament: Tournament;
   roster?: Player[];
-  onConfirm: () => void;
-  onReroll: () => void;
-  onBack: () => void;
 }) {
   const balanced = tournament.teams.every(t => Math.abs(t.strength - tournament.teams[0].strength) <= 0.5);
   const minStr = Math.min(...tournament.teams.map(t => t.strength));
@@ -435,13 +438,6 @@ function ReviewPanel({ tournament, roster, onConfirm, onReroll, onBack }: {
           </div>
         ))}
       </div>
-      <div className="review-actions">
-        <button type="button" className="btn btn-ghost" onClick={onBack}>← Roster</button>
-        {onReroll && <button type="button" className="btn btn-ghost" onClick={onReroll}>Re-split</button>}
-        <button type="button" className="btn btn-primary" onClick={onConfirm} data-testid="confirm-teams">
-          Confirm teams →
-        </button>
-      </div>
     </div>
   );
 }
@@ -456,10 +452,13 @@ function BracketView({
   const rounds = [...new Set(tournament.matches.map((m) => m.round))].sort((a, b) => a - b);
   const maxRound = rounds[rounds.length - 1];
   return (
-    <div className="bracket">
+    <div className="bracket" role="list" aria-label="Tournament bracket">
       {rounds.map((r) => (
-        <div key={r} className="bracket-round">
-          <span className="rlabel">{r === maxRound ? "Final" : `Round ${r}`}</span>
+        <div key={r} className="bracket-column" role="listitem">
+          <div className="bracket-column-head">
+            <span className="rlabel">{r === maxRound ? "Final" : `Round ${r}`}</span>
+            {r !== maxRound && <span className="rlabel rlabel-rule" aria-hidden="true" />}
+          </div>
           {tournament.matches
             .filter((m) => m.round === r)
             .sort((a, b) => a.position - b.position)

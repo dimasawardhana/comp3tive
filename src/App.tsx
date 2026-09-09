@@ -1021,25 +1021,27 @@ export default function App() {
         </div>
       )}
       {view.mode === "tournament" && viewTournament && (
-        <TournamentScreen
-          tournament={viewTournament}
-          disciplines={disciplines}
-          matchingSquads={savedSquads.squads.filter(
-            (q) =>
-              q.communityId === activeCommunity?.id &&
-              q.disciplineId === viewTournament.disciplineId &&
-              q.result.teams.length === viewTournament.teamCount,
-          )}
-          roster={communityPlayers}
-          onBack={() => goBack()}
-          onSplit={() => startSplit()}
-          onUseSavedSquad={(squad) => useSquadInTournament(squad, viewTournament.id)}
-          onRecord={async (matchId, games) => { await recordResult(matchId, games); }}
-          onUndo={undoLastResult}
-          onDelete={() => deleteTournamentFromUI(viewTournament.id)}
-          onReroll={() => startMatch("tournament", viewTournament.id)}
-          totalPlayers={communityPlayers.length}
-        />
+        <div className="screen">
+          <TournamentScreen
+            tournament={viewTournament}
+            disciplines={disciplines}
+            matchingSquads={savedSquads.squads.filter(
+              (q) =>
+                q.communityId === activeCommunity?.id &&
+                q.disciplineId === viewTournament.disciplineId &&
+                q.result.teams.length === viewTournament.teamCount,
+            )}
+            roster={communityPlayers}
+            onBack={() => goBack()}
+            onSplit={() => startSplit()}
+            onUseSavedSquad={(squad) => useSquadInTournament(squad, viewTournament.id)}
+            onRecord={async (matchId, games) => { await recordResult(matchId, games); }}
+            onUndo={undoLastResult}
+            onDelete={() => deleteTournamentFromUI(viewTournament.id)}
+            onReroll={() => startMatch("tournament", viewTournament.id)}
+            totalPlayers={communityPlayers.length}
+          />
+        </div>
       )}
 
       {view.mode === "split" && view.session && (

@@ -23,13 +23,13 @@ test("tournament draft: h1, meta cards, pre-split preview", async ({ page }) => 
   // On tournament page
 
 
-  // Meta cards present
-  const metaCards = page.locator(".tournament-meta-card");
-  await expect(metaCards).toHaveCount(4);
-  await expect(metaCards.nth(0).locator(".tournament-meta-card-value")).toHaveText(/Single elimination/);
-  await expect(metaCards.nth(1).locator(".tournament-meta-card-value")).toHaveText("BO3");
-  await expect(metaCards.nth(2).locator(".tournament-meta-card-value")).toHaveText("0/4");
-  await expect(metaCards.nth(3).locator(".tournament-meta-card-value")).toHaveText("Draft");
+  // Meta strip present (ruled strip of format / series / teams / status)
+  const metaItems = page.locator(".tournament-meta-strip .tms-item");
+  await expect(metaItems).toHaveCount(4);
+  await expect(metaItems.nth(0).locator(".tms-value")).toHaveText(/Single elimination/);
+  await expect(metaItems.nth(1).locator(".tms-value")).toHaveText("BO3");
+  await expect(metaItems.nth(2).locator(".tms-value")).toHaveText("0/4");
+  await expect(metaItems.nth(3).locator(".tms-value")).toHaveText("Draft");
 
   // Pre-split preview visible
   await expect(page.locator(".tournament-preview")).toBeVisible();
