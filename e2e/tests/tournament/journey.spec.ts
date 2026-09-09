@@ -10,6 +10,9 @@ test("tournament journey: create -> split -> submit -> review", async ({ page })
   await page.locator(".add-community .btn-primary").click();
   await expect(page.locator(".add-community")).not.toBeVisible({ timeout: 3000 });
 
+  // The app lands on the Dashboard; the roster toolbar lives on the Roster hub.
+  await page.getByRole("button", { name: "Roster" }).click();
+
   // Add 4 players with Futsal capability
   for (let i = 0; i < 4; i++) {
     await page.getByRole("button", { name: /Add Player/ }).click();

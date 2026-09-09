@@ -3,12 +3,24 @@
 Team Builder is a tool for managing a roster of players and assembling balanced teams from that roster across multiple activities (futsal, MLBB, badminton, and more to come).
 
 **Community**:
-A profile in the app with its own squad and history. Every player and session belongs to exactly one community; players are never shared across communities.
+A profile in the app with its own squad and history. Every player, session, tournament, and saved squad belongs to exactly one community; records are never shared across communities, and every screen that lists records shows only the active community's.
 _Avoid_: group, club, team, profile
 
-**Player**:
-A person on the roster who can be assigned to teams in one or more disciplines, each with its own capabilities.
-_Avoid_: person, member, user
+**Dashboard**:
+The home hub the app lands on at load. It shows the active community's state at a glance — players on the roster, saved squads, tournaments, and teasers of the most recent players and active tournaments — and the most likely next actions.
+_Avoid_: home screen (the bottom-nav label is Home; the screen's h1 is Dashboard), overview, landing page
+
+**Recent Player**:
+One of the most recently added players on the active community's roster, surfaced as a Dashboard teaser (name + the disciplines they can play). "Recently added" means last in the roster's insertion order; a Player carries no creation timestamp.
+_Avoid_: newest player, latest player
+
+**Active Tournament**:
+A Tournament whose status is active (teams submitted, not yet complete) — neither a draft nor complete. The Dashboard shows the three most recently created active tournaments as teasers (name, discipline, format, teams filled, status). A tournament carries no last-played timestamp, so "most recent active" ranks by creation time.
+_Avoid_: live tournament, ongoing tournament
+
+**Home**:
+The centered bottom-nav tab that opens the Dashboard. Tab labels name destinations, so "Home" is the tab and "Dashboard" is the screen it shows.
+_Avoid_: dashboard tab
 
 **Player**:
 A person on the roster who can be assigned to teams in one or more disciplines, each with its own capabilities.
@@ -57,9 +69,15 @@ Banned as a domain term (a Discipline is what a game is not called). Individual 
 A group of players assigned to play together in a session. Teams have a size range: futsal teams have a minimum of 5 and may include subs; MLBB teams are fixed at 5 with all roles covered.
 _Avoid_: squad, side, lineup
 
-**Sub**:
-A player assigned to a team beyond its minimum size, available for rotation.
-_Avoid_: bench, reserve
+**Session**:
+A saved team-building run: the pool, discipline, settings, and resulting teams of one split, recorded automatically for every ad-hoc split. The History tab is the Session log.
+_Avoid_: history entry (History is the tab; Sessions are the records)
+
+**Saved Squad**:
+A named, self-contained record of one fair split — discipline, player pool, team count, and the resulting teams — that the organizer saves explicitly for reuse. A draft Tournament can consume a matching Saved Squad as its teams (snapshot semantics per ADR-0002). The word "squad" is reserved for this artifact: never a single Team, never the Community roster.
+_Avoid_: lineup (see Team), preset, saved session (Sessions are the automatic log; a Saved Squad is curated and keeps its own copy of the teams)
+
+**Split** (module):
 
 **Split** (module): The deep computation module for fair split — takes a player pool, discipline, and team count; produces a `SplitResult`. Separate from session persistence (`Session` adapter) and tournament submission (`Tournament` adapter). Internal seams: `swapPlayers`, `recomputeResult`, `freshSplit`. Tests hit the interface, not the internal seams.
 _Avoid_: split-screen (UI term only), split-result (use `SplitResult` type)

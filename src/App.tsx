@@ -7,7 +7,9 @@ import {
   type GameResult,
   type Id,
   type Player,
+  type SavedSquad,
   type Session,
+  type SplitResult,
   type TeamAssignment,
   type Tournament,
   type TournamentFormat,
@@ -19,6 +21,7 @@ import {
   createIndexedDbSessionStore,
   createIndexedDbDisciplineStore,
   createIndexedDbTournamentStore,
+  createIndexedDbSavedSquadStore,
 } from "./storage";
 import { useRoster } from "./roster/useRoster";
 import { useDisciplines } from "./domain/useDisciplines";
@@ -31,6 +34,9 @@ import { MatchScreen } from "./session/MatchScreen";
 import { SplitScreen } from "./session/SplitScreen";
 import { HistoryScreen } from "./session/HistoryScreen";
 import { useSessions } from "./session/useSessions";
+import { useSavedSquads } from "./session/useSavedSquads";
+import { SquadsScreen } from "./session/SquadsScreen";
+import { DashboardScreen } from "./DashboardScreen";
 import { capabilityFor, teamName } from "./session/flow";
 import { useTournaments } from "./tournament/useTournaments";
 import { GamesScreen } from "./tournament/GamesScreen";
@@ -44,23 +50,27 @@ const rosterStore = createIndexedDbRosterStore();
 const sessionStore = createIndexedDbSessionStore();
 const disciplineStore = createIndexedDbDisciplineStore();
 const tournamentStore = createIndexedDbTournamentStore();
+const squadStore = createIndexedDbSavedSquadStore();
+
+type SplitSource = "ad-hoc" | "tournament" | "session" | "squad";
 
 type View =
   | { mode: "roster" }
-  | { mode: "form"; player: Player | null }
-  | { mode: "community" }
+  | { mode: "dashboard" }
   | { mode: "games" }
   | { mode: "tournament"; id: Id }
-  | { mode: "match" }
-  | { mode: "split"; session: Session }
+  | { mode: "match"; source: SplitSource }
+  | { mode: "split"; session: Session; source: SplitSource }
   | { mode: "history" }
-  | { mode: "disciplines" };
+  | { mode: "disciplines" }
+  | { mode: "squads"; openId?: Id };
 
 interface MatchSetup {
   disciplineId: Id;
   selectedIds: Id[];
   teamCount: number;
   tournamentId: Id | null;
+  source: SplitSource;
 }
 
 const toggleId = (ids: Id[], id: Id): Id[] =>
@@ -111,16 +121,24 @@ export default function App() {
   const roster = useRoster(rosterStore);
   const sessions = useSessions(sessionStore);
   const catalog = useDisciplines(disciplineStore);
-  const communities = useCommunities(communityStore, rosterStore, sessionStore);
+  const communities = useCommunities(communityStore, rosterStore, sessionStore, squadStore);
   const tournaments = useTournaments(tournamentStore);
-  const [view, setView] = useState<View>({ mode: "roster" });
+  const savedSquads = useSavedSquads(squadStore);
+  const [viewStack, setViewStack] = useState<View[]>([{ mode: "dashboard" }]);
+  const view = viewStack[viewStack.length - 1];
+
   const [setup, setSetup] = useState<MatchSetup | null>(null);
-  const [importError, setImportError] = useState<string | null>(null);
-  const [clearConfirm, setClearConfirm] = useState(false);
-  const [justCleared, setJustCleared] = useState(false);
+  const [tournamentPrefill, setTournamentPrefill] = useState<{ disciplineId: Id; teamCount: number } | null>(null);
   const [filterIds, setFilterIds] = useState<string[]>([]);
-  const [randomDisciplines, setRandomDisciplines] = useState<string[]>([]);
-  const [randomPreview, setRandomPreview] = useState<Player | null>(null);
+
+  const pushView = (v: View) => setViewStack((s) => [...s, v]);
+  const goBack = () => setViewStack((s) => (s.length > 1 ? s.slice(0, -1) : s));
+  const gotoHub = (hub: "dashboard" | "roster" | "games" | "history" | "squads") => {
+    setViewStack([{ mode: hub }]);
+    setSetup(null);
+  };
+  const goDisciplines = () => pushView({ mode: "disciplines" });
+
   const [communityName, setCommunityName] = useState("");
   const [showAddCommunity, setShowAddCommunity] = useState(false);
   const [showCommunityMenu, setShowCommunityMenu] = useState(false);
@@ -166,6 +184,18 @@ export default function App() {
   const communityPlayers = activeCommunity
     ? roster.players.filter((p) => p.communityId === activeCommunity.id)
     : [];
+  // Community scoping (CONTEXT): every list shows only the active community's
+  // records — sessions (History) and tournaments (Games) follow the players
+  // and saved squads, which already filter by communityId here.
+  const communitySessions = activeCommunity
+    ? sessions.sessions.filter((s) => s.communityId === activeCommunity.id)
+    : [];
+  const communityTournaments = activeCommunity
+    ? tournaments.tournaments.filter((t) => t.communityId === activeCommunity.id)
+    : [];
+  const communitySquads = activeCommunity
+    ? savedSquads.squads.filter((q) => q.communityId === activeCommunity.id)
+    : [];
   const visiblePlayers = filterIds.length === 0
     ? communityPlayers
     : communityPlayers.filter((p) => p.capabilities.some((c) => filterIds.includes(c.disciplineId)));
@@ -187,8 +217,8 @@ export default function App() {
     }
   }, [activeCommunity, communities.communities, roster.players, sessions.sessions, roster, sessionStore]);
 
-  const startMatch = (tournamentId: Id | null = null) => {
-    if (disciplines.length === 0 || communityPlayers.length === 0) return;
+  const startMatch = (source: SplitSource, tournamentId?: Id) => {
+    if (source !== "tournament" && (disciplines.length === 0 || communityPlayers.length === 0)) return;
     const tournament = tournamentId
       ? tournaments.tournaments.find((t) => t.id === tournamentId) ?? null
       : null;
@@ -212,9 +242,10 @@ export default function App() {
       disciplineId,
       selectedIds: communityPlayers.map((p) => p.id),
       teamCount: tournament?.teamCount ?? suggestTeamCount(eligible.length, discipline),
-      tournamentId,
+      tournamentId: tournamentId ?? null,
+      source,
     });
-    setView({ mode: "match" });
+    pushView({ mode: "match", source });
   };
 
   const togglePlayer = (id: Id) => {
@@ -253,33 +284,37 @@ export default function App() {
       settings: { teamCount: setup.teamCount },
       result,
     };
-    if (!setup.tournamentId) {
+    // Persistence rules (FLOW): ad-hoc splits save a Session; tournament splits
+    // persist via the bracket only; session/squad re-splits are synthetic.
+    if (setup.source === "ad-hoc") {
       try {
         await sessionStore.saveSession(session);
       } catch {
         // Non-fatal: still show the split if persistence failed.
       }
     }
-    setView({ mode: "split", session });
+    const source = view.mode === "match" ? view.source : "ad-hoc" as SplitSource;
+    pushView({ mode: "split", session, source });
   };
 
-  const submitTeams = (teams: TeamAssignment[]) => {
-    if (!setup?.tournamentId || !activeCommunity) return;
-    const tournament = tournaments.tournaments.find((t) => t.id === setup.tournamentId);
-    if (!tournament) return;
-    const discipline = disciplinesById.get(tournament.disciplineId);
-    if (!discipline) return;
-    
-    // Get the session for this tournament's discipline
-    const session = sessions.sessions.find(s => s.disciplineId === tournament.disciplineId);
-    if (!session) return;
-    
-    // Validate teams before submission
-    // Note: we don't require pool size to match split allocation.
-    // The user can select a subset of eligible players for the tournament.
-    // validateTeamParticipation is not called here — only role coverage and
-    // team count constraints matter for tournament submission.
-    
+  const consumeTeams = async (tournamentId: Id, teams: TeamAssignment[]) => {
+    const tournament = tournaments.tournaments.find((t) => t.id === tournamentId);
+    if (!tournament) {
+      notify("Could not save: the tournament is no longer in this community's list.", "error");
+      return;
+    }
+    // A bracket needs a team count its format supports (single elim: 2/4/8;
+    // series: 2; swiss: even). Guard before building so a mismatch is a clear
+    // message, not a crash inside buildBracket.
+    const n = teams.length;
+    const bracketOk =
+      tournament.format === "swiss" ? n >= 2 && n % 2 === 0
+      : tournament.format === "single-elim" ? (n === 2 || n === 4 || n === 8)
+      : n === 2; // series
+    if (!bracketOk) {
+      notify(`Could not save: a ${tournament.format} bracket needs a supported number of teams (got ${n}).`, "error");
+      return;
+    }
     const seeded = [...teams].sort((a, b) => b.avgStrength - a.avgStrength);
     const next: Tournament = {
       ...tournament,
@@ -291,14 +326,61 @@ export default function App() {
         players: t.slots.map((s) => s.playerId),
       })),
     };
-    const built = buildBracket(next);
-    void tournaments.saveTournament(built).then(() => setView({ mode: "tournament", id: built.id }));
+    try {
+      const built = buildBracket(next);
+      await tournaments.saveTournament(built);
+      // Land on the tournament detail with the Games hub beneath it, so Back
+      // and the breadcrumb return to Games (FLOW P2: back to where you came from).
+      setViewStack([{ mode: "games" }, { mode: "tournament", id: built.id }]);
+      setSetup(null);
+    } catch (err) {
+      notify(`Could not save the tournament teams: ${formatError(err)}`, "error");
+    }
   };
 
   const recordResult = async (matchId: Id, games: GameResult[]) => {
     if (!viewTournament) return;
     const next = applyResult(viewTournament, matchId, games);
     await tournaments.saveTournament(next);
+  };
+
+  const saveSquadFromSplit = async (name: string, result: SplitResult, disciplineId: Id) => {
+    if (!activeCommunity) return;
+    const poolPlayerIds = result.teams.flatMap((t) => t.slots.map((s) => s.playerId));
+    const squad: SavedSquad = {
+      id: crypto.randomUUID(),
+      communityId: activeCommunity.id,
+      name,
+      disciplineId,
+      createdAt: Date.now(),
+      poolPlayerIds,
+      settings: { teamCount: result.teams.length },
+      result,
+    };
+    await savedSquads.saveSquad(squad);
+  };
+
+  const reSplitSquad = (squad: SavedSquad) => {
+    const synthetic: Session = {
+      id: `squad-${squad.id}`,
+      communityId: activeCommunity?.id ?? "",
+      disciplineId: squad.disciplineId,
+      createdAt: Date.now(),
+      poolPlayerIds: squad.poolPlayerIds,
+      settings: squad.settings,
+      result: squad.result,
+    };
+    setSetup(null);
+    pushView({ mode: "split", session: synthetic, source: "squad" });
+  };
+
+  const useSquadInTournament = async (squad: SavedSquad, tournamentId: Id) => {
+    consumeTeams(tournamentId, squad.result.teams);
+  };
+
+  const newTournamentFromSquad = (squad: SavedSquad) => {
+    setTournamentPrefill({ disciplineId: squad.disciplineId, teamCount: squad.result.teams.length });
+    gotoHub("games");
   };
 
   const undoLastResult = async () => {
@@ -308,20 +390,11 @@ export default function App() {
   };
 
 
-  const reopenSession = (s: Session) => {
-    setSetup({
-      disciplineId: s.disciplineId,
-      selectedIds: s.poolPlayerIds,
-      teamCount: s.settings.teamCount,
-      tournamentId: null,
-    });
-    setView({ mode: "match" });
-  };
 
   const handleExport = async () => {
     const allSessions = await sessionStore.listSessions();
     const blob = new Blob(
-      [serializeBackup(roster.players, allSessions, communities.communities, tournaments.tournaments)],
+      [serializeBackup(roster.players, allSessions, communities.communities, tournaments.tournaments, savedSquads.squads)],
       { type: "application/json" },
     );
     const url = URL.createObjectURL(blob);
@@ -337,7 +410,7 @@ export default function App() {
     try {
       data = parseBackup(await file.text());
     } catch (err) {
-      setImportError(err instanceof Error ? err.message : String(err));
+      alert(`Import failed: ${err instanceof Error ? err.message : String(err)}`);
       return;
     }
     // Merge with existing data: add only new ids, never overwrite.
@@ -345,16 +418,18 @@ export default function App() {
     const existingPlayerIds = new Set(roster.players.map((p) => p.id));
     const existingSessionIds = new Set(sessions.sessions.map((s) => s.id));
     const existingTournamentIds = new Set(tournaments.tournaments.map((t) => t.id));
+    const existingSquadIds = new Set(savedSquads.squads.map((q) => q.id));
     const newCommunities = data.communities.filter((c) => !existingCommunityIds.has(c.id));
     const newPlayers = data.players.filter((p) => !existingPlayerIds.has(p.id));
     const newSessions = data.sessions.filter((s) => !existingSessionIds.has(s.id));
     const newTournaments = (data.tournaments ?? []).filter((t) => !existingTournamentIds.has(t.id));
+    const newSquads = (data.savedSquads ?? []).filter((q) => !existingSquadIds.has(q.id));
     const totalNew =
-      newCommunities.length + newPlayers.length + newSessions.length + newTournaments.length;
+      newCommunities.length + newPlayers.length + newSessions.length + newTournaments.length + newSquads.length;
     if (
       totalNew === 0 ||
       !window.confirm(
-        `Import ${newCommunities.length} new communit${newCommunities.length === 1 ? "y" : "ies"}, ${newPlayers.length} new player${newPlayers.length === 1 ? "" : "s"}, ${newSessions.length} session${newSessions.length === 1 ? "" : "s"} and ${newTournaments.length} tournament${newTournaments.length === 1 ? "" : "s"}? (Existing records with the same id are kept.)`,
+        `Import ${newCommunities.length} new communit${newCommunities.length === 1 ? "y" : "ies"}, ${newPlayers.length} new player${newPlayers.length === 1 ? "" : "s"}, ${newSessions.length} session${newSessions.length === 1 ? "" : "s"}, ${newTournaments.length} tournament${newTournaments.length === 1 ? "" : "s"} and ${newSquads.length} saved squad${newSquads.length === 1 ? "" : "s"}? (Existing records with the same id are kept.)`,
       )
     ) {
       return;
@@ -365,25 +440,12 @@ export default function App() {
     for (const p of newPlayers) await roster.savePlayer({ ...p, communityId: importCommunityId });
     for (const s of newSessions) await sessionStore.saveSession(s);
     for (const t of newTournaments) await tournamentStore.saveTournament(t);
-    setImportError(null);
+    for (const q of newSquads) await squadStore.saveSavedSquad({ ...q, communityId: importCommunityId });
+
   };
 
-  const clearData = () => {
-    setClearConfirm(true);
-  };
 
-  const confirmClear = async () => {
-    await communityStore.replaceAllCommunities([]);
-    await rosterStore.replaceAllPlayers([]);
-    await sessionStore.replaceAllSessions([]);
-    await tournamentStore.replaceAllTournaments([]);
-    setClearConfirm(false);
-    setJustCleared(true);
-  };
 
-  const cancelClear = () => {
-    setClearConfirm(false);
-  };
 
   const createCommunity = async () => {
     if (!communityName.trim()) return;
@@ -537,22 +599,9 @@ export default function App() {
   };
 
   const randomPlayers = () => {
-    const shuffled = [...communityPlayers].sort(() => Math.random() - 0.5);
-    const selected = shuffled.slice(0, Math.min(5, shuffled.length));
-    setSetup({
-      disciplineId: disciplines[0].id,
-      selectedIds: selected.map(p => p.id),
-      teamCount: 2,
-      tournamentId: null,
-    });
-    setView({ mode: "match" });
+    startMatch("ad-hoc");
   };
 
-  const randomizePreview = () => {
-    if (communityPlayers.length === 0) return;
-    const shuffled = [...communityPlayers].sort(() => Math.random() - 0.5);
-    setRandomPreview(shuffled[0]);
-  };
 
   const filtersByDiscipline = (disciplineId: Id) => {
     setFilterIds(prev => prev.includes(disciplineId) ? prev.filter(id => id !== disciplineId) : [...prev, disciplineId]);
@@ -563,19 +612,39 @@ export default function App() {
   };
 
   const showHistory = () => {
-    setView({ mode: "history" });
-  };
-
-  const goHome = () => {
-    setView({ mode: "roster" });
+    gotoHub("history");
   };
 
   const showDisciplines = () => {
-    setView({ mode: "disciplines" });
+    goDisciplines();
+  };
+
+  // Dashboard actions (ticket 04): every exit reuses an existing App flow —
+  // the roster "Split match" handler, the Games create flow, hub navigation,
+  // and the roster "+ Add Player" modal. Only the entry points differ.
+  const showSquads = () => {
+    gotoHub("squads");
+  };
+
+  const addPlayer = () => {
+    gotoHub("roster");
+    setEditingPlayer("new");
+  };
+
+  const startAdHocSplit = () => {
+    if (view.mode === "tournament" && viewTournament) {
+      startMatch("tournament", viewTournament.id);
+      return;
+    }
+    startMatch("ad-hoc");
+  };
+
+  const openNewTournament = () => {
+    setTournamentPrefill({ disciplineId: "", teamCount: 0 });
+    gotoHub("games");
   };
 
   const createTournament = async (spec: {
-
     name: string;
     disciplineId: Id;
     format: TournamentFormat;
@@ -609,43 +678,30 @@ export default function App() {
       matches: [],
     };
     await tournaments.saveTournament(tournament);
-    setView({ mode: "tournament", id: tournament.id });
+    setViewStack([{ mode: "games" }, { mode: "tournament", id: tournament.id }]);
+    setSetup(null);
   };
 
 
   const openTournament = (id: Id) => {
-    setView({ mode: "tournament", id });
+    pushView({ mode: "tournament", id });
   };
 
-  const enterMatchFlow = (tournamentId: Id | null = null) => {
-    startMatch(tournamentId);
-  };
-
-  const exitMatchFlow = () => {
-    setView({ mode: "roster" });
-    setSetup(null);
+  const enterMatchFlow = (tournamentId?: Id) => {
+    startMatch("tournament", tournamentId);
   };
 
   const startSplit = () => {
-    if (setup) {
-      split();
+    if (view.mode === "tournament" && viewTournament) {
+      startMatch("tournament", viewTournament.id);
       return;
     }
-    const tournament = viewTournament;
-    if (tournament) {
-      setSetup({
-        disciplineId: tournament.disciplineId,
-        selectedIds: communityPlayers.map(p => p.id),
-        teamCount: tournament.teamCount,
-        tournamentId: tournament.id,
-      });
-      setView({ mode: "match" });
-    }
+    startMatch("ad-hoc");
   };
 
   const finishSplit = (teams: TeamAssignment[]) => {
     if (!setup?.tournamentId) return;
-    submitTeams(teams);
+    consumeTeams(setup.tournamentId, teams);
   };
 
   const recordTournamentResult = async (matchId: Id, games: GameResult[]) => {
@@ -657,9 +713,12 @@ export default function App() {
 
   const deleteTournamentFromUI = async (id: Id) => {
     await deleteTournament(id);
+    if (view.mode === "tournament" && view.id === id) {
+      gotoHub("games");
+    }
   };
   const showTournamentView = (tournament: Tournament) => {
-    setView({ mode: "tournament", id: tournament.id });
+    pushView({ mode: "tournament", id: tournament.id });
   };
 
   return (
@@ -773,6 +832,53 @@ export default function App() {
           )}
         </div>
       </header>
+
+      {showAddCommunity && (
+        <div className="add-community">
+          <div className="form-label">New community</div>
+          <div className="form-row">
+            <input
+              type="text"
+              value={communityName}
+              onChange={(e) => setCommunityName(e.target.value)}
+              placeholder="e.g. Sunday League"
+              onKeyDown={(e) => {
+                if (e.key === "Enter") createCommunity();
+                if (e.key === "Escape") cancelAddCommunity();
+              }}
+              autoFocus
+            />
+            <button className="btn btn-primary" onClick={createCommunity}>Create</button>
+            <button className="btn btn-ghost" onClick={cancelAddCommunity} aria-label="Cancel">Cancel</button>
+          </div>
+        </div>
+      )}
+      {communities.communities.length === 0 && !showAddCommunity && (
+        <div className="empty">
+          <div className="kicker">First whistle</div>
+          <div className="big">No communities yet</div>
+          <p>Hit ✚ in the topbar to create your first community.</p>
+        </div>
+      )}
+
+      {view.mode === "dashboard" && (
+        <DashboardScreen
+          community={activeCommunity}
+          players={communityPlayers}
+          squads={communitySquads}
+          tournaments={communityTournaments}
+          disciplines={disciplines}
+          onSplitMatch={startAdHocSplit}
+          onNewTournament={openNewTournament}
+          onBrowseSquads={showSquads}
+          onAddPlayer={addPlayer}
+          onOpenPlayer={(player) => {
+            gotoHub("roster");
+            setEditingPlayer(player);
+          }}
+          onOpenTournament={(tournament) => openTournament(tournament.id)}
+        />
+      )}
       {view.mode === "roster" && (
         <div className="screen">
           <div className="kicker">Match Sheet · 01</div>
@@ -780,36 +886,6 @@ export default function App() {
           {activeCommunity && (
             <div className="lede">
               <strong>{activeCommunity.name}</strong> · {communityPlayers.length} player{communityPlayers.length === 1 ? "" : "s"} on the roster
-            </div>
-          )}
-
-
-
-          {showAddCommunity && (
-            <div className="add-community">
-              <div className="form-label">New community</div>
-              <div className="form-row">
-                <input
-                  type="text"
-                  value={communityName}
-                  onChange={(e) => setCommunityName(e.target.value)}
-                  placeholder="e.g. Sunday League"
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") createCommunity();
-                    if (e.key === "Escape") cancelAddCommunity();
-                  }}
-                  autoFocus
-                />
-                <button className="btn btn-primary" onClick={createCommunity}>Create</button>
-                <button className="btn btn-ghost" onClick={cancelAddCommunity} aria-label="Cancel">Cancel</button>
-              </div>
-            </div>
-          )}
-          {communities.communities.length === 0 && !showAddCommunity && (
-            <div className="empty">
-              <div className="kicker">First whistle</div>
-              <div className="big">No communities yet</div>
-              <p>Hit ✚ in the topbar to create your first community.</p>
             </div>
           )}
           
@@ -950,25 +1026,40 @@ export default function App() {
       )}
       {view.mode === "games" && (
         <div className="screen">
-        <GamesScreen
-          tournaments={tournaments.tournaments}
-          disciplines={disciplines}
-          onCreate={createTournament}
-          onOpen={openTournament}
-          onDelete={deleteTournament}
-        />
+          <GamesScreen
+            tournaments={communityTournaments}
+            disciplines={disciplines}
+            onCreate={createTournament}
+            onOpen={openTournament}
+            onDelete={deleteTournament}
+            onManageDisciplines={() => goDisciplines()}
+            prefill={tournamentPrefill}
+            onPrefillConsumed={() => setTournamentPrefill(null)}
+          />
         </div>
       )}
       {view.mode === "tournament" && viewTournament && (
-        <TournamentScreen
-          tournament={viewTournament}
-          disciplines={disciplines}
-          onBack={goHome}
-          onSplit={startSplit}
-          onRecord={async (matchId, games) => { await recordResult(matchId, games); }}
-          onUndo={undoLastResult}
-          onDelete={() => deleteTournamentFromUI(viewTournament.id)}
-        />
+        <div className="screen">
+          <TournamentScreen
+            tournament={viewTournament}
+            disciplines={disciplines}
+            matchingSquads={savedSquads.squads.filter(
+              (q) =>
+                q.communityId === activeCommunity?.id &&
+                q.disciplineId === viewTournament.disciplineId &&
+                q.result.teams.length === viewTournament.teamCount,
+            )}
+            roster={communityPlayers}
+            onBack={() => goBack()}
+            onSplit={() => startSplit()}
+            onUseSavedSquad={(squad) => useSquadInTournament(squad, viewTournament.id)}
+            onRecord={async (matchId, games) => { await recordResult(matchId, games); }}
+            onUndo={undoLastResult}
+            onDelete={() => deleteTournamentFromUI(viewTournament.id)}
+            onReroll={() => startMatch("tournament", viewTournament.id)}
+            totalPlayers={communityPlayers.length}
+          />
+        </div>
       )}
 
       {view.mode === "split" && view.session && (
@@ -977,29 +1068,46 @@ export default function App() {
           discipline={disciplines.find(d => d.id === view.session!.disciplineId) ?? disciplines[0]}
           roster={communityPlayers}
           onPersistResult={async (result) => {
-            // Update session with new result
-            const updatedSession = { ...view.session!, result };
-            await sessionStore.saveSession(updatedSession);
-          }}
-          inTournament={!!setup?.tournamentId}
-          onSubmitTournament={setup?.tournamentId ? (teams) => finishSplit(teams) : undefined}
-          onBack={() => {
-            // Go back to match setup if a setup exists, otherwise roster
-            if (setup) {
-              setView({ mode: "match" });
-            } else {
-              setView({ mode: "roster" });
+            // FLOW rule 3: only ad-hoc splits persist re-rolls/swaps to the
+            // Session log. Session/squad sources are synthetic — re-rolling a
+            // reopened History session must not mutate the archived raw log, and
+            // a squad re-split only persists when saved as a new squad.
+            // Tournament splits persist via the bracket (no Session pollution).
+            if (view.source === "ad-hoc") {
+              const updatedSession = { ...view.session!, result };
+              await sessionStore.saveSession(updatedSession);
             }
           }}
+          source={view.source}
+          onSubmitTournament={
+            view.source === "tournament" && setup?.tournamentId
+              ? (teams) => consumeTeams(setup.tournamentId!, teams)
+              : undefined
+          }
+          onSaveSquad={(name, result) => saveSquadFromSplit(name, result, view.session!.disciplineId)}
+          onBack={() => goBack()}
         />
       )}
       {view.mode === "history" && (
         <HistoryScreen
-          sessions={sessions.sessions}
+          sessions={communitySessions}
           loading={sessions.loading}
           disciplines={disciplines}
-          onReopen={(session) => setView({ mode: "split", session })}
+          onReopen={(session) => pushView({ mode: "split", session, source: "session" })}
           onDelete={async (id) => { await sessionStore.deleteSession(id); }}
+        />
+      )}
+
+      {view.mode === "squads" && (
+        <SquadsScreen
+          squads={savedSquads.squads.filter((q) => q.communityId === activeCommunity?.id)}
+          loading={savedSquads.loading}
+          disciplines={disciplines}
+          roster={communityPlayers}
+          onBack={() => goBack()}
+          onReSplit={reSplitSquad}
+          onNewTournament={newTournamentFromSquad}
+          onDelete={async (id) => { await savedSquads.deleteSquad(id); }}
         />
       )}
 
@@ -1009,7 +1117,7 @@ export default function App() {
           loading={catalog.loading}
           onSave={saveDiscipline}
           onDelete={deleteDiscipline}
-          onBack={goHome}
+          onBack={() => goBack()}
         />
       )}
 
@@ -1020,13 +1128,13 @@ export default function App() {
           disciplineId={setup.disciplineId}
           selectedIds={setup.selectedIds}
           teamCount={setup.teamCount}
-          lockedDisciplineId={setup.tournamentId ? undefined : undefined}
-          lockedTeamCount={setup.tournamentId ? undefined : undefined}
+          lockedDisciplineId={view.mode === "match" && view.source === "tournament" ? setup.disciplineId : undefined}
+          lockedTeamCount={view.mode === "match" && view.source === "tournament" ? setup.teamCount : undefined}
           onTogglePlayer={togglePlayer}
           onSelectDiscipline={selectDiscipline}
           onTeamCountChange={changeTeamCount}
           onSplit={split}
-          onBack={goHome}
+          onBack={() => goBack()}
         />
       )}
 
@@ -1038,19 +1146,28 @@ export default function App() {
         ))}
       </div>
       <nav className="bottom-nav" aria-label="Primary">
-        <button className={`nav-link ${view.mode === "roster" ? "nav-active" : ""}`} onClick={goHome} aria-label="Roster">
+        <button className={`nav-link ${viewStack[0].mode === "roster" ? "nav-active" : ""}`} onClick={() => gotoHub("roster")} aria-label="Roster">
           <span className="nav-icon" aria-hidden="true">◉</span>
           <span>Roster</span>
         </button>
-        <button className={`nav-link ${view.mode === "games" ? "nav-active" : ""}`} onClick={() => setView({ mode: "games" })} aria-label="Games">
+        <button className={`nav-link ${viewStack[0].mode === "games" ? "nav-active" : ""}`} onClick={() => gotoHub("games")} aria-label="Games">
           <span className="nav-icon" aria-hidden="true">▣</span>
           <span>Games</span>
         </button>
-        <button className={`nav-link ${view.mode === "history" ? "nav-active" : ""}`} onClick={showHistory} aria-label="History">
+        <button
+          className={`nav-link nav-link--home ${viewStack[0].mode === "dashboard" ? "nav-active" : ""}`}
+          onClick={() => gotoHub("dashboard")}
+          aria-label="Home"
+          aria-current={viewStack[0].mode === "dashboard" ? "page" : undefined}
+        >
+          <span className="nav-icon" aria-hidden="true">⌂</span>
+          <span>Home</span>
+        </button>
+        <button className={`nav-link ${viewStack[0].mode === "history" ? "nav-active" : ""}`} onClick={() => gotoHub("history")} aria-label="History">
           <span className="nav-icon" aria-hidden="true">≡</span>
           <span>History</span>
         </button>
-        <button className={`nav-link ${view.mode === "disciplines" ? "nav-active" : ""}`} onClick={showDisciplines} aria-label="Disciplines">
+        <button className={`nav-link ${viewStack[0].mode === "squads" ? "nav-active" : ""}`} onClick={() => gotoHub("squads")} aria-label="Saved squads">
           <span className="nav-icon" aria-hidden="true">◇</span>
           <span>Squads</span>
         </button>

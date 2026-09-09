@@ -1,4 +1,4 @@
-import type { Community, Discipline, Id, Player, Session, Tournament } from "../domain/types";
+import type { Community, Discipline, Id, Player, SavedSquad, Session, Tournament } from "../domain/types";
 
 /**
  * Persistence behind ADR-0001: the app talks to these interfaces, so a backend
@@ -37,4 +37,11 @@ export interface TournamentStore {
   saveTournament(tournament: Tournament): Promise<void>; // upsert by id
   deleteTournament(id: Id): Promise<void>;
   replaceAllTournaments(tournaments: Tournament[]): Promise<void>; // atomic overwrite
+}
+
+export interface SavedSquadStore {
+  listSavedSquads(): Promise<SavedSquad[]>;
+  saveSavedSquad(squad: SavedSquad): Promise<void>; // upsert by id
+  deleteSavedSquad(id: Id): Promise<void>;
+  replaceAllSavedSquads(squads: SavedSquad[]): Promise<void>; // atomic overwrite
 }

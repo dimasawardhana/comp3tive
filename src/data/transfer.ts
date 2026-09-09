@@ -1,17 +1,18 @@
-import type { Community, Player, Session, Tournament } from "../domain/types";
+import type { Community, Player, SavedSquad, Session, Tournament } from "../domain/types";
 
 /**
  * The exported backup shape. Bump `version` when the format changes.
- * v2 added `communities`; v3 added `tournaments`.
- * Older versions import migrated: v1 -> Default community, no tournaments.
+ * v2 added `communities`; v3 added `tournaments`; v4 added `savedSquads`.
+ * Older versions import migrated: v1 -> Default community, no tournaments/squads.
  */
 export interface BackupData {
-  version: 3;
+  version: 4;
   exportedAt: string;
   communities: Community[];
   players: Player[];
   sessions: Session[];
   tournaments: Tournament[];
+  savedSquads: SavedSquad[];
 }
 
 const DEFAULT_COMMUNITY_ID = "community-default";
@@ -22,14 +23,16 @@ export function serializeBackup(
   sessions: Session[],
   communities: Community[],
   tournaments: Tournament[],
+  savedSquads: SavedSquad[],
 ): string {
   const data: BackupData = {
-    version: 3,
+    version: 4,
     exportedAt: new Date().toISOString(),
     communities,
     players,
     sessions,
     tournaments,
+    savedSquads,
   };
   return JSON.stringify(data, null, 2);
 }
@@ -51,6 +54,18 @@ function isSession(v: unknown): v is Session {
   return (
     isRecord(v) &&
     typeof v.id === "string" &&
+    typeof v.disciplineId === "string" &&
+    Array.isArray(v.poolPlayerIds) &&
+    isRecord(v.settings) &&
+    isRecord(v.result)
+  );
+}
+
+function isSavedSquad(v: unknown): v is SavedSquad {
+  return (
+    isRecord(v) &&
+    typeof v.id === "string" &&
+    typeof v.name === "string" &&
     typeof v.disciplineId === "string" &&
     Array.isArray(v.poolPlayerIds) &&
     isRecord(v.settings) &&
@@ -84,9 +99,9 @@ export function parseBackup(text: string): BackupData {
   } catch {
     throw new Error("That file is not valid JSON.");
   }
-  if (!isRecord(data)) throw new Error("That file is not a Team Builder backup.");
-  if (data.version === undefined) throw new Error("That file is not a Team Builder backup.");
-  if (data.version !== 1 && data.version !== 2 && data.version !== 3) {
+  if (!isRecord(data)) throw new Error("That file is not a comp3tive backup.");
+  if (data.version === undefined) throw new Error("That file is not a comp3tive backup.");
+  if (data.version !== 1 && data.version !== 2 && data.version !== 3 && data.version !== 4) {
     throw new Error(`Unsupported backup version: ${String(data.version)}.`);
   }
   if (!Array.isArray(data.players)) throw new Error("Backup has no players list.");
@@ -101,6 +116,10 @@ export function parseBackup(text: string): BackupData {
   const rawTournaments = Array.isArray(data.tournaments) ? (data.tournaments as unknown[]) : [];
   for (const t of rawTournaments) {
     if (!isTournament(t)) throw new Error("Backup contains a malformed tournament.");
+  }
+  const rawSavedSquads = Array.isArray(data.savedSquads) ? (data.savedSquads as unknown[]) : [];
+  for (const q of rawSavedSquads) {
+    if (!isSavedSquad(q)) throw new Error("Backup contains a malformed saved squad.");
   }
 
   const players = data.players as Player[];
@@ -120,7 +139,7 @@ export function parseBackup(text: string): BackupData {
     typeof communityId === "string" && known.has(communityId) ? communityId : fallbackId;
 
   return {
-    version: 3,
+    version: 4,
     exportedAt: typeof data.exportedAt === "string" ? data.exportedAt : "",
     communities,
     players: players.map((p) => ({ ...p, communityId: adopted(p.communityId) })),
@@ -128,6 +147,10 @@ export function parseBackup(text: string): BackupData {
     tournaments: (rawTournaments as Tournament[]).map((t) => ({
       ...t,
       communityId: adopted(t.communityId),
+    })),
+    savedSquads: (rawSavedSquads as SavedSquad[]).map((q) => ({
+      ...q,
+      communityId: adopted(q.communityId),
     })),
   };
 }
