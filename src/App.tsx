@@ -297,9 +297,12 @@ export default function App() {
     pushView({ mode: "split", session, source });
   };
 
-  const consumeTeams = (tournamentId: Id, teams: TeamAssignment[]) => {
+  const consumeTeams = async (tournamentId: Id, teams: TeamAssignment[]) => {
     const tournament = tournaments.tournaments.find((t) => t.id === tournamentId);
-    if (!tournament) return;
+    if (!tournament) {
+      notify("Could not save: the tournament is no longer in this community's list.", "error");
+      return;
+    }
     const seeded = [...teams].sort((a, b) => b.avgStrength - a.avgStrength);
     const next: Tournament = {
       ...tournament,
@@ -312,12 +315,15 @@ export default function App() {
       })),
     };
     const built = buildBracket(next);
-    void tournaments.saveTournament(built).then(() => {
+    try {
+      await tournaments.saveTournament(built);
       // Land on the tournament detail with the Games hub beneath it, so Back
       // and the breadcrumb return to Games (FLOW P2: back to where you came from).
       setViewStack([{ mode: "games" }, { mode: "tournament", id: built.id }]);
       setSetup(null);
-    });
+    } catch (err) {
+      notify(`Could not save the tournament teams: ${formatError(err)}`, "error");
+    }
   };
 
   const recordResult = async (matchId: Id, games: GameResult[]) => {
