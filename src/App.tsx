@@ -43,6 +43,7 @@ import { GamesScreen } from "./tournament/GamesScreen";
 import { TournamentScreen } from "./tournament/TournamentScreen";
 import { buildBracket, applyResult, undoLastGame } from "./tournament/bracket";
 import { serializeBackup, parseBackup } from "./data/transfer";
+import { addSampleData, hasSampleData, detectDisciplineFromSampleData } from "./data/sample-data";
 import { validateTeamParticipation } from "./tournament/team-participation-validator";
 import { validateTournamentSpec } from "./tournament/tournament-validation";
 const communityStore = createIndexedDbCommunityStore();
@@ -442,6 +443,19 @@ export default function App() {
     for (const t of newTournaments) await tournamentStore.saveTournament(t);
     for (const q of newSquads) await squadStore.saveSavedSquad({ ...q, communityId: importCommunityId });
 
+    // Register sample data for any new disciplines discovered in the import.
+    const rawText = await file.text();
+    const detectedDisciplineId = detectDisciplineFromSampleData(rawText);
+    if (detectedDisciplineId && !hasSampleData(detectedDisciplineId)) {
+      try {
+        const data = parseBackup(rawText);
+        const sampleData = serializeBackup(data.players, [], [], [], []);
+        addSampleData(detectedDisciplineId, sampleData);
+      } catch {
+        // Non-critical: sample data registration is best-effort
+      }
+    }
+
   };
 
 
@@ -467,9 +481,9 @@ export default function App() {
     await rosterStore.deletePlayer(id);
   };
 
-  const saveDiscipline = async (d: Discipline) => {
+  const saveDiscipline = async (d: Discipline, sampleDataJson?: string) => {
     try {
-      await catalog.saveDiscipline(d);
+      await catalog.saveDiscipline(d, sampleDataJson);
     } catch (err) {
       notify(`Could not save discipline: ${formatError(err)}`, "error");
       throw err;

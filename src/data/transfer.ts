@@ -154,22 +154,3 @@ export function parseBackup(text: string): BackupData {
     })),
   };
 }
-
-/** Detect the discipline ID from a sample data/backup file text. Returns null if not recognizable. */
-export function detectDisciplineFromSampleData(text: string): string | null {
-  let data: unknown;
-  try {
-    data = JSON.parse(text);
-  } catch {
-    return null;
-  }
-  if (!isRecord(data)) return null;
-  const players = (data as Record<string, unknown>).players;
-  if (!Array.isArray(players) || players.length === 0) return null;
-  const firstPlayer = players[0] as Record<string, unknown>;
-  const caps = firstPlayer?.capabilities;
-  if (!Array.isArray(caps) || caps.length === 0) return null;
-  const disciplineId = caps[0]?.disciplineId;
-  if (typeof disciplineId !== "string") return null;
-  return disciplineId;
-}
