@@ -173,3 +173,23 @@ export interface Session {
   settings: SessionSettings;
   result: SplitResult;
 }
+
+// ---- Saved Squads (CONTEXT.md: the curated, named split) ----
+
+/**
+ * A named, self-contained record of one fair split, saved explicitly for
+ * reuse (CONTEXT.md: Saved Squad). Holds its own copy of the split data so
+ * re-splitting or deleting the source Session never changes it, and a draft
+ * Tournament can consume a matching one as its teams (snapshot semantics).
+ */
+export interface SavedSquad {
+  id: Id;
+  /** The community this squad was saved in. Never shared across communities. */
+  communityId: Id;
+  name: string;
+  disciplineId: Id;
+  createdAt: number; // epoch ms, for ordering
+  poolPlayerIds: Id[];
+  settings: SessionSettings;
+  result: SplitResult;
+}

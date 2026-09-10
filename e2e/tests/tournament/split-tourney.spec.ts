@@ -29,7 +29,7 @@ test("tournament split: draft page links to match setup with tournament context"
 
   // On draft page — verify tournament context
   await expect(page.locator(".tournament-header h1")).toHaveText("Squad Test");
-  await expect(page.locator(".tournament-meta-card")).toHaveCount(4);
+  await expect(page.locator(".tournament-meta-strip .tms-item")).toHaveCount(4);
   await expect(page.getByTestId("split-teams-cta")).toBeVisible();
 
   // Click Split your teams -> enters match setup with tournament locked

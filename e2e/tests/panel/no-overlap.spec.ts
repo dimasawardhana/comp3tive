@@ -13,6 +13,9 @@ test("panel: content not cut by fixed nav", async ({ page }) => {
   await page.locator(".add-community .btn-primary").click();
   await expect(page.locator(".add-community")).not.toBeVisible({ timeout: 3000 });
 
+  // The app lands on the Dashboard; the roster toolbar lives on the Roster hub.
+  await page.getByRole("button", { name: "Roster" }).click();
+
   // 2. Add players via the Add Player button
   for (let i = 0; i < 15; i++) {
     await page.getByRole("button", { name: /Add Player/ }).click();

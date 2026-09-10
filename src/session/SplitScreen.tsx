@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { Capability, Discipline, Id, Player, Session, SplitResult, TeamAssignment } from "../domain/types";
+type SplitSource = "ad-hoc" | "tournament" | "session" | "squad";
 import { describeFlags, teamName } from "./flow";
 import { freshSplit, swapPlayers } from "./edit";
 
@@ -9,8 +10,10 @@ interface Props {
   roster: Player[];
   onPersistResult: (result: SplitResult) => Promise<void>;
   onSubmitTournament?: (teams: TeamAssignment[]) => void;
-  /** Tournament mode: true when splitting inside a tournament draft. */
-  inTournament?: boolean;
+  /** Save the current teams as a named Saved Squad. */
+  onSaveSquad?: (name: string, result: SplitResult) => Promise<void> | void;
+  /** Source of this split: drives header, breadcrumbs, persistence, forward action. */
+  source: SplitSource;
   /** Go back to the match setup screen to change the roster. */
   onBack?: () => void;
 }
@@ -140,11 +143,66 @@ function GapMeter({ result, balanced }: { result: SplitResult; balanced: boolean
   );
 }
 
-export function SplitScreen({ session, discipline, roster, onPersistResult, onSubmitTournament, inTournament, onBack }: Props) {
+function SaveSquadModal({
+  defaultName,
+  saving,
+  onCancel,
+  onSave,
+}: {
+  defaultName: string;
+  saving: boolean;
+  onCancel: () => void;
+  onSave: (name: string) => void;
+}) {
+  const [name, setName] = useState(defaultName);
+  return (
+    <div className="modal-overlay" onClick={onCancel}>
+      <div className="modal-card" onClick={(e) => e.stopPropagation()}>
+        <button type="button" className="modal-close" aria-label="Close" onClick={onCancel}>
+          &times;
+        </button>
+        <h1 className="modal-title">Save squad</h1>
+        <div className="modal-section">
+          <div className="field-label">Name</div>
+          <input
+            id="squad-name"
+            className="input"
+            value={name}
+            autoFocus
+            autoComplete="off"
+            onChange={(e) => setName(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && name.trim()) onSave(name.trim());
+              if (e.key === "Escape") onCancel();
+            }}
+          />
+          <p className="modal-section-hint">Saved squads are yours to drop into any matching tournament.</p>
+        </div>
+        <div className="bar">
+          <button type="button" className="btn btn-ghost" onClick={onCancel} disabled={saving}>
+            Cancel
+          </button>
+          <button
+            type="button"
+            className="btn btn-primary"
+            disabled={saving || !name.trim()}
+            onClick={() => onSave(name.trim())}
+          >
+            {saving ? "Saving\u2026" : "Save squad"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export function SplitScreen({ session, discipline, roster, onPersistResult, onSubmitTournament, onSaveSquad, source, onBack }: Props) {
   const [editable, setEditable] = useState<SplitResult>(session.result);
   const [swapMode, setSwapMode] = useState(false);
   const [pick, setPick] = useState<{ teamIndex: number; playerId: Id } | null>(null);
   const [rerollCount, setRerollCount] = useState(1);
+  const [saveOpen, setSaveOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
   const pitchRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -215,6 +273,17 @@ export function SplitScreen({ session, discipline, roster, onPersistResult, onSu
     onPick: handlePick,
   });
 
+  const doSave = (name: string) => {
+    setSaving(true);
+    const done = () => {
+      setSaving(false);
+      setSaveOpen(false);
+    };
+    Promise.resolve(onSaveSquad ? onSaveSquad(name, result) : undefined).then(done, done);
+  };
+
+  const defaultName = `${discipline.name} · ${result.teams.length} teams · ${new Date().toLocaleDateString()}`;
+
   return (
     <div className="screen split-screen">
       <div className="breadcrumb">
@@ -228,7 +297,7 @@ export function SplitScreen({ session, discipline, roster, onPersistResult, onSu
         <div className="split-head-meta">
           <span className="badge badge--generic">{discipline.name}</span>
           <span className="badge badge--generic">{result.teams.length} teams</span>
-          {inTournament && <span className="badge badge--generic badge--tournament">Tournament squad</span>}
+          {source === "tournament" && <span className="badge badge--generic badge--tournament">Tournament squad</span>}
           {rerollCount > 1 && <span className="badge badge--generic">Roll #{rerollCount}</span>}
         </div>
       </div>
@@ -291,14 +360,19 @@ export function SplitScreen({ session, discipline, roster, onPersistResult, onSu
       )}
 
       <div className="bar split-bar">
-        {onBack && !swapMode && !inTournament && (
+        {onBack && !swapMode && (
           <button type="button" className="btn btn-ghost" onClick={onBack} data-testid="back-button">
-            ← Roster
+            ← {source === "session" ? "History" : source === "squad" ? "Squad detail" : "Match setup"}
           </button>
         )}
-        {inTournament && !swapMode && (
-          <button type="button" className="btn btn-ghost" onClick={onBack} data-testid="back-to-tournament">
-            ← Tournament
+        {onSaveSquad && !swapMode && (
+          <button
+            type="button"
+            className="btn btn-ghost"
+            onClick={() => setSaveOpen(true)}
+            data-testid="save-squad-button"
+          >
+            Save squad
           </button>
         )}
         {swapMode ? (
@@ -321,6 +395,15 @@ export function SplitScreen({ session, discipline, roster, onPersistResult, onSu
           </button>
         )}
       </div>
+
+      {saveOpen && onSaveSquad && (
+        <SaveSquadModal
+          defaultName={defaultName}
+          saving={saving}
+          onCancel={() => setSaveOpen(false)}
+          onSave={doSave}
+        />
+      )}
     </div>
   );
 }

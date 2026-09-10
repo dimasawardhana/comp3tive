@@ -1,19 +1,27 @@
 import { useState } from "react";
-import type { Discipline, GameResult, Id, Tournament, TournamentMatch, TournamentTeam } from "../domain/types";
+import type { Discipline, GameResult, Id, Player, SavedSquad, Tournament, TournamentMatch, TournamentTeam } from "../domain/types";
 import { champion, standings } from "./bracket";
+import { teamName } from "../session/flow";
 
 interface Props {
   tournament: Tournament;
   disciplines: Discipline[];
+  /** Draft-phase saved squads that match this tournament's discipline + team count. */
+  matchingSquads?: SavedSquad[];
   onBack: () => void;
   onSplit: () => void; // draft: enter the match flow
+  /** Consume a saved squad as this tournament's teams (snapshot into the bracket). */
+  onUseSavedSquad?: (squad: SavedSquad) => Promise<void> | void;
   onRecord: (matchId: Id, games: GameResult[]) => Promise<void>;
   onUndo: () => Promise<void>;
   onDelete: () => Promise<void>;
   onReroll?: () => void; // optional: re-split from review screen
   /** Total community players (for pre-split eligible count preview). */
   totalPlayers?: number;
+  /** Community roster: resolves player ids to names in review. */
+  roster?: Player[];
 }
+
 const FORMAT_LABEL: Record<Tournament["format"], string> = {
   series: "Series",
   "single-elim": "Single elimination",
@@ -229,7 +237,7 @@ function MatchCard({
   );
 }
 
-export function TournamentScreen({ tournament, disciplines, onBack, onSplit, onRecord, onUndo, onDelete, onReroll, totalPlayers }: Props) {
+export function TournamentScreen({ tournament, disciplines, matchingSquads, roster, onBack, onSplit, onUseSavedSquad, onRecord, onUndo, onDelete, onReroll, totalPlayers }: Props) {
   const [recording, setRecording] = useState<TournamentMatch | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState(false);
   const [reviewing, setReviewing] = useState(tournament.teams.length > 0 && tournament.matches.every(m => m.games.length === 0));
@@ -259,28 +267,26 @@ export function TournamentScreen({ tournament, disciplines, onBack, onSplit, onR
           {discipline?.shortName ?? "Unknown"} · {FORMAT_LABEL[tournament.format]} · BO{tournament.seriesLength}
         </div>
       </div>
-      <div className="tournament-meta-grid">
-        <div className="tournament-meta-card">
-          <span className="tournament-meta-card-label">Format</span>
-          <span className="tournament-meta-card-value">{FORMAT_LABEL[tournament.format]}</span>
+      <div className="tournament-meta-strip" role="list" aria-label="Tournament details">
+        <div className="tms-item" role="listitem">
+          <span className="tms-label">Format</span>
+          <span className="tms-value">{FORMAT_LABEL[tournament.format]}</span>
         </div>
-        <div className="tournament-meta-card">
-          <span className="tournament-meta-card-label">Series</span>
-          <span className="tournament-meta-card-value">BO{tournament.seriesLength}</span>
+        <div className="tms-item" role="listitem">
+          <span className="tms-label">Series</span>
+          <span className="tms-value">BO{tournament.seriesLength}</span>
         </div>
-        <div className="tournament-meta-card">
-          <span className="tournament-meta-card-label">Teams</span>
-          <span className="tournament-meta-card-value">{tournament.teams.length}/{tournament.teamCount}</span>
+        <div className="tms-item" role="listitem">
+          <span className="tms-label">Teams</span>
+          <span className="tms-value">{tournament.teams.length}/{tournament.teamCount}</span>
         </div>
-        <div className="tournament-meta-card">
-          <span className="tournament-meta-card-label">Status</span>
-          <span className="tournament-meta-card-value">
-            {tournament.status === "draft" ? "Draft" : tournament.status === "active" ? "In progress" : "Complete"}
-          </span>
+        <div className="tms-item" role="listitem">
+          <span className="tms-label">Status</span>
+          <span className="tms-value">{tournament.status === "draft" ? "Draft" : tournament.status === "active" ? "In progress" : "Complete"}</span>
         </div>
       </div>
 
-      {tournament.teams.length === 0 ? (
+                {tournament.teams.length === 0 ? (
         <div className="tournament-preview">
           <div className="tournament-preview-label">Pre-split preview</div>
           <div className="tournament-preview-text">
@@ -292,14 +298,37 @@ export function TournamentScreen({ tournament, disciplines, onBack, onSplit, onR
           <button type="button" className="btn btn-primary" onClick={onSplit} data-testid="split-teams-cta">
             Split your teams
           </button>
+          {matchingSquads && matchingSquads.length > 0 && (
+            <div className="tournament-squads">
+              <div className="tournament-preview-label">Or use a saved squad</div>
+              <ul className="tournament-squad-list">
+                {matchingSquads.map((squad) => {
+                  const sizeSummary =
+                    squad.result.teams.length === 2
+                      ? `${squad.result.teams[0].slots.length} v ${squad.result.teams[1].slots.length}`
+                      : `${squad.result.teams.length} teams`;
+                  return (
+                    <li key={squad.id}>
+                      <button
+                        type="button"
+                        className="tournament-squad-row"
+                        data-testid={`use-squad-${squad.id}`}
+                        onClick={() => void onUseSavedSquad?.(squad)}
+                      >
+                        <span className="tournament-squad-name">{squad.name}</span>
+                        <span className="tournament-squad-meta">
+                          {sizeSummary} &middot; gap {squad.result.gap.toFixed(1)}
+                        </span>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          )}
         </div>
       ) : reviewing ? (
-        <ReviewPanel
-          tournament={tournament}
-          onConfirm={() => setReviewing(false)}
-          onReroll={() => { onReroll?.(); setReviewing(true); }}
-          onBack={onBack}
-        />
+        <ReviewPanel tournament={tournament} roster={roster} />
       ) : (
         <>
           {champ && (
@@ -347,6 +376,20 @@ export function TournamentScreen({ tournament, disciplines, onBack, onSplit, onR
               Delete tournament
             </button>
           </>
+        ) : reviewing ? (
+          <>
+            <button type="button" className="btn btn-ghost" onClick={onBack} data-testid="review-back">
+              Back
+            </button>
+            {onReroll && (
+              <button type="button" className="btn btn-ghost" onClick={() => { onReroll(); setReviewing(true); }}>
+                Re-split
+              </button>
+            )}
+            <button type="button" className="btn btn-primary" onClick={() => setReviewing(false)} data-testid="confirm-teams">
+              Confirm teams →
+            </button>
+          </>
         ) : (
           <>
             <button type="button" className="btn btn-ghost" onClick={onBack}>
@@ -363,11 +406,9 @@ export function TournamentScreen({ tournament, disciplines, onBack, onSplit, onR
 }
 
 
-function ReviewPanel({ tournament, onConfirm, onReroll, onBack }: {
+function ReviewPanel({ tournament, roster }: {
   tournament: Tournament;
-  onConfirm: () => void;
-  onReroll: () => void;
-  onBack: () => void;
+  roster?: Player[];
 }) {
   const balanced = tournament.teams.every(t => Math.abs(t.strength - tournament.teams[0].strength) <= 0.5);
   const minStr = Math.min(...tournament.teams.map(t => t.strength));
@@ -391,18 +432,11 @@ function ReviewPanel({ tournament, onConfirm, onReroll, onBack }: {
             </div>
             <ul className="review-team-players">
               {team.players.map((playerId) => (
-                <li key={playerId}>{playerId}</li>
+                <li key={playerId}>{roster?.find((p) => p.id === playerId)?.name ?? playerId}</li>
               ))}
             </ul>
           </div>
         ))}
-      </div>
-      <div className="review-actions">
-        <button type="button" className="btn btn-ghost" onClick={onBack}>← Roster</button>
-        {onReroll && <button type="button" className="btn btn-ghost" onClick={onReroll}>Re-split</button>}
-        <button type="button" className="btn btn-primary" onClick={onConfirm} data-testid="confirm-teams">
-          Confirm teams →
-        </button>
       </div>
     </div>
   );
@@ -418,10 +452,13 @@ function BracketView({
   const rounds = [...new Set(tournament.matches.map((m) => m.round))].sort((a, b) => a - b);
   const maxRound = rounds[rounds.length - 1];
   return (
-    <div className="bracket">
+    <div className="bracket" role="list" aria-label="Tournament bracket">
       {rounds.map((r) => (
-        <div key={r} className="bracket-round">
-          <span className="rlabel">{r === maxRound ? "Final" : `Round ${r}`}</span>
+        <div key={r} className="bracket-column" role="listitem">
+          <div className="bracket-column-head">
+            <span className="rlabel">{r === maxRound ? "Final" : `Round ${r}`}</span>
+            {r !== maxRound && <span className="rlabel rlabel-rule" aria-hidden="true" />}
+          </div>
           {tournament.matches
             .filter((m) => m.round === r)
             .sort((a, b) => a.position - b.position)

@@ -1,10 +1,14 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { Discipline, Id, SeriesLength, Tournament, TournamentFormat } from "../domain/types";
 import { validateTournamentSpec, type TournamentValidationIssue } from "./tournament-validation";
 
 interface Props {
   tournaments: Tournament[]; // community-scoped, newest first
   disciplines: Discipline[];
+  /** Squad detail "New tournament with these teams": pre-fills the create modal. */
+  prefill?: { disciplineId: Id; teamCount: number } | null;
+  /** Called once the prefill has been applied. */
+  onPrefillConsumed?: () => void;
   onCreate: (spec: {
     name: string;
     disciplineId: Id;
@@ -15,6 +19,8 @@ interface Props {
   }) => Promise<void>;
   onOpen: (id: Id) => void;
   onDelete: (id: Id) => Promise<void>;
+  /** Open the discipline catalog (Games are built from it). */
+  onManageDisciplines?: () => void;
 }
 
 const FORMAT_LABEL: Record<TournamentFormat, string> = {
@@ -38,7 +44,7 @@ const STATUS_LABEL: Record<Tournament["status"], string> = {
   complete: "Complete",
 };
 
-export function GamesScreen({ tournaments, disciplines, onCreate, onOpen, onDelete }: Props) {
+export function GamesScreen({ tournaments, disciplines, onCreate, onOpen, onDelete, onManageDisciplines, prefill, onPrefillConsumed }: Props) {
   const [creating, setCreating] = useState(false);
   const [name, setName] = useState("");
   const [disciplineId, setDisciplineId] = useState<string>(disciplines[0]?.id ?? "");
@@ -48,6 +54,21 @@ export function GamesScreen({ tournaments, disciplines, onCreate, onOpen, onDele
   const [thirdPlace, setThirdPlace] = useState<boolean>(true);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [validationErrors, setValidationErrors] = useState<TournamentValidationIssue[]>([]);
+
+  // Squad pre-fill: open the create modal with discipline + team count already set.
+  useEffect(() => {
+    if (!prefill) return;
+    const squadFormat: TournamentFormat =
+      prefill.teamCount === 2 ? "series"
+      : prefill.teamCount <= 8 && TEAM_COUNTS["single-elim"].includes(prefill.teamCount) ? "single-elim"
+      : "swiss";
+    setCreating(true);
+    setDisciplineId(prefill.disciplineId);
+    setFormat(squadFormat);
+    setTeamCount(prefill.teamCount);
+    setSeriesLength(3);
+    onPrefillConsumed?.();
+  }, [prefill, onPrefillConsumed]);
 
   const counts = TEAM_COUNTS[format];
   const pickFormat = (f: TournamentFormat) => {
@@ -96,12 +117,12 @@ export function GamesScreen({ tournaments, disciplines, onCreate, onOpen, onDele
 
   return (
     <>
-      <div className="breadcrumb">
-        <span>Roster</span>
-        <span className="sep">/</span>
-        <span>Series list</span>
-      </div>
       <h1>Games</h1>
+      <div className="games-toolbar">
+        <button type="button" className="btn btn-ghost" onClick={onManageDisciplines}>
+          Disciplines
+        </button>
+      </div>
       {tournaments.length === 0 ? (
         <div className="empty">
           <div className="kicker">No games yet</div>

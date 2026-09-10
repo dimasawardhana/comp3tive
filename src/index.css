@@ -29,6 +29,7 @@
   --r-lg: 20px;
   --r-md: 14px;
   --r-sm: 10px;
+  --nav-h: calc(75px + env(safe-area-inset-bottom));
 }
 :root[data-theme="dark"] {
   --surface: #14161a;
@@ -101,6 +102,9 @@
 }
 html {
   -webkit-text-size-adjust: 100%;
+  /* The sticky action bar floats above the bottom nav; stop scroll-into-view
+     (and the last clickable row) short of it so content never hides under it. */
+  scroll-padding-bottom: calc(var(--nav-h, 75px) + 96px);
 }
 body {
   font-family: "Familjen Grotesk", system-ui, sans-serif;
@@ -132,7 +136,7 @@ body {
   display: flex;
   flex-direction: column;
   background: var(--surface);
-  padding-bottom: calc(64px + env(safe-area-inset-bottom));
+  padding-bottom: var(--nav-h, 75px);
 }
 @media (min-width: 720px) {
   .app {
@@ -319,11 +323,6 @@ body {
 .squad-switcher .kicker::before {
   content: "";
 }
-.squad-dropdown {
-  position: relative;
-  flex: 1 1 auto;
-  min-width: 0;
-}
 .squad-select {
   display: flex;
   align-items: center;
@@ -332,6 +331,8 @@ body {
   width: 100%;
   border: none;
   background: transparent;
+  appearance: none;
+  -webkit-appearance: none;
   font-family: "Familjen Grotesk", "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
   font-size: 15px;
   font-weight: 600;
@@ -574,7 +575,7 @@ body {
   align-items: stretch;
   justify-content: space-around;
   gap: 0;
-  padding: 4px 8px calc(4px + env(safe-area-inset-bottom));
+  padding: 4px 5px calc(4px + env(safe-area-inset-bottom));
   width: 100%;
   background: var(--surface);
   border-top: 1.5px solid var(--hairline);
@@ -595,14 +596,14 @@ body {
   gap: 4px;
   flex: 1 1 0;
   min-width: 0;
-  padding: 10px 6px 8px;
+  padding: 10px 3px 8px;
   border-radius: 0;
   text-decoration: none;
   color: var(--text-2);
   font-family: "Familjen Grotesk", sans-serif;
   font-size: 10px;
   font-weight: 600;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
   transition: color 0.15s;
   border: none;
@@ -647,17 +648,51 @@ body {
   background: var(--whistle);
   border-radius: 0 0 3px 3px;
 }
+/* the centered Home slot: a filled accent disc + accent label so it reads as
+   the home affordance next to the flat text hubs. Active keeps the whistle
+   dot above but never recolors the glyph on the filled disc. */
+.bottom-nav .nav-link--home {
+  color: var(--text);
+}
+.bottom-nav .nav-link--home .nav-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-size: 17px;
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--text) 22%, transparent);
+}
+.bottom-nav .nav-link--home > span:last-child {
+  color: var(--accent);
+}
+.bottom-nav .nav-link--home:hover .nav-icon,
+.bottom-nav .nav-link--home.nav-active .nav-icon {
+  color: var(--accent-ink);
+  transform: scale(1.06);
+}
 @media (min-width: 768px) {
+  :root {
+    --nav-h: calc(87px + env(safe-area-inset-bottom));
+  }
   .bottom-nav {
     padding: 6px 24px calc(6px + env(safe-area-inset-bottom));
   }
   .bottom-nav .nav-link {
     flex: 0 0 auto;
-    min-width: 96px;
-    padding: 12px 14px 10px;
+    min-width: 72px;
+    padding: 12px 8px 10px;
   }
   .bottom-nav .nav-link .nav-icon {
     font-size: 22px;
+  }
+  .bottom-nav .nav-link--home .nav-icon {
+    width: 36px;
+    height: 36px;
+    font-size: 19px;
   }
 }
 
@@ -667,6 +702,13 @@ body {
   gap: 22px;
   padding: 24px 20px 28px;
   flex: 1;
+}
+.screen button,
+.screen .row,
+.screen .history-row,
+.screen .bracket-match,
+.screen .tournament-squad-row {
+  scroll-margin-bottom: calc(var(--nav-h, 75px) + 96px);
 }
 h1 {
   font-family: "Chakra Petch", sans-serif;
@@ -923,6 +965,108 @@ h1 {
   display: flex;
   gap: 8px;
 }
+/* Base stat-card face (shared with the Dashboard's stat cards). The tournament
+   page itself now uses the ruled meta strip, not these cards. */
+.tournament-meta-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 14px;
+  background: var(--surface-2);
+  border: 1.5px solid var(--hairline);
+  border-radius: var(--r-md);
+}
+.tournament-meta-card-label {
+  font-family: "Chakra Petch", sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-2);
+  display: block;
+}
+.tournament-meta-card-value {
+  font-family: "Chakra Petch", sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.1;
+  display: block;
+}
+.dashboard-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+.dashboard-stats .dashboard-stat {
+  align-items: center;
+  text-align: center;
+  padding: 18px 10px 16px;
+}
+.dashboard-stat .tournament-meta-card-label {
+  font-size: 9px;
+}
+.dashboard-stat .tournament-meta-card-value {
+  font-size: 30px;
+  line-height: 1;
+  margin-top: 6px;
+}
+.dashboard-empty {
+  margin-top: 6px;
+}
+.dashboard-teasers {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.dashboard-teasers-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+.dashboard-teasers-head h2 {
+  font-family: "Chakra Petch", sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text);
+}
+.dashboard-teasers-head .kicker {
+  margin: 0;
+  color: var(--text-2);
+  font-size: 9px;
+  letter-spacing: 0.14em;
+}
+.dashboard-teasers-head .kicker::before {
+  content: "";
+}
+.dashboard-teasers-empty {
+  font-size: 14px;
+  color: var(--text-2);
+}
+.dashboard-teasers-empty .link {
+  font-size: 14px;
+}
+.dashboard-actions {
+  margin-top: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.dashboard-actions .btn {
+  flex: 1 0 auto;
+}
+.dashboard-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+}
+.dashboard-links .link {
+  font-size: 14px;
+  padding: 6px 2px;
+}
 
 /* ---------- buttons & bottom bar ---------- */
 .bar {
@@ -930,13 +1074,7 @@ h1 {
   display: flex;
   gap: 10px;
   padding: 14px 0 20px;
-  position: sticky;
-  bottom: 0;
   background: var(--surface);
-}
-/* The bottom tab nav is sticky too: pin the action bar above it, never under it. */
-.screen .bar {
-  bottom: var(--nav-h, 64px);
 }
 .modal-card .bar {
   bottom: 0;
@@ -2169,16 +2307,29 @@ h1 {
 
 .bracket {
   display: flex;
-  gap: 12px;
+  gap: 0;
   overflow-x: auto;
-  padding-bottom: 6px;
+  padding-bottom: 10px;
+  align-items: flex-start;
 }
-.bracket-round {
+.bracket-column {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  min-width: 160px;
-  flex: 1;
+  min-width: 168px;
+  flex: 1 1 0;
+  padding: 0 10px;
+  border-left: 1px dashed var(--hairline);
+}
+.bracket-column:first-child {
+  border-left: none;
+  padding-left: 0;
+}
+.bracket-column-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 18px;
 }
 .rlabel {
   font-family: "Chakra Petch", sans-serif;
@@ -2187,6 +2338,27 @@ h1 {
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--text-2);
+  white-space: nowrap;
+}
+/* the advancing line: a short hairline rule after each round label that points
+   toward the next round (DESIGN.md: "the line advancing drawn"). */
+.rlabel-rule {
+  flex: 1 1 auto;
+  height: 1px;
+  background: var(--hairline);
+  position: relative;
+}
+.rlabel-rule::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  top: -3px;
+  width: 0;
+  height: 0;
+  border-top: 3.5px solid transparent;
+  border-bottom: 3.5px solid transparent;
+  border-left: 5px solid var(--text-2);
+  opacity: 0.6;
 }
 .bracket-match {
   display: flex;
@@ -2357,41 +2529,44 @@ h1 {
   font-size: 14px;
   color: var(--text-2);
 }
-.tournament-meta-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
+/* Tournament meta: a tight ruled strip (DESIGN.md), not equal bordered cards.
+   Reads like a tactical sheet header line: label + value, hairline separators. */
+.tournament-meta-strip {
+  display: flex;
+  align-items: stretch;
+  flex-wrap: wrap;
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-sm, 8px);
+  overflow: hidden;
+  background: var(--surface);
 }
-@media (min-width: 600px) {
-  .tournament-meta-grid {
-    grid-template-columns: repeat(4, 1fr);
-  }
-}
-.tournament-meta-card {
+.tms-item {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding: 12px 14px;
-  background: var(--surface-2);
-  border: 1.5px solid var(--hairline);
-  border-radius: var(--r-md);
+  gap: 2px;
+  flex: 1 1 0;
+  min-width: 110px;
+  padding: 10px 16px;
+  border-left: 1px solid var(--hairline);
 }
-.tournament-meta-card-label {
+.tms-item:first-child {
+  border-left: none;
+}
+.tms-label {
   font-family: "Chakra Petch", sans-serif;
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 700;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
   color: var(--text-2);
-  display: block;
 }
-.tournament-meta-card-value {
+.tms-value {
   font-family: "Chakra Petch", sans-serif;
-  font-size: 18px;
-  font-weight: 700;
+  font-size: 15px;
+  font-weight: 600;
   color: var(--text);
-  line-height: 1.1;
-  display: block;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
 }
 .tournament-preview {
   display: flex;
@@ -2517,16 +2692,7 @@ h1 {
   font-size: 13px;
   color: var(--text);
 }
-.review-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding-top: 10px;
-  border-top: 1.5px solid var(--hairline);
-}
-.review-actions .btn-primary {
-  flex: 1 1 auto;
-}
+
 .status-banner {
   display: flex;
   align-items: center;
@@ -2620,7 +2786,50 @@ h1 {
   color: var(--text);
   text-decoration: underline;
 }
-.breadcrumb .sep {
-  opacity: 0.4;
-  font-size: 10px;
+/* ---------- saved squads ---------- */
+.games-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin: 0 0 12px;
+}
+.tournament-squads {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1.5px solid var(--hairline);
+}
+.tournament-squad-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
+}
+.tournament-squad-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  text-align: left;
+  padding: 10px 12px;
+  background: var(--surface);
+  border: 1.5px solid var(--hairline);
+  border-radius: var(--r-md);
+  cursor: pointer;
+  font: inherit;
+  color: var(--text);
+}
+.tournament-squad-row:hover {
+  border-color: var(--accent);
+}
+.tournament-squad-name {
+  font-family: "Chakra Petch", sans-serif;
+  font-weight: 600;
+  font-size: 13px;
+}
+.tournament-squad-meta {
+  font-family: "Familjen Grotesk", sans-serif;
+  font-size: 12px;
+  color: var(--text-2);
+  flex-shrink: 0;
 }
