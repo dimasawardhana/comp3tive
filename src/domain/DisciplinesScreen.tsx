@@ -1,6 +1,8 @@
 import { useState } from "react";
 import type { Discipline, Id } from "../domain/types";
 import { DisciplineEditModal } from "./DisciplineEditModal";
+import { PageHeader } from "../ui/PageHeader";
+import { Screen } from "../ui/Screen";
 
 interface Props {
   disciplines: Discipline[];
@@ -16,10 +18,12 @@ export function DisciplinesScreen({ disciplines, loading, onSave, onDelete, onBa
   const [editing, setEditing] = useState<Discipline | null | "new">(null);
 
   return (
-    <div className="screen">
-      <div className="kicker">Catalog</div>
-      <h1>Disciplines</h1>
-      <p className="lede">The activities you build teams for. Futsal and MLBB ship built-in; add your own.</p>
+    <Screen>
+      <PageHeader
+        kicker="Catalog"
+        title="Disciplines"
+        lede="The activities you build teams for. Futsal and MLBB ship built-in; add your own."
+      />
 
       {loading ? (
         <p className="status">Loading&hellip;</p>
@@ -111,6 +115,6 @@ export function DisciplinesScreen({ disciplines, loading, onSave, onDelete, onBa
           }}
         />
       )}
-    </div>
+    </Screen>
   );
 }

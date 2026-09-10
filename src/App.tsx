@@ -37,6 +37,8 @@ import { useSessions } from "./session/useSessions";
 import { useSavedSquads } from "./session/useSavedSquads";
 import { SquadsScreen } from "./session/SquadsScreen";
 import { DashboardScreen } from "./DashboardScreen";
+import { PageHeader } from "./ui/PageHeader";
+import { Screen } from "./ui/Screen";
 import { capabilityFor, teamName } from "./session/flow";
 import { useTournaments } from "./tournament/useTournaments";
 import { GamesScreen } from "./tournament/GamesScreen";
@@ -629,15 +631,15 @@ export default function App() {
 
   /** A truthful description of what deleting this community will take with it. */
   const communityDeleteWarning = (communityId: Id): string => {
-    const players = roster.players.filter((p) => p.communityId === communityId).length;
-    const sessions = sessions.sessions.filter((s) => s.communityId === communityId).length;
-    const squads = savedSquads.squads.filter((q) => q.communityId === communityId).length;
-    const tournaments = tournaments.tournaments.filter((t) => t.communityId === communityId).length;
+    const playerCount = roster.players.filter((p) => p.communityId === communityId).length;
+    const sessionCount = sessions.sessions.filter((s) => s.communityId === communityId).length;
+    const squadCount = savedSquads.squads.filter((q) => q.communityId === communityId).length;
+    const tournamentCount = tournaments.tournaments.filter((t) => t.communityId === communityId).length;
     const parts = [
-      players && `${players} player${players === 1 ? "" : "s"}`,
-      sessions && `${sessions} session${sessions === 1 ? "" : "s"}`,
-      squads && `${squads} saved squad${squads === 1 ? "" : "s"}`,
-      tournaments && `${tournaments} tournament${tournaments === 1 ? "" : "s"}`,
+      playerCount && `${playerCount} player${playerCount === 1 ? "" : "s"}`,
+      sessionCount && `${sessionCount} session${sessionCount === 1 ? "" : "s"}`,
+      squadCount && `${squadCount} saved squad${squadCount === 1 ? "" : "s"}`,
+      tournamentCount && `${tournamentCount} tournament${tournamentCount === 1 ? "" : "s"}`,
     ].filter(Boolean);
     return parts.length > 0 ? ` This also permanently deletes ${parts.join(", ")}.` : "";
   };
@@ -949,14 +951,19 @@ export default function App() {
         />
       )}
       {view.mode === "roster" && (
-        <div className="screen">
-          <div className="kicker">Match sheet</div>
-          <h1>Team Builder</h1>
-          {activeCommunity && (
-            <div className="lede">
-              <strong>{activeCommunity.name}</strong> · {communityPlayers.length} player{communityPlayers.length === 1 ? "" : "s"} on the roster
-            </div>
-          )}
+        <Screen>
+          <PageHeader
+            kicker="Match sheet"
+            title="Team Builder"
+            lede={
+              activeCommunity && (
+                <>
+                  <strong>{activeCommunity.name}</strong> · {communityPlayers.length} player
+                  {communityPlayers.length === 1 ? "" : "s"} on the roster
+                </>
+              )
+            }
+          />
           
           {activeCommunity && (
             <>
@@ -1103,10 +1110,10 @@ export default function App() {
               </div>
             </>
           )}
-        </div>
+        </Screen>
       )}
       {view.mode === "games" && (
-        <div className="screen">
+        <Screen>
           <GamesScreen
             tournaments={communityTournaments}
             disciplines={disciplines}
@@ -1118,10 +1125,10 @@ export default function App() {
             onPrefillConsumed={() => setTournamentPrefill(null)}
             activeCommunity={activeCommunity}
           />
-        </div>
+        </Screen>
       )}
       {view.mode === "tournament" && viewTournament && (
-        <div className="screen">
+        <Screen>
           <TournamentScreen
             tournament={viewTournament}
             disciplines={disciplines}
@@ -1141,7 +1148,7 @@ export default function App() {
             onReroll={() => startMatch("tournament", viewTournament.id)}
             totalPlayers={communityPlayers.length}
           />
-        </div>
+        </Screen>
       )}
 
       {view.mode === "split" && view.session && (

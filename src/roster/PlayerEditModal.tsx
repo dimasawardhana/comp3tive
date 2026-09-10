@@ -240,7 +240,6 @@ export function PlayerEditModal({ player, disciplines, communityId, onClose, onS
                           type="button"
                           className="chip"
                           aria-pressed={cap.eligibleRoles.includes(r.id)}
-                          aria-pressed={cap.eligibleRoles.includes(r.id)}
                           onClick={() => toggleRole(cap.disciplineId, r.id)}
                         >
                           {r.name}

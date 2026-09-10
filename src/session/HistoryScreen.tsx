@@ -1,4 +1,6 @@
 import type { Discipline, Session } from "../domain/types";
+import { PageHeader } from "../ui/PageHeader";
+import { Screen } from "../ui/Screen";
 
 interface Props {
   sessions: Session[];
@@ -25,10 +27,12 @@ function formatTime(ts: number): string {
 
 export function HistoryScreen({ sessions, loading, disciplines, onReopen, onDelete }: Props) {
   return (
-    <div className="screen">
-      <div className="kicker">Game tape</div>
-      <h1>History</h1>
-      <p className="lede">Every team-building run you&apos;ve done. Reopen one to re-split the same pool.</p>
+    <Screen>
+      <PageHeader
+        kicker="Game tape"
+        title="History"
+        lede="Every team-building run you&apos;ve done. Reopen one to re-split the same pool."
+      />
 
       {loading ? (
         <p className="status">Loading&hellip;</p>
@@ -101,6 +105,6 @@ export function HistoryScreen({ sessions, loading, disciplines, onReopen, onDele
           })}
         </ul>
       )}
-    </div>
+    </Screen>
   );
 }

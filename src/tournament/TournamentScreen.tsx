@@ -2,6 +2,7 @@ import { useState } from "react";
 import type { Discipline, GameResult, Id, Player, SavedSquad, Tournament, TournamentMatch, TournamentTeam } from "../domain/types";
 import { champion, standings } from "./bracket";
 import { teamName } from "../session/flow";
+import { PageHeader } from "../ui/PageHeader";
 
 interface Props {
   tournament: Tournament;
@@ -258,17 +259,21 @@ export function TournamentScreen({ tournament, disciplines, matchingSquads, rost
 
   return (
     <>
-      <div className="breadcrumb">
-        <a href="#" onClick={(e) => { e.preventDefault(); onBack(); }}>Games</a>
-        <span className="sep">/</span>
-        <span>{tournament.name}</span>
-      </div>
-      <div className="tournament-header">
-        <h1>{tournament.name}</h1>
-        <div className="tournament-subtitle">
-          {discipline?.shortName ?? "Unknown"} · {FORMAT_LABEL[tournament.format]} · BO{tournament.seriesLength}
-        </div>
-      </div>
+      <PageHeader
+        crumbs={
+          <div className="breadcrumb">
+            <a href="#" onClick={(e) => { e.preventDefault(); onBack(); }}>Games</a>
+            <span className="sep">/</span>
+            <span>{tournament.name}</span>
+          </div>
+        }
+        title={tournament.name}
+        lede={
+          <div className="tournament-subtitle">
+            {discipline?.shortName ?? "Unknown"} · {FORMAT_LABEL[tournament.format]} · BO{tournament.seriesLength}
+          </div>
+        }
+      />
       <div className="tournament-meta-strip" role="list" aria-label="Tournament details">
         <div className="tms-item" role="listitem">
           <span className="tms-label">Format</span>
