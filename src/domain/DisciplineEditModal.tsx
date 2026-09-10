@@ -5,7 +5,7 @@ interface Props {
   discipline: Discipline | null; // null = new
   existingIds: Id[]; // for slug uniqueness
   onClose: () => void;
-  onSave: (d: Discipline, sampleDataJson?: string) => Promise<void>;
+  onSave: (d: Discipline) => Promise<void>;
   onDelete?: (id: Id) => Promise<void>;
 }
 
@@ -33,7 +33,6 @@ export function DisciplineEditModal({
 
   const [name, setName] = useState(discipline?.name ?? "");
   const [shortName, setShortName] = useState(discipline?.shortName ?? "");
-  const [sampleDataText, setSampleDataText] = useState("");
   const [minTeamSize, setMinTeamSize] = useState(String(discipline?.team.minTeamSize ?? 5));
   const [maxTeamSize, setMaxTeamSize] = useState(
     discipline?.team.maxTeamSize == null ? "" : String(discipline.team.maxTeamSize),
@@ -143,7 +142,7 @@ export function DisciplineEditModal({
     setError(null);
     setSaving(true);
     try {
-      await onSave(next, sampleDataText || undefined);
+      await onSave(next);
       onClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
@@ -306,21 +305,7 @@ export function DisciplineEditModal({
         )}
 
         {error && <p className="field-error">{error}</p>}
-
-        {isNew && (
-          <div className="modal-section">
-            <div className="field-label">Sample Data (JSON)</div>
-            <p className="caption">Upload a roster JSON file for this discipline, or paste the sample data below.</p>
-            <textarea
-              className="input"
-              rows={4}
-              placeholder='{"version":1,"players":[{"id":"p1","name":"Player","capabilities":[{"disciplineId":"my-discipline","attributeRatings":{},"eligibleRoles":[]}]}]}'
-              value={sampleDataText}
-              onChange={(e) => setSampleDataText(e.target.value)}
-              style={{ fontFamily: "monospace", fontSize: 12 }}
-            />
-          </div>
-        )}
+        {error && <p className="field-error">{error}</p>}
 
         <div className="bar">
           {isEdit && onDelete && !isBuiltIn ? (

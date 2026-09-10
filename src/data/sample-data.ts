@@ -1,6 +1,6 @@
+import type { Discipline } from "../domain/types";
 import mplRoster from "../../sample-data/mpl-id-roster.json";
 import futsalRoster from "../../sample-data/futsal-roster.json";
-
 const SAMPLE_DATA: Record<string, string> = {
   mlbb: JSON.stringify(mplRoster),
   futsal: JSON.stringify(futsalRoster),
@@ -69,4 +69,53 @@ export function detectDisciplineFromSampleData(text: string): string | null {
   const disciplineId = caps[0]?.disciplineId;
   if (typeof disciplineId !== "string") return null;
   return disciplineId;
+}
+
+const ROLE_NAMES = [
+  "Tank", "Assassin", "Mage", "Marksman", "Fighter", "Support",
+  "Guardian", "Controller", "Eraser", "Durable",
+];
+const PLAYER_NAMES = [
+  "Dragon", "Shadow", "Blaze", "Frost", "Storm", "Ember",
+  "Void", "Nova", "Apex", "Pulse", "Iron", "Crimson",
+  "Haze", "Rune", "Bolt", "Wraith", "Spark", "Titan",
+  "Drift", "Flux", "Zenith", "Prism", "Onyx", "Viper",
+];
+
+const randInt = (min: number, max: number): number =>
+  Math.floor(Math.random() * (max - min + 1)) + min;
+
+/** Generate a sample roster JSON for a discipline based on its roles and attributes. */
+export function autoGenerateSampleData(discipline: Discipline): string {
+  const playerCount = discipline.team.minTeamSize * 5; // ~25 players for minTeamSize=5
+  const players = Array.from({ length: playerCount }, (_, i) => {
+    const roleCount = randInt(1, Math.min(3, discipline.roles.length));
+    const eligibleRoles = [...discipline.roles]
+      .sort(() => Math.random() - 0.5)
+      .slice(0, roleCount);
+    const preferredRole = eligibleRoles[Math.floor(Math.random() * eligibleRoles.length)];
+    const attributeRatings: Record<string, number> = {};
+    for (const attr of discipline.attributes) {
+      attributeRatings[attr.id] = randInt(attr.min ?? 1, attr.max ?? 5);
+    }
+    return {
+      id: `p${i + 1}`,
+      name: PLAYER_NAMES[i % PLAYER_NAMES.length],
+      notes: "",
+      capabilities: [{
+        disciplineId: discipline.id,
+        attributeRatings,
+        eligibleRoles: eligibleRoles.map((r) => r.id),
+        preferredRole: preferredRole ? preferredRole.id : null,
+      }],
+    };
+  });
+
+  const data = {
+    version: 1 as const,
+    exportedAt: new Date().toISOString(),
+    players,
+    sessions: [] as unknown[],
+  };
+  return JSON.stringify(data, null, 2);
 }

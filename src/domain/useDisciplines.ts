@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import type { Discipline, Id } from "../domain/types";
-import { SEED_DISCIPLINES } from "../domain/seed";
-import { hasSampleData, addSampleData } from "../data/sample-data";
+import { hasSampleData, addSampleData, autoGenerateSampleData } from "../data/sample-data";
 import type { DisciplineStore } from "../storage/types";
 
 /** Loads the discipline catalog (seeded on first open) and manages custom entries. */
@@ -34,15 +33,7 @@ export function useDisciplines(store: DisciplineStore) {
   }, [refresh]);
 
   const saveDiscipline = useCallback(
-    async (discipline: Discipline, sampleDataJson?: string) => {
-      if (!discipline.builtIn && !hasSampleData(discipline.id)) {
-        if (!sampleDataJson) {
-          throw new Error(
-            `Sample data is required for custom disciplines. Provide sample data for ${discipline.name} first.`,
-          );
-        }
-        addSampleData(discipline.id, sampleDataJson);
-      }
+    async (discipline: Discipline) => {
       await store.saveDiscipline(discipline);
       setDisciplines((prev) => {
         const i = prev.findIndex((d) => d.id === discipline.id);
@@ -51,6 +42,11 @@ export function useDisciplines(store: DisciplineStore) {
         next[i] = discipline;
         return next;
       });
+      // Auto-generate sample data for new custom disciplines
+      if (!discipline.builtIn && !hasSampleData(discipline.id)) {
+        const sampleData = autoGenerateSampleData(discipline);
+        addSampleData(discipline.id, sampleData);
+      }
     },
     [store],
   );
