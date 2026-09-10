@@ -54,17 +54,6 @@ const squadStore = createIndexedDbSavedSquadStore();
 
 type SplitSource = "ad-hoc" | "tournament" | "session" | "squad";
 
-type HubMode = "dashboard" | "roster" | "games" | "history" | "squads";
-
-/** The five hub destinations. Rendered twice: rail (desktop) and bottom nav (handheld). */
-const NAV_ITEMS = [
-  { mode: "roster", label: "Roster", icon: "◉" },
-  { mode: "games", label: "Games", icon: "▣" },
-  { mode: "dashboard", label: "Home", icon: "⌂" },
-  { mode: "history", label: "History", icon: "≡" },
-  { mode: "squads", label: "Squads", icon: "◇" },
-] as const satisfies ReadonlyArray<{ mode: HubMode; label: string; icon: string }>;
-
 type View =
   | { mode: "roster" }
   | { mode: "dashboard" }
@@ -144,7 +133,7 @@ export default function App() {
 
   const pushView = (v: View) => setViewStack((s) => [...s, v]);
   const goBack = () => setViewStack((s) => (s.length > 1 ? s.slice(0, -1) : s));
-  const gotoHub = (hub: HubMode) => {
+  const gotoHub = (hub: "dashboard" | "roster" | "games" | "history" | "squads") => {
     setViewStack([{ mode: hub }]);
     setSetup(null);
   };
@@ -168,7 +157,7 @@ export default function App() {
   const [themePref, setThemePref] = useStoredPref("tb-theme", "auto");
   const [layoutPref, setLayoutPref] = useStoredPref("tb-layout", "auto");
   const systemDark = useMediaQuery("(prefers-color-scheme: dark)");
-  const isWide = useMediaQuery("(min-width: 1024px)");
+  const isWide = useMediaQuery("(min-width: 768px)");
   const effectiveTheme: "light" | "dark" =
     themePref === "auto" ? (systemDark ? "dark" : "light") : (themePref as "light" | "dark");
   const effectiveLayout: "mobile" | "desktop" =
@@ -739,30 +728,6 @@ export default function App() {
 
   return (
     <div className="app" data-layout={effectiveLayout}>
-      <a className="skip-link" href="#main">Skip to content</a>
-
-      <aside className="rail" aria-label="Primary">
-        <div className="wordmark rail-brand">
-          <span className="sq">●</span>
-          <span>Team Builder</span>
-        </div>
-        <nav className="rail-nav">
-          {NAV_ITEMS.map((item) => (
-            <button
-              key={item.mode}
-              type="button"
-              className={`rail-link ${viewStack[0].mode === item.mode ? "nav-active" : ""}`}
-              onClick={() => gotoHub(item.mode)}
-              aria-current={viewStack[0].mode === item.mode ? "page" : undefined}
-            >
-              <span className="nav-icon" aria-hidden="true">{item.icon}</span>
-              <span>{item.label}</span>
-            </button>
-          ))}
-        </nav>
-      </aside>
-
-      <div className="shell">
       <header className="topbar-wrap topbar">
         <div className="wordmark">
           <span className="sq">●</span>
@@ -873,7 +838,6 @@ export default function App() {
         </div>
       </header>
 
-      <main id="main" className="shell-main">
       {showAddCommunity && (
         <div className="add-community">
           <div className="form-label">New community</div>
@@ -1181,8 +1145,6 @@ export default function App() {
           onBack={() => goBack()}
         />
       )}
-      </main>
-      </div>
 
       <div className="toast-container" aria-live="polite">
         {toasts.map((t) => (
@@ -1192,18 +1154,31 @@ export default function App() {
         ))}
       </div>
       <nav className="bottom-nav" aria-label="Primary">
-        {NAV_ITEMS.map((item) => (
-          <button
-            key={item.mode}
-            type="button"
-            className={`nav-link ${viewStack[0].mode === item.mode ? "nav-active" : ""}`}
-            onClick={() => gotoHub(item.mode)}
-            aria-current={viewStack[0].mode === item.mode ? "page" : undefined}
-          >
-            <span className="nav-icon" aria-hidden="true">{item.icon}</span>
-            <span>{item.label}</span>
-          </button>
-        ))}
+        <button className={`nav-link ${viewStack[0].mode === "roster" ? "nav-active" : ""}`} onClick={() => gotoHub("roster")} aria-label="Roster">
+          <span className="nav-icon" aria-hidden="true">◉</span>
+          <span>Roster</span>
+        </button>
+        <button className={`nav-link ${viewStack[0].mode === "games" ? "nav-active" : ""}`} onClick={() => gotoHub("games")} aria-label="Games">
+          <span className="nav-icon" aria-hidden="true">▣</span>
+          <span>Games</span>
+        </button>
+        <button
+          className={`nav-link nav-link--home ${viewStack[0].mode === "dashboard" ? "nav-active" : ""}`}
+          onClick={() => gotoHub("dashboard")}
+          aria-label="Home"
+          aria-current={viewStack[0].mode === "dashboard" ? "page" : undefined}
+        >
+          <span className="nav-icon" aria-hidden="true">⌂</span>
+          <span>Home</span>
+        </button>
+        <button className={`nav-link ${viewStack[0].mode === "history" ? "nav-active" : ""}`} onClick={() => gotoHub("history")} aria-label="History">
+          <span className="nav-icon" aria-hidden="true">≡</span>
+          <span>History</span>
+        </button>
+        <button className={`nav-link ${viewStack[0].mode === "squads" ? "nav-active" : ""}`} onClick={() => gotoHub("squads")} aria-label="Saved squads">
+          <span className="nav-icon" aria-hidden="true">◇</span>
+          <span>Squads</span>
+        </button>
       </nav>
     </div>
   );

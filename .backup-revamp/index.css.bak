@@ -29,9 +29,7 @@
   --r-lg: 16px;
   --r-md: 12px;
   --r-sm: 8px;
-  /* Height of the sticky tab bar. Sticky action bars stack directly above it,
-     so the two never fight over the same offset. */
-  --tabbar-h: calc(64px + env(safe-area-inset-bottom));
+  --nav-h: calc(75px + env(safe-area-inset-bottom));
 }
 :root[data-theme="dark"] {
   --surface: #1c1917;
@@ -95,6 +93,9 @@
 }
 html {
   -webkit-text-size-adjust: 100%;
+  /* The sticky action bar floats above the bottom nav; stop scroll-into-view
+     (and the last clickable row) short of it so content never hides under it. */
+  scroll-padding-bottom: calc(var(--nav-h, 75px) + 96px);
 }
 body {
   font-family: "Familjen Grotesk", system-ui, sans-serif;
@@ -104,16 +105,13 @@ body {
   min-height: 100vh;
   min-height: 100dvh;
 }
-html {
-  -webkit-text-size-adjust: 100%;
-}
-body {
-  font-family: "Familjen Grotesk", system-ui, sans-serif;
-  background: var(--surface);
-  color: var(--text);
-  line-height: 1.5;
-  min-height: 100vh;
-  min-height: 100dvh;
+@media (min-width: 720px) {
+  body {
+    background:
+      linear-gradient(var(--hairline), var(--hairline)) 0 0 / 100% 1px no-repeat,
+      linear-gradient(var(--hairline), var(--hairline)) 0 100% / 100% 1px no-repeat,
+      var(--surface);
+  }
 }
 #root {
   min-height: 100vh;
@@ -121,119 +119,37 @@ body {
   display: flex;
   justify-content: center;
 }
-
-/* Keyboard users land here first; it only appears once focused. */
-.skip-link {
-  position: absolute;
-  left: 8px;
-  top: -60px;
-  z-index: 200;
-  padding: 10px 16px;
-  background: var(--text);
-  color: var(--surface);
-  border-radius: var(--r-sm);
-  font-size: 14px;
-  font-weight: 600;
-  text-decoration: none;
-  transition: top 0.15s;
-}
-.skip-link:focus {
-  top: 8px;
-}
-
-/* Below 1024px: a single centred column, like a phone. */
 .app {
   width: 100%;
-  max-width: 640px;
+  max-width: 480px;
   min-height: 100vh;
   min-height: 100dvh;
   display: flex;
   flex-direction: column;
   background: var(--surface);
+  padding-bottom: var(--nav-h, 75px);
 }
-.rail {
-  display: none;
+@media (min-width: 720px) {
+  .app {
+    border-inline: 1px solid var(--hairline);
+    box-shadow: var(--shadow);
+    max-width: 520px;
+  }
 }
-.shell {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  min-width: 0;
-}
-
 @media (min-width: 1024px) {
   body {
     background: color-mix(in srgb, var(--surface-2) 50%, var(--surface));
   }
-  /* Two columns: a fixed rail beside the content. The rail replaces the
-     bottom nav, so this is also where the tab bar disappears. */
   .app {
-    display: grid;
-    grid-template-columns: 248px minmax(0, 1fr);
-    max-width: 1200px;
+    max-width: 1040px;
     margin: 24px auto;
     min-height: calc(100vh - 48px);
     border-radius: var(--r-lg);
     border: 1.5px solid var(--hairline);
-    box-shadow: var(--shadow);
-    align-items: start;
-  }
-  .rail {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    padding: 22px 16px;
-    border-right: 1.5px solid var(--hairline);
-    position: sticky;
-    top: 24px;
-    align-self: start;
-  }
-  .rail-brand {
-    padding: 0 8px 12px;
-    font-size: 19px;
-  }
-  .rail-nav {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-  }
-  .rail-link {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    width: 100%;
-    min-height: 44px;
-    padding: 10px 12px;
-    border: none;
-    border-radius: var(--r-sm);
-    background: transparent;
-    color: var(--text-2);
-    font-family: "Familjen Grotesk", sans-serif;
-    font-size: 14px;
-    font-weight: 600;
-    text-align: left;
-    cursor: pointer;
-    transition: background 0.12s, color 0.12s;
-  }
-  .rail-link .nav-icon {
-    font-size: 18px;
-    line-height: 1;
-    color: inherit;
-  }
-  .rail-link:hover {
-    background: var(--surface-2);
-    color: var(--text);
-  }
-  .rail-link.nav-active {
-    background: var(--surface-2);
-    color: var(--text);
-    box-shadow: inset 3px 0 0 var(--whistle);
-  }
-  .rail-link:focus-visible {
-    outline: 2px solid var(--accent);
-    outline-offset: -2px;
+    overflow: hidden;
   }
 }
+
 .settings-trigger {
   position: relative;
   display: flex;
@@ -656,11 +572,12 @@ body {
   border-top: 1.5px solid var(--hairline);
   flex-shrink: 0;
   margin-top: auto;
-  /* Sticky rather than fixed: the bar keeps its width, so it never has to be
-     reconciled against the column with a magic offset token. */
-  position: sticky;
+  position: fixed;
   bottom: 0;
+  left: 0;
+  right: 0;
   z-index: 50;
+  box-shadow: 0 -1px 0 var(--hairline);
 }
 .bottom-nav .nav-link {
   display: flex;
@@ -722,6 +639,54 @@ body {
   background: var(--whistle);
   border-radius: 0 0 3px 3px;
 }
+/* the centered Home slot: a filled accent disc + accent label so it reads as
+   the home affordance next to the flat text hubs. Active keeps the amber
+   dot above but never recolors the glyph on the filled disc. */
+.bottom-nav .nav-link--home {
+  color: var(--text);
+}
+.bottom-nav .nav-link--home .nav-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-size: 17px;
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--text) 22%, transparent);
+}
+.bottom-nav .nav-link--home > span:last-child {
+  color: var(--accent);
+}
+.bottom-nav .nav-link--home:hover .nav-icon,
+.bottom-nav .nav-link--home.nav-active .nav-icon {
+  color: var(--accent-ink);
+  transform: scale(1.06);
+}
+@media (min-width: 768px) {
+  :root {
+    --nav-h: calc(87px + env(safe-area-inset-bottom));
+  }
+  .bottom-nav {
+    padding: 6px 24px calc(6px + env(safe-area-inset-bottom));
+  }
+  .bottom-nav .nav-link {
+    flex: 0 0 auto;
+    min-width: 72px;
+    padding: 12px 8px 10px;
+  }
+  .bottom-nav .nav-link .nav-icon {
+    font-size: 22px;
+  }
+  .bottom-nav .nav-link--home .nav-icon {
+    width: 36px;
+    height: 36px;
+    font-size: 19px;
+  }
+}
+
 .screen {
   display: flex;
   flex-direction: column;
@@ -729,10 +694,12 @@ body {
   padding: 24px 20px 28px;
   flex: 1;
 }
-/* Keep focused rows clear of the sticky tab bar without enumerating every
-   interactive class by hand. */
-.shell :is(button, a, [tabindex]):focus-visible {
-  scroll-margin-bottom: 96px;
+.screen button,
+.screen .row,
+.screen .history-row,
+.screen .bracket-match,
+.screen .tournament-squad-row {
+  scroll-margin-bottom: calc(var(--nav-h, 75px) + 96px);
 }
 h1 {
   font-family: "Outfit", sans-serif;
@@ -1625,26 +1592,18 @@ h1 {
   }
 }
 
-/* ---------- desktop content layout (toggled via data-layout) ---------- */
-/* Gated on the attribute so an explicit "Mobile" preference still wins on a
-   wide screen, and on the media query so "Desktop" on a phone is a no-op. */
-@media (min-width: 1024px) {
-  /* The rail replaces the tab bar, so the bar is removed from the layout
-     entirely rather than merely hidden. */
-  .bottom-nav {
-    display: none;
+/* ---------- desktop layout (toggled via data-layout) ---------- */
+@media (min-width: 768px) {
+  .app[data-layout="desktop"] {
+    width: 100%;
+    max-width: 1080px;
+    border-inline: none;
   }
-
-  /* The rail owns the brand on desktop, so the bar only carries controls. */
   .app[data-layout="desktop"] .topbar {
     padding-inline: 30px;
-    justify-content: flex-end;
-  }
-  .app[data-layout="desktop"] .topbar .wordmark {
-    display: none;
   }
   .app[data-layout="desktop"] .screen {
-    padding: 24px 30px 32px;
+    padding: 12px 30px 28px;
   }
   .app[data-layout="desktop"] .roster {
     display: grid;
@@ -1832,7 +1791,7 @@ h1 {
 }
 .match-bar {
   position: sticky;
-  bottom: var(--tabbar-h);
+  bottom: 64px;
   z-index: 30;
   background: var(--surface);
   border-top: 1.5px solid var(--hairline);
@@ -2294,7 +2253,7 @@ h1 {
 }
 .split-bar {
   position: sticky;
-  bottom: var(--tabbar-h);
+  bottom: 64px;
   z-index: 30;
   background: var(--surface);
   border-top: 1.5px solid var(--hairline);
@@ -2797,7 +2756,7 @@ h1 {
   border-radius: 999px;
   padding: 2px 8px;
 }
-.toast-container { position: fixed; bottom: calc(var(--tabbar-h) + 12px); left: 0; right: 0; display: flex; flex-direction: column; align-items: center; gap: 8px; pointer-events: none; z-index: 100; } .toast { padding: 12px 18px; border-radius: 8px; font-size: 14px; font-family: "Outfit", sans-serif; pointer-events: auto; box-shadow: 0 4px 12px rgba(0,0,0,0.15); max-width: 90vw; } .toast--success { background: #FEF3C7; color: #92400E; border: 1.5px solid #FCD34D; } .toast--error { background: #FFF7ED; color: #9A3412; border: 1.5px solid #FCA5A5; } .toast--info { background: #FFF7ED; color: #9A3412; border: 1.5px solid #FCD34D; }
+.toast-container { position: fixed; bottom: 80px; left: 0; right: 0; display: flex; flex-direction: column; align-items: center; gap: 8px; pointer-events: none; z-index: 100; } .toast { padding: 12px 18px; border-radius: 8px; font-size: 14px; font-family: "Outfit", sans-serif; pointer-events: auto; box-shadow: 0 4px 12px rgba(0,0,0,0.15); max-width: 90vw; } .toast--success { background: #FEF3C7; color: #92400E; border: 1.5px solid #FCD34D; } .toast--error { background: #FFF7ED; color: #9A3412; border: 1.5px solid #FCA5A5; } .toast--info { background: #FFF7ED; color: #9A3412; border: 1.5px solid #FCD34D; }
 /* ---------- breadcrumbs ---------- */
 .breadcrumb {
   display: flex;
