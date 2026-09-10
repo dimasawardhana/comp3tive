@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import type { Discipline, Id, SeriesLength, Tournament, TournamentFormat } from "../domain/types";
+import type { Community, Discipline, Id, SeriesLength, Tournament, TournamentFormat } from "../domain/types";
 import { validateTournamentSpec, type TournamentValidationIssue } from "./tournament-validation";
 
 interface Props {
@@ -19,8 +19,8 @@ interface Props {
   }) => Promise<void>;
   onOpen: (id: Id) => void;
   onDelete: (id: Id) => Promise<void>;
-  /** Open the discipline catalog (Games are built from it). */
   onManageDisciplines?: () => void;
+  activeCommunity?: Community | null;
 }
 
 const FORMAT_LABEL: Record<TournamentFormat, string> = {
@@ -44,7 +44,7 @@ const STATUS_LABEL: Record<Tournament["status"], string> = {
   complete: "Complete",
 };
 
-export function GamesScreen({ tournaments, disciplines, onCreate, onOpen, onDelete, onManageDisciplines, prefill, onPrefillConsumed }: Props) {
+export function GamesScreen({ tournaments, disciplines, onCreate, onOpen, onDelete, onManageDisciplines, prefill, onPrefillConsumed, activeCommunity }: Props) {
   const [creating, setCreating] = useState(false);
   const [name, setName] = useState("");
   const [disciplineId, setDisciplineId] = useState<string>(disciplines[0]?.id ?? "");
@@ -117,7 +117,13 @@ export function GamesScreen({ tournaments, disciplines, onCreate, onOpen, onDele
 
   return (
     <>
+      <div className="kicker">Tournaments</div>
       <h1>Games</h1>
+      {activeCommunity && (
+        <div className="lede">
+          <strong>{activeCommunity.name}</strong> · {tournaments.length} tournament{tournaments.length === 1 ? "" : "s"}
+        </div>
+      )}
       <div className="games-toolbar">
         <button type="button" className="btn btn-ghost" onClick={onManageDisciplines}>
           Disciplines
