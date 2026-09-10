@@ -132,11 +132,14 @@ export default function App() {
   const roster = useRoster(rosterStore);
   const sessions = useSessions(sessionStore);
   const catalog = useDisciplines(disciplineStore);
-  const communities = useCommunities(communityStore, rosterStore, sessionStore, squadStore);
+  const communities = useCommunities(communityStore, rosterStore, sessionStore, squadStore, tournamentStore);
   const tournaments = useTournaments(tournamentStore);
   const savedSquads = useSavedSquads(squadStore);
   const [viewStack, setViewStack] = useState<View[]>([{ mode: "dashboard" }]);
   const view = viewStack[viewStack.length - 1];
+  /** First load failure from any store. These were previously swallowed, which
+   *  left a failed read looking identical to an empty app. */
+  const loadError = communities.error ?? roster.error ?? sessions.error ?? catalog.error ?? tournaments.error ?? savedSquads.error;
 
   const [setup, setSetup] = useState<MatchSetup | null>(null);
   const [tournamentPrefill, setTournamentPrefill] = useState<{ disciplineId: Id; teamCount: number } | null>(null);
@@ -607,11 +610,40 @@ export default function App() {
   };
 
   const deleteCommunity = async (id: Id) => {
-    await communityStore.deleteCommunity(id);
+    if (communities.communities.length <= 1) {
+      notify("You need at least one community.", "error");
+      return;
+    }
+    const counts = await communities.remove(id);
+    const parts = [
+      counts.players && `${counts.players} player${counts.players === 1 ? "" : "s"}`,
+      counts.sessions && `${counts.sessions} session${counts.sessions === 1 ? "" : "s"}`,
+      counts.squads && `${counts.squads} saved squad${counts.squads === 1 ? "" : "s"}`,
+      counts.tournaments && `${counts.tournaments} tournament${counts.tournaments === 1 ? "" : "s"}`,
+    ].filter(Boolean);
+    notify(
+      parts.length > 0 ? `Community deleted, along with ${parts.join(", ")}.` : "Community deleted.",
+      "success",
+    );
   };
 
-  const setActiveCommunity = (id: Id | null) => {
-    if (id !== null) communities.setActiveId(id);
+  /** A truthful description of what deleting this community will take with it. */
+  const communityDeleteWarning = (communityId: Id): string => {
+    const players = roster.players.filter((p) => p.communityId === communityId).length;
+    const sessions = sessions.sessions.filter((s) => s.communityId === communityId).length;
+    const squads = savedSquads.squads.filter((q) => q.communityId === communityId).length;
+    const tournaments = tournaments.tournaments.filter((t) => t.communityId === communityId).length;
+    const parts = [
+      players && `${players} player${players === 1 ? "" : "s"}`,
+      sessions && `${sessions} session${sessions === 1 ? "" : "s"}`,
+      squads && `${squads} saved squad${squads === 1 ? "" : "s"}`,
+      tournaments && `${tournaments} tournament${tournaments === 1 ? "" : "s"}`,
+    ].filter(Boolean);
+    return parts.length > 0 ? ` This also permanently deletes ${parts.join(", ")}.` : "";
+  };
+
+  const setActiveCommunity = (id: Id) => {
+    communities.setActiveId(id);
   };
 
   const randomPlayers = () => {
@@ -786,17 +818,6 @@ export default function App() {
               <>
                 <div className="squad-menu-backdrop" onClick={() => setShowCommunityMenu(false)} />
                 <ul className="squad-menu" role="listbox" aria-label="Communities">
-                  <li>
-                    <button
-                      type="button"
-                      className={`squad-menu-item ${!activeCommunity ? "active" : ""}`}
-                      onClick={() => { setActiveCommunity(null); setShowCommunityMenu(false); }}
-                      role="option"
-                      aria-selected={!activeCommunity}
-                    >
-                      — No community —
-                    </button>
-                  </li>
                   {communities.communities.map((c) => (
                     <li key={c.id}>
                       <button
@@ -831,7 +852,8 @@ export default function App() {
               aria-label={`Delete ${activeCommunity.name}`}
               title={`Delete ${activeCommunity.name}`}
               onClick={() => {
-                if (window.confirm(`Delete "${activeCommunity.name}"? This removes the community, all its players, and history.`)) {
+                const warning = communityDeleteWarning(activeCommunity.id);
+                if (window.confirm(`Delete "${activeCommunity.name}"?${warning}`)) {
                   void deleteCommunity(activeCommunity.id);
                 }
               }}
@@ -874,6 +896,11 @@ export default function App() {
       </header>
 
       <main id="main" className="shell-main">
+      {loadError && (
+        <div className="load-error" role="alert">
+          <strong>Couldn&apos;t load your saved data.</strong> {loadError} Reload the page to try again.
+        </div>
+      )}
       {showAddCommunity && (
         <div className="add-community">
           <div className="form-label">New community</div>
@@ -894,11 +921,12 @@ export default function App() {
           </div>
         </div>
       )}
-      {communities.communities.length === 0 && !showAddCommunity && (
+      {communities.loading && <p className="status">Loading&hellip;</p>}
+      {!communities.loading && communities.communities.length === 0 && !showAddCommunity && (
         <div className="empty">
           <div className="kicker">First whistle</div>
           <div className="big">No communities yet</div>
-          <p>Hit ✚ in the topbar to create your first community.</p>
+          <p>Use ✚ in the topbar to create your first community.</p>
         </div>
       )}
 
@@ -922,7 +950,7 @@ export default function App() {
       )}
       {view.mode === "roster" && (
         <div className="screen">
-          <div className="kicker">Match Sheet · 01</div>
+          <div className="kicker">Match sheet</div>
           <h1>Team Builder</h1>
           {activeCommunity && (
             <div className="lede">
@@ -1062,9 +1090,10 @@ export default function App() {
 
               <div className="cta-bar">
                 <div className="cta-label">
-                  Ready to play? <strong>Split the squad</strong> into two teams for a quick match.
+                  Ready to play? <strong>Split the squad</strong> and check the balance.
                 </div>
                 <button
+                  type="button"
                   className="btn btn-primary"
                   onClick={randomPlayers}
                   disabled={!activeCommunity || communityPlayers.length === 0}

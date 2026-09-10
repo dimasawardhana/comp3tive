@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import type { Community, Id } from "../domain/types";
-import type { CommunityStore, RosterStore, SavedSquadStore, SessionStore } from "../storage/types";
+import type { CommunityStore, RosterStore, SavedSquadStore, SessionStore, TournamentStore } from "../storage/types";
 
 const ACTIVE_KEY = "tb-community";
 const DEFAULT_NAME = "Default";
@@ -29,11 +29,20 @@ function writeActive(id: string): void {
  * players, sessions, and saved squads (a community owns them; they cannot be
  * shared).
  */
+/** What a community deletion actually removed, so the caller can report it. */
+export interface CommunityRemovalCounts {
+  players: number;
+  sessions: number;
+  squads: number;
+  tournaments: number;
+}
+
 export function useCommunities(
   store: CommunityStore,
   rosterStore: RosterStore,
   sessionStore: SessionStore,
   savedSquadStore: SavedSquadStore,
+  tournamentStore: TournamentStore,
 ) {
   const [communities, setCommunities] = useState<Community[]>([]);
   const [activeId, setActiveIdState] = useState<string>(readActive);
@@ -89,18 +98,37 @@ export function useCommunities(
   );
 
   const remove = useCallback(
-    async (id: Id) => {
+    async (id: Id): Promise<CommunityRemovalCounts> => {
       const current = await rosterStore.listPlayers();
       const sessions = await sessionStore.listSessions();
       const squads = await savedSquadStore.listSavedSquads();
+      const tournaments = await tournamentStore.listTournaments();
+      // A community owns everything scoped to it. Deleting the community
+      // without these would leave records that no screen can ever reach.
+      const counts: CommunityRemovalCounts = { players: 0, sessions: 0, squads: 0, tournaments: 0 };
       for (const p of current) {
-        if (p.communityId === id) await rosterStore.deletePlayer(p.id);
+        if (p.communityId === id) {
+          await rosterStore.deletePlayer(p.id);
+          counts.players++;
+        }
       }
       for (const s of sessions) {
-        if (s.communityId === id) await sessionStore.deleteSession(s.id);
+        if (s.communityId === id) {
+          await sessionStore.deleteSession(s.id);
+          counts.sessions++;
+        }
       }
       for (const q of squads) {
-        if (q.communityId === id) await savedSquadStore.deleteSavedSquad(q.id);
+        if (q.communityId === id) {
+          await savedSquadStore.deleteSavedSquad(q.id);
+          counts.squads++;
+        }
+      }
+      for (const t of tournaments) {
+        if (t.communityId === id) {
+          await tournamentStore.deleteTournament(t.id);
+          counts.tournaments++;
+        }
       }
       await store.deleteCommunity(id);
       setCommunities((prev) => {
@@ -112,8 +140,9 @@ export function useCommunities(
         }
         return next;
       });
+      return counts;
     },
-    [store, rosterStore, sessionStore, savedSquadStore, activeId],
+    [store, rosterStore, sessionStore, savedSquadStore, tournamentStore, activeId],
   );
 
   return { communities, activeId, loading, error, refresh, setActiveId, create, remove };

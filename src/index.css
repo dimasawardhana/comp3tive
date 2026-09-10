@@ -163,6 +163,22 @@ body {
   flex: 1;
   min-width: 0;
 }
+/* Load failure. States the problem and the next step, and stays put until the
+   underlying read succeeds. */
+.load-error {
+  margin: 16px 20px 0;
+  padding: 12px 16px;
+  background: color-mix(in srgb, var(--danger) 10%, var(--surface));
+  border: 1.5px solid var(--danger);
+  border-left-width: 4px;
+  border-radius: var(--r-sm);
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.5;
+}
+.load-error strong {
+  font-weight: 700;
+}
 
 @media (min-width: 1024px) {
   body {
@@ -356,13 +372,6 @@ body {
   margin-left: 4px;
   padding-left: 10px;
   border-left: 1.5px solid var(--hairline);
-}
-.steplabel {
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--text-2);
 }
 .back {
   width: 34px;
@@ -627,23 +636,6 @@ body {
   outline-offset: 1px;
   border-color: var(--accent);
 }
-.pref {
-  background: none;
-
-  border: none;
-  font-family: "Familjen Grotesk", sans-serif;
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--text-2);
-  cursor: pointer;
-  padding: 4px 2px;
-  white-space: nowrap;
-}
-.pref:hover {
-  color: var(--text);
-}
 .link {
   display: inline-flex;
   align-items: center;
@@ -666,18 +658,6 @@ body {
   gap: 8px;
   flex: 0 0 auto;
 }
-.data-links {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  padding: 4px 0 2px;
-  font-size: 13px;
-}
-.data-links .sep {
-  opacity: 0.5;
-}
-
 .btn.small {
   flex: 0 0 auto;
   font-size: 13px;
@@ -2560,28 +2540,6 @@ h1 {
   text-transform: uppercase;
 }
 
-.tournament-meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 16px;
-  font-family: "Outfit", sans-serif;
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--text-2);
-  margin-bottom: 14px;
-}
-.tournament-meta .kicker {
-  margin: 0;
-  font-size: 11px;
-  color: var(--whistle);
-}
-.tournament-meta strong {
-  color: var(--text);
-  font-weight: 600;
-  margin-left: 4px;
-}
 .tournament-header {
   display: flex;
   flex-direction: column;

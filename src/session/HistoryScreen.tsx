@@ -26,7 +26,7 @@ function formatTime(ts: number): string {
 export function HistoryScreen({ sessions, loading, disciplines, onReopen, onDelete }: Props) {
   return (
     <div className="screen">
-      <div className="kicker">Game Tape · 02</div>
+      <div className="kicker">Game tape</div>
       <h1>History</h1>
       <p className="lede">Every team-building run you&apos;ve done. Reopen one to re-split the same pool.</p>
 
