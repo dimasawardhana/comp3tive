@@ -484,6 +484,18 @@ export default function App() {
       throw err;
     }
   };
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  const downloadSampleData = async (disciplineId: Id) => {
+    setDownloadingId(disciplineId);
+    try {
+      const { downloadSampleData: download } = await import("./data/sample-data");
+      download(disciplineId);
+    } catch {
+      notify("Could not download sample data", "error");
+    } finally {
+      setDownloadingId(null);
+    }
+  };
   const handlePlayerImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -1030,6 +1042,7 @@ export default function App() {
             onManageDisciplines={() => goDisciplines()}
             prefill={tournamentPrefill}
             onPrefillConsumed={() => setTournamentPrefill(null)}
+            activeCommunity={activeCommunity}
           />
         </div>
       )}
@@ -1113,6 +1126,8 @@ export default function App() {
           onSave={saveDiscipline}
           onDelete={deleteDiscipline}
           onBack={() => goBack()}
+          onDownloadSample={downloadSampleData}
+          downloadingId={downloadingId}
         />
       )}
 

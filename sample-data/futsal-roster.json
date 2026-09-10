@@ -1,0 +1,518 @@
+{
+  "version": 1,
+  "exportedAt": "2026-09-10T09:36:33.605Z",
+  "players": [
+    {
+      "id": "kairi",
+      "name": "Kairi",
+      "notes": "ONIC · Jungle",
+      "capabilities": [
+        {
+          "disciplineId": "futsal",
+          "attributeRatings": {
+            "technical": 5,
+            "fitness": 5,
+            "game-iq": 5
+          },
+          "eligibleRoles": [
+            "goalkeeper",
+            "defender"
+          ],
+          "preferredRole": "goalkeeper"
+        }
+      ]
+    },
+    {
+      "id": "cw",
+      "name": "CW",
+      "notes": "ONIC · Mid",
+      "capabilities": [
+        {
+          "disciplineId": "futsal",
+          "attributeRatings": {
+            "technical": 5,
+            "fitness": 4,
+            "game-iq": 4
+          },
+          "eligibleRoles": [
+            "goalkeeper",
+            "defender"
+          ],
+          "preferredRole": "pivot"
+        }
+      ]
+    },
+    {
+      "id": "butsss",
+      "name": "Butsss",
+      "notes": "ONIC · EXP",
+      "capabilities": [
+        {
+          "disciplineId": "futsal",
+          "attributeRatings": {
+            "technical": 4,
+            "fitness": 5,
+            "game-iq": 4
+          },
+          "eligibleRoles": [
+            "goalkeeper",
+            "defender"
+          ],
+          "preferredRole": "defender"
+        }
+      ]
+    },
+    {
+      "id": "kiboy",
+      "name": "Kiboy",
+      "notes": "ONIC · Roam",
+      "capabilities": [
+        {
+          "disciplineId": "futsal",
+          "attributeRatings": {
+            "technical": 4,
+            "fitness": 5,
+            "game-iq": 4
+          },
+          "eligibleRoles": [
+            "goalkeeper",
+            "defender"
+          ],
+          "preferredRole": "goalkeeper"
+        }
+      ]
+    },
+    {
+      "id": "drian",
+      "name": "Drian",
+      "notes": "ONIC · Gold",
+      "capabilities": [
+        {
+          "disciplineId": "futsal",
+          "attributeRatings": {
+            "technical": 5,
+            "fitness": 4,
+            "game-iq": 5
+          },
+          "eligibleRoles": [
+            "goalkeeper",
+            "defender",
+            "winger"
+          ],
+          "preferredRole": "goalkeeper"
+        }
+      ]
+    },
+    {
+      "id": "cr1te",
+      "name": "Cr1te",
+      "notes": "RRQ · Jungle",
+      "capabilities": [
+        {
+          "disciplineId": "futsal",
+          "attributeRatings": {
+            "technical": 5,
+            "fitness": 4,
+            "game-iq": 5
+          },
+          "eligibleRoles": [
+            "goalkeeper",
+            "defender"
+          ],
+          "preferredRole": "pivot"
+        }
+      ]
+    },
+    {
+      "id": "lemon",
+      "name": "Lemon",
+      "notes": "RRQ · Mid",
+      "capabilities": [
+        {
+          "disciplineId": "futsal",
+          "attributeRatings": {
+            "technical": 5,
+            "fitness": 5,
+            "game-iq": 4
+          },
+          "eligibleRoles": [
+            "goalkeeper",
+            "defender",
+            "winger"
+          ],
+          "preferredRole": "winger"
+        }
+      ]
+    },
+    {
+      "id": "albert",
+      "name": "Albert",
+      "notes": "RRQ · EXP",
+      "capabilities": [
+        {
+          "disciplineId": "futsal",
+          "attributeRatings": {
+            "technical": 4,
+            "fitness": 4,
+            "game-iq": 5
+          },
+          "eligibleRoles": [
+            "goalkeeper",
+            "defender",
+            "winger"
+          ],
+          "preferredRole": "goalkeeper"
+        }
+      ]
+    },
+    {
+      "id": "vyn",
+      "name": "Vyn",
+      "notes": "RRQ · Roam",
+      "capabilities": [
+        {
+          "disciplineId": "futsal",
+          "attributeRatings": {
+            "technical": 4,
+            "fitness": 5,
+            "game-iq": 5
+          },
+          "eligibleRoles": [
+            "goalkeeper",
+            "defender",
+            "winger"
+          ],
+          "preferredRole": "defender"
+        }
+      ]
+    },
+    {
+      "id": "r7",
+      "name": "R7",
+      "notes": "RRQ · Gold",
+      "capabilities": [
+        {
+          "disciplineId": "futsal",
+          "attributeRatings": {
+            "technical": 5,
+            "fitness": 4,
+            "game-iq": 4
+          },
+          "eligibleRoles": [
+            "goalkeeper",
+            "defender"
+          ],
+          "preferredRole": "defender"
+        }
+      ]
+    },
+    {
+      "id": "wannn",
+      "name": "Wannn",
+      "notes": "EVOS · Jungle",
+      "capabilities": [
+        {
+          "disciplineId": "futsal",
+          "attributeRatings": {
+            "technical": 5,
+            "fitness": 5,
+            "game-iq": 5
+          },
+          "eligibleRoles": [
+            "goalkeeper",
+            "defender"
+          ],
+          "preferredRole": "winger"
+        }
+      ]
+    },
+    {
+      "id": "ferxiic",
+      "name": "Ferxiic",
+      "notes": "EVOS · Mid",
+      "capabilities": [
+        {
+          "disciplineId": "futsal",
+          "attributeRatings": {
+            "technical": 5,
+            "fitness": 4,
+            "game-iq": 4
+          },
+          "eligibleRoles": [
+            "goalkeeper",
+            "defender"
+          ],
+          "preferredRole": "goalkeeper"
+        }
+      ]
+    },
+    {
+      "id": "oura",
+      "name": "Oura",
+      "notes": "EVOS · EXP",
+      "capabilities": [
+        {
+          "disciplineId": "futsal",
+          "attributeRatings": {
+            "technical": 4,
+            "fitness": 5,
+            "game-iq": 5
+          },
+          "eligibleRoles": [
+            "goalkeeper",
+            "defender"
+          ],
+          "preferredRole": "winger"
+        }
+      ]
+    },
+    {
+      "id": "clover",
+      "name": "Clover",
+      "notes": "EVOS · Roam",
+      "capabilities": [
+        {
+          "disciplineId": "futsal",
+          "attributeRatings": {
+            "technical": 4,
+            "fitness": 5,
+            "game-iq": 4
+          },
+          "eligibleRoles": [
+            "goalkeeper",
+            "defender",
+            "winger"
+          ],
+          "preferredRole": "defender"
+        }
+      ]
+    },
+    {
+      "id": "luminaire",
+      "name": "Luminaire",
+      "notes": "EVOS · Gold",
+      "capabilities": [
+        {
+          "disciplineId": "futsal",
+          "attributeRatings": {
+            "technical": 5,
+            "fitness": 4,
+            "game-iq": 5
+          },
+          "eligibleRoles": [
+            "goalkeeper",
+            "defender"
+          ],
+          "preferredRole": "pivot"
+        }
+      ]
+    },
+    {
+      "id": "udil",
+      "name": "Udil",
+      "notes": "Alter Ego · Jungle",
+      "capabilities": [
+        {
+          "disciplineId": "futsal",
+          "attributeRatings": {
+            "technical": 5,
+            "fitness": 4,
+            "game-iq": 4
+          },
+          "eligibleRoles": [
+            "goalkeeper",
+            "defender"
+          ],
+          "preferredRole": "goalkeeper"
+        }
+      ]
+    },
+    {
+      "id": "celiboy",
+      "name": "Celiboy",
+      "notes": "Alter Ego · Mid",
+      "capabilities": [
+        {
+          "disciplineId": "futsal",
+          "attributeRatings": {
+            "technical": 5,
+            "fitness": 5,
+            "game-iq": 4
+          },
+          "eligibleRoles": [
+            "goalkeeper",
+            "defender",
+            "winger"
+          ],
+          "preferredRole": "goalkeeper"
+        }
+      ]
+    },
+    {
+      "id": "nino",
+      "name": "Nino",
+      "notes": "Alter Ego · Roam",
+      "capabilities": [
+        {
+          "disciplineId": "futsal",
+          "attributeRatings": {
+            "technical": 4,
+            "fitness": 4,
+            "game-iq": 5
+          },
+          "eligibleRoles": [
+            "goalkeeper",
+            "defender",
+            "winger"
+          ],
+          "preferredRole": "pivot"
+        }
+      ]
+    },
+    {
+      "id": "ahmad",
+      "name": "Ahmad",
+      "notes": "Alter Ego · Gold",
+      "capabilities": [
+        {
+          "disciplineId": "futsal",
+          "attributeRatings": {
+            "technical": 4,
+            "fitness": 4,
+            "game-iq": 4
+          },
+          "eligibleRoles": [
+            "goalkeeper",
+            "defender"
+          ],
+          "preferredRole": "goalkeeper"
+        }
+      ]
+    },
+    {
+      "id": "pai",
+      "name": "PAI",
+      "notes": "Alter Ego · EXP",
+      "capabilities": [
+        {
+          "disciplineId": "futsal",
+          "attributeRatings": {
+            "technical": 4,
+            "fitness": 4,
+            "game-iq": 5
+          },
+          "eligibleRoles": [
+            "goalkeeper",
+            "defender",
+            "winger"
+          ],
+          "preferredRole": "goalkeeper"
+        }
+      ]
+    },
+    {
+      "id": "high",
+      "name": "High",
+      "notes": "Aura Fire · Jungle",
+      "capabilities": [
+        {
+          "disciplineId": "futsal",
+          "attributeRatings": {
+            "technical": 5,
+            "fitness": 4,
+            "game-iq": 5
+          },
+          "eligibleRoles": [
+            "goalkeeper",
+            "defender",
+            "winger"
+          ],
+          "preferredRole": "winger"
+        }
+      ]
+    },
+    {
+      "id": "blustine",
+      "name": "Blustine",
+      "notes": "Aura Fire · Mid",
+      "capabilities": [
+        {
+          "disciplineId": "futsal",
+          "attributeRatings": {
+            "technical": 4,
+            "fitness": 5,
+            "game-iq": 4
+          },
+          "eligibleRoles": [
+            "goalkeeper",
+            "defender",
+            "winger"
+          ],
+          "preferredRole": "pivot"
+        }
+      ]
+    },
+    {
+      "id": "kabuki",
+      "name": "Kabuki",
+      "notes": "Aura Fire · Roam",
+      "capabilities": [
+        {
+          "disciplineId": "futsal",
+          "attributeRatings": {
+            "technical": 4,
+            "fitness": 5,
+            "game-iq": 5
+          },
+          "eligibleRoles": [
+            "goalkeeper",
+            "defender",
+            "winger"
+          ],
+          "preferredRole": "defender"
+        }
+      ]
+    },
+    {
+      "id": "facehugger",
+      "name": "FaceHugger",
+      "notes": "Aura Fire · Gold",
+      "capabilities": [
+        {
+          "disciplineId": "futsal",
+          "attributeRatings": {
+            "technical": 5,
+            "fitness": 4,
+            "game-iq": 4
+          },
+          "eligibleRoles": [
+            "goalkeeper",
+            "defender"
+          ],
+          "preferredRole": "goalkeeper"
+        }
+      ]
+    },
+    {
+      "id": "varius",
+      "name": "Varius",
+      "notes": "Aura Fire · EXP",
+      "capabilities": [
+        {
+          "disciplineId": "futsal",
+          "attributeRatings": {
+            "technical": 4,
+            "fitness": 4,
+            "game-iq": 4
+          },
+          "eligibleRoles": [
+            "goalkeeper",
+            "defender"
+          ],
+          "preferredRole": "defender"
+        }
+      ]
+    }
+  ],
+  "sessions": []
+}

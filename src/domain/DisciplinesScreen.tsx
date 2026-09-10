@@ -8,9 +8,11 @@ interface Props {
   onSave: (discipline: Discipline) => Promise<void>;
   onDelete: (id: Id) => Promise<void>;
   onBack: () => void;
+  onDownloadSample?: (disciplineId: Id) => void;
+  downloadingId?: string | null;
 }
 
-export function DisciplinesScreen({ disciplines, loading, onSave, onDelete, onBack }: Props) {
+export function DisciplinesScreen({ disciplines, loading, onSave, onDelete, onBack, onDownloadSample, downloadingId }: Props) {
   const [editing, setEditing] = useState<Discipline | null | "new">(null);
 
   return (
@@ -49,7 +51,23 @@ export function DisciplinesScreen({ disciplines, loading, onSave, onDelete, onBa
                     </span>
                   </div>
                 </div>
-                <span className="row-edit" aria-hidden="true">✎</span>
+                <div className="row-actions">
+                  {onDownloadSample && (
+                    <button
+                      type="button"
+                      className="btn btn-ghost"
+                      style={{ fontSize: 12, padding: "4px 8px" }}
+                      aria-label={`Download sample data for ${d.name}`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onDownloadSample(d.id);
+                      }}
+                    >
+                      ⬇ {downloadingId === d.id ? "..." : "Sample"}
+                    </button>
+                  )}
+                  <span className="row-edit" aria-hidden="true">✎</span>
+                </div>
               </li>
             );
           })}

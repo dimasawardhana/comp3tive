@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
 import type { Discipline, Id } from "../domain/types";
 import { SEED_DISCIPLINES } from "../domain/seed";
+import { hasSampleData } from "../data/sample-data";
 import type { DisciplineStore } from "../storage/types";
 
 /** Loads the discipline catalog (seeded on first open) and manages custom entries. */
 export function useDisciplines(store: DisciplineStore) {
   const [disciplines, setDisciplines] = useState<Discipline[]>([]);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
@@ -34,6 +34,11 @@ export function useDisciplines(store: DisciplineStore) {
 
   const saveDiscipline = useCallback(
     async (discipline: Discipline) => {
+      if (!discipline.builtIn && !hasSampleData(discipline.id)) {
+        throw new Error(
+          `Sample data is required for custom disciplines. Create sample data for ${discipline.name} first.`,
+        );
+      }
       await store.saveDiscipline(discipline);
       setDisciplines((prev) => {
         const i = prev.findIndex((d) => d.id === discipline.id);
@@ -45,7 +50,6 @@ export function useDisciplines(store: DisciplineStore) {
     },
     [store],
   );
-
   const deleteDiscipline = useCallback(
     async (id: Id) => {
       await store.deleteDiscipline(id);

@@ -143,6 +143,8 @@ export function DisciplineEditModal({
     try {
       await onSave(next);
       onClose();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
     } finally {
       setSaving(false);
     }
@@ -169,6 +171,7 @@ export function DisciplineEditModal({
         <h1 className="modal-title">
           {isEdit ? (isBuiltIn ? "View discipline" : "Edit discipline") : "New discipline"}
         </h1>
+        {error && <div className="validation-errors"><li>{error}</li></div>}
         {isBuiltIn && (
           <p className="modal-banner modal-banner-info">
             Built-in discipline — review only, not editable.
