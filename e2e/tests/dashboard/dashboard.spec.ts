@@ -154,7 +154,7 @@ test("Home tab returns to the Dashboard from each hub", async ({ page }) => {
 
   // The Squads nav slot carries the accessible label "Saved squads" (its h1 too).
   const hubs = [
-    ["Roster", "Team Builder"],
+    ["Roster", "comp3tive"],
     ["Games", "Games"],
     ["History", "History"],
     ["Saved squads", "Saved squads"],
@@ -308,7 +308,7 @@ test("dashboard actions land on their destinations", async ({ page }) => {
   await expect(page.locator(".screen h1")).toHaveText("Dashboard");
 
   // + Add player -> the Roster hub with the add-player modal open. The roster
-  // h1 ("Team Builder") sits in the same .screen as the modal, so assert the
+  // h1 ("comp3tive") sits in the same .screen as the modal, so assert the
   // modal directly — it is only reachable from the Roster hub.
   await page.getByRole("button", { name: "+ Add player" }).click();
   await expect(page.locator(".modal-card")).toBeVisible();

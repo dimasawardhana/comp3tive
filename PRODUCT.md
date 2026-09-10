@@ -1,4 +1,4 @@
-# Team Builder — Product Brief
+# comp3tive — Product Brief
 
 ## What it is
 A local-first web app for casual sports organizers (futsal, MLBB, badminton, and more) who need to split a group of players into fair teams for a session or tournament. Stores everything in IndexedDB; no backend, no auth, no network.

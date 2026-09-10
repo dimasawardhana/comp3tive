@@ -252,6 +252,56 @@ body {
     outline: 2px solid var(--accent);
     outline-offset: -2px;
   }
+  .rail-toggle {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    min-height: 44px;
+    margin-top: auto;
+    padding: 10px 12px;
+    border: none;
+    border-top: 1.5px solid var(--hairline);
+    border-radius: 0;
+    background: transparent;
+    color: var(--text-2);
+    font-family: "Familjen Grotesk", sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    text-align: left;
+    cursor: pointer;
+    transition: color 0.12s;
+  }
+  .rail-toggle:hover {
+    color: var(--text);
+  }
+  .rail-toggle:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: -2px;
+  }
+
+  /* Collapsed: icons only. The rail shrinks and every label is removed, so the
+     glyph becomes the sole affordance and needs its title/aria-label. */
+  .app[data-rail="collapsed"] {
+    grid-template-columns: 76px minmax(0, 1fr);
+  }
+  .app[data-rail="collapsed"] .rail {
+    padding-inline: 10px;
+  }
+  .app[data-rail="collapsed"] .rail-brand {
+    justify-content: center;
+    padding-inline: 0;
+  }
+  .app[data-rail="collapsed"] .rail-brand > span:last-child,
+  .app[data-rail="collapsed"] .rail-link-label {
+    display: none;
+  }
+  .app[data-rail="collapsed"] .rail-link,
+  .app[data-rail="collapsed"] .rail-toggle {
+    justify-content: center;
+    gap: 0;
+    padding-inline: 0;
+  }
 }
 .settings-trigger {
   position: relative;
@@ -336,7 +386,8 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 20px 20px 16px;
+  gap: 12px;
+  padding: 12px 20px;
   border-bottom: 1.5px solid var(--hairline);
 }
 .wordmark {
@@ -391,23 +442,33 @@ body {
   align-items: center;
   gap: 12px;
 }
+/* The right side of the bar: community switcher and the settings control,
+   spaced by gap so no button ever overlaps its neighbour. */
+.topbar-tools {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
 .squad-switcher {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 6px 6px 6px 12px;
+  padding: 0 4px 0 14px;
   background: var(--surface-2);
   border: 1.5px solid var(--hairline);
   border-radius: var(--r-md);
+  flex: 0 1 auto;
+  max-width: 340px;
   min-width: 0;
-  flex: 1 1 auto;
-  max-width: 360px;
-  min-width: 104px;
-  margin: 0 16px;
 }
 /* Every link in the shrink chain needs min-width:0, otherwise the select's
    intrinsic width propagates up and pushes the trailing actions off-screen. */
 .squad-dropdown {
+  /* Positioned so .squad-menu anchors to the select. Without it the menu
+     resolves against the sticky topbar and lands over the icon buttons. */
+  position: relative;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -495,71 +556,100 @@ body {
 }
 .squad-menu {
   position: absolute;
-  top: calc(100% + 4px);
-  left: 0;
+  top: calc(100% + 6px);
   right: 0;
   z-index: 59;
-  list-style: none;
-  margin: 0;
-  padding: 4px;
+  min-width: 240px;
   background: var(--surface);
   border: 1.5px solid var(--hairline);
   border-radius: var(--r-md);
   box-shadow: var(--shadow);
-  max-height: 240px;
+  overflow: hidden;
+}
+.squad-menu-heading {
+  padding: 10px 14px 8px;
+  font-family: "Outfit", sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--text-2);
+  border-bottom: 1.5px solid var(--hairline);
+}
+.squad-menu-list {
+  list-style: none;
+  margin: 0;
+  padding: 6px;
+  max-height: 260px;
   overflow-y: auto;
-  min-width: 180px;
 }
 .squad-menu-item {
   display: flex;
   align-items: center;
-  gap: 8px;
+  justify-content: space-between;
+  gap: 12px;
   width: 100%;
-  padding: 8px 10px;
+  min-height: 44px;
+  padding: 10px 12px;
   border: none;
   background: transparent;
   font-family: "Familjen Grotesk", sans-serif;
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 500;
   color: var(--text);
   text-align: left;
   cursor: pointer;
   border-radius: var(--r-sm);
-  transition: background 0.1s, color 0.1s;
+  transition: background 0.1s;
+}
+.squad-menu-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .squad-menu-item:hover {
   background: var(--surface-2);
-  color: var(--text);
 }
-.squad-menu-item.active {
-  background: var(--text);
-  color: var(--surface);
-  font-weight: 600;
-}
-.squad-menu-item.active .squad-menu-dot {
-  background: var(--surface);
-}
-.squad-menu-dot {
-  display: inline-block;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--whistle);
+.squad-menu-check {
   flex-shrink: 0;
-  opacity: 0;
+  color: var(--whistle);
+  font-weight: 700;
 }
-.squad-menu-item.active .squad-menu-dot {
-  opacity: 1;
+/* Destructive action lives in the menu rather than beside the switcher, where
+   it crowded the primary control. */
+.squad-menu-footer {
+  padding: 6px;
+  border-top: 1.5px solid var(--hairline);
+}
+.squad-menu-danger {
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: none;
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: var(--danger);
+  font-family: "Familjen Grotesk", sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.squad-menu-danger:hover {
+  background: color-mix(in srgb, var(--danger) 10%, transparent);
 }
 .icon-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  /* Tap target, not visual size: the glyph stays small while the hit area
-     clears the 44px recommended minimum. */
+  /* A real 44px box. Negative margins would overlap neighbouring buttons and
+     steal their clicks, which is why spacing is handled by the parent gap. */
   width: 44px;
   height: 44px;
-  margin: -8px;
+  margin: 0;
   padding: 0;
   background: transparent;
   border: 1.5px solid var(--hairline);

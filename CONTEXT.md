@@ -1,6 +1,6 @@
-# Team Builder
+# comp3tive
 
-Team Builder is a tool for managing a roster of players and assembling balanced teams from that roster across multiple activities (futsal, MLBB, badminton, and more to come).
+comp3tive is a tool for managing a roster of players and assembling balanced teams from that roster across multiple activities (futsal, MLBB, badminton, and more to come).
 
 **Community**:
 A profile in the app with its own squad and history. Every player, session, tournament, and saved squad belongs to exactly one community; records are never shared across communities, and every screen that lists records shows only the active community's.

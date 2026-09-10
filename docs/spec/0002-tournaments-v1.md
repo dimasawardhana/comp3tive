@@ -2,7 +2,7 @@
 
 ## Problem Statement
 
-Team Builder splits people into fair teams, but then what? The teams play — and nobody tracks it. A casual futsal night runs a mini-bracket by hand; an MLBB session runs a best-of series with someone keeping score on paper. This feature makes the competition part of the app: create a competition container (a Tournament) first, split your teams inside it, then record match results as they happen and keep the progress saved.
+comp3tive splits people into fair teams, but then what? The teams play — and nobody tracks it. A casual futsal night runs a mini-bracket by hand; an MLBB session runs a best-of series with someone keeping score on paper. This feature makes the competition part of the app: create a competition container (a Tournament) first, split your teams inside it, then record match results as they happen and keep the progress saved.
 
 ## Scope
 

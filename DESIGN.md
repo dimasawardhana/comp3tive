@@ -1,4 +1,4 @@
-# Design Direction — Team Builder
+# Design Direction — comp3tive
 
 **Direction: "Paper & Pencil."** The app feels like a blank notebook — warm paper, quiet ink, and a single amber mark that draws the eye when action is needed. Calm by default, decisive when needed.
 
@@ -64,7 +64,7 @@ Type scale (one place this is non-negotiable):
 
 ### Roster screen
 - Section kicker "MATCH SHEET · 01" in amber ▸
-- h1 "Team Builder" in display uppercase
+- h1 "comp3tive" in display uppercase
 - Lede: "**[Community] · 8 players on the roster**"
 - Toolbar: filter chips + Add Player + Import Players
 - **Player list as lineup cards** (not flat rows): each card has the bib color as a 4px left stripe, the player name, a role badge row, and an action affordance

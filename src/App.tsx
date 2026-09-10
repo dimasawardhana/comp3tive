@@ -60,9 +60,9 @@ type HubMode = "dashboard" | "roster" | "games" | "history" | "squads";
 
 /** The five hub destinations. Rendered twice: rail (desktop) and bottom nav (handheld). */
 const NAV_ITEMS = [
+  { mode: "dashboard", label: "Home", icon: "⌂" },
   { mode: "roster", label: "Roster", icon: "◉" },
   { mode: "games", label: "Games", icon: "▣" },
-  { mode: "dashboard", label: "Home", icon: "⌂" },
   { mode: "history", label: "History", icon: "≡" },
   { mode: "squads", label: "Squads", icon: "◇" },
 ] as const satisfies ReadonlyArray<{ mode: HubMode; label: string; icon: string }>;
@@ -172,6 +172,8 @@ export default function App() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [themePref, setThemePref] = useStoredPref("tb-theme", "auto");
   const [layoutPref, setLayoutPref] = useStoredPref("tb-layout", "auto");
+  /** Desktop rail shows labels, or collapses to icons only. */
+  const [railPref, setRailPref] = useStoredPref("tb-rail", "expanded");
   const systemDark = useMediaQuery("(prefers-color-scheme: dark)");
   const isWide = useMediaQuery("(min-width: 1024px)");
   const effectiveTheme: "light" | "dark" =
@@ -416,7 +418,7 @@ export default function App() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `team-builder-backup-${new Date().toISOString().slice(0, 10)}.json`;
+    a.download = `comp3tive-backup-${new Date().toISOString().slice(0, 10)}.json`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -772,13 +774,13 @@ export default function App() {
   };
 
   return (
-    <div className="app" data-layout={effectiveLayout}>
+    <div className="app" data-layout={effectiveLayout} data-rail={railPref}>
       <a className="skip-link" href="#main">Skip to content</a>
 
       <aside className="rail" aria-label="Primary">
         <div className="wordmark rail-brand">
-          <span className="sq">●</span>
-          <span>Team Builder</span>
+          <span className="sq" aria-hidden="true">●</span>
+          <span>comp3tive</span>
         </div>
         <nav className="rail-nav">
           {NAV_ITEMS.map((item) => (
@@ -788,55 +790,92 @@ export default function App() {
               className={`rail-link ${viewStack[0].mode === item.mode ? "nav-active" : ""}`}
               onClick={() => gotoHub(item.mode)}
               aria-current={viewStack[0].mode === item.mode ? "page" : undefined}
+              title={railPref === "collapsed" ? item.label : undefined}
             >
               <span className="nav-icon" aria-hidden="true">{item.icon}</span>
-              <span>{item.label}</span>
+              <span className="rail-link-label">{item.label}</span>
             </button>
           ))}
         </nav>
+        <button
+          type="button"
+          className="rail-toggle"
+          onClick={() => setRailPref(railPref === "collapsed" ? "expanded" : "collapsed")}
+          aria-expanded={railPref === "expanded"}
+          aria-label={railPref === "collapsed" ? "Show menu labels" : "Hide menu labels"}
+          title={railPref === "collapsed" ? "Show menu labels" : "Hide menu labels"}
+        >
+          <span className="nav-icon" aria-hidden="true">{railPref === "collapsed" ? "»" : "«"}</span>
+          <span className="rail-link-label">Hide labels</span>
+        </button>
       </aside>
 
       <div className="shell">
       <header className="topbar-wrap topbar">
         <div className="wordmark">
           <span className="sq">●</span>
-          <span>Team Builder</span>
+          <span>comp3tive</span>
         </div>
-        <div className="squad-switcher">
-          <span className="kicker">Community</span>
-          <div className="squad-dropdown">
-            <button
-              type="button"
-              className="squad-select"
-              onClick={() => setShowCommunityMenu((s) => !s)}
-              aria-haspopup="listbox"
-              aria-expanded={showCommunityMenu}
-              aria-label="Active community"
-            >
-              <span className="squad-select-value">{activeCommunity?.name ?? "— No community —"}</span>
-              <span className="squad-select-caret" aria-hidden="true">▾</span>
-            </button>
-            {showCommunityMenu && (
-              <>
-                <div className="squad-menu-backdrop" onClick={() => setShowCommunityMenu(false)} />
-                <ul className="squad-menu" role="listbox" aria-label="Communities">
-                  {communities.communities.map((c) => (
-                    <li key={c.id}>
-                      <button
-                        type="button"
-                        className={`squad-menu-item ${activeCommunity?.id === c.id ? "active" : ""}`}
-                        onClick={() => { setActiveCommunity(c.id); setShowCommunityMenu(false); }}
-                        role="option"
-                        aria-selected={activeCommunity?.id === c.id}
-                      >
-                        <span className="squad-menu-dot" aria-hidden="true" />
-                        {c.name}
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              </>
-            )}
+        <div className="topbar-tools">
+          <div className="squad-switcher">
+            <span className="kicker">Community</span>
+            <div className="squad-dropdown">
+              <button
+                type="button"
+                className="squad-select"
+                onClick={() => setShowCommunityMenu((s) => !s)}
+                aria-haspopup="listbox"
+                aria-expanded={showCommunityMenu}
+                aria-label="Active community"
+              >
+                <span className="squad-select-value">{activeCommunity?.name ?? "— No community —"}</span>
+                <span className="squad-select-caret" aria-hidden="true">▾</span>
+              </button>
+              {showCommunityMenu && (
+                <>
+                  <div className="squad-menu-backdrop" onClick={() => setShowCommunityMenu(false)} />
+                  <div className="squad-menu">
+                    <div className="squad-menu-heading">Community</div>
+                    <ul className="squad-menu-list" role="listbox" aria-label="Communities">
+                      {communities.communities.map((c) => {
+                        const isActive = activeCommunity?.id === c.id;
+                        return (
+                          <li key={c.id}>
+                            <button
+                              type="button"
+                              className="squad-menu-item"
+                              onClick={() => { setActiveCommunity(c.id); setShowCommunityMenu(false); }}
+                              role="option"
+                              aria-selected={isActive}
+                            >
+                              <span className="squad-menu-name">{c.name}</span>
+                              {isActive && <span className="squad-menu-check" aria-hidden="true">✓</span>}
+                            </button>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                    {activeCommunity && communities.communities.length > 1 && (
+                      <div className="squad-menu-footer">
+                        <button
+                          type="button"
+                          className="squad-menu-danger"
+                          onClick={() => {
+                            const warning = communityDeleteWarning(activeCommunity.id);
+                            setShowCommunityMenu(false);
+                            if (window.confirm(`Delete "${activeCommunity.name}"?${warning}`)) {
+                              void deleteCommunity(activeCommunity.id);
+                            }
+                          }}
+                        >
+                          Delete {activeCommunity.name}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
           </div>
           <button
             type="button"
@@ -847,23 +886,6 @@ export default function App() {
           >
             ✚
           </button>
-          {activeCommunity && (
-            <button
-              type="button"
-              className="icon-btn icon-btn-danger"
-              aria-label={`Delete ${activeCommunity.name}`}
-              title={`Delete ${activeCommunity.name}`}
-              onClick={() => {
-                const warning = communityDeleteWarning(activeCommunity.id);
-                if (window.confirm(`Delete "${activeCommunity.name}"?${warning}`)) {
-                  void deleteCommunity(activeCommunity.id);
-                }
-              }}
-            >
-              ✕
-            </button>
-          )}
-        </div>
         <div className="settings-trigger">
           <button
             type="button"
@@ -894,6 +916,7 @@ export default function App() {
               </div>
             </div>
           )}
+        </div>
         </div>
       </header>
 
@@ -954,7 +977,7 @@ export default function App() {
         <Screen>
           <PageHeader
             kicker="Match sheet"
-            title="Team Builder"
+            title="comp3tive"
             lede={
               activeCommunity && (
                 <>

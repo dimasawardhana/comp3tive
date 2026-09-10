@@ -1,4 +1,4 @@
-# Team Builder v1 — Fair Split
+# comp3tive v1 — Fair Split
 
 ## Problem Statement
 

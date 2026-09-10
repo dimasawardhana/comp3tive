@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Redesign Team Builder's theme from "Sideline" (paper/ink/cobalt/whistle-red) to "Paper & Pencil" — maximum paper warmth, single deep-amber accent, Outfit display font, minimal surfaces, no noise texture.
+**Goal:** Redesign comp3tive's theme from "Sideline" (paper/ink/cobalt/whistle-red) to "Paper & Pencil" — maximum paper warmth, single deep-amber accent, Outfit display font, minimal surfaces, no noise texture.
 
 **Architecture:** Update the design tokens in three layers: `DESIGN.md` (source of truth), `index.html` (font imports), `src/index.css` (CSS variables). Then update any hardcoded color references throughout the CSS to match the new palette. Fonts swap from Chakra Petch → Outfit (display) while keeping Familjen Grotesk for body.
 
