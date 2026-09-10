@@ -108,7 +108,7 @@ function RecordMatchModal({
         <button type="button" className="modal-close" aria-label="Close" onClick={onClose}>
           &times;
         </button>
-        <h1 style={{ fontFamily: "Chakra Petch", fontSize: 20, marginBottom: 4 }}>
+        <h1 style={{ fontFamily: "Outfit", fontSize: 20, marginBottom: 4 }}>
           {match.winnerTeamId ? "Edit result" : "Record result"}
         </h1>
         <p className="lede" style={{ fontSize: 13, color: "var(--text-2)", marginBottom: 14 }}>
