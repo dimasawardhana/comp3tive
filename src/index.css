@@ -755,6 +755,17 @@ body {
 .shell :is(button, a, [tabindex]):focus-visible {
   scroll-margin-bottom: 96px;
 }
+/* The shared masthead. It is one flex child of .screen, so it owns its own
+   internal rhythm instead of inheriting the screen's 22px gap. */
+.page-header {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.page-header h1 {
+  margin: 0;
+}
+
 h1 {
   font-family: "Outfit", sans-serif;
   font-weight: 600;
@@ -1482,6 +1493,9 @@ h1 {
   gap: 8px;
 }
 .chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
   font-family: "Familjen Grotesk", sans-serif;
   font-size: 14px;
   font-weight: 500;
