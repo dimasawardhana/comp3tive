@@ -22,7 +22,7 @@ test("inspect3: split screen in tournament mode", async ({ page }) => {
   // to simulate being in the split screen after tournament split
   await page.evaluate(async () => {
     // Get the current tournament
-    const dbReq = indexedDB.open("team-builder");
+    const dbReq = indexedDB.open("comp3tive");
     await new Promise<void>((resolve) => {
       dbReq.onsuccess = () => {
         const db = dbReq.result;

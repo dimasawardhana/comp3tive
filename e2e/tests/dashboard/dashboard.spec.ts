@@ -6,7 +6,7 @@
  * happens in addInitScript so it lands before app code reads the stores.
  *
  * DB shape notes the seeds rely on:
- * - All stores live in one database ("team-builder"), one object store per
+ * - All stores live in one database ("comp3tive"), one object store per
  *   aggregate, keyed by id, ordered by key within the store. Object-store keys
  *   are written in the same order the app expects its lists: communities by
  *   creation (first-created = first item), players/sessions/squads/tournaments
@@ -79,7 +79,7 @@ function seedScript(world: SeedWorld): string {
   };
   return `(() => {
     const STORES = ["communities", "players", "sessions", "tournaments", "saved-squads", "disciplines"];
-    const request = indexedDB.open("team-builder", 6);
+    const request = indexedDB.open("comp3tive", 6);
     request.onupgradeneeded = () => {
       const db = request.result;
       for (const name of STORES) {
