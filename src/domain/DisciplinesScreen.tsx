@@ -33,6 +33,15 @@ export function DisciplinesScreen({ disciplines, loading, onSave, onDelete, onBa
                 className="row row-clickable"
                 style={{ ["--stripe" as string]: stripeVar }}
                 onClick={() => setEditing(d)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    setEditing(d);
+                  }
+                }}
+                role="button"
+                tabIndex={0}
+                aria-label={`Edit ${d.name}`}
               >
                 <div className="who">
                   <div className="name">

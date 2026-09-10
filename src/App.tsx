@@ -938,7 +938,9 @@ export default function App() {
                   {disciplines.map((d) => (
                     <button
                       key={d.id}
-                      className={`chip ${filterIds.includes(d.id) ? "active" : ""}`}
+                      type="button"
+                      className="chip"
+                      aria-pressed={filterIds.includes(d.id)}
                       onClick={() => filtersByDiscipline(d.id)}
                     >
                       {d.shortName}
@@ -1022,6 +1024,15 @@ export default function App() {
                         className="row row-clickable"
                         style={{ "--stripe": bibVar } as React.CSSProperties}
                         onClick={() => setEditingPlayer(player)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            setEditingPlayer(player);
+                          }
+                        }}
+                        role="button"
+                        tabIndex={0}
+                        aria-label={`Edit ${player.name}`}
                       >
                         <span className="lineup-no">{String(i + 1).padStart(2, "0")}</span>
                         <div className="who">

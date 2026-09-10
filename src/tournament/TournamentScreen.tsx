@@ -133,7 +133,8 @@ function RecordMatchModal({
               <div className="record-game-picks">
                 <button
                   type="button"
-                  className={`chip${g.winner === "A" ? " on" : ""}`}
+                  className="chip"
+                  aria-pressed={g.winner === "A"}
                   disabled={disabled}
                   onClick={() =>
                     setDraft((prev) => prev.map((x, j) => (j === i ? { ...x, winner: x.winner === "A" ? null : "A" } : x)))
@@ -143,7 +144,8 @@ function RecordMatchModal({
                 </button>
                 <button
                   type="button"
-                  className={`chip${g.winner === "B" ? " on" : ""}`}
+                  className="chip"
+                  aria-pressed={g.winner === "B"}
                   disabled={disabled}
                   onClick={() =>
                     setDraft((prev) => prev.map((x, j) => (j === i ? { ...x, winner: x.winner === "B" ? null : "B" } : x)))
