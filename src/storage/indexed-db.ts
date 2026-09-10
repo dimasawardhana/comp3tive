@@ -3,7 +3,7 @@ import { SEED_DISCIPLINES } from "../domain/seed";
 import type { CommunityStore, DisciplineStore, RosterStore, SessionStore, TournamentStore } from "./types";
 
 const DEFAULT_DB = "team-builder";
-const DB_VERSION = 5;
+const DB_VERSION = 6;
 const COMMUNITY_STORE = "communities";
 const PLAYER_STORE = "players";
 const SESSION_STORE = "sessions";

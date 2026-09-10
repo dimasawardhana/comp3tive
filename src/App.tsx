@@ -387,12 +387,7 @@ export default function App() {
 
   const createCommunity = async () => {
     if (!communityName.trim()) return;
-    const community: Community = {
-      id: crypto.randomUUID(),
-      name: communityName.trim(),
-      createdAt: Date.now(),
-    };
-    await communityStore.saveCommunity(community);
+    await communities.create(communityName.trim());
     setCommunityName("");
     setShowAddCommunity(false);
   };
