@@ -37,6 +37,8 @@ import { useSessions } from "./session/useSessions";
 import { useSavedSquads } from "./session/useSavedSquads";
 import { SquadsScreen } from "./session/SquadsScreen";
 import { DashboardScreen } from "./DashboardScreen";
+import { PageHeader } from "./ui/PageHeader";
+import { Screen } from "./ui/Screen";
 import { capabilityFor, teamName } from "./session/flow";
 import { useTournaments } from "./tournament/useTournaments";
 import { GamesScreen } from "./tournament/GamesScreen";
@@ -53,6 +55,17 @@ const tournamentStore = createIndexedDbTournamentStore();
 const squadStore = createIndexedDbSavedSquadStore();
 
 type SplitSource = "ad-hoc" | "tournament" | "session" | "squad";
+
+type HubMode = "dashboard" | "roster" | "games" | "history" | "squads";
+
+/** The five hub destinations. Rendered twice: rail (desktop) and bottom nav (handheld). */
+const NAV_ITEMS = [
+  { mode: "dashboard", label: "Home", icon: "⌂" },
+  { mode: "roster", label: "Roster", icon: "◉" },
+  { mode: "games", label: "Games", icon: "▣" },
+  { mode: "history", label: "History", icon: "≡" },
+  { mode: "squads", label: "Squads", icon: "◇" },
+] as const satisfies ReadonlyArray<{ mode: HubMode; label: string; icon: string }>;
 
 type View =
   | { mode: "roster" }
@@ -121,11 +134,14 @@ export default function App() {
   const roster = useRoster(rosterStore);
   const sessions = useSessions(sessionStore);
   const catalog = useDisciplines(disciplineStore);
-  const communities = useCommunities(communityStore, rosterStore, sessionStore, squadStore);
+  const communities = useCommunities(communityStore, rosterStore, sessionStore, squadStore, tournamentStore);
   const tournaments = useTournaments(tournamentStore);
   const savedSquads = useSavedSquads(squadStore);
   const [viewStack, setViewStack] = useState<View[]>([{ mode: "dashboard" }]);
   const view = viewStack[viewStack.length - 1];
+  /** First load failure from any store. These were previously swallowed, which
+   *  left a failed read looking identical to an empty app. */
+  const loadError = communities.error ?? roster.error ?? sessions.error ?? catalog.error ?? tournaments.error ?? savedSquads.error;
 
   const [setup, setSetup] = useState<MatchSetup | null>(null);
   const [tournamentPrefill, setTournamentPrefill] = useState<{ disciplineId: Id; teamCount: number } | null>(null);
@@ -133,7 +149,7 @@ export default function App() {
 
   const pushView = (v: View) => setViewStack((s) => [...s, v]);
   const goBack = () => setViewStack((s) => (s.length > 1 ? s.slice(0, -1) : s));
-  const gotoHub = (hub: "dashboard" | "roster" | "games" | "history" | "squads") => {
+  const gotoHub = (hub: HubMode) => {
     setViewStack([{ mode: hub }]);
     setSetup(null);
   };
@@ -156,8 +172,10 @@ export default function App() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [themePref, setThemePref] = useStoredPref("tb-theme", "auto");
   const [layoutPref, setLayoutPref] = useStoredPref("tb-layout", "auto");
+  /** Desktop rail shows labels, or collapses to icons only. */
+  const [railPref, setRailPref] = useStoredPref("tb-rail", "expanded");
   const systemDark = useMediaQuery("(prefers-color-scheme: dark)");
-  const isWide = useMediaQuery("(min-width: 768px)");
+  const isWide = useMediaQuery("(min-width: 1024px)");
   const effectiveTheme: "light" | "dark" =
     themePref === "auto" ? (systemDark ? "dark" : "light") : (themePref as "light" | "dark");
   const effectiveLayout: "mobile" | "desktop" =
@@ -400,7 +418,7 @@ export default function App() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `team-builder-backup-${new Date().toISOString().slice(0, 10)}.json`;
+    a.download = `comp3tive-backup-${new Date().toISOString().slice(0, 10)}.json`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -596,11 +614,40 @@ export default function App() {
   };
 
   const deleteCommunity = async (id: Id) => {
-    await communityStore.deleteCommunity(id);
+    if (communities.communities.length <= 1) {
+      notify("You need at least one community.", "error");
+      return;
+    }
+    const counts = await communities.remove(id);
+    const parts = [
+      counts.players && `${counts.players} player${counts.players === 1 ? "" : "s"}`,
+      counts.sessions && `${counts.sessions} session${counts.sessions === 1 ? "" : "s"}`,
+      counts.squads && `${counts.squads} saved squad${counts.squads === 1 ? "" : "s"}`,
+      counts.tournaments && `${counts.tournaments} tournament${counts.tournaments === 1 ? "" : "s"}`,
+    ].filter(Boolean);
+    notify(
+      parts.length > 0 ? `Community deleted, along with ${parts.join(", ")}.` : "Community deleted.",
+      "success",
+    );
   };
 
-  const setActiveCommunity = (id: Id | null) => {
-    if (id !== null) communities.setActiveId(id);
+  /** A truthful description of what deleting this community will take with it. */
+  const communityDeleteWarning = (communityId: Id): string => {
+    const playerCount = roster.players.filter((p) => p.communityId === communityId).length;
+    const sessionCount = sessions.sessions.filter((s) => s.communityId === communityId).length;
+    const squadCount = savedSquads.squads.filter((q) => q.communityId === communityId).length;
+    const tournamentCount = tournaments.tournaments.filter((t) => t.communityId === communityId).length;
+    const parts = [
+      playerCount && `${playerCount} player${playerCount === 1 ? "" : "s"}`,
+      sessionCount && `${sessionCount} session${sessionCount === 1 ? "" : "s"}`,
+      squadCount && `${squadCount} saved squad${squadCount === 1 ? "" : "s"}`,
+      tournamentCount && `${tournamentCount} tournament${tournamentCount === 1 ? "" : "s"}`,
+    ].filter(Boolean);
+    return parts.length > 0 ? ` This also permanently deletes ${parts.join(", ")}.` : "";
+  };
+
+  const setActiveCommunity = (id: Id) => {
+    communities.setActiveId(id);
   };
 
   const randomPlayers = () => {
@@ -727,58 +774,108 @@ export default function App() {
   };
 
   return (
-    <div className="app" data-layout={effectiveLayout}>
+    <div className="app" data-layout={effectiveLayout} data-rail={railPref}>
+      <a className="skip-link" href="#main">Skip to content</a>
+
+      <aside className="rail" aria-label="Primary">
+        <div className="wordmark rail-brand">
+          <span className="sq" aria-hidden="true">●</span>
+          <span>comp3tive</span>
+        </div>
+        <nav className="rail-nav">
+          {NAV_ITEMS.map((item) => (
+            <button
+              key={item.mode}
+              type="button"
+              className={`rail-link ${viewStack[0].mode === item.mode ? "nav-active" : ""}`}
+              onClick={() => gotoHub(item.mode)}
+              aria-current={viewStack[0].mode === item.mode ? "page" : undefined}
+              title={railPref === "collapsed" ? item.label : undefined}
+            >
+              <span className="nav-icon" aria-hidden="true">{item.icon}</span>
+              <span className="rail-link-label">{item.label}</span>
+            </button>
+          ))}
+        </nav>
+        <button
+          type="button"
+          className="rail-toggle"
+          onClick={() => setRailPref(railPref === "collapsed" ? "expanded" : "collapsed")}
+          aria-expanded={railPref === "expanded"}
+          aria-label={railPref === "collapsed" ? "Show menu labels" : "Hide menu labels"}
+          title={railPref === "collapsed" ? "Show menu labels" : "Hide menu labels"}
+        >
+          <span className="nav-icon" aria-hidden="true">{railPref === "collapsed" ? "»" : "«"}</span>
+          <span className="rail-link-label">Hide labels</span>
+        </button>
+      </aside>
+
+      <div className="shell">
       <header className="topbar-wrap topbar">
         <div className="wordmark">
           <span className="sq">●</span>
-          <span>Team Builder</span>
+          <span>comp3tive</span>
         </div>
-        <div className="squad-switcher">
-          <span className="kicker">Community</span>
-          <div className="squad-dropdown">
-            <button
-              type="button"
-              className="squad-select"
-              onClick={() => setShowCommunityMenu((s) => !s)}
-              aria-haspopup="listbox"
-              aria-expanded={showCommunityMenu}
-              aria-label="Active community"
-            >
-              <span className="squad-select-value">{activeCommunity?.name ?? "— No community —"}</span>
-              <span className="squad-select-caret" aria-hidden="true">▾</span>
-            </button>
-            {showCommunityMenu && (
-              <>
-                <div className="squad-menu-backdrop" onClick={() => setShowCommunityMenu(false)} />
-                <ul className="squad-menu" role="listbox" aria-label="Communities">
-                  <li>
-                    <button
-                      type="button"
-                      className={`squad-menu-item ${!activeCommunity ? "active" : ""}`}
-                      onClick={() => { setActiveCommunity(null); setShowCommunityMenu(false); }}
-                      role="option"
-                      aria-selected={!activeCommunity}
-                    >
-                      — No community —
-                    </button>
-                  </li>
-                  {communities.communities.map((c) => (
-                    <li key={c.id}>
-                      <button
-                        type="button"
-                        className={`squad-menu-item ${activeCommunity?.id === c.id ? "active" : ""}`}
-                        onClick={() => { setActiveCommunity(c.id); setShowCommunityMenu(false); }}
-                        role="option"
-                        aria-selected={activeCommunity?.id === c.id}
-                      >
-                        <span className="squad-menu-dot" aria-hidden="true" />
-                        {c.name}
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              </>
-            )}
+        <div className="topbar-tools">
+          <div className="squad-switcher">
+            <span className="kicker">Community</span>
+            <div className="squad-dropdown">
+              <button
+                type="button"
+                className="squad-select"
+                onClick={() => setShowCommunityMenu((s) => !s)}
+                aria-haspopup="listbox"
+                aria-expanded={showCommunityMenu}
+                aria-label="Active community"
+              >
+                <span className="squad-select-value">{activeCommunity?.name ?? "— No community —"}</span>
+                <span className="squad-select-caret" aria-hidden="true">▾</span>
+              </button>
+              {showCommunityMenu && (
+                <>
+                  <div className="squad-menu-backdrop" onClick={() => setShowCommunityMenu(false)} />
+                  <div className="squad-menu">
+                    <div className="squad-menu-heading">Community</div>
+                    <ul className="squad-menu-list" role="listbox" aria-label="Communities">
+                      {communities.communities.map((c) => {
+                        const isActive = activeCommunity?.id === c.id;
+                        return (
+                          <li key={c.id}>
+                            <button
+                              type="button"
+                              className="squad-menu-item"
+                              onClick={() => { setActiveCommunity(c.id); setShowCommunityMenu(false); }}
+                              role="option"
+                              aria-selected={isActive}
+                            >
+                              <span className="squad-menu-name">{c.name}</span>
+                              {isActive && <span className="squad-menu-check" aria-hidden="true">✓</span>}
+                            </button>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                    {activeCommunity && communities.communities.length > 1 && (
+                      <div className="squad-menu-footer">
+                        <button
+                          type="button"
+                          className="squad-menu-danger"
+                          onClick={() => {
+                            const warning = communityDeleteWarning(activeCommunity.id);
+                            setShowCommunityMenu(false);
+                            if (window.confirm(`Delete "${activeCommunity.name}"?${warning}`)) {
+                              void deleteCommunity(activeCommunity.id);
+                            }
+                          }}
+                        >
+                          Delete {activeCommunity.name}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
           </div>
           <button
             type="button"
@@ -789,22 +886,6 @@ export default function App() {
           >
             ✚
           </button>
-          {activeCommunity && (
-            <button
-              type="button"
-              className="icon-btn icon-btn-danger"
-              aria-label={`Delete ${activeCommunity.name}`}
-              title={`Delete ${activeCommunity.name}`}
-              onClick={() => {
-                if (window.confirm(`Delete "${activeCommunity.name}"? This removes the community, all its players, and history.`)) {
-                  void deleteCommunity(activeCommunity.id);
-                }
-              }}
-            >
-              ✕
-            </button>
-          )}
-        </div>
         <div className="settings-trigger">
           <button
             type="button"
@@ -836,8 +917,15 @@ export default function App() {
             </div>
           )}
         </div>
+        </div>
       </header>
 
+      <main id="main" className="shell-main">
+      {loadError && (
+        <div className="load-error" role="alert">
+          <strong>Couldn&apos;t load your saved data.</strong> {loadError} Reload the page to try again.
+        </div>
+      )}
       {showAddCommunity && (
         <div className="add-community">
           <div className="form-label">New community</div>
@@ -858,11 +946,12 @@ export default function App() {
           </div>
         </div>
       )}
-      {communities.communities.length === 0 && !showAddCommunity && (
+      {communities.loading && <p className="status">Loading&hellip;</p>}
+      {!communities.loading && communities.communities.length === 0 && !showAddCommunity && (
         <div className="empty">
           <div className="kicker">First whistle</div>
           <div className="big">No communities yet</div>
-          <p>Hit ✚ in the topbar to create your first community.</p>
+          <p>Use ✚ in the topbar to create your first community.</p>
         </div>
       )}
 
@@ -885,14 +974,19 @@ export default function App() {
         />
       )}
       {view.mode === "roster" && (
-        <div className="screen">
-          <div className="kicker">Match Sheet · 01</div>
-          <h1>Team Builder</h1>
-          {activeCommunity && (
-            <div className="lede">
-              <strong>{activeCommunity.name}</strong> · {communityPlayers.length} player{communityPlayers.length === 1 ? "" : "s"} on the roster
-            </div>
-          )}
+        <Screen>
+          <PageHeader
+            kicker="Match sheet"
+            title="comp3tive"
+            lede={
+              activeCommunity && (
+                <>
+                  <strong>{activeCommunity.name}</strong> · {communityPlayers.length} player
+                  {communityPlayers.length === 1 ? "" : "s"} on the roster
+                </>
+              )
+            }
+          />
           
           {activeCommunity && (
             <>
@@ -902,7 +996,9 @@ export default function App() {
                   {disciplines.map((d) => (
                     <button
                       key={d.id}
-                      className={`chip ${filterIds.includes(d.id) ? "active" : ""}`}
+                      type="button"
+                      className="chip"
+                      aria-pressed={filterIds.includes(d.id)}
                       onClick={() => filtersByDiscipline(d.id)}
                     >
                       {d.shortName}
@@ -986,6 +1082,15 @@ export default function App() {
                         className="row row-clickable"
                         style={{ "--stripe": bibVar } as React.CSSProperties}
                         onClick={() => setEditingPlayer(player)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            setEditingPlayer(player);
+                          }
+                        }}
+                        role="button"
+                        tabIndex={0}
+                        aria-label={`Edit ${player.name}`}
                       >
                         <span className="lineup-no">{String(i + 1).padStart(2, "0")}</span>
                         <div className="who">
@@ -1015,9 +1120,10 @@ export default function App() {
 
               <div className="cta-bar">
                 <div className="cta-label">
-                  Ready to play? <strong>Split the squad</strong> into two teams for a quick match.
+                  Ready to play? <strong>Split the squad</strong> and check the balance.
                 </div>
                 <button
+                  type="button"
                   className="btn btn-primary"
                   onClick={randomPlayers}
                   disabled={!activeCommunity || communityPlayers.length === 0}
@@ -1027,10 +1133,10 @@ export default function App() {
               </div>
             </>
           )}
-        </div>
+        </Screen>
       )}
       {view.mode === "games" && (
-        <div className="screen">
+        <Screen>
           <GamesScreen
             tournaments={communityTournaments}
             disciplines={disciplines}
@@ -1042,10 +1148,10 @@ export default function App() {
             onPrefillConsumed={() => setTournamentPrefill(null)}
             activeCommunity={activeCommunity}
           />
-        </div>
+        </Screen>
       )}
       {view.mode === "tournament" && viewTournament && (
-        <div className="screen">
+        <Screen>
           <TournamentScreen
             tournament={viewTournament}
             disciplines={disciplines}
@@ -1065,7 +1171,7 @@ export default function App() {
             onReroll={() => startMatch("tournament", viewTournament.id)}
             totalPlayers={communityPlayers.length}
           />
-        </div>
+        </Screen>
       )}
 
       {view.mode === "split" && view.session && (
@@ -1145,6 +1251,8 @@ export default function App() {
           onBack={() => goBack()}
         />
       )}
+      </main>
+      </div>
 
       <div className="toast-container" aria-live="polite">
         {toasts.map((t) => (
@@ -1154,31 +1262,18 @@ export default function App() {
         ))}
       </div>
       <nav className="bottom-nav" aria-label="Primary">
-        <button className={`nav-link ${viewStack[0].mode === "roster" ? "nav-active" : ""}`} onClick={() => gotoHub("roster")} aria-label="Roster">
-          <span className="nav-icon" aria-hidden="true">◉</span>
-          <span>Roster</span>
-        </button>
-        <button className={`nav-link ${viewStack[0].mode === "games" ? "nav-active" : ""}`} onClick={() => gotoHub("games")} aria-label="Games">
-          <span className="nav-icon" aria-hidden="true">▣</span>
-          <span>Games</span>
-        </button>
-        <button
-          className={`nav-link nav-link--home ${viewStack[0].mode === "dashboard" ? "nav-active" : ""}`}
-          onClick={() => gotoHub("dashboard")}
-          aria-label="Home"
-          aria-current={viewStack[0].mode === "dashboard" ? "page" : undefined}
-        >
-          <span className="nav-icon" aria-hidden="true">⌂</span>
-          <span>Home</span>
-        </button>
-        <button className={`nav-link ${viewStack[0].mode === "history" ? "nav-active" : ""}`} onClick={() => gotoHub("history")} aria-label="History">
-          <span className="nav-icon" aria-hidden="true">≡</span>
-          <span>History</span>
-        </button>
-        <button className={`nav-link ${viewStack[0].mode === "squads" ? "nav-active" : ""}`} onClick={() => gotoHub("squads")} aria-label="Saved squads">
-          <span className="nav-icon" aria-hidden="true">◇</span>
-          <span>Squads</span>
-        </button>
+        {NAV_ITEMS.map((item) => (
+          <button
+            key={item.mode}
+            type="button"
+            className={`nav-link ${viewStack[0].mode === item.mode ? "nav-active" : ""}`}
+            onClick={() => gotoHub(item.mode)}
+            aria-current={viewStack[0].mode === item.mode ? "page" : undefined}
+          >
+            <span className="nav-icon" aria-hidden="true">{item.icon}</span>
+            <span>{item.label}</span>
+          </button>
+        ))}
       </nav>
     </div>
   );

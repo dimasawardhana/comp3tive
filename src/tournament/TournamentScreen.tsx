@@ -2,6 +2,7 @@ import { useState } from "react";
 import type { Discipline, GameResult, Id, Player, SavedSquad, Tournament, TournamentMatch, TournamentTeam } from "../domain/types";
 import { champion, standings } from "./bracket";
 import { teamName } from "../session/flow";
+import { PageHeader } from "../ui/PageHeader";
 
 interface Props {
   tournament: Tournament;
@@ -108,7 +109,7 @@ function RecordMatchModal({
         <button type="button" className="modal-close" aria-label="Close" onClick={onClose}>
           &times;
         </button>
-        <h1 style={{ fontFamily: "Chakra Petch", fontSize: 20, marginBottom: 4 }}>
+        <h1 style={{ fontFamily: "Outfit", fontSize: 20, marginBottom: 4 }}>
           {match.winnerTeamId ? "Edit result" : "Record result"}
         </h1>
         <p className="lede" style={{ fontSize: 13, color: "var(--text-2)", marginBottom: 14 }}>
@@ -133,7 +134,8 @@ function RecordMatchModal({
               <div className="record-game-picks">
                 <button
                   type="button"
-                  className={`chip${g.winner === "A" ? " on" : ""}`}
+                  className="chip"
+                  aria-pressed={g.winner === "A"}
                   disabled={disabled}
                   onClick={() =>
                     setDraft((prev) => prev.map((x, j) => (j === i ? { ...x, winner: x.winner === "A" ? null : "A" } : x)))
@@ -143,7 +145,8 @@ function RecordMatchModal({
                 </button>
                 <button
                   type="button"
-                  className={`chip${g.winner === "B" ? " on" : ""}`}
+                  className="chip"
+                  aria-pressed={g.winner === "B"}
                   disabled={disabled}
                   onClick={() =>
                     setDraft((prev) => prev.map((x, j) => (j === i ? { ...x, winner: x.winner === "B" ? null : "B" } : x)))
@@ -256,17 +259,21 @@ export function TournamentScreen({ tournament, disciplines, matchingSquads, rost
 
   return (
     <>
-      <div className="breadcrumb">
-        <a href="#" onClick={(e) => { e.preventDefault(); onBack(); }}>Games</a>
-        <span className="sep">/</span>
-        <span>{tournament.name}</span>
-      </div>
-      <div className="tournament-header">
-        <h1>{tournament.name}</h1>
-        <div className="tournament-subtitle">
-          {discipline?.shortName ?? "Unknown"} · {FORMAT_LABEL[tournament.format]} · BO{tournament.seriesLength}
-        </div>
-      </div>
+      <PageHeader
+        crumbs={
+          <div className="breadcrumb">
+            <a href="#" onClick={(e) => { e.preventDefault(); onBack(); }}>Games</a>
+            <span className="sep">/</span>
+            <span>{tournament.name}</span>
+          </div>
+        }
+        title={tournament.name}
+        lede={
+          <div className="tournament-subtitle">
+            {discipline?.shortName ?? "Unknown"} · {FORMAT_LABEL[tournament.format]} · BO{tournament.seriesLength}
+          </div>
+        }
+      />
       <div className="tournament-meta-strip" role="list" aria-label="Tournament details">
         <div className="tms-item" role="listitem">
           <span className="tms-label">Format</span>

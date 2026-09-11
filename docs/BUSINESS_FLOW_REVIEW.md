@@ -1,4 +1,4 @@
-# Team Builder · Business Flow Review
+# comp3tive · Business Flow Review
 
 **Date:** 2026-09-02
 **Test subject:** `sample-data/mpl-id-roster.json` (25 MPL-ID pro players)
@@ -8,7 +8,7 @@
 
 ## 1. What the app does
 
-Team Builder is a local-first, IndexedDB-backed tool for **organising a community of players, picking a squad for a tournament, and splitting the squad into fair teams**.
+comp3tive is a local-first, IndexedDB-backed tool for **organising a community of players, picking a squad for a tournament, and splitting the squad into fair teams**.
 
 There is no server, no auth, no network roundtrip. Everything lives in the browser. A user can back up and restore their data as a JSON file.
 

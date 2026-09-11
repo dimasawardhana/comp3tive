@@ -1,45 +1,47 @@
-/* Design system: "Sideline" (per DESIGN.md). Paper, ink, cobalt focus, whistle red for live action. */
+/* Design system: "Paper & Pencil" (per DESIGN.md). Warm paper, quiet ink, one amber accent for live action. */
 
 /* ---------- tokens: light (default) ---------- */
 :root {
-  --surface: #f2efe7; /* paper - warm cream, like a coach's clipboard */
+  --surface: #faf8f5; /* paper - warm white, like blank paper */
   --surface-2: #ffffff; /* elevated */
-  --hairline: #e3ddcf; /* slightly warm hairline */
-  --text: #14161a; /* ink */
-  --text-2: #5a6270; /* muted slate */
-  --accent: #2b6bff; /* cobalt - focus, links, info */
+  --hairline: #e7e3dc; /* slightly warm hairline */
+  --text: #1c1917; /* ink */
+  --text-2: #57534e; /* muted slate */
+  --accent: #c2410c; /* amber - focus, links, info */
   --accent-ink: #ffffff;
-  --whistle: #e63946; /* whistle red - the one "do this now" color */
+  --whistle: #c2410c; /* amber - the one "do this now" color */
   --whistle-ink: #ffffff;
   --bib-a: #ffc400;
   --bib-b: #ff4f9a;
   --bib-c: #4e8fdb;
   --bib-d: #6faf8e;
   --bib-e: #c9a227;
-  --ok: #6faf8e; /* balanced state = green, not cobalt */
-  --danger: #e63946;
-  --chip-on: #14161a; /* monochrome selection */
-  --chip-on-text: #f2efe7;
-  --panel: #14161a; /* ink panel (split screen backdrop) */
-  --panel-text: #f2efe7;
-  --panel-card: rgba(242, 239, 231, 0.06);
-  --track: rgba(242, 239, 231, 0.25);
-  --tick: rgba(242, 239, 231, 0.4);
-  --shadow: 0 1px 2px rgba(20, 22, 26, 0.06), 0 8px 24px rgba(20, 22, 26, 0.1);
-  --r-lg: 20px;
-  --r-md: 14px;
-  --r-sm: 10px;
-  --nav-h: calc(75px + env(safe-area-inset-bottom));
+  --ok: #6faf8e; /* balanced state = green, not amber */
+  --danger: #c2410c;
+  --chip-on: #1c1917; /* monochrome selection */
+  --chip-on-text: #faf8f5;
+  --panel: #1c1917; /* ink panel (split screen backdrop) */
+  --panel-text: #faf8f5;
+  --panel-card: rgba(250, 248, 245, 0.06);
+  --track: rgba(250, 248, 245, 0.25);
+  --tick: rgba(250, 248, 245, 0.4);
+  --shadow: 0 1px 2px rgba(28, 25, 23, 0.04), 0 4px 12px rgba(28, 25, 23, 0.08);
+  --r-lg: 16px;
+  --r-md: 12px;
+  --r-sm: 8px;
+  /* Height of the sticky tab bar. Sticky action bars stack directly above it,
+     so the two never fight over the same offset. */
+  --tabbar-h: calc(64px + env(safe-area-inset-bottom));
 }
 :root[data-theme="dark"] {
-  --surface: #14161a;
-  --surface-2: #1c1f26;
-  --hairline: #2a2e37;
-  --text: #f2efe7;
-  --text-2: #a9b1c0;
-  --accent: #6a9aff;
+  --surface: #1c1917;
+  --surface-2: #23201c;
+  --hairline: #332f2a;
+  --text: #faf8f5;
+  --text-2: #a8a29e;
+  --accent: #ea580c;
   --accent-ink: #10131a;
-  --whistle: #f25c66;
+  --whistle: #ea580c;
   --whistle-ink: #10131a;
   --bib-a: #ffc400;
   --bib-b: #ff4f9a;
@@ -47,34 +49,26 @@
   --bib-d: #6faf8e;
   --bib-e: #c9a227;
   --ok: #6faf8e;
-  --danger: #f25c66;
-  --chip-on: #f2efe7;
-  --chip-on-text: #14161a;
-  --panel: #1c1f26;
-  --panel-text: #f2efe7;
-  --panel-card: rgba(242, 239, 231, 0.08);
-  --track: rgba(242, 239, 231, 0.3);
-  --tick: rgba(242, 239, 231, 0.45);
-  --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.45);
-}
-/* warm noise on the page background — barely there */
-:root {
-  background-image: radial-gradient(rgba(20, 22, 26, 0.025) 1px, transparent 1px);
-  background-size: 4px 4px;
-}
-:root[data-theme="dark"] {
-  background-image: radial-gradient(rgba(242, 239, 231, 0.015) 1px, transparent 1px);
+  --danger: #ea580c;
+  --chip-on: #faf8f5;
+  --chip-on-text: #1c1917;
+  --panel: #23201c;
+  --panel-text: #faf8f5;
+  --panel-card: rgba(250, 248, 245, 0.08);
+  --track: rgba(250, 248, 245, 0.3);
+  --tick: rgba(250, 248, 245, 0.45);
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.2), 0 4px 12px rgba(0, 0, 0, 0.35);
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --surface: #14161a;
-    --surface-2: #1c1f26;
-    --hairline: #2a2e37;
-    --text: #f2efe7;
-    --text-2: #a9b1c0;
-    --accent: #6a9aff;
+    --surface: #1c1917;
+    --surface-2: #23201c;
+    --hairline: #332f2a;
+    --text: #faf8f5;
+    --text-2: #a8a29e;
+    --accent: #ea580c;
     --accent-ink: #10131a;
-    --whistle: #f25c66;
+    --whistle: #ea580c;
     --whistle-ink: #10131a;
     --bib-a: #ffc400;
     --bib-b: #ff4f9a;
@@ -82,16 +76,15 @@
     --bib-d: #6faf8e;
     --bib-e: #c9a227;
     --ok: #6faf8e;
-    --danger: #f25c66;
-    --chip-on: #f2efe7;
-    --chip-on-text: #14161a;
-    --panel: #1c1f26;
-    --panel-text: #f2efe7;
-    --panel-card: rgba(242, 239, 231, 0.08);
-    --track: rgba(242, 239, 231, 0.3);
-    --tick: rgba(242, 239, 231, 0.45);
-    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.45);
-    background-image: radial-gradient(rgba(242, 239, 231, 0.015) 1px, transparent 1px);
+    --danger: #ea580c;
+    --chip-on: #faf8f5;
+    --chip-on-text: #1c1917;
+    --panel: #23201c;
+    --panel-text: #faf8f5;
+    --panel-card: rgba(250, 248, 245, 0.08);
+    --track: rgba(250, 248, 245, 0.3);
+    --tick: rgba(250, 248, 245, 0.45);
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.2), 0 4px 12px rgba(0, 0, 0, 0.35);
   }
 }
 
@@ -102,9 +95,6 @@
 }
 html {
   -webkit-text-size-adjust: 100%;
-  /* The sticky action bar floats above the bottom nav; stop scroll-into-view
-     (and the last clickable row) short of it so content never hides under it. */
-  scroll-padding-bottom: calc(var(--nav-h, 75px) + 96px);
 }
 body {
   font-family: "Familjen Grotesk", system-ui, sans-serif;
@@ -114,13 +104,16 @@ body {
   min-height: 100vh;
   min-height: 100dvh;
 }
-@media (min-width: 720px) {
-  body {
-    background:
-      linear-gradient(var(--hairline), var(--hairline)) 0 0 / 100% 1px no-repeat,
-      linear-gradient(var(--hairline), var(--hairline)) 0 100% / 100% 1px no-repeat,
-      var(--surface);
-  }
+html {
+  -webkit-text-size-adjust: 100%;
+}
+body {
+  font-family: "Familjen Grotesk", system-ui, sans-serif;
+  background: var(--surface);
+  color: var(--text);
+  line-height: 1.5;
+  min-height: 100vh;
+  min-height: 100dvh;
 }
 #root {
   min-height: 100vh;
@@ -128,37 +121,188 @@ body {
   display: flex;
   justify-content: center;
 }
+
+/* Keyboard users land here first; it only appears once focused. */
+.skip-link {
+  position: absolute;
+  left: 8px;
+  top: -60px;
+  z-index: 200;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 10px 16px;
+  background: var(--text);
+  color: var(--surface);
+  border-radius: var(--r-sm);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: top 0.15s;
+}
+.skip-link:focus {
+  top: 8px;
+}
+
+/* Below 1024px: a single centred column, like a phone. */
 .app {
   width: 100%;
-  max-width: 480px;
+  max-width: 640px;
   min-height: 100vh;
   min-height: 100dvh;
   display: flex;
   flex-direction: column;
   background: var(--surface);
-  padding-bottom: var(--nav-h, 75px);
 }
-@media (min-width: 720px) {
-  .app {
-    border-inline: 1px solid var(--hairline);
-    box-shadow: var(--shadow);
-    max-width: 520px;
-  }
+.rail {
+  display: none;
 }
+.shell {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+/* Load failure. States the problem and the next step, and stays put until the
+   underlying read succeeds. */
+.load-error {
+  margin: 16px 20px 0;
+  padding: 12px 16px;
+  background: color-mix(in srgb, var(--danger) 10%, var(--surface));
+  border: 1.5px solid var(--danger);
+  border-left-width: 4px;
+  border-radius: var(--r-sm);
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.5;
+}
+.load-error strong {
+  font-weight: 700;
+}
+
 @media (min-width: 1024px) {
   body {
     background: color-mix(in srgb, var(--surface-2) 50%, var(--surface));
   }
+  /* Two columns: a fixed rail beside the content. The rail replaces the
+     bottom nav, so this is also where the tab bar disappears. */
   .app {
-    max-width: 1040px;
+    display: grid;
+    grid-template-columns: 248px minmax(0, 1fr);
+    max-width: 1200px;
     margin: 24px auto;
     min-height: calc(100vh - 48px);
     border-radius: var(--r-lg);
     border: 1.5px solid var(--hairline);
-    overflow: hidden;
+    box-shadow: var(--shadow);
+    align-items: start;
+  }
+  .rail {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 22px 16px;
+    border-right: 1.5px solid var(--hairline);
+    position: sticky;
+    top: 24px;
+    align-self: start;
+  }
+  .rail-brand {
+    padding: 0 8px 12px;
+    font-size: 19px;
+  }
+  .rail-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .rail-link {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    min-height: 44px;
+    padding: 10px 12px;
+    border: none;
+    border-radius: var(--r-sm);
+    background: transparent;
+    color: var(--text-2);
+    font-family: "Familjen Grotesk", sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    text-align: left;
+    cursor: pointer;
+    transition: background 0.12s, color 0.12s;
+  }
+  .rail-link .nav-icon {
+    font-size: 18px;
+    line-height: 1;
+    color: inherit;
+  }
+  .rail-link:hover {
+    background: var(--surface-2);
+    color: var(--text);
+  }
+  .rail-link.nav-active {
+    background: var(--surface-2);
+    color: var(--text);
+    box-shadow: inset 3px 0 0 var(--whistle);
+  }
+  .rail-link:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: -2px;
+  }
+  .rail-toggle {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    min-height: 44px;
+    margin-top: auto;
+    padding: 10px 12px;
+    border: none;
+    border-top: 1.5px solid var(--hairline);
+    border-radius: 0;
+    background: transparent;
+    color: var(--text-2);
+    font-family: "Familjen Grotesk", sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    text-align: left;
+    cursor: pointer;
+    transition: color 0.12s;
+  }
+  .rail-toggle:hover {
+    color: var(--text);
+  }
+  .rail-toggle:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: -2px;
+  }
+
+  /* Collapsed: icons only. The rail shrinks and every label is removed, so the
+     glyph becomes the sole affordance and needs its title/aria-label. */
+  .app[data-rail="collapsed"] {
+    grid-template-columns: 76px minmax(0, 1fr);
+  }
+  .app[data-rail="collapsed"] .rail {
+    padding-inline: 10px;
+  }
+  .app[data-rail="collapsed"] .rail-brand {
+    justify-content: center;
+    padding-inline: 0;
+  }
+  .app[data-rail="collapsed"] .rail-brand > span:last-child,
+  .app[data-rail="collapsed"] .rail-link-label {
+    display: none;
+  }
+  .app[data-rail="collapsed"] .rail-link,
+  .app[data-rail="collapsed"] .rail-toggle {
+    justify-content: center;
+    gap: 0;
+    padding-inline: 0;
   }
 }
-
 .settings-trigger {
   position: relative;
   display: flex;
@@ -191,7 +335,7 @@ body {
   gap: 6px;
 }
 .settings-label {
-  font-family: "Chakra Petch", sans-serif;
+  font-family: "Outfit", sans-serif;
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.14em;
@@ -242,11 +386,12 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 20px 20px 16px;
+  gap: 12px;
+  padding: 12px 20px;
   border-bottom: 1.5px solid var(--hairline);
 }
 .wordmark {
-  font-family: "Chakra Petch", sans-serif;
+  font-family: "Outfit", sans-serif;
   font-weight: 700;
   font-size: 21px;
   letter-spacing: 0.04em;
@@ -256,6 +401,7 @@ body {
   align-items: center;
   gap: 8px;
   line-height: 1;
+  flex-shrink: 0;
 }
 .wordmark .sq {
   color: var(--whistle);
@@ -278,13 +424,6 @@ body {
   padding-left: 10px;
   border-left: 1.5px solid var(--hairline);
 }
-.steplabel {
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--text-2);
-}
 .back {
   width: 34px;
   height: 34px;
@@ -303,22 +442,67 @@ body {
   align-items: center;
   gap: 12px;
 }
+/* The right side of the bar: community switcher and the settings control,
+   spaced by gap so no button ever overlaps its neighbour. */
+.topbar-tools {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
 .squad-switcher {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 6px 6px 6px 12px;
+  padding: 0 4px 0 14px;
   background: var(--surface-2);
   border: 1.5px solid var(--hairline);
   border-radius: var(--r-md);
+  flex: 0 1 auto;
+  max-width: 340px;
+  min-width: 0;
+}
+/* Every link in the shrink chain needs min-width:0, otherwise the select's
+   intrinsic width propagates up and pushes the trailing actions off-screen. */
+.squad-dropdown {
+  /* Positioned so .squad-menu anchors to the select. Without it the menu
+     resolves against the sticky topbar and lands over the icon buttons. */
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
   min-width: 0;
   flex: 1 1 auto;
-  max-width: 360px;
-  margin: 0 16px;
 }
 .squad-switcher .kicker {
   margin: 0;
   flex-shrink: 0;
+}
+@media (max-width: 560px) {
+  /* The select already shows the active community, so the label is redundant
+     on a phone and the width is better spent on the name. */
+  .squad-switcher .kicker {
+    display: none;
+  }
+  .squad-switcher {
+    margin: 0 10px;
+    padding-left: 8px;
+  }
+  .wordmark {
+    font-size: 17px;
+  }
+}
+@media (max-width: 460px) {
+  /* On a phone the toolbar has to fit a community switcher plus three icon
+     buttons. The brand yields: it is already the roster heading, and the rail
+     carries it on desktop. */
+  .topbar .wordmark {
+    display: none;
+  }
+  .squad-switcher {
+    margin-right: 4px;
+  }
 }
 .squad-switcher .kicker::before {
   content: "";
@@ -329,6 +513,7 @@ body {
   justify-content: space-between;
   gap: 8px;
   width: 100%;
+  min-height: 44px;
   border: none;
   background: transparent;
   appearance: none;
@@ -345,7 +530,7 @@ body {
 }
 .squad-select-value {
   flex: 1 1 auto;
-  min-width: 0;
+  min-width: 56px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -371,79 +556,106 @@ body {
 }
 .squad-menu {
   position: absolute;
-  top: calc(100% + 4px);
-  left: 0;
+  top: calc(100% + 6px);
   right: 0;
   z-index: 59;
-  list-style: none;
-  margin: 0;
-  padding: 4px;
+  min-width: 240px;
   background: var(--surface);
   border: 1.5px solid var(--hairline);
   border-radius: var(--r-md);
   box-shadow: var(--shadow);
-  max-height: 240px;
+  overflow: hidden;
+}
+.squad-menu-heading {
+  padding: 10px 14px 8px;
+  font-family: "Outfit", sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--text-2);
+  border-bottom: 1.5px solid var(--hairline);
+}
+.squad-menu-list {
+  list-style: none;
+  margin: 0;
+  padding: 6px;
+  max-height: 260px;
   overflow-y: auto;
-  min-width: 180px;
 }
 .squad-menu-item {
   display: flex;
   align-items: center;
-  gap: 8px;
+  justify-content: space-between;
+  gap: 12px;
   width: 100%;
-  padding: 8px 10px;
+  min-height: 44px;
+  padding: 10px 12px;
   border: none;
   background: transparent;
   font-family: "Familjen Grotesk", sans-serif;
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 500;
   color: var(--text);
   text-align: left;
   cursor: pointer;
   border-radius: var(--r-sm);
-  transition: background 0.1s, color 0.1s;
+  transition: background 0.1s;
+}
+.squad-menu-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .squad-menu-item:hover {
   background: var(--surface-2);
-  color: var(--text);
 }
-.squad-menu-item.active {
-  background: var(--text);
-  color: var(--surface);
-  font-weight: 600;
-}
-.squad-menu-item.active .squad-menu-dot {
-  background: var(--surface);
-}
-.squad-menu-dot {
-  display: inline-block;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--whistle);
+.squad-menu-check {
   flex-shrink: 0;
-  opacity: 0;
+  color: var(--whistle);
+  font-weight: 700;
 }
-.squad-menu-item.active .squad-menu-dot {
-  opacity: 1;
+/* Destructive action lives in the menu rather than beside the switcher, where
+   it crowded the primary control. */
+.squad-menu-footer {
+  padding: 6px;
+  border-top: 1.5px solid var(--hairline);
 }
-@media (max-width: 600px) {
-  .squad-switcher {
-    max-width: none;
-  }
+.squad-menu-danger {
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: none;
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: var(--danger);
+  font-family: "Familjen Grotesk", sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.squad-menu-danger:hover {
+  background: color-mix(in srgb, var(--danger) 10%, transparent);
 }
 .icon-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
+  /* A real 44px box. Negative margins would overlap neighbouring buttons and
+     steal their clicks, which is why spacing is handled by the parent gap. */
+  width: 44px;
+  height: 44px;
+  margin: 0;
   padding: 0;
   background: transparent;
   border: 1.5px solid var(--hairline);
   border-radius: var(--r-sm);
   color: var(--text-2);
-  font-family: "Chakra Petch", sans-serif;
+  font-family: "Outfit", sans-serif;
   font-size: 14px;
   line-height: 1;
   cursor: pointer;
@@ -486,7 +698,7 @@ body {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 .add-community .form-label {
-  font-family: "Chakra Petch", sans-serif;
+  font-family: "Outfit", sans-serif;
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.14em;
@@ -514,24 +726,10 @@ body {
   outline-offset: 1px;
   border-color: var(--accent);
 }
-.pref {
-  background: none;
-
-  border: none;
-  font-family: "Familjen Grotesk", sans-serif;
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--text-2);
-  cursor: pointer;
-  padding: 4px 2px;
-  white-space: nowrap;
-}
-.pref:hover {
-  color: var(--text);
-}
 .link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
   background: none;
   border: none;
   font-family: "Familjen Grotesk", sans-serif;
@@ -550,18 +748,6 @@ body {
   gap: 8px;
   flex: 0 0 auto;
 }
-.data-links {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  padding: 4px 0 2px;
-  font-size: 13px;
-}
-.data-links .sep {
-  opacity: 0.5;
-}
-
 .btn.small {
   flex: 0 0 auto;
   font-size: 13px;
@@ -581,12 +767,11 @@ body {
   border-top: 1.5px solid var(--hairline);
   flex-shrink: 0;
   margin-top: auto;
-  position: fixed;
+  /* Sticky rather than fixed: the bar keeps its width, so it never has to be
+     reconciled against the column with a magic offset token. */
+  position: sticky;
   bottom: 0;
-  left: 0;
-  right: 0;
   z-index: 50;
-  box-shadow: 0 -1px 0 var(--hairline);
 }
 .bottom-nav .nav-link {
   display: flex;
@@ -629,7 +814,7 @@ body {
   outline-offset: -2px;
   border-radius: var(--r-sm);
 }
-/* the live indicator: a whistle-red dot above the active tab */
+/* the live indicator: an amber dot above the active tab */
 .bottom-nav .nav-link.nav-active {
   color: var(--text);
 }
@@ -648,54 +833,6 @@ body {
   background: var(--whistle);
   border-radius: 0 0 3px 3px;
 }
-/* the centered Home slot: a filled accent disc + accent label so it reads as
-   the home affordance next to the flat text hubs. Active keeps the whistle
-   dot above but never recolors the glyph on the filled disc. */
-.bottom-nav .nav-link--home {
-  color: var(--text);
-}
-.bottom-nav .nav-link--home .nav-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  background: var(--accent);
-  color: var(--accent-ink);
-  font-size: 17px;
-  box-shadow: 0 2px 8px color-mix(in srgb, var(--text) 22%, transparent);
-}
-.bottom-nav .nav-link--home > span:last-child {
-  color: var(--accent);
-}
-.bottom-nav .nav-link--home:hover .nav-icon,
-.bottom-nav .nav-link--home.nav-active .nav-icon {
-  color: var(--accent-ink);
-  transform: scale(1.06);
-}
-@media (min-width: 768px) {
-  :root {
-    --nav-h: calc(87px + env(safe-area-inset-bottom));
-  }
-  .bottom-nav {
-    padding: 6px 24px calc(6px + env(safe-area-inset-bottom));
-  }
-  .bottom-nav .nav-link {
-    flex: 0 0 auto;
-    min-width: 72px;
-    padding: 12px 8px 10px;
-  }
-  .bottom-nav .nav-link .nav-icon {
-    font-size: 22px;
-  }
-  .bottom-nav .nav-link--home .nav-icon {
-    width: 36px;
-    height: 36px;
-    font-size: 19px;
-  }
-}
-
 .screen {
   display: flex;
   flex-direction: column;
@@ -703,15 +840,24 @@ body {
   padding: 24px 20px 28px;
   flex: 1;
 }
-.screen button,
-.screen .row,
-.screen .history-row,
-.screen .bracket-match,
-.screen .tournament-squad-row {
-  scroll-margin-bottom: calc(var(--nav-h, 75px) + 96px);
+/* Keep focused rows clear of the sticky tab bar without enumerating every
+   interactive class by hand. */
+.shell :is(button, a, [tabindex]):focus-visible {
+  scroll-margin-bottom: 96px;
 }
+/* The shared masthead. It is one flex child of .screen, so it owns its own
+   internal rhythm instead of inheriting the screen's 22px gap. */
+.page-header {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.page-header h1 {
+  margin: 0;
+}
+
 h1 {
-  font-family: "Chakra Petch", sans-serif;
+  font-family: "Outfit", sans-serif;
   font-weight: 600;
   font-size: 36px;
   line-height: 1;
@@ -721,7 +867,7 @@ h1 {
 }
 .kicker {
   display: inline-block;
-  font-family: "Chakra Petch", sans-serif;
+  font-family: "Outfit", sans-serif;
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.18em;
@@ -835,7 +981,7 @@ h1 {
   font-style: italic;
 }
 .row .lineup-no {
-  font-family: "Chakra Petch", sans-serif;
+  font-family: "Outfit", sans-serif;
   font-weight: 700;
   font-size: 14px;
   color: var(--text-2);
@@ -870,6 +1016,10 @@ h1 {
   border-color: var(--accent);
   color: var(--accent);
 }
+.badge--generic {
+  border-color: var(--text-2);
+  color: var(--text-2);
+}
 .badge--a { border-color: var(--bib-a); color: var(--bib-a); }
 .badge--b { border-color: var(--bib-b); color: var(--bib-b); }
 .badge--c { border-color: var(--bib-c); color: var(--bib-c); }
@@ -892,18 +1042,13 @@ h1 {
   padding: 36px 28px;
   text-align: left;
   background: var(--surface-2);
-.badge--generic {
-  border-color: var(--text-2);
-  color: var(--text-2);
-}
-
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   gap: 6px;
 }
 .empty .big {
-  font-family: "Chakra Petch", sans-serif;
+  font-family: "Outfit", sans-serif;
   font-weight: 600;
   font-size: 22px;
   text-transform: uppercase;
@@ -977,7 +1122,7 @@ h1 {
   border-radius: var(--r-md);
 }
 .tournament-meta-card-label {
-  font-family: "Chakra Petch", sans-serif;
+  font-family: "Outfit", sans-serif;
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.12em;
@@ -986,7 +1131,7 @@ h1 {
   display: block;
 }
 .tournament-meta-card-value {
-  font-family: "Chakra Petch", sans-serif;
+  font-family: "Outfit", sans-serif;
   font-size: 18px;
   font-weight: 700;
   color: var(--text);
@@ -1026,7 +1171,7 @@ h1 {
   gap: 12px;
 }
 .dashboard-teasers-head h2 {
-  font-family: "Chakra Petch", sans-serif;
+  font-family: "Outfit", sans-serif;
   font-size: 13px;
   font-weight: 700;
   letter-spacing: 0.12em;
@@ -1097,7 +1242,7 @@ h1 {
   letter-spacing: 0.02em;
   text-transform: uppercase;
   font-size: 14px;
-  box-shadow: 0 2px 0 rgba(20, 22, 26, 0.15);
+  box-shadow: 0 2px 0 rgba(28, 25, 23, 0.15);
 }
 .btn-primary:hover:not(:disabled) {
   filter: brightness(0.95);
@@ -1135,7 +1280,7 @@ h1 {
   margin: 0;
 }
 .field-label {
-  font-family: "Chakra Petch", sans-serif;
+  font-family: "Outfit", sans-serif;
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.14em;
@@ -1223,7 +1368,7 @@ h1 {
   background: var(--surface);
   color: var(--text-2);
   border-radius: var(--r-sm);
-  font-family: "Chakra Petch", sans-serif;
+  font-family: "Outfit", sans-serif;
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
@@ -1365,7 +1510,7 @@ h1 {
   border-color: var(--text-2);
 }
 .row-edit {
-  font-family: "Chakra Petch", sans-serif;
+  font-family: "Outfit", sans-serif;
   color: var(--text-2);
   font-size: 16px;
   line-height: 1;
@@ -1405,7 +1550,7 @@ h1 {
   font-weight: 500;
 }
 .attr-range {
-  font-family: "Chakra Petch", sans-serif;
+  font-family: "Outfit", sans-serif;
   font-size: 11px;
   color: var(--text-2);
 }
@@ -1419,7 +1564,7 @@ h1 {
   border-radius: var(--r-sm);
   border: 1.5px solid var(--hairline);
   background: var(--surface);
-  font-family: "Chakra Petch", sans-serif;
+  font-family: "Outfit", sans-serif;
   font-weight: 600;
   font-size: 15px;
   color: var(--text);
@@ -1438,26 +1583,35 @@ h1 {
   gap: 8px;
 }
 .chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
   font-family: "Familjen Grotesk", sans-serif;
   font-size: 14px;
   font-weight: 500;
   padding: 8px 14px;
   border-radius: 999px;
   border: 1.5px solid var(--hairline);
-  background: var(--surface-2);  /* white card against cream page */
+  background: var(--surface-2);  /* white card against paper page */
   color: var(--text);
   cursor: pointer;
 }
+/* One selected treatment for every chip in the app. Amber is reserved for the
+   primary action, so selection reads as ink rather than competing with it. */
 .chip[aria-pressed="true"] {
-  background: var(--whistle);
-  border-color: var(--whistle);
-  color: var(--whistle-ink);
-  box-shadow: 0 1px 0 var(--whistle), 0 2px 6px rgba(230, 57, 70, 0.25);
-}
-.chip.active {
   background: var(--chip-on);
   border-color: var(--chip-on);
   color: var(--chip-on-text);
+  font-weight: 700;
+}
+/* A non-interactive chip used as a label (e.g. the discipline heading on a
+   capability card). Same shape, no pointer affordance. */
+.chip--tag {
+  background: var(--chip-on);
+  border-color: var(--chip-on);
+  color: var(--chip-on-text);
+  font-weight: 700;
+  cursor: default;
 }
 
 
@@ -1522,7 +1676,7 @@ h1 {
   outline-offset: 2px;
 }
 .modal-title {
-  font-family: "Chakra Petch", sans-serif;
+  font-family: "Outfit", sans-serif;
   font-size: 22px;
   font-weight: 600;
   text-transform: uppercase;
@@ -1541,7 +1695,7 @@ h1 {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-family: "Chakra Petch", sans-serif;
+  font-family: "Outfit", sans-serif;
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.14em;
@@ -1550,7 +1704,7 @@ h1 {
   margin: 0;
 }
 .modal-section-title .count {
-  font-family: "Chakra Petch", sans-serif;
+  font-family: "Outfit", sans-serif;
   font-size: 11px;
   font-weight: 600;
   color: var(--text-2);
@@ -1601,18 +1755,26 @@ h1 {
   }
 }
 
-/* ---------- desktop layout (toggled via data-layout) ---------- */
-@media (min-width: 768px) {
-  .app[data-layout="desktop"] {
-    width: 100%;
-    max-width: 1080px;
-    border-inline: none;
+/* ---------- desktop content layout (toggled via data-layout) ---------- */
+/* Gated on the attribute so an explicit "Mobile" preference still wins on a
+   wide screen, and on the media query so "Desktop" on a phone is a no-op. */
+@media (min-width: 1024px) {
+  /* The rail replaces the tab bar, so the bar is removed from the layout
+     entirely rather than merely hidden. */
+  .bottom-nav {
+    display: none;
   }
+
+  /* The rail owns the brand on desktop, so the bar only carries controls. */
   .app[data-layout="desktop"] .topbar {
     padding-inline: 30px;
+    justify-content: flex-end;
+  }
+  .app[data-layout="desktop"] .topbar .wordmark {
+    display: none;
   }
   .app[data-layout="desktop"] .screen {
-    padding: 12px 30px 28px;
+    padding: 24px 30px 32px;
   }
   .app[data-layout="desktop"] .roster {
     display: grid;
@@ -1655,13 +1817,13 @@ h1 {
   border-radius: 50%;
   background: var(--text);
   color: var(--surface);
-  font-family: "Chakra Petch", sans-serif;
+  font-family: "Outfit", sans-serif;
   font-size: 11px;
   font-weight: 700;
   flex-shrink: 0;
 }
 .match-section-title {
-  font-family: "Chakra Petch", sans-serif;
+  font-family: "Outfit", sans-serif;
   font-weight: 600;
   font-size: 15px;
   letter-spacing: 0.04em;
@@ -1712,7 +1874,7 @@ h1 {
   cursor: not-allowed;
 }
 .match-setup .game-name {
-  font-family: "Chakra Petch", sans-serif;
+  font-family: "Outfit", sans-serif;
   font-weight: 700;
   font-size: 14px;
   letter-spacing: 0.02em;
@@ -1756,7 +1918,7 @@ h1 {
   letter-spacing: 0;
 }
 .match-setup .chip[aria-pressed="true"] .chip-note {
-  color: var(--whistle-ink);
+  color: var(--chip-on-text);
   opacity: 0.8;
 }
 .match-setup .chip-roles {
@@ -1767,7 +1929,7 @@ h1 {
 }
 .match-setup .chip-role {
   display: inline-block;
-  font-family: "Chakra Petch", sans-serif;
+  font-family: "Outfit", sans-serif;
   font-size: 9px;
   font-weight: 700;
   letter-spacing: 0.08em;
@@ -1787,8 +1949,8 @@ h1 {
 }
 .match-setup .chip[aria-pressed="true"] .chip-role {
   background: transparent;
-  color: var(--whistle-ink);
-  border-color: var(--whistle-ink);
+  color: var(--chip-on-text);
+  border-color: var(--chip-on-text);
   opacity: 0.7;
 }
 .match-setup .chip[aria-pressed="true"] .chip-role--preferred {
@@ -1798,17 +1960,6 @@ h1 {
   opacity: 1;
   font-weight: 800;
 }
-.match-bar {
-  position: sticky;
-  bottom: 64px;
-  z-index: 30;
-  background: var(--surface);
-  border-top: 1.5px solid var(--hairline);
-  margin-top: 8px;
-  padding-top: 12px;
-  padding-bottom: 12px;
-}
-
 /* ---------- match ---------- */
 .games {
   display: grid;
@@ -1822,7 +1973,7 @@ h1 {
   border-radius: var(--r-md);
   padding: 14px;
   cursor: pointer;
-  font-family: "Chakra Petch", sans-serif;
+  font-family: "Outfit", sans-serif;
   font-weight: 600;
   font-size: 15px;
   color: var(--text);
@@ -1845,7 +1996,7 @@ h1 {
   cursor: not-allowed;
 }
 .chip .str {
-  font-family: "Chakra Petch", sans-serif;
+  font-family: "Outfit", sans-serif;
   font-weight: 600;
   font-size: 13px;
   color: var(--text-2);
@@ -1865,14 +2016,14 @@ h1 {
   border-radius: var(--r-sm);
   border: 1.5px solid var(--hairline);
   background: var(--surface-2);
-  font-family: "Chakra Petch", sans-serif;
+  font-family: "Outfit", sans-serif;
   font-weight: 600;
   font-size: 20px;
   color: var(--text);
   cursor: pointer;
 }
 .stepper .count {
-  font-family: "Chakra Petch", sans-serif;
+  font-family: "Outfit", sans-serif;
   font-weight: 700;
   font-size: 24px;
   min-width: 2ch;
@@ -1907,7 +2058,7 @@ h1 {
   color: var(--text);
 }
 .team .tname {
-  font-family: "Chakra Petch", sans-serif;
+  font-family: "Outfit", sans-serif;
   font-weight: 700;
   font-size: 13px;
   letter-spacing: 0.12em;
@@ -1983,7 +2134,7 @@ h1 {
   opacity: 0.75;
 }
 .team .avg b {
-  font-family: "Chakra Petch", sans-serif;
+  font-family: "Outfit", sans-serif;
   font-weight: 700;
   font-size: 20px;
   letter-spacing: 0;
@@ -1999,7 +2150,7 @@ h1 {
   padding: 0 2px;
 }
 .mid .tag {
-  font-family: "Chakra Petch", sans-serif;
+  font-family: "Outfit", sans-serif;
   font-weight: 600;
   font-size: 11px;
   letter-spacing: 0.08em;
@@ -2049,7 +2200,7 @@ h1 {
 .scale .num {
   position: absolute;
   top: 50%;
-  font-family: "Chakra Petch", sans-serif;
+  font-family: "Outfit", sans-serif;
   font-weight: 600;
   font-size: 13px;
   letter-spacing: 0.02em;
@@ -2077,7 +2228,7 @@ h1 {
 }
 .readout {
   text-align: center;
-  font-family: "Chakra Petch", sans-serif;
+  font-family: "Outfit", sans-serif;
   font-weight: 600;
   font-size: 15px;
   letter-spacing: 0.02em;
@@ -2162,7 +2313,7 @@ h1 {
   min-width: 28px;
   height: 22px;
   padding: 0 6px;
-  font-family: "Chakra Petch", sans-serif;
+  font-family: "Outfit", sans-serif;
   font-size: 12px;
   font-weight: 700;
   background: var(--text);
@@ -2172,9 +2323,9 @@ h1 {
   flex-shrink: 0;
 }
 [data-theme="dark"] .player-overall {
-  background: #f2efe7;
-  color: #14161a;
-  border-color: #f2efe7;
+  background: #faf8f5;
+  color: #1c1917;
+  border-color: #faf8f5;
 }
 .player-name {
   font-family: "Familjen Grotesk", sans-serif;
@@ -2184,7 +2335,7 @@ h1 {
   line-height: 1.3;
 }
 [data-theme="dark"] .player-name {
-  color: #f2efe7 !important;
+  color: #faf8f5 !important;
 }
 .player-ratings {
   display: flex;
@@ -2197,8 +2348,8 @@ h1 {
   align-items: center;
   gap: 4px;
 }
-.rating-label {
-  font-family: "Chakra Petch", sans-serif;
+.rating-cell .rating-label {
+  font-family: "Outfit", sans-serif;
   font-size: 9px;
   font-weight: 700;
   letter-spacing: 0.06em;
@@ -2246,23 +2397,26 @@ h1 {
   white-space: nowrap;
 }
 .tname-avg {
-  font-family: "Chakra Petch", sans-serif;
+  font-family: "Outfit", sans-serif;
   font-size: 12px;
   font-weight: 700;
-  background: rgba(20, 22, 26, 0.85);
+  background: rgba(28, 25, 23, 0.85);
   color: #ffffff;
   padding: 2px 8px;
   border-radius: 999px;
   flex-shrink: 0;
 }
 .tag-gap {
-  font-family: "Chakra Petch", sans-serif;
+  font-family: "Outfit", sans-serif;
   font-size: 14px;
   font-weight: 700;
 }
+/* One shared sticky action bar. Screens set their own bottom margin; the
+   stacking offset above the tab bar is identical everywhere. */
+.match-bar,
 .split-bar {
   position: sticky;
-  bottom: 64px;
+  bottom: var(--tabbar-h);
   z-index: 30;
   background: var(--surface);
   border-top: 1.5px solid var(--hairline);
@@ -2332,7 +2486,7 @@ h1 {
   min-height: 18px;
 }
 .rlabel {
-  font-family: "Chakra Petch", sans-serif;
+  font-family: "Outfit", sans-serif;
   font-weight: 600;
   font-size: 11px;
   letter-spacing: 0.1em;
@@ -2401,7 +2555,7 @@ h1 {
 }
 .bracket-score {
   align-self: flex-end;
-  font-family: "Chakra Petch", sans-serif;
+  font-family: "Outfit", sans-serif;
   font-weight: 600;
   font-size: 12px;
   color: var(--text-2);
@@ -2428,7 +2582,7 @@ h1 {
   border: 1px solid var(--hairline);
 }
 .standings-pos {
-  font-family: "Chakra Petch", sans-serif;
+  font-family: "Outfit", sans-serif;
   font-weight: 600;
   color: var(--text-2);
   width: 20px;
@@ -2440,7 +2594,7 @@ h1 {
   font-weight: 600;
 }
 .standings-wins {
-  font-family: "Chakra Petch", sans-serif;
+  font-family: "Outfit", sans-serif;
   font-weight: 600;
   color: var(--accent);
 }
@@ -2474,7 +2628,7 @@ h1 {
   color: var(--bib-a);
 }
 .champ-label {
-  font-family: "Chakra Petch", sans-serif;
+  font-family: "Outfit", sans-serif;
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.14em;
@@ -2482,7 +2636,7 @@ h1 {
   color: var(--whistle);
 }
 .champ-name {
-  font-family: "Chakra Petch", sans-serif;
+  font-family: "Outfit", sans-serif;
   font-weight: 700;
   font-size: 28px;
   letter-spacing: -0.01em;
@@ -2490,28 +2644,6 @@ h1 {
   text-transform: uppercase;
 }
 
-.tournament-meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 16px;
-  font-family: "Chakra Petch", sans-serif;
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--text-2);
-  margin-bottom: 14px;
-}
-.tournament-meta .kicker {
-  margin: 0;
-  font-size: 11px;
-  color: var(--whistle);
-}
-.tournament-meta strong {
-  color: var(--text);
-  font-weight: 600;
-  margin-left: 4px;
-}
 .tournament-header {
   display: flex;
   flex-direction: column;
@@ -2553,7 +2685,7 @@ h1 {
   border-left: none;
 }
 .tms-label {
-  font-family: "Chakra Petch", sans-serif;
+  font-family: "Outfit", sans-serif;
   font-size: 9px;
   font-weight: 700;
   letter-spacing: 0.16em;
@@ -2561,7 +2693,7 @@ h1 {
   color: var(--text-2);
 }
 .tms-value {
-  font-family: "Chakra Petch", sans-serif;
+  font-family: "Outfit", sans-serif;
   font-size: 15px;
   font-weight: 600;
   color: var(--text);
@@ -2578,7 +2710,7 @@ h1 {
   border-radius: var(--r-md);
 }
 .tournament-preview-label {
-  font-family: "Chakra Petch", sans-serif;
+  font-family: "Outfit", sans-serif;
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.12em;
@@ -2617,7 +2749,7 @@ h1 {
   border-bottom: 1.5px solid var(--hairline);
 }
 .review-panel-head h2 {
-  font-family: "Chakra Petch", sans-serif;
+  font-family: "Outfit", sans-serif;
   font-size: 16px;
   font-weight: 700;
   letter-spacing: 0.04em;
@@ -2670,7 +2802,7 @@ h1 {
   gap: 8px;
 }
 .review-team-name {
-  font-family: "Chakra Petch", sans-serif;
+  font-family: "Outfit", sans-serif;
   font-size: 13px;
   font-weight: 700;
   letter-spacing: 0.04em;
@@ -2678,7 +2810,7 @@ h1 {
   color: var(--text);
 }
 .review-team-avg {
-  font-family: "Chakra Petch", sans-serif;
+  font-family: "Outfit", sans-serif;
   font-size: 12px;
   font-weight: 700;
   color: var(--text-2);
@@ -2721,7 +2853,7 @@ h1 {
   margin-bottom: 10px;
 }
 .record-game-label {
-  font-family: "Chakra Petch", sans-serif;
+  font-family: "Outfit", sans-serif;
   font-weight: 600;
   font-size: 12px;
   letter-spacing: 0.08em;
@@ -2738,11 +2870,6 @@ h1 {
   min-width: 0;
   text-align: center;
 }
-.chip.on {
-  background: var(--chip-on);
-  border-color: var(--chip-on);
-  color: var(--chip-on-text);
-}
 .record-game-scores {
   display: flex;
   gap: 8px;
@@ -2755,7 +2882,7 @@ h1 {
 
 .bracket-tag {
   align-self: flex-start;
-  font-family: "Chakra Petch", sans-serif;
+  font-family: "Outfit", sans-serif;
   font-size: 9px;
   font-weight: 600;
   letter-spacing: 0.1em;
@@ -2765,7 +2892,45 @@ h1 {
   border-radius: 999px;
   padding: 2px 8px;
 }
-.toast-container { position: fixed; bottom: 80px; left: 0; right: 0; display: flex; flex-direction: column; align-items: center; gap: 8px; pointer-events: none; z-index: 100; } .toast { padding: 12px 18px; border-radius: 8px; font-size: 14px; font-family: "Chakra Petch", sans-serif; pointer-events: auto; box-shadow: 0 4px 12px rgba(0,0,0,0.15); max-width: 90vw; } .toast--success { background: #E8F5E9; color: #1B5E20; border: 1.5px solid #A5D6A7; } .toast--error { background: #FFEBEE; color: #B71C1C; border: 1.5px solid #EF9A9A; } .toast--info { background: #E3F2FD; color: #0D47A1; border: 1.5px solid #90CAF9; }
+.toast-container {
+  position: fixed;
+  bottom: calc(var(--tabbar-h) + 12px);
+  left: 0;
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  pointer-events: none;
+  z-index: 100;
+}
+.toast {
+  padding: 12px 18px;
+  border-radius: var(--r-sm);
+  font-size: 14px;
+  font-family: "Outfit", sans-serif;
+  font-weight: 600;
+  pointer-events: auto;
+  box-shadow: var(--shadow);
+  max-width: min(90vw, 420px);
+}
+/* Toasts read as tinted paper, tinted by the state colour, so they belong to
+   the same palette rather than importing an unrelated one. */
+.toast--success {
+  background: color-mix(in srgb, var(--ok) 14%, var(--surface));
+  color: var(--text);
+  border: 1.5px solid var(--ok);
+}
+.toast--error {
+  background: color-mix(in srgb, var(--danger) 14%, var(--surface));
+  color: var(--text);
+  border: 1.5px solid var(--danger);
+}
+.toast--info {
+  background: color-mix(in srgb, var(--accent) 14%, var(--surface));
+  color: var(--text);
+  border: 1.5px solid var(--accent);
+}
 /* ---------- breadcrumbs ---------- */
 .breadcrumb {
   display: flex;
@@ -2823,7 +2988,7 @@ h1 {
   border-color: var(--accent);
 }
 .tournament-squad-name {
-  font-family: "Chakra Petch", sans-serif;
+  font-family: "Outfit", sans-serif;
   font-weight: 600;
   font-size: 13px;
 }

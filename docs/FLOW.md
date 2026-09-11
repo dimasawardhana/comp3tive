@@ -1,4 +1,4 @@
-# Team Builder · Page Flow (as-to-be)
+# comp3tive · Page Flow (as-to-be)
 
 **Date:** 2026-09-08
 **Status:** Accepted — this document is the contract. The app must conform to it.

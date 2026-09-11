@@ -1,8 +1,8 @@
-# Team Builder Domain Model
+# comp3tive Domain Model
 
 ## Overview
 
-Team Builder is a comprehensive system for managing player rosters and creating competitive tournaments across multiple disciplines. This domain model documents the core concepts, relationships, and rules for tournament creation, format specification, and team participation.
+comp3tive is a comprehensive system for managing player rosters and creating competitive tournaments across multiple disciplines. This domain model documents the core concepts, relationships, and rules for tournament creation, format specification, and team participation.
 
 ## Core Domain Vocabulary
 

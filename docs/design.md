@@ -1,4 +1,4 @@
-# Design Direction — Team Builder
+# Design Direction — comp3tive
 
 Direction: **Scoreboard.** Monochrome structure with one electric pop. The app reads like a tactical sheet: paper-white surfaces, ink structure, hairline rules, and a single saturated cobalt accent reserved for action and the live moment. The thesis of the app ("fair teams") is made visible in a single signature element: the **gap meter**, which reads like a live scoreboard readout.
 

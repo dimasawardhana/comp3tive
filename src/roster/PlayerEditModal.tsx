@@ -198,7 +198,7 @@ export function PlayerEditModal({ player, disciplines, communityId, onClose, onS
               return (
                 <div key={cap.disciplineId} className="cap-card">
                   <div className="cap-head">
-                    <span className="chip active">{d.shortName}</span>
+                    <span className="chip chip--tag">{d.shortName}</span>
                     <button
                       type="button"
                       className="icon-btn icon-btn-danger small"
@@ -238,7 +238,7 @@ export function PlayerEditModal({ player, disciplines, communityId, onClose, onS
                         <button
                           key={r.id}
                           type="button"
-                          className={`chip ${cap.eligibleRoles.includes(r.id) ? "active" : ""}`}
+                          className="chip"
                           aria-pressed={cap.eligibleRoles.includes(r.id)}
                           onClick={() => toggleRole(cap.disciplineId, r.id)}
                         >

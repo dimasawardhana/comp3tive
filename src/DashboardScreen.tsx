@@ -1,5 +1,7 @@
 import type { Community, Discipline, Player, SavedSquad, Tournament } from "./domain/types";
 import { recentActiveTournaments, recentPlayers } from "./dashboardTeasers";
+import { PageHeader } from "./ui/PageHeader";
+import { Screen } from "./ui/Screen";
 
 const FORMAT_LABEL: Record<Tournament["format"], string> = {
   series: "Series",
@@ -83,13 +85,17 @@ export function DashboardScreen({
   const recentTournaments = recentActiveTournaments(tournaments);
 
   return (
-    <div className="screen">
-      <div className="kicker">State of play</div>
-      <h1>Dashboard</h1>
-      <p className="lede">
-        <strong>{community.name}</strong> &middot; {players.length} player
-        {players.length === 1 ? "" : "s"} on the roster
-      </p>
+    <Screen>
+      <PageHeader
+        kicker="State of play"
+        title="Dashboard"
+        lede={
+          <>
+            <strong>{community.name}</strong> &middot; {players.length} player
+            {players.length === 1 ? "" : "s"} on the roster
+          </>
+        }
+      />
 
       {players.length === 0 ? (
         <div className="empty dashboard-empty">
@@ -262,6 +268,6 @@ export function DashboardScreen({
           </button>
         </div>
       </div>
-    </div>
+    </Screen>
   );
 }

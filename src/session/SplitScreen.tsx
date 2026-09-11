@@ -203,6 +203,7 @@ export function SplitScreen({ session, discipline, roster, onPersistResult, onSu
   const [rerollCount, setRerollCount] = useState(1);
   const [saveOpen, setSaveOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [persistError, setPersistError] = useState<string | null>(null);
   const pitchRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -227,8 +228,11 @@ export function SplitScreen({ session, discipline, roster, onPersistResult, onSu
     setEditable(next);
     try {
       await onPersistResult(next);
-    } catch {
-      /* ignore */
+      setPersistError(null);
+    } catch (err) {
+      // The board shows the new arrangement either way, so say plainly that it
+      // was not stored rather than letting the user assume it was.
+      setPersistError(err instanceof Error ? err.message : String(err));
     }
   };
 
@@ -346,6 +350,12 @@ export function SplitScreen({ session, discipline, roster, onPersistResult, onSu
           <div className="kicker">Solver failed</div>
           <div className="big">Couldn&apos;t build teams</div>
           <p>Not enough eligible players for this game. Adjust the pool or change the discipline.</p>
+        </div>
+      )}
+
+      {persistError && (
+        <div className="load-error" role="alert">
+          <strong>This arrangement wasn&apos;t saved.</strong> {persistError}
         </div>
       )}
 

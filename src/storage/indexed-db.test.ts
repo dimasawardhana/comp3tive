@@ -12,18 +12,18 @@ const player = (id: string, name: string): Player => ({ id, communityId: "c1", n
 
 describe("indexed-db roster store (smoke)", () => {
   it("persists players across adapter instances (simulated reload)", async () => {
-    const a = createIndexedDbRosterStore("team-builder-test-1");
+    const a = createIndexedDbRosterStore("comp3tive-test-1");
     await a.savePlayer(player("1", "Budi"));
     await a.savePlayer(player("2", "Andi"));
 
     // A fresh adapter = a fresh page load; the data must still be there.
-    const b = createIndexedDbRosterStore("team-builder-test-1");
+    const b = createIndexedDbRosterStore("comp3tive-test-1");
     const all = await b.listPlayers();
     expect(all.map((p) => p.name).sort()).toEqual(["Andi", "Budi"]);
   });
 
   it("upserts by id and deletes", async () => {
-    const store = createIndexedDbRosterStore("team-builder-test-2");
+    const store = createIndexedDbRosterStore("comp3tive-test-2");
     await store.savePlayer(player("1", "Budi"));
     await store.savePlayer({ ...player("1", "Budi S."), notes: "captain" });
 
@@ -48,17 +48,17 @@ describe("indexed-db session store (smoke)", () => {
   });
 
   it("persists sessions across adapter instances (simulated reload)", async () => {
-    const a = createIndexedDbSessionStore("team-builder-test-3");
+    const a = createIndexedDbSessionStore("comp3tive-test-3");
     await a.saveSession(session("s1"));
     await a.saveSession(session("s2"));
 
-    const b = createIndexedDbSessionStore("team-builder-test-3");
+    const b = createIndexedDbSessionStore("comp3tive-test-3");
     const all = await b.listSessions();
     expect(all.map((s) => s.id).sort()).toEqual(["s1", "s2"]);
   });
 
   it("upserts by id and deletes", async () => {
-    const store = createIndexedDbSessionStore("team-builder-test-4");
+    const store = createIndexedDbSessionStore("comp3tive-test-4");
     await store.saveSession(session("s1"));
     await store.saveSession({ ...session("s1"), settings: { teamCount: 3 } });
     expect((await store.listSessions())[0].settings.teamCount).toBe(3);
@@ -80,14 +80,14 @@ describe("indexed-db discipline store (smoke)", () => {
   };
 
   it("seeds the built-in disciplines on first open", async () => {
-    const store = createIndexedDbDisciplineStore("team-builder-test-disc-1");
+    const store = createIndexedDbDisciplineStore("comp3tive-test-disc-1");
     const list = await store.listDisciplines();
     expect(list.map((d) => d.id).sort()).toEqual(["futsal", "mlbb"]);
     expect(list.every((d) => d.builtIn)).toBe(true);
   });
 
   it("saves and deletes custom disciplines, keeping the seeds", async () => {
-    const store = createIndexedDbDisciplineStore("team-builder-test-disc-2");
+    const store = createIndexedDbDisciplineStore("comp3tive-test-disc-2");
     await store.saveDiscipline(custom);
     expect((await store.listDisciplines()).some((d) => d.id === custom.id)).toBe(true);
 
@@ -115,17 +115,17 @@ describe("indexed-db tournament store (smoke)", () => {
   });
 
   it("persists tournaments across adapter instances", async () => {
-    const a = createIndexedDbTournamentStore("team-builder-test-t1");
+    const a = createIndexedDbTournamentStore("comp3tive-test-t1");
     await a.saveTournament(tournament("tr1"));
-    const b = createIndexedDbTournamentStore("team-builder-test-t1");
+    const b = createIndexedDbTournamentStore("comp3tive-test-t1");
     const all = await b.listTournaments();
     expect(all.map((t) => t.id)).toEqual(["tr1"]);
     await b.deleteTournament("tr1");
-    expect(await createIndexedDbTournamentStore("team-builder-test-t1").listTournaments()).toEqual([]);
+    expect(await createIndexedDbTournamentStore("comp3tive-test-t1").listTournaments()).toEqual([]);
   });
 
   it("replaces all tournaments atomically", async () => {
-    const store = createIndexedDbTournamentStore("team-builder-test-t2");
+    const store = createIndexedDbTournamentStore("comp3tive-test-t2");
     await store.saveTournament(tournament("old"));
     await store.replaceAllTournaments([tournament("new")]);
     expect((await store.listTournaments()).map((t) => t.id)).toEqual(["new"]);

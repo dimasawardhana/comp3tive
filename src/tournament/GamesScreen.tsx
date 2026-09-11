@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import type { Community, Discipline, Id, SeriesLength, Tournament, TournamentFormat } from "../domain/types";
 import { validateTournamentSpec, type TournamentValidationIssue } from "./tournament-validation";
+import { PageHeader } from "../ui/PageHeader";
 
 interface Props {
   tournaments: Tournament[]; // community-scoped, newest first
@@ -117,13 +118,18 @@ export function GamesScreen({ tournaments, disciplines, onCreate, onOpen, onDele
 
   return (
     <>
-      <div className="kicker">Tournaments</div>
-      <h1>Games</h1>
-      {activeCommunity && (
-        <div className="lede">
-          <strong>{activeCommunity.name}</strong> · {tournaments.length} tournament{tournaments.length === 1 ? "" : "s"}
-        </div>
-      )}
+      <PageHeader
+        kicker="Tournaments"
+        title="Games"
+        lede={
+          activeCommunity && (
+            <>
+              <strong>{activeCommunity.name}</strong> · {tournaments.length} tournament
+              {tournaments.length === 1 ? "" : "s"}
+            </>
+          )
+        }
+      />
       <div className="games-toolbar">
         <button type="button" className="btn btn-ghost" onClick={onManageDisciplines}>
           Disciplines

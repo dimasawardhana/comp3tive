@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { PageHeader } from "../ui/PageHeader";
+import { Screen } from "../ui/Screen";
 import type { Discipline, Id, Player, SavedSquad } from "../domain/types";
 import { teamName } from "./flow";
 
@@ -53,13 +55,17 @@ export function SquadsScreen({ squads, loading, disciplines, roster, onBack, onR
   if (open) {
     const playerCount = open.result.teams.reduce((n, t) => n + t.slots.length, 0);
     return (
-      <div className="screen">
-        <div className="kicker">Saved squad</div>
-        <h1>{open.name}</h1>
-        <p className="lede">
-          {disciplineName(open)} &middot; {open.result.teams.length} teams &middot; {playerCount} players &middot; gap{" "}
-          {gapOf(open)}
-        </p>
+      <Screen>
+        <PageHeader
+          kicker="Saved squad"
+          title={open.name}
+          lede={
+            <>
+              {disciplineName(open)} &middot; {open.result.teams.length} teams &middot; {playerCount} players
+              &middot; gap {gapOf(open)}
+            </>
+          }
+        />
 
         <div className="review-teams">
           {open.result.teams.map((team) => (
@@ -99,15 +105,17 @@ export function SquadsScreen({ squads, loading, disciplines, roster, onBack, onR
             Delete
           </button>
         </div>
-      </div>
+      </Screen>
     );
   }
 
   return (
-    <div className="screen">
-      <div className="kicker">Squad bank</div>
-      <h1>Saved squads</h1>
-      <p className="lede">Named team sets you saved from a split. Drop one into a tournament or re-split it.</p>
+    <Screen>
+      <PageHeader
+        kicker="Squad bank"
+        title="Saved squads"
+        lede="Named team sets you saved from a split. Drop one into a tournament or re-split it."
+      />
 
       {loading ? (
         <p className="status">Loading&hellip;</p>
@@ -182,6 +190,6 @@ export function SquadsScreen({ squads, loading, disciplines, roster, onBack, onR
           Back
         </button>
       </div>
-    </div>
+    </Screen>
   );
 }

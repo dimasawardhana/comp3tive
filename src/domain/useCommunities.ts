@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import type { Community, Id } from "../domain/types";
-import type { CommunityStore, RosterStore, SavedSquadStore, SessionStore } from "../storage/types";
+import type { CommunityStore, RosterStore, SavedSquadStore, SessionStore, TournamentStore } from "../storage/types";
+import { removeCommunityCascade, type CommunityRemovalCounts } from "./community-removal";
 
 const ACTIVE_KEY = "tb-community";
 const DEFAULT_NAME = "Default";
@@ -29,11 +30,13 @@ function writeActive(id: string): void {
  * players, sessions, and saved squads (a community owns them; they cannot be
  * shared).
  */
+
 export function useCommunities(
   store: CommunityStore,
   rosterStore: RosterStore,
   sessionStore: SessionStore,
   savedSquadStore: SavedSquadStore,
+  tournamentStore: TournamentStore,
 ) {
   const [communities, setCommunities] = useState<Community[]>([]);
   const [activeId, setActiveIdState] = useState<string>(readActive);
@@ -89,20 +92,11 @@ export function useCommunities(
   );
 
   const remove = useCallback(
-    async (id: Id) => {
-      const current = await rosterStore.listPlayers();
-      const sessions = await sessionStore.listSessions();
-      const squads = await savedSquadStore.listSavedSquads();
-      for (const p of current) {
-        if (p.communityId === id) await rosterStore.deletePlayer(p.id);
-      }
-      for (const s of sessions) {
-        if (s.communityId === id) await sessionStore.deleteSession(s.id);
-      }
-      for (const q of squads) {
-        if (q.communityId === id) await savedSquadStore.deleteSavedSquad(q.id);
-      }
-      await store.deleteCommunity(id);
+    async (id: Id): Promise<CommunityRemovalCounts> => {
+      const counts = await removeCommunityCascade(
+        { communityStore: store, rosterStore, sessionStore, savedSquadStore, tournamentStore },
+        id,
+      );
       setCommunities((prev) => {
         const next = prev.filter((c) => c.id !== id);
         if (next.length === 0) return prev; // never delete the last community
@@ -112,8 +106,9 @@ export function useCommunities(
         }
         return next;
       });
+      return counts;
     },
-    [store, rosterStore, sessionStore, savedSquadStore, activeId],
+    [store, rosterStore, sessionStore, savedSquadStore, tournamentStore, activeId],
   );
 
   return { communities, activeId, loading, error, refresh, setActiveId, create, remove };

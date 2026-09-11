@@ -1,4 +1,4 @@
-# Team Builder Tournament Implementation Plan
+# comp3tive Tournament Implementation Plan
 
 ## Overview
 Address critical gaps in tournament creation, format specification, and team participation identified during domain model analysis. This plan provides actionable steps to implement missing functionality while maintaining consistency with existing codebase.

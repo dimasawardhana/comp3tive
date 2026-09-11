@@ -1,5 +1,7 @@
 import type { Discipline, Id, Player } from "../domain/types";
 import { capabilityFor } from "./flow";
+import { PageHeader } from "../ui/PageHeader";
+import { Screen } from "../ui/Screen";
 
 interface Props {
   roster: Player[];
@@ -33,15 +35,18 @@ export function MatchScreen(props: Props) {
   const teamCountTooHigh = teamCount > maxPossibleTeams;
 
   return (
-    <div className="screen match-setup">
-      <div className="breadcrumb">
-        <a href="#" onClick={(e) => { e.preventDefault(); props.onBack(); }}>Roster</a>
-        <span className="sep">/</span>
-        <span>Match setup</span>
-      </div>
-
-      <h1>Set the match</h1>
-      <p className="lede">Pick the game first, then the squad. Teams are sized to the game.</p>
+    <Screen className="match-setup">
+      <PageHeader
+        crumbs={
+          <div className="breadcrumb">
+            <a href="#" onClick={(e) => { e.preventDefault(); props.onBack(); }}>Roster</a>
+            <span className="sep">/</span>
+            <span>Match setup</span>
+          </div>
+        }
+        title="Set the match"
+        lede="Pick the game first, then the squad. Teams are sized to the game."
+      />
 
       <section className="match-section">
         <div className="match-section-head">
@@ -185,6 +190,6 @@ export function MatchScreen(props: Props) {
           Split {teamCount} teams
         </button>
       </div>
-    </div>
+    </Screen>
   );
 }
