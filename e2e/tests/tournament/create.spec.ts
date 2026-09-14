@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test";
 
 test("tournament create: sectioned modal with previews and constraints", async ({ page }) => {
-  await page.goto("http://localhost:4173/");
+  await page.goto("./");
   await expect(page.locator(".app")).toBeVisible({ timeout: 15000 });
 
   // Create community

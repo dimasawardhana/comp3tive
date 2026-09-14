@@ -1,6 +1,6 @@
 # Landing Page — a public front door
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 ## Problem Statement
 

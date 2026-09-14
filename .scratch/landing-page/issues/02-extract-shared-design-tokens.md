@@ -10,7 +10,7 @@
 
 **Blocked by:** —
 
-**Status:** open
+**Status:** resolved
 
 - [ ] `src/tokens.css` holds every custom property that was at the top of `src/index.css`, including both dark-mode mechanisms
 - [ ] `src/index.css` and the Landing Page's stylesheet both consume it, and neither redeclares a token

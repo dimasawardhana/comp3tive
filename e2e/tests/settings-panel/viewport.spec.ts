@@ -2,7 +2,7 @@ import { test, expect } from "@playwright/test";
 
 /** Verify panel + navigation stay on viewport (fixed/sticky). */
 test("panel and navigation stay on viewport", async ({ page }) => {
-  await page.goto("http://localhost:4173/");
+  await page.goto("./");
   await expect(page.locator(".app")).toBeVisible({ timeout: 15000 });
 
   // 1. Topbar is sticky (stays at top when scrolling)

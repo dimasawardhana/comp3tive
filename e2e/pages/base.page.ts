@@ -4,7 +4,7 @@ export abstract class BasePage {
   constructor(protected readonly page: Page) {}
 
   async goto(): Promise<void> {
-    await this.page.goto("http://localhost:4173/");
+    await this.page.goto("./");
     await this.page.waitForLoadState("networkidle");
   }
 

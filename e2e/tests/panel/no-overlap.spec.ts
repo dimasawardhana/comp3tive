@@ -3,7 +3,7 @@ import { test, expect } from "@playwright/test";
 /** Verify content is not cut off by sticky topbar / fixed bottom-nav.
  *  Simplified: create community, import players via file, verify no overlap. */
 test("panel: content not cut by fixed nav", async ({ page }) => {
-  await page.goto("http://localhost:4173/");
+  await page.goto("./");
   await expect(page.locator(".app")).toBeVisible({ timeout: 15000 });
 
   // 1. Create a community

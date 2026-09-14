@@ -33,7 +33,7 @@
 
 **Blocked by:** 01 (the `/app` document must exist in `dist/`)
 
-**Status:** open
+**Status:** ready-for-human
 
 - [ ] `wrangler.jsonc` is committed with `assets.directory: "./dist"` and no `main`
 - [ ] `not_found_handling` is `404-page` (not `single-page-application`) in the config **and** cleared in the dashboard if previously set
@@ -44,5 +44,23 @@
 - [ ] A redeploy after a code change serves new HTML (the stale-chunk case is covered)
 
 **Design reference:** `DESIGN.md` for the 404 page; Cloudflare's Workers static-assets docs for the config keys.
+
+## Answer
+
+Built: `wrangler.jsonc` (`assets.directory: "./dist"`, `not_found_handling: "404-page"`, no `main`,
+`html_handling` deliberately unset), `public/_headers`, `public/404.html`. All three land in `dist/`
+and the config parses.
+
+**One criterion is unmet and cannot be met from the repo: the Worker name.** It was not found in any
+reachable source — no `wrangler.toml`/`wrangler.jsonc` existed, `git grep` across all revisions
+finds no `workers.dev` host, the repo has no README or homepage, and `~/.config/.wrangler/` holds
+only an expired/deleted OAuth token (every API call returns `9109 Invalid access token`; logs show
+only failed `wrangler secret list` runs, never a deploy). `wrangler.jsonc` therefore carries
+`"name": "comp3tive"` **as a placeholder**. Replace it with the existing Worker's name before the
+first deploy, or the deploy creates a second Worker rather than updating the live one.
+
+The remaining unmet criteria are dashboard facts, not repo work: confirming the Worker's
+`not_found_handling` is not `single-page-application` (a dashboard value overrides the file), and
+confirming the build command is `npm run build` with asset directory `./dist`.
 
 **Notes:** With GitHub integration the build runs on Cloudflare, so the dashboard's build command must be `npm run build` and its asset directory `./dist`. The committed `wrangler.jsonc` is what makes that reproducible.

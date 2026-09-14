@@ -9,14 +9,14 @@ export default defineConfig({
   expect: { timeout: 10_000 },
   reporter: [["list"], ["html", { open: "never" }]],
   use: {
-    baseURL: "http://localhost:4173",
+    baseURL: "http://localhost:4173/app/",
     trace: "on-first-retry",
     screenshot: "only-on-failure",
     viewport: { width: 1280, height: 720 },
   },
   webServer: {
     command: "npm run preview",
-    url: "http://localhost:4173",
+    url: "http://localhost:4173/app/",
     reuseExistingServer: true,
     timeout: 120_000,
   },

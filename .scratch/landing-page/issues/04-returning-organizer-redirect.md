@@ -24,7 +24,7 @@ Why this key: the app writes `localStorage["tb-community"]` on its first success
 
 **Blocked by:** 03
 
-**Status:** open
+**Status:** resolved
 
 - [ ] With `tb-community` present, loading `/` lands in the app with no visible flash of the Landing Page
 - [ ] With no `tb-community`, `/` shows the Landing Page

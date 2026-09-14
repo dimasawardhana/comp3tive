@@ -1,0 +1,20 @@
+{
+  // Static-assets Worker: the site is two documents plus a hero image, so there is
+  // no Worker script and no `main`. See docs/adr/0006-landing-page-and-app-paths.md.
+  //
+  // `not_found_handling` MUST NOT be "single-page-application": that value would
+  // serve dist/index.html — the Landing Page — for every unmatched path, including
+  // under /app/. `404-page` serves public/404.html instead.
+  //
+  // `html_handling` is deliberately unset: the default `auto-trailing-slash` already
+  // serves /app (307 to /app/) from dist/app/index.html, redirecting the two to the
+  // canonical spec form.
+  //
+  // /api/* is reserved for the planned backend and claimed by nothing here.
+  "name": "comp3tive",
+  "compatibility_date": "2026-09-14",
+  "assets": {
+    "directory": "./dist",
+    "not_found_handling": "404-page"
+  }
+}

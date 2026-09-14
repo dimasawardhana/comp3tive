@@ -2,7 +2,7 @@ import { test, expect } from "@playwright/test";
 
 /** Verify community: cancel button + redesigned dropdown. */
 test("community: cancel button + custom dropdown", async ({ page }) => {
-  await page.goto("http://localhost:4173/");
+  await page.goto("./");
   await expect(page.locator(".app")).toBeVisible({ timeout: 15000 });
 
   const communityBtn = page.getByTitle("New community");

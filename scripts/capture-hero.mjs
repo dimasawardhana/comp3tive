@@ -19,7 +19,7 @@ import { mkdir, readFile, stat } from "node:fs/promises";
 import { resolve } from "node:path";
 import { chromium } from "@playwright/test";
 
-const BASE = "http://localhost:4173/";
+const BASE = "http://localhost:4173/app/";
 const outDir = resolve(process.argv[2] ?? "public");
 
 /** Fictional roster: 10 MLBB players, two per role, varied strength. */

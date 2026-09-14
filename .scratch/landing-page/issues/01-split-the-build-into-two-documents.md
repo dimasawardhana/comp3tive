@@ -20,7 +20,7 @@
 
 **Blocked by:** —
 
-**Status:** open
+**Status:** resolved
 
 - [ ] `npm run build` emits both `dist/index.html` and `dist/app/index.html`
 - [ ] Both emitted HTML files reference the same `/assets/…` hashed bundle

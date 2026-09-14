@@ -51,7 +51,7 @@ Both images are committed in `public/hero/`. Keep `width`/`height` so the page d
 
 **Blocked by:** 01, 02
 
-**Status:** open
+**Status:** resolved
 
 - [ ] `/` renders the Landing Page with the copy above; the app is not mounted on it
 - [ ] The primary action navigates to `/app/` and is reachable by keyboard with visible focus

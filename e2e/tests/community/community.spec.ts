@@ -2,7 +2,7 @@ import { test, expect } from "@playwright/test";
 
 /** Verify community form layout + squad-select font legibility. */
 test("community: form layout + select font readable", async ({ page }) => {
-  await page.goto("http://localhost:4173/");
+  await page.goto("./");
   await expect(page.locator(".app")).toBeVisible({ timeout: 15000 });
 
   // 1. Create initial community if none exists

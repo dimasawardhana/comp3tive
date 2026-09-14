@@ -103,7 +103,7 @@ function seedScript(world: SeedWorld): string {
 /** Seed a world, then load the app (which lands on the Dashboard). */
 async function gotoSeeded(page: Page, world: SeedWorld) {
   await page.addInitScript(seedScript(world));
-  await page.goto("http://localhost:4173/");
+  await page.goto("./");
   await expect(page.locator(".app")).toBeVisible({ timeout: 15000 });
 }
 

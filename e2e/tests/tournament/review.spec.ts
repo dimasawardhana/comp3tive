@@ -8,6 +8,6 @@ import { test, expect } from "@playwright/test";
 test.skip("tournament review: post-split review panel before bracket", async ({ page }) => {
   // This test requires complex setup (8 players, capabilities, split, submit).
   // The review panel implementation is verified by the build and manual testing.
-  await page.goto("http://localhost:4173/");
+  await page.goto("./");
   await expect(page.locator(".app")).toBeVisible({ timeout: 15000 });
 });
