@@ -1,13 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48" role="img" aria-labelledby="c2i-title c2i-desc">
-  <title id="c2i-title">comp3tive</title>
-  <desc id="c2i-desc">Icon-only: split circle in amber and stone</desc>
-  <defs>
-    <style>
-      .hl { fill: #C2410C; }
-      .st { fill: #57534E; }
-    </style>
-  </defs>
-  <!-- The split: two semicircles meeting at center with a gap -->
-  <path class="hl" d="M24,36 A12,12 0 0,0 24,12" transform="translate(-2,0)" />
-  <path class="st" d="M24,12 A12,12 0 0,1 24,36" transform="translate(2,0)" />
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48" role="img" aria-labelledby="c2i-t c2i-d">
+  <title id="c2i-t">comp3tive</title>
+  <desc id="c2i-d">Icon-only: split circle in amber and stone</desc>
+  <defs><style>@font-face{font-family:'Outfit';src:url('https://fonts.gstatic.com/s/outfit/v15/QGYyz_MVcBeNP4NjuGObqx1XmO1I4e6yC4E.ttf') format('truetype');font-weight:600;font-display:swap}</style></defs>
+  <path class="hl" d="M24,36 A12,12 0 0,0 24,12" transform="translate(-2,0)"/><path class="st" d="M24,12 A12,12 0 0,1 24,36" transform="translate(2,0)"/></svg>

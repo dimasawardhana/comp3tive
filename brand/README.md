@@ -2,6 +2,8 @@
 
 Three concepts, one brief: **the split** — dividing a group into fair teams. Amber (`#C2410C`) on paper (`#FAF8F5`), stone (`#57534E`) as the balanced counterweight. Outfit for the wordmark.
 
+The wordmark **comp3tive** is itself a brand statement: `comp` in amber, `3` as an amber-to-stone gradient (both colors bridged), `tive` in stone. The "3" is the pivot that joins the two brand colors.
+
 ## Concept 1 — Split Capsule
 
 A rounded capsule bisected vertically into two balanced halves. The capsule is the most "contained" shape — it reads as a single object that has been divided, which is exactly what the product does: take one group and split it fairly. The straight split line is calm and editorial, matching the Paper & Pencil direction.
@@ -41,21 +43,34 @@ A wide, low pill bisected vertically. The horizontal emphasis is dynamic — it 
 |---|---|---|
 | Primary (amber) | hl | `#C2410C` |
 | Counterweight (stone) | st | `#57534E` |
-| Wordmark ink | wm | `#1C1917` |
+| Wordmark amber | comp | `#C2410C` |
+| Wordmark stone | tive | `#57534E` |
+| Wordmark 3 gradient | 3 | `#C2410C` → `#57534E` |
 | Background | paper | `#FAF8F5` |
+
+## Wordmark: comp · 3 · tive
+
+The wordmark is built from three `<tspan>` segments inside a single `<text>` element:
+- `comp` — fill `#C2410C` (amber)
+- `3` — fill `url(#g3)`, a horizontal linear gradient amber → stone
+- `tive` — fill `#57534E` (stone)
+
+The "3" sits between the two brand colors and bridges them. This is intentional: the brand name contains the word "three," and its middle character literally combines both identities.
+
+The gradient is defined per-SVG in `<defs>` as `id="g3"` with `gradientUnits="objectBoundingBox"` so it spans the width of the "3" glyph. Outfit 600 loads from Google Fonts via `@font-face`; system-ui is the fallback with the same letter-spacing.
 
 ## Usage
 
 - **Clear space:** minimum clear space = the width of one half of the icon, on all sides.
 - **Minimum size:** 48px wide for the horizontal lockup; 24px for icon-only.
-- **Do not** recolor, stretch, or add effects.
-- **On dark backgrounds**, use the reversed version (stone + amber swapped to white).
-- **Font:** Outfit 600 for the wordmark. If Outfit is unavailable, system-ui sans-serif.
+- **Do not** recolor, stretch, or add effects to the wordmark segments — the amber/stone/gradient split is the identity.
+- **On dark backgrounds**, use the reversed version (stone + amber swapped to white, gradient reversed stone → amber).
+- **Font:** Outfit 600 for the wordmark. If Outfit is unavailable, system-ui sans-serif with `letter-spacing: .06em`.
 
 ## Monochrome Variations
 
 Append to any concept's SVG by overriding the fills:
 
-- **Dark:** `.hl { fill: #C2410C; } .st { fill: #57534E; } .wm { fill: #1C1917; }`
-- **Reversed (dark bg):** `.hl { fill: #FAF8F5; } .st { fill: #C2410C; } .wm { fill: #FAF8F5; }`
-- **Single amber:** `.hl { fill: #C2410C; } .st { fill: #C2410C; } .wm { fill: #C2410C; }`
+- **Dark (single amber):** `.hl { fill: #C2410C; } .st { fill: #C2410C; } .wm { fill: #C2410C; }`
+- **Reversed (dark bg):** `.hl { fill: #FAF8F5; } .st { fill: #C2410C; }` with wordmark reversed gradient
+- **Single stone:** `.hl { fill: #57534E; } .st { fill: #57534E; }`

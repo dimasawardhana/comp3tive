@@ -1,15 +1,8 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" width="260" height="60" role="img" aria-labelledby="c1-title c1-desc">
-  <title id="c1-title">comp3tive</title>
-  <desc id="c1-desc">Combination mark: a capsule split into balanced halves in amber and stone, with the wordmark comp3tive</desc>
-  <defs>
-    <style>
-      .hl { fill: #C2410C; }
-      .st { fill: #57534E; }
-      .wm { font-family: 'Outfit', system-ui, sans-serif; font-size: 18px; font-weight: 600; fill: #1C1917; }
-    </style>
-  </defs>
-  <!-- The split: a capsule divided into two balanced halves -->
-  <rect class="hl" x="60"  y="13" width="20" height="34" rx="10" />
-  <rect class="st" x="84"  y="13" width="20" height="34" rx="10" />
-  <text class="wm" x="112" y="41">comp3tive</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" width="260" height="60" role="img" aria-labelledby="comp3tive-t comp3tive-d">
+  <title id="comp3tive-t">comp3tive</title>
+  <desc id="comp3tive-d">Combination mark: capsule split into balanced halves in amber and stone, wordmark comp3tive with the 3 bridging both colors</desc>
+  <defs><style>@font-face{font-family:'Outfit';src:url('https://fonts.gstatic.com/s/outfit/v15/QGYyz_MVcBeNP4NjuGObqx1XmO1I4e6yC4E.ttf') format('truetype');font-weight:600;font-display:swap} .wm{font-family:'Outfit','Segoe UI',system-ui,sans-serif;font-weight:600;letter-spacing:.06em}</style><linearGradient id="g3" gradientUnits="objectBoundingBox" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#C2410C"/><stop offset="100%" stop-color="#57534E"/></linearGradient></defs>
+<rect class="hl" x="60" y="13" width="20" height="34" rx="10"/><rect class="st" x="84" y="13" width="20" height="34" rx="10"/><text class="wm" x="112" y="36">
+  <tspan style="fill:#C2410C">comp</tspan><tspan style="fill:url(#g3)">3</tspan><tspan style="fill:#57534E">tive</tspan>
+</text>
 </svg>
