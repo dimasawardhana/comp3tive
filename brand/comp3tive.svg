@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 455 162" width="455" height="162" role="img" aria-labelledby="comp3tive-t comp3tive-d">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 450 162" width="450" height="162" role="img" aria-labelledby="comp3tive-t comp3tive-d">
   <title id="comp3tive-t">comp3tive</title>
   <desc id="comp3tive-d">Full brand wordmark: COMP(amber) 3(top-amber/bottom-stone) TIVE(stone)</desc>
   <defs>
@@ -6,11 +6,11 @@
       @font-face{font-family:'Outfit';src:url('https://fonts.gstatic.com/s/outfit/v15/QGYyz_MVcBeNP4NjuGObqx1XmO1I4e6yC4E.ttf') format('truetype');font-weight:600;font-display:swap}
     </style>
     <clipPath id="wg">
-      <text x="214.5" y="128" text-anchor="start" style="font-family:'Outfit','Segoe UI',system-ui,sans-serif;font-weight:600;font-size:128px">3</text>
+      <text x="209" y="128" text-anchor="start" style="font-family:'Outfit','Segoe UI',system-ui,sans-serif;font-weight:600;font-size:128px">3</text>
     </clipPath>
   </defs>
   <text x="6" y="104" text-anchor="start" style="font-family:'Outfit','Segoe UI',system-ui,sans-serif;font-weight:600;font-size:64px;letter-spacing:.06em"><tspan fill="#C2410C">COMP</tspan></text>
-  <text x="214.5" y="128" text-anchor="start" fill="#57534E" style="font-family:'Outfit','Segoe UI',system-ui,sans-serif;font-weight:600;font-size:128px">3</text>
-  <text x="290.9" y="104" text-anchor="start" style="font-family:'Outfit','Segoe UI',system-ui,sans-serif;font-weight:600;font-size:64px;letter-spacing:.06em"><tspan fill="#57534E">TIVE</tspan></text>
-  <rect x="0" y="0" width="455" height="81" fill="#C2410C" clip-path="url(#wg)"/>
+  <text x="209" y="128" text-anchor="start" fill="#57534E" style="font-family:'Outfit','Segoe UI',system-ui,sans-serif;font-weight:600;font-size:128px">3</text>
+  <text x="279.9" y="104" text-anchor="start" style="font-family:'Outfit','Segoe UI',system-ui,sans-serif;font-weight:600;font-size:64px;letter-spacing:.06em"><tspan fill="#57534E">TIVE</tspan></text>
+  <rect x="0" y="0" width="450" height="81" fill="#C2410C" clip-path="url(#wg)"/>
 </svg>
