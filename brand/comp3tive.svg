@@ -1,15 +1,15 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 90" width="400" height="90" role="img" aria-labelledby="comp3tive-t comp3tive-d">
   <title id="comp3tive-t">comp3tive</title>
-  <desc id="comp3tive-d">Full brand wordmark: comp(amber) 3(top-amber/bottom-stone) tive(stone)</desc>
+  <desc id="comp3tive-d">Full brand wordmark: COMP(amber) 3(top-amber/bottom-stone) TIVE(stone)</desc>
   <defs>
     <style>
       @font-face{font-family:'Outfit';src:url('https://fonts.gstatic.com/s/outfit/v15/QGYyz_MVcBeNP4NjuGObqx1XmO1I4e6yC4E.ttf') format('truetype');font-weight:600;font-display:swap}
     </style>
     <clipPath id="wg">
-      <text x="200" y="60" text-anchor="middle" style="font-family:'Outfit','Segoe UI',system-ui,sans-serif;font-weight:600;font-size:64px;letter-spacing:.06em">3</text>
+      <text x="206.1" y="60" text-anchor="start" style="font-family:'Outfit','Segoe UI',system-ui,sans-serif;font-weight:600;font-size:64px;letter-spacing:.06em">3</text>
     </clipPath>
   </defs>
-  <text x="200" y="60" text-anchor="middle" style="font-family:'Outfit','Segoe UI',system-ui,sans-serif;font-weight:600;font-size:64px;letter-spacing:.06em">
+  <text x="200" y="60" text-anchor="middle" style="font-family:'Outfit','Segoe UI',system-ui,sans-serif;font-weight:600;font-size:64px;letter-spacing:.06em;text-transform:uppercase">
     <tspan fill="#C2410C">comp</tspan><tspan fill="#57534E">3</tspan><tspan fill="#57534E">tive</tspan>
   </text>
   <rect x="0" y="0" width="400" height="35" fill="#C2410C" clip-path="url(#wg)"/>
