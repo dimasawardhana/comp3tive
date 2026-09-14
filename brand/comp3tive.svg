@@ -9,8 +9,8 @@
       <text x="206.1" y="60" text-anchor="start" style="font-family:'Outfit','Segoe UI',system-ui,sans-serif;font-weight:600;font-size:64px;letter-spacing:.06em">3</text>
     </clipPath>
   </defs>
-  <text x="200" y="60" text-anchor="middle" style="font-family:'Outfit','Segoe UI',system-ui,sans-serif;font-weight:600;font-size:64px;letter-spacing:.06em;text-transform:uppercase">
-    <tspan fill="#C2410C">comp</tspan><tspan fill="#57534E">3</tspan><tspan fill="#57534E">tive</tspan>
+  <text x="200" y="60" text-anchor="middle" style="font-family:'Outfit','Segoe UI',system-ui,sans-serif;font-weight:600;font-size:64px;letter-spacing:.06em">
+    <tspan fill="#C2410C">COMP</tspan><tspan fill="#57534E">3</tspan><tspan fill="#57534E">TIVE</tspan>
   </text>
   <rect x="0" y="0" width="400" height="35" fill="#C2410C" clip-path="url(#wg)"/>
 </svg>
