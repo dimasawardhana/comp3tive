@@ -1,7 +1,8 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128" role="img" aria-labelledby="3-t 3-d">
   <title id="3-t">3</title>
   <desc id="3-d">Icon-only brand mark: the digit three</desc>
-  <defs><style>@font-face{font-family:'Outfit';src:url('https://fonts.gstatic.com/s/outfit/v15/QGYyz_MVcBeNP4NjuGObqx1XmO1I4e6yC4E.ttf') format('truetype');font-weight:600;font-display:swap}</style><linearGradient id="g3" gradientUnits="objectBoundingBox" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#C2410C"/><stop offset="100%" stop-color="#57534E"/></linearGradient></defs>
-<text x="64" y="96" text-anchor="middle"
-         style="font-family:'Outfit','Segoe UI',system-ui,sans-serif;font-weight:600;font-size:88px;fill:url(#g3)">3</text>
+  <defs><style>@font-face{font-family:'Outfit';src:url('https://fonts.gstatic.com/s/outfit/v15/QGYyz_MVcBeNP4NjuGObqx1XmO1I4e6yC4E.ttf') format('truetype');font-weight:600;font-display:swap} .wm{font-family:'Outfit','Segoe UI',system-ui,sans-serif;font-weight:600;letter-spacing:.06em}</style><linearGradient id="g3" gradientUnits="objectBoundingBox" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#C2410C"/><stop offset="100%" stop-color="#57534E"/></linearGradient></defs>
+<clipPath id="ig"><text x="64" y="93" text-anchor="middle" style="font-family:'Outfit','Segoe UI',system-ui,sans-serif;font-weight:600;font-size:88px">3</text></clipPath>
+  <text x="64" y="93" text-anchor="middle" style="font-family:'Outfit','Segoe UI',system-ui,sans-serif;font-weight:600;font-size:88px" fill="#57534E">3</text>
+  <rect x="0" y="0" width="128" height="61" fill="#C2410C" clip-path="url(#ig)"/>
 </svg>
