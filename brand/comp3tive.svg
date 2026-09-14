@@ -6,11 +6,11 @@
       @font-face{font-family:'Outfit';src:url('https://fonts.gstatic.com/s/outfit/v15/QGYyz_MVcBeNP4NjuGObqx1XmO1I4e6yC4E.ttf') format('truetype');font-weight:600;font-display:swap}
     </style>
     <clipPath id="wg">
-      <text x="203.1" y="60" text-anchor="start" style="font-family:'Outfit','Segoe UI',system-ui,sans-serif;font-weight:600;font-size:64px;letter-spacing:.06em">3</text>
+      <text x="200.9" y="68" text-anchor="start" style="font-family:'Outfit','Segoe UI',system-ui,sans-serif;font-weight:600;font-size:72px">3</text>
     </clipPath>
   </defs>
-  <text x="200" y="60" text-anchor="middle" style="font-family:'Outfit','Segoe UI',system-ui,sans-serif;font-weight:600;font-size:64px;letter-spacing:.06em">
-    <tspan fill="#C2410C">COMP</tspan><tspan fill="#57534E">3</tspan><tspan fill="#57534E">TIVE</tspan>
+  <text x="200" y="68" text-anchor="middle" style="font-family:'Outfit','Segoe UI',system-ui,sans-serif;font-weight:600;font-size:64px;letter-spacing:.06em">
+    <tspan fill="#C2410C">COMP</tspan><tspan fill="#57534E" style="font-size:72px">3</tspan><tspan fill="#57534E">TIVE</tspan>
   </text>
-  <rect x="0" y="0" width="400" height="35" fill="#C2410C" clip-path="url(#wg)"/>
+  <rect x="0" y="0" width="400" height="42" fill="#C2410C" clip-path="url(#wg)"/>
 </svg>
