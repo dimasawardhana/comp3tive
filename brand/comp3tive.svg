@@ -6,11 +6,10 @@
       @font-face{font-family:'Outfit';src:url('https://fonts.gstatic.com/s/outfit/v15/QGYyz_MVcBeNP4NjuGObqx1XmO1I4e6yC4E.ttf') format('truetype');font-weight:600;font-display:swap}
     </style>
     <clipPath id="wg">
-      <text x="220.5" y="128" text-anchor="start" style="font-family:'Outfit','Segoe UI',system-ui,sans-serif;font-weight:600;font-size:128px">3</text>
+      <text x="235" y="128" text-anchor="middle" style="font-family:'Outfit','Segoe UI',system-ui,sans-serif;font-weight:600;font-size:128px">3</text>
     </clipPath>
   </defs>
-  <text x="235" y="128" text-anchor="middle" style="font-family:'Outfit','Segoe UI',system-ui,sans-serif;font-weight:600;font-size:64px;letter-spacing:.06em">
-    <tspan fill="#C2410C">COMP</tspan><tspan fill="#57534E" style="font-size:128px">3</tspan><tspan fill="#57534E">TIVE</tspan>
-  </text>
-  <rect x="0" y="0" width="470" height="80" fill="#C2410C" clip-path="url(#wg)"/>
+<text x="235" y="128" text-anchor="middle" fill="#57534E" style="font-family:'Outfit','Segoe UI',system-ui,sans-serif;font-weight:600;font-size:128px">3</text>
+  <text x="235" y="104" text-anchor="middle" style="font-family:'Outfit','Segoe UI',system-ui,sans-serif;font-weight:600;font-size:64px;letter-spacing:.06em"><tspan fill="#C2410C">COMP</tspan><tspan fill="#57534E">TIVE</tspan></text>
+  <rect x="0" y="0" width="470" height="81" fill="#C2410C" clip-path="url(#wg)"/>
 </svg>
