@@ -1,41 +1,21 @@
-# comp3tive — Logo Concepts
+# comp3tive — Brand Marks
 
-Three concepts, one brief: **the split** — dividing a group into fair teams. Amber (`#C2410C`) on paper (`#FAF8F5`), stone (`#57534E`) as the balanced counterweight. Outfit for the wordmark.
+Three brand marks built around the digit **three** — the core of the brand name.
 
-The wordmark **comp3tive** is itself a brand statement: `comp` in amber, `3` as an amber-to-stone gradient (both colors bridged), `tive` in stone. The "3" is the pivot that joins the two brand colors.
+The wordmark **comp3tive** splits into three colored segments:
+- `comp` — amber (`#C2410C`)
+- `3` — amber → stone gradient (both brand colors bridged)
+- `tive` — stone (`#57534E`)
 
-## Concept 1 — Split Capsule
+The "3" is the pivot: the brand name means "three," and its middle character literally combines both identities.
 
-A rounded capsule bisected vertically into two balanced halves. The capsule is the most "contained" shape — it reads as a single object that has been divided, which is exactly what the product does: take one group and split it fairly. The straight split line is calm and editorial, matching the Paper & Pencil direction.
+## Marks
 
-**Use for:** Website header, business card, wherever a compact, confident mark is needed.
-
-| Layout | File |
-|---|---|
-| Horizontal lockup | `brand/01-split-capsule/horizontal.svg` |
-| Icon only | `brand/01-split-capsule/icon.svg` |
-
-## Concept 2 — Split Circle
-
-A circle bisected vertically. The circle is the "complete" shape — it says the group is whole before it splits. The soft curves read warmer and more approachable than the capsule, and the circular form echoes a ball (futsal, MLBB, badminton).
-
-**Use for:** Social media profile, app icon, wherever a friendly, recognizable mark is needed.
-
-| Layout | File |
-|---|---|
-| Horizontal lockup | `brand/02-split-circle/horizontal.svg` |
-| Icon only | `brand/02-split-circle/icon.svg` |
-
-## Concept 3 — Split Pill
-
-A wide, low pill bisected vertically. The horizontal emphasis is dynamic — it reads like a scorebar being split, directly evoking the tournament moment. Most distinctive of the three; least "logo-like," so best where the mark must sit alongside other text.
-
-**Use for:** Hero section, splash screen, wherever the mark needs to feel energetic and wide.
-
-| Layout | File |
-|---|---|
-| Horizontal lockup | `brand/03-split-pill/horizontal.svg` |
-| Icon only | `brand/03-split-pill/icon.svg` |
+| Mark | File | Use |
+|---|---|---|
+| Core mark — the "3" | `brand/3.svg` | Primary logo, large formats |
+| Full wordmark | `brand/comp3tive.svg` | Headers, body text alongside |
+| Icon variant — squared | `brand/3-icon.svg` | Favicon, app icon, square crops |
 
 ## Brand Palette
 
@@ -50,27 +30,24 @@ A wide, low pill bisected vertically. The horizontal emphasis is dynamic — it 
 
 ## Wordmark: comp · 3 · tive
 
-The wordmark is built from three `<tspan>` segments inside a single `<text>` element:
-- `comp` — fill `#C2410C` (amber)
-- `3` — fill `url(#g3)`, a horizontal linear gradient amber → stone
-- `tive` — fill `#57534E` (stone)
+The wordmark is a single `<text>` element containing three `<tspan>` children:
+- `comp` — `fill="#C2410C"` (amber)
+- `3` — `fill="url(#g3)"`, a horizontal linear gradient amber → stone
+- `tive` — `fill="#57534E"` (stone)
 
-The "3" sits between the two brand colors and bridges them. This is intentional: the brand name contains the word "three," and its middle character literally combines both identities.
-
-The gradient is defined per-SVG in `<defs>` as `id="g3"` with `gradientUnits="objectBoundingBox"` so it spans the width of the "3" glyph. Outfit 600 loads from Google Fonts via `@font-face`; system-ui is the fallback with the same letter-spacing.
+The gradient `id="g3"` is defined in each SVG's `<defs>` with `gradientUnits="objectBoundingBox"` so it spans the width of the "3" glyph. Outfit 600 loads from Google Fonts via `@font-face`; system-ui is the fallback with `letter-spacing: .06em`.
 
 ## Usage
 
-- **Clear space:** minimum clear space = the width of one half of the icon, on all sides.
-- **Minimum size:** 48px wide for the horizontal lockup; 24px for icon-only.
+- **Clear space:** minimum clear space = the width of the "3" glyph, on all sides.
 - **Do not** recolor, stretch, or add effects to the wordmark segments — the amber/stone/gradient split is the identity.
 - **On dark backgrounds**, use the reversed version (stone + amber swapped to white, gradient reversed stone → amber).
-- **Font:** Outfit 600 for the wordmark. If Outfit is unavailable, system-ui sans-serif with `letter-spacing: .06em`.
+- **Font:** Outfit 600 for the wordmark. If Outfit is unavailable, system-ui sans-serif.
 
 ## Monochrome Variations
 
-Append to any concept's SVG by overriding the fills:
+To make a single-color version, override the tspan fills:
 
-- **Dark (single amber):** `.hl { fill: #C2410C; } .st { fill: #C2410C; } .wm { fill: #C2410C; }`
-- **Reversed (dark bg):** `.hl { fill: #FAF8F5; } .st { fill: #C2410C; }` with wordmark reversed gradient
-- **Single stone:** `.hl { fill: #57534E; } .st { fill: #57534E; }`
+- **Amber only:** all three tspans `fill="#C2410C"`
+- **Stone only:** all three tspans `fill="#57534E"`
+- **Reversed (dark bg):** `comp` → `#FAF8F5`, `3` → gradient `#FAF8F5`→`#C2410C`, `tive` → `#FAF8F5`

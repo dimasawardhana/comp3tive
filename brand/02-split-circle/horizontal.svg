@@ -1,8 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" width="260" height="60" role="img" aria-labelledby="comp3tive-t comp3tive-d">
-  <title id="comp3tive-t">comp3tive</title>
-  <desc id="comp3tive-d">Combination mark: circle split into balanced halves in amber and stone, wordmark comp3tive with the 3 bridging both colors</desc>
-  <defs><style>@font-face{font-family:'Outfit';src:url('https://fonts.gstatic.com/s/outfit/v15/QGYyz_MVcBeNP4NjuGObqx1XmO1I4e6yC4E.ttf') format('truetype');font-weight:600;font-display:swap} .wm{font-family:'Outfit','Segoe UI',system-ui,sans-serif;font-weight:600;letter-spacing:.06em}</style><linearGradient id="g3" gradientUnits="objectBoundingBox" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#C2410C"/><stop offset="100%" stop-color="#57534E"/></linearGradient></defs>
-<path class="hl" d="M79,50 A20,20 0 0,0 79,10" transform="translate(-2,0)"/><path class="st" d="M79,10 A20,20 0 0,1 79,50" transform="translate(2,0)"/><text class="wm" x="112" y="36">
-  <tspan style="fill:#C2410C">comp</tspan><tspan style="fill:url(#g3)">3</tspan><tspan style="fill:#57534E">tive</tspan>
-</text>
-</svg>
