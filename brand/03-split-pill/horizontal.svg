@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 48" width="260" height="48" role="img" aria-labelledby="c3-title c3-desc">
+  <title id="c3-title">comp3tive</title>
+  <desc id="c3-desc">Combination mark: a horizontal pill split into two balanced halves in amber and stone, with the wordmark comp3tive</desc>
+  <defs>
+    <style>
+      .hl { fill: #C2410C; }
+      .st { fill: #57534E; }
+      .wm { font-family: 'Outfit', system-ui, sans-serif; font-size: 16px; font-weight: 600; fill: #1C1917; }
+    </style>
+  </defs>
+  <!-- The split: a wide pill divided into two balanced halves -->
+  <rect class="hl" x="60"  y="9"  width="30" height="30" rx="15" />
+  <rect class="st" x="94"  y="9"  width="30" height="30" rx="15" />
+  <text class="wm" x="128" y="31">comp3tive</text>
+</svg>

@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48" role="img" aria-labelledby="c3i-title c3i-desc">
+  <title id="c3i-title">comp3tive</title>
+  <desc id="c3i-desc">Icon-only: split horizontal pill in amber and stone</desc>
+  <defs>
+    <style>
+      .hl { fill: #C2410C; }
+      .st { fill: #57534E; }
+    </style>
+  </defs>
+  <!-- The split -->
+  <rect class="hl" x="5" y="10" width="19" height="22" rx="9" />
+  <rect class="st" x="28" y="10" width="19" height="22" rx="9" />
+</svg>
