@@ -109,16 +109,15 @@ body {
   max-width: 1100px;
   height: auto;
   margin: 0 auto;
-  /* Two files with different aspect ratios (desktop 890x625, mobile 700x1810)
-     swap at the breakpoint below. `<source>` carries no width/height, so the
-     box must be reserved here or the image lands and pushes the whole page
-     down by its full height. */
-  aspect-ratio: 890 / 625;
+  /* Captured screenshots: desktop 1900x1842, mobile 780x2394.
+     aspect-ratio matches the captured image content so the box
+     is reserved correctly at the breakpoint below. */
+  aspect-ratio: 1900 / 1842;
 }
 
 @media (max-width: 640px) {
   .landing-hero img {
-    aspect-ratio: 700 / 1810;
+    aspect-ratio: 780 / 2394;
   }
 }
 
