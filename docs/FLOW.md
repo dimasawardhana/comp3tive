@@ -14,6 +14,13 @@ in the grilling record; the contract):
 - **P5** The split flow is never ambiguous: every entry names its **source**, and back/submit
   always return to that source.
 
+## 0. Entry
+
+The app is entered at **`/app`**. The site root (`/`) is the **Landing Page** — a plain static
+document outside the app that explains what comp3tive is and links in. It holds no domain records
+and is never community-scoped, so nothing below applies to it. An organizer who has already used
+the app is forwarded from `/` to `/app` before first paint (ADR-0006).
+
 ## 1. Hubs
 
 Four bottom-nav hubs. A hub is a top-level home with no back control and no breadcrumb.

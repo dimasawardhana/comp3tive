@@ -4,15 +4,79 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>comp3tive</title>
+    <script>
+      // Returning organizer: this key is written by the app's own community hook
+      // (src/domain/useCommunities.ts), and localStorage is origin-scoped, so it
+      // already means "this browser has run the app". Synchronous, pre-paint, and
+      // `replace` so Back from the app leaves the site instead of bouncing.
+      // `?stay` keeps the Landing Page reachable after the app has been used.
+      try {
+        if (localStorage.getItem("tb-community") && !location.search.includes("stay")) {
+          location.replace("/app/");
+        }
+      } catch (e) {
+        /* storage blocked — show the page */
+      }
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=Familjen+Grotesk:wght@400;500;600&display=swap"
       rel="stylesheet"
     />
+    <link rel="stylesheet" href="/src/landing.css" />
   </head>
   <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
+    <main class="landing">
+      <svg class="landing-wordmark" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 450 162" role="img" aria-labelledby="comp3tive-t comp3tive-d">
+        <title id="comp3tive-t">comp3tive</title>
+        <defs>
+          <clipPath id="wg">
+            <text x="209" y="128" text-anchor="start" style="font-family:'Outfit','Segoe UI',system-ui,sans-serif;font-weight:600;font-size:128px">3</text>
+          </clipPath>
+        </defs>
+        <text x="6" y="104" text-anchor="start" style="font-family:'Outfit','Segoe UI',system-ui,sans-serif;font-weight:600;font-size:64px;letter-spacing:.06em"><tspan fill="#C2410C">COMP</tspan></text>
+        <text x="209" y="128" text-anchor="start" fill="#57534E" style="font-family:'Outfit','Segoe UI',system-ui,sans-serif;font-weight:600;font-size:128px">3</text>
+        <text x="279.9" y="104" text-anchor="start" style="font-family:'Outfit','Segoe UI',system-ui,sans-serif;font-weight:600;font-size:64px;letter-spacing:.06em"><tspan fill="#57534E">TIVE</tspan></text>
+        <rect x="0" y="0" width="450" height="81" fill="#C2410C" clip-path="url(#wg)"/>
+      </svg>
+
+      <p class="kicker" aria-hidden="true">Fair split · Tournaments</p>
+      <h1>Split the group into fair teams.</h1>
+      <p class="landing-lede">
+        comp3tive builds balanced teams from your roster — futsal, MLBB, badminton — then runs the
+        tournament on those teams.
+      </p>
+
+      <div id="landing-hero" aria-label="Split result"></div>
+      <script type="module" src="/src/landing.tsx"></script>
+
+      <dl class="landing-features">
+        <dt>Split</dt>
+        <dd>Pick who&rsquo;s here. Get teams with the smallest possible strength gap — exact, not guessed.</dd>
+
+        <dt>Edit</dt>
+        <dd>Swap anyone. The gap updates live, so you can see whether the change was fair.</dd>
+
+        <dt>Play</dt>
+        <dd>Run a series, single elimination, or Swiss. Record results as they happen.</dd>
+      </dl>
+
+      <ul class="landing-trust">
+        <li>The gap is the proven minimum for your pool, not a heuristic.</li>
+        <li>Works with no signal. The court has no wifi.</li>
+        <li>Your data stays on your device. No account, no server.</li>
+      </ul>
+
+      <div class="landing-action">
+        <a class="cta" href="/app/">Open comp3tive</a>
+        <p class="landing-action-note">Free, no account. Runs in your browser.</p>
+      </div>
+
+
+      <footer class="landing-footer">
+        comp3tive — fair teams for futsal nights, MLBB sessions, and everything after.
+      </footer>
+    </main>
   </body>
 </html>

@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 300" width="300" height="300" role="img" aria-labelledby="3-t 3-d">
+  <title id="3-t">3</title>
+  <desc id="3-d">Core brand mark: the digit three, top half amber, bottom half stone</desc>
+  <defs>
+    <style>
+      @font-face{font-family:'Outfit';src:url('https://fonts.gstatic.com/s/outfit/v15/QGYyz_MVcBeNP4NjuGObqx1XmO1I4e6yC4E.ttf') format('truetype');font-weight:600;font-display:swap}
+    </style>
+    <clipPath id="cg">
+      <text x="150" y="222" text-anchor="middle" style="font-family:'Outfit','Segoe UI',system-ui,sans-serif;font-weight:600;font-size:200px">3</text>
+    </clipPath>
+  </defs>
+  <text x="150" y="222" text-anchor="middle" style="font-family:'Outfit','Segoe UI',system-ui,sans-serif;font-weight:600;font-size:200px" fill="#57534E">3</text>
+  <rect x="0" y="0" width="300" height="144" fill="#C2410C" clip-path="url(#cg)"/>
+</svg>

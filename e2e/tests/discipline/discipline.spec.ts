@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test";
 
 test("discipline: layout padding + list refreshes after creation", async ({ page }) => {
-  await page.goto("http://localhost:4173/");
+  await page.goto("./");
   await expect(page.locator(".app")).toBeVisible({ timeout: 15000 });
 
   // The app now lands on the Dashboard; Games is still nav index 1.

@@ -297,7 +297,7 @@ export function SplitScreen({ session, discipline, roster, onPersistResult, onSu
       </div>
 
       <div className="split-head">
-        <h1>Tonight&apos;s teams</h1>
+        <h2>Tonight&apos;s teams</h2>
         <div className="split-head-meta">
           <span className="badge badge--generic">{discipline.name}</span>
           <span className="badge badge--generic">{result.teams.length} teams</span>

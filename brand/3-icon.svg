@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128" role="img" aria-labelledby="3i-t 3i-d">
+  <title id="3i-t">3</title>
+  <desc id="3i-d">Icon-only brand mark: the digit three, top half amber, bottom half stone</desc>
+  <defs>
+    <style>
+      @font-face{font-family:'Outfit';src:url('https://fonts.gstatic.com/s/outfit/v15/QGYyz_MVcBeNP4NjuGObqx1XmO1I4e6yC4E.ttf') format('truetype');font-weight:600;font-display:swap}
+    </style>
+    <clipPath id="ig">
+      <text x="64" y="93" text-anchor="middle" style="font-family:'Outfit','Segoe UI',system-ui,sans-serif;font-weight:600;font-size:88px">3</text>
+    </clipPath>
+  </defs>
+  <text x="64" y="93" text-anchor="middle" style="font-family:'Outfit','Segoe UI',system-ui,sans-serif;font-weight:600;font-size:88px" fill="#57534E">3</text>
+  <rect x="0" y="0" width="128" height="61" fill="#C2410C" clip-path="url(#ig)"/>
+</svg>

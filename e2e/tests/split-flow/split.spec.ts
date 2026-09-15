@@ -5,7 +5,7 @@ import { test, expect } from "@playwright/test";
 
 test.describe("Split team", () => {
   test("app loads and split flow is reachable", async ({ page }) => {
-    await page.goto("http://localhost:4173/");
+    await page.goto("./");
     await expect(page.locator(".app")).toBeVisible({ timeout: 15000 });
 
     // Create a community to ensure roster is active

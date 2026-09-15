@@ -3,7 +3,7 @@ import { test, expect } from "@playwright/test";
 /** Verify settings panel: gear button visible, popover appears below topbar,
  *  theme/layout chips toggle, and changes persist via localStorage. */
 test("settings panel: theme + layout fully functional", async ({ page }) => {
-  await page.goto("http://localhost:4173/");
+  await page.goto("./");
   await expect(page.locator(".app")).toBeVisible({ timeout: 15000 });
 
   // 1. Gear button visible in topbar

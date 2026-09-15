@@ -1,0 +1,205 @@
+/* The Landing Page at `/` — the public front door (ADR-0006).
+   Consumes src/tokens.css, the same token source as the app, so the two
+   surfaces cannot drift. No framework, no JS: the only script on this page is
+   the returning-organizer redirect in the document head. */
+
+@import "./tokens.css";
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  font-family: "Familjen Grotesk", system-ui, sans-serif;
+  background: var(--surface);
+  color: var(--text);
+  line-height: 1.5;
+  /* Both lines, as the app does: 100dvh where supported, 100vh elsewhere. */
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+.landing {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 48px 20px 64px;
+}
+
+/* ---------- wordmark ---------- */
+
+.landing-wordmark {
+  display: block;
+  width: 100%;
+  max-width: 450px;
+  height: auto;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--hairline);
+  margin-bottom: 40px;
+}
+
+/* ---------- masthead ---------- */
+
+.landing .kicker {
+  display: inline-block;
+  font-family: "Outfit", sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 12px;
+}
+
+.landing .kicker::before {
+  content: "▸ ";
+}
+
+/* The app's h1 measure (src/index.css), which DESIGN.md calls the display voice
+   and the type scale calls non-negotiable. Uppercase is the app's treatment, so
+   the wordmark-sized h1 here scales up from the 36px base rather than inventing
+   a new size. */
+.landing h1 {
+  font-family: "Outfit", sans-serif;
+  font-weight: 600;
+  font-size: 36px;
+  line-height: 1;
+  letter-spacing: -0.01em;
+  text-transform: uppercase;
+  text-wrap: balance;
+}
+
+@media (min-width: 720px) {
+  .landing h1 {
+    font-size: 48px;
+  }
+}
+
+.landing-lede {
+  font-size: 16px;
+  line-height: 1.45;
+  color: var(--text-2);
+  margin-top: 16px;
+  text-wrap: pretty;
+}
+
+/* ---------- hero ---------- */
+
+/* Constrained: the split screen uses the text column like the rest of the page. */
+.landing-hero {
+  display: block;
+  max-width: 640px;
+  margin: 0 auto;
+  margin-top: 40px;
+  margin-bottom: 40px;
+  border-top: 1px solid var(--hairline);
+  border-bottom: 1px solid var(--hairline);
+  overflow: hidden;
+  background: var(--surface-2);
+}
+/* The split screen is rendered as a React component
+   by src/landing.tsx. The SplitScreen component uses
+   its own styles from src/index.css. */
+
+.landing-features {
+  display: grid;
+  gap: 24px;
+  margin-bottom: 40px;
+}
+
+.landing-features dt {
+  font-family: "Outfit", sans-serif;
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.landing-features dd {
+  font-size: 15px;
+  color: var(--text-2);
+  text-wrap: pretty;
+}
+
+/* ---------- why trust it ---------- */
+
+.landing-trust {
+  list-style: none;
+  border-top: 1px solid var(--hairline);
+  border-bottom: 1px solid var(--hairline);
+  padding: 20px 0;
+  margin-bottom: 40px;
+  display: grid;
+  gap: 10px;
+}
+
+.landing-trust li {
+  font-size: 15px;
+  color: var(--text-2);
+  padding-left: 22px;
+  position: relative;
+}
+
+.landing-trust li::before {
+  content: "▸";
+  position: absolute;
+  left: 0;
+  color: var(--accent);
+}
+
+/* ---------- the one action ---------- */
+
+.landing-action {
+  text-align: center;
+}
+
+.cta {
+  display: inline-block;
+  font-family: "Outfit", sans-serif;
+  font-size: 17px;
+  font-weight: 600;
+  text-decoration: none;
+  background: var(--accent);
+  color: var(--accent-ink);
+  padding: 14px 32px;
+  border-radius: var(--r-md);
+  min-height: 44px;
+  transition: filter 0.15s ease;
+}
+
+.cta:hover {
+  filter: brightness(1.08);
+}
+
+.cta:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 3px;
+}
+
+.landing-action-note {
+  font-size: 13px;
+  color: var(--text-2);
+  margin-top: 12px;
+}
+
+/* ---------- footer ---------- */
+
+.landing-footer {
+  font-size: 13px;
+  color: var(--text-2);
+  text-align: center;
+  border-top: 1px solid var(--hairline);
+  margin-top: 48px;
+  padding-top: 20px;
+  text-wrap: pretty;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cta {
+    transition: none;
+  }
+}

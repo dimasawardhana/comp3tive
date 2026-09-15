@@ -10,7 +10,7 @@
 import { test, expect } from "@playwright/test";
 
 test("tournament split: draft page links to match setup with tournament context", async ({ page }) => {
-  await page.goto("http://localhost:4173/");
+  await page.goto("./");
   await expect(page.locator(".app")).toBeVisible({ timeout: 15000 });
 
   // Create community
