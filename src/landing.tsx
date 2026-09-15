@@ -43,8 +43,6 @@ function Landing() {
         discipline={discipline}
         roster={ROSTER}
         onPersistResult={noop}
-        onSubmitTournament={noop}
-        onSaveSquad={noop}
         source="ad-hoc"
         onBack={undefined}
       />
