@@ -90,11 +90,11 @@ body {
 
 /* ---------- hero ---------- */
 
-/* Full-bleed: the hero breaks out of the text column to the viewport edges. */
+/* Constrained: the split screen uses the text column like the rest of the page. */
 .landing-hero {
   display: block;
-  width: 100vw;
-  margin-left: calc(50% - 50vw);
+  max-width: 640px;
+  margin: 0 auto;
   margin-top: 40px;
   margin-bottom: 40px;
   border-top: 1px solid var(--hairline);
