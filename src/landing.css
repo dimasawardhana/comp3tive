@@ -102,26 +102,9 @@ body {
   overflow: hidden;
   background: var(--surface-2);
 }
-
-.landing-hero img {
-  display: block;
-  width: 100%;
-  max-width: 1100px;
-  height: auto;
-  margin: 0 auto;
-  /* Captured screenshots: desktop 1900x1842, mobile 780x2394.
-     aspect-ratio matches the captured image content so the box
-     is reserved correctly at the breakpoint below. */
-  aspect-ratio: 1900 / 1842;
-}
-
-@media (max-width: 640px) {
-  .landing-hero img {
-    aspect-ratio: 780 / 2394;
-  }
-}
-
-/* ---------- the three things it does ---------- */
+/* The split screen is rendered as a React component
+   by src/landing.tsx. The SplitScreen component uses
+   its own styles from src/index.css. */
 
 .landing-features {
   display: grid;

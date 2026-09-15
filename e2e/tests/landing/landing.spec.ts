@@ -74,23 +74,28 @@ test.describe("Landing Page", () => {
     expect(parseFloat(outline)).toBeGreaterThanOrEqual(2);
   });
 
-  test("the hero swaps image at the mobile breakpoint without layout shift", async ({ page }) => {
+  test("the hero renders the split screen component with teams and gap meter", async ({ page }) => {
     await gotoLanding(page);
-    const img = page.locator(".landing-hero img");
+    const hero = page.locator(".landing-hero");
 
-    // width/height attributes are what prevent the shift as the image loads.
-    await expect(img).toHaveAttribute("width", "890");
-    await expect(img).toHaveAttribute("height", "625");
+    // The React component renders the split screen, not an image.
+    await expect(hero.locator(".split-screen")).toBeVisible();
+    await expect(hero.locator(".split-head")).toBeVisible();
+
+    // Team cards should be rendered in the split screen.
+    const teamCards = hero.locator(".team");
+    await expect(teamCards).toHaveCount(2);
+
+    // The gap meter should be present.
+    await expect(hero.locator(".pitch")).toBeVisible();
+
+
+    // Swap at the mobile breakpoint — component must not overflow.
+    await page.setViewportSize({ width: 390, height: 900 });
+    await expect(hero).toBeVisible();
 
     await page.setViewportSize({ width: 1280, height: 900 });
-    await expect
-      .poll(() => img.evaluate((el: HTMLImageElement) => el.currentSrc))
-      .toMatch(/split-desktop\.png$/);
-
-    await page.setViewportSize({ width: 390, height: 900 });
-    await expect
-      .poll(() => img.evaluate((el: HTMLImageElement) => el.currentSrc))
-      .toMatch(/split-mobile\.png$/);
+    await expect(hero).toBeVisible();
   });
 
   test("renders in both light and dark mode from the shared tokens", async ({ page }) => {
