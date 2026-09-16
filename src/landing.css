@@ -1,7 +1,8 @@
 /* The Landing Page at `/` — the public front door (ADR-0006).
    Consumes src/tokens.css, the same token source as the app, so the two
-   surfaces cannot drift. No framework, no JS: the only script on this page is
-   the returning-organizer redirect in the document head. */
+   surfaces cannot drift.
+   Composition: THE LEDGER. Every claim is a row — the product's own verb in a
+   narrow rail, the measured evidence in the wide field beside it. */
 
 @import "./tokens.css";
 
@@ -13,6 +14,7 @@
 
 html {
   -webkit-text-size-adjust: 100%;
+  scrollbar-color: var(--hairline) transparent;
 }
 
 body {
@@ -20,170 +22,831 @@ body {
   background: var(--surface);
   color: var(--text);
   line-height: 1.5;
-  /* Both lines, as the app does: 100dvh where supported, 100vh elsewhere. */
   min-height: 100vh;
   min-height: 100dvh;
+  /* Browser surfaces carry the design: selection and caret come from the palette. */
+  caret-color: var(--accent);
 }
+
+::selection {
+  background: rgba(194, 65, 12, 0.16);
+  color: var(--text);
+}
+
+/* Typographic numerals everywhere a number is read as a quantity. */
+.landing-fact dd,
+.landing-rail-facts {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Focus: one visible ring, from the palette.
+   Scoped and specific because src/index.css (imported by the landing island)
+   carries a bare `:focus-visible` rule at specificity (0,1,0) that sets its own
+   outline and a 6px radius — a `:where()` selector here would lose to it. */
+.landing :is(a, button, [tabindex]):focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+/* The bare rule's 6px radius must not flatten the CTA pill or the wordmark. */
+.landing .cta:focus-visible {
+  border-radius: 999px;
+}
+
+/* ---------- page frame ---------- */
 
 .landing {
-  max-width: 640px;
+  max-width: 1240px;
   margin: 0 auto;
-  padding: 48px 20px 64px;
+  padding: clamp(28px, 4vw, 56px) clamp(20px, 5vw, 64px) 0;
+  position: relative;
 }
 
-/* ---------- wordmark ---------- */
-
-.landing-wordmark {
-  display: block;
-  width: 100%;
-  max-width: 450px;
-  height: auto;
-  padding-bottom: 16px;
-  border-bottom: 1px solid var(--hairline);
-  margin-bottom: 40px;
+/* Paper warmth: a single soft radial, fixed and inert. */
+.landing::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 80% 50% at 15% 0%, rgba(194, 65, 12, 0.05) 0%, transparent 70%),
+    radial-gradient(ellipse 60% 40% at 90% 100%, rgba(194, 65, 12, 0.03) 0%, transparent 70%);
 }
 
 /* ---------- masthead ---------- */
 
-.landing .kicker {
-  display: inline-block;
-  font-family: "Outfit", sans-serif;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: var(--accent);
-  margin-bottom: 12px;
+.landing-masthead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--hairline);
 }
 
-.landing .kicker::before {
-  content: "▸ ";
+.landing-wordmark {
+  display: block;
+  height: clamp(30px, 4.4vw, 46px);
+  width: auto;
 }
 
-/* The app's h1 measure (src/index.css), which DESIGN.md calls the display voice
-   and the type scale calls non-negotiable. Uppercase is the app's treatment, so
-   the wordmark-sized h1 here scales up from the 36px base rather than inventing
-   a new size. */
+/* ---------- intro ---------- */
+
+.landing-intro {
+  padding: clamp(40px, 6vw, 76px) 0 clamp(40px, 5vw, 64px);
+}
+
 .landing h1 {
   font-family: "Outfit", sans-serif;
   font-weight: 600;
-  font-size: 36px;
-  line-height: 1;
-  letter-spacing: -0.01em;
-  text-transform: uppercase;
+  font-size: clamp(38px, 6.4vw, 76px);
+  line-height: 0.98;
+  letter-spacing: -0.035em;
+  max-width: 20ch;
   text-wrap: balance;
 }
 
-@media (min-width: 720px) {
-  .landing h1 {
-    font-size: 48px;
-  }
-}
-
 .landing-lede {
-  font-size: 16px;
-  line-height: 1.45;
+  font-size: clamp(16px, 1.5vw, 19px);
+  line-height: 1.5;
   color: var(--text-2);
-  margin-top: 16px;
+  margin-top: 24px;
+  max-width: 46ch;
   text-wrap: pretty;
 }
 
-/* ---------- hero ---------- */
+/* ---------- the ledger ---------- */
 
-/* Constrained: the split screen uses the text column like the rest of the page. */
+.landing-ledger {
+  border-top: 1px solid var(--hairline);
+}
+
+.landing-row {
+  display: grid;
+  grid-template-columns: minmax(150px, 200px) minmax(0, 1fr);
+  gap: clamp(24px, 5vw, 72px);
+  padding: clamp(36px, 5vw, 64px) 0;
+  border-bottom: 1px solid var(--hairline);
+  align-items: start;
+}
+
+.landing-row-hero {
+  padding-top: clamp(32px, 4vw, 56px);
+}
+
+/* The rail: the page's spine. Verb, then the measured facts beneath it. */
+.landing-rail {
+  position: sticky;
+  top: 32px;
+}
+
+.landing-rail-label {
+  font-family: "Outfit", sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--text);
+  padding-bottom: 14px;
+  border-bottom: 1.5px solid var(--text);
+  margin-bottom: 18px;
+}
+
+.landing-rail-facts {
+  display: grid;
+  gap: 14px;
+}
+
+.landing-fact dt {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-2);
+  margin-bottom: 2px;
+}
+
+.landing-fact dd {
+  font-family: "Outfit", sans-serif;
+  font-size: clamp(20px, 2.4vw, 28px);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  color: var(--text);
+}
+
+/* Amber is reserved for the one live measurement. */
+.landing-fact-accent dd {
+  color: var(--accent);
+}
+
+.landing-field {
+  min-width: 0;
+}
+
+/* The deal leads the Split row; the live split screen follows it. */
+.landing-field > #landing-deal {
+  margin-bottom: clamp(28px, 3.5vw, 44px);
+}
+
+.landing-claim {
+  font-family: "Outfit", sans-serif;
+  font-size: clamp(20px, 2.6vw, 30px);
+  font-weight: 500;
+  line-height: 1.3;
+  letter-spacing: -0.02em;
+  color: var(--text);
+  max-width: 30ch;
+  margin-bottom: 36px;
+  text-wrap: pretty;
+}
+
+.landing-field-note {
+  font-size: 14px;
+  color: var(--text-2);
+  max-width: 60ch;
+  margin-top: 20px;
+  text-wrap: pretty;
+}
+
+/* ---------- the deal ---------- */
+
+/* The pool parting into the solver's teams. Chips are absolutely positioned and
+   travel by transform between invisible anchors, so nothing reflows mid-flight.
+   Resting state is the pool; the arrival is additive. */
+.deal {
+  margin: 0;
+}
+
+.deal-stage {
+  position: relative;
+  padding: 4px 0 8px;
+}
+
+.deal-anchors {
+  display: grid;
+  gap: 28px;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 8fr);
+  align-items: start;
+}
+
+.deal-anchor {
+  height: 38px;
+}
+
+.deal-pool {
+  list-style: none;
+  display: grid;
+  gap: 6px;
+  align-content: start;
+}
+
+.deal-teams {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+}
+
+.deal-team {
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+  padding: 12px 12px 14px;
+  min-width: 0;
+}
+
+.deal-team-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: "Outfit", sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text);
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--hairline);
+  margin-bottom: 10px;
+}
+
+.deal-team-avg {
+  margin-left: auto;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+  color: var(--text-2);
+}
+
+.deal-slots {
+  list-style: none;
+  display: grid;
+  gap: 6px;
+}
+
+.deal-chips {
+  list-style: none;
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+/* Geometry (width, height, x, y) and the transition timing are measured and set
+   inline: the chip fits two different containers (a pool column and a team
+   slot), and the timeline's constants live in src/landingDeal.tsx so the
+   scheduler and the animation cannot drift apart. Only transform and opacity
+   are ever animated. */
+.deal-chip {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 10px;
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-sm);
+  font-size: 14px;
+  color: var(--text);
+}
+
+/* Visually hidden, still announced. The chips carry a team in text as well as
+   in dot colour, and the colour alone would not be readable to everyone. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+.deal-chip-name {
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.deal-chip-str {
+  margin-left: auto;
+  font-variant-numeric: tabular-nums;
+  font-size: 12px;
+  color: var(--text-2);
+  flex-shrink: 0;
+}
+
+.deal-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: var(--text-2);
+  opacity: 0.3;
+  transition:
+    background-color 0.4s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.deal-dot[data-lit="yes"] {
+  opacity: 1;
+}
+
+.deal-dot-0 {
+  background: var(--bib-a);
+}
+.deal-dot-1 {
+  background: var(--bib-b);
+}
+.deal-dot-2 {
+  background: var(--bib-c);
+}
+.deal-dot-3 {
+  background: var(--bib-d);
+}
+.deal-dot-4 {
+  background: var(--bib-e);
+}
+
+.deal-caption {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  margin-top: 22px;
+  padding-top: 18px;
+  border-top: 1px solid var(--hairline);
+  font-size: 14px;
+  color: var(--text-2);
+  text-wrap: pretty;
+}
+
+.deal-control {
+  flex-shrink: 0;
+  font-family: "Outfit", sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: 999px;
+  padding: 9px 18px;
+  cursor: pointer;
+  min-height: 38px;
+  transition:
+    border-color 0.4s cubic-bezier(0.22, 1, 0.36, 1),
+    color 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.deal-control:hover {
+  border-color: var(--text-2);
+  color: var(--accent);
+}
+
+/* Reduced motion is handled in src/landingDeal.tsx: the chip is rendered with no
+   transition at all and the loop never starts, so the settled teams simply are. */
+
+@media (max-width: 860px) {
+  .deal-anchors {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 22px;
+  }
+
+  .deal-pool {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .deal-caption {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 14px;
+  }
+}
+
+/* ---------- the hero: the live split screen ---------- */
+
+/* The hero is a notebook sheet — warm paper with a hairline frame.
+   Team cards in bib colors are the only visual pop.
+   The amber needle is the pencil mark on warm paper. */
 .landing-hero {
   display: block;
-  max-width: 640px;
-  margin: 0 auto;
-  margin-top: 40px;
-  margin-bottom: 40px;
-  border-top: 1px solid var(--hairline);
-  border-bottom: 1px solid var(--hairline);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-lg);
   overflow: hidden;
   background: var(--surface-2);
+  box-shadow: 0 1px 2px rgba(28, 25, 23, 0.03);
 }
-/* The split screen is rendered as a React component
-   by src/landing.tsx. The SplitScreen component uses
-   its own styles from src/index.css. */
+
+/* The split screen is rendered as a React component by src/landing.tsx.
+   SplitScreen carries its own styles from src/index.css; these override the
+   dark panel to a warm notebook surface. */
+.landing-hero .pitch {
+  background: var(--surface-2);
+  border-radius: 0;
+  padding: 28px 24px 32px;
+  gap: 20px;
+  border-bottom: 1px solid var(--hairline);
+}
+
+.landing-hero .team {
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-md);
+  padding: 16px;
+  transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.landing-hero .team:hover {
+  transform: translateY(-2px);
+  border-color: var(--text-2);
+}
+
+.landing-hero .team .tname {
+  font-family: "Outfit", sans-serif;
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  padding: 5px 12px;
+  border-radius: 999px;
+  color: #ffffff;
+  margin-bottom: 12px;
+  display: inline-block;
+}
+
+.landing-hero .team .tname {
+  background: var(--bib-a);
+}
+.landing-hero .team.b .tname {
+  background: var(--bib-b);
+}
+.landing-hero .team.c .tname {
+  background: var(--bib-c);
+}
+.landing-hero .team.d .tname {
+  background: var(--bib-d);
+}
+.landing-hero .team.e .tname {
+  background: var(--bib-e);
+}
+
+.landing-hero .team .avg {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid var(--hairline);
+}
+
+.landing-hero .team .avg b {
+  font-family: "Outfit", sans-serif;
+  font-weight: 700;
+  font-size: 24px;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+
+.landing-hero .scale {
+  height: 72px;
+  background: var(--surface-2);
+}
+
+.landing-hero .scale .track {
+  background: var(--hairline);
+}
+
+.landing-hero .scale .tick {
+  background: var(--text-2);
+  opacity: 0.45;
+}
+
+.landing-hero .scale .tick.center {
+  background: var(--text);
+  opacity: 0.65;
+}
+
+.landing-hero .needle {
+  background: var(--accent);
+  animation: pulse-needle 2.4s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+  box-shadow: 0 0 0 1px rgba(194, 65, 12, 0.12);
+}
+
+.landing-hero .scale .num {
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+  opacity: 0.9;
+}
+
+.landing-hero .readout {
+  color: var(--text);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .landing-hero .needle {
+    animation: none;
+  }
+  .landing-hero .team {
+    transition: none;
+  }
+}
+
+/* ---------- features list ---------- */
 
 .landing-features {
   display: grid;
-  gap: 24px;
-  margin-bottom: 40px;
+  gap: 1px;
+  background: var(--hairline);
+  border-top: 1px solid var(--hairline);
 }
 
 .landing-features dt {
   font-family: "Outfit", sans-serif;
-  font-size: 18px;
+  font-size: 17px;
   font-weight: 600;
-  margin-bottom: 4px;
+  letter-spacing: -0.01em;
+  background: var(--surface);
+  padding: 20px 0 4px;
 }
 
 .landing-features dd {
   font-size: 15px;
+  line-height: 1.55;
+  color: var(--text-2);
+  background: var(--surface);
+  padding-bottom: 20px;
+  max-width: 62ch;
+  text-wrap: pretty;
+}
+
+/* ---------- tournament bracket ---------- */
+
+.landing-tournament {
+  margin-bottom: 32px;
+}
+
+.landing-tournament-head {
+  font-family: "Outfit", sans-serif;
+  font-size: 30px;
+  font-weight: 600;
+  line-height: 1.18;
+  letter-spacing: -0.025em;
+  color: var(--text);
+  margin-bottom: 28px;
+  max-width: 26ch;
+  text-wrap: pretty;
+}
+
+.landing-bracket {
+  display: flex;
+  gap: 0;
+  align-items: center;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.landing-bracket-column {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 168px;
+  flex: 1 1 0;
+  padding: 0 16px;
+  border-left: 1px solid var(--hairline);
+}
+
+.landing-bracket-column:first-child {
+  border-left: none;
+  padding-left: 0;
+}
+
+.landing-bracket-column:last-child {
+  padding-right: 0;
+}
+
+.landing-bracket-round {
+  font-family: "Outfit", sans-serif;
+  font-weight: 600;
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--text-2);
+  margin-bottom: 4px;
+}
+
+.landing-bracket-match {
+  padding: 12px 14px;
+  background: var(--surface-2);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-md);
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.landing-bteam {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  color: var(--text);
+}
+
+.landing-bteam-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 8px;
+  flex-shrink: 0;
+}
+
+.landing-bteam-name {
+  font-weight: 500;
+}
+
+.landing-bteam-check {
+  color: var(--accent);
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.landing-bracket-advancing {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-2);
+  font-size: 15px;
+  flex-shrink: 0;
+  padding: 0 4px;
+}
+
+/* ---------- disciplines ---------- */
+
+.landing-disciplines-head {
+  font-family: "Outfit", sans-serif;
+  font-size: 30px;
+  font-weight: 600;
+  line-height: 1.18;
+  letter-spacing: -0.025em;
+  color: var(--text);
+  margin-bottom: 28px;
+  max-width: 26ch;
+  text-wrap: pretty;
+}
+
+.landing-discipline-grid {
+  display: grid;
+  gap: 0;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  border-top: 1px solid var(--hairline);
+}
+
+.landing-discipline-card {
+  padding: 24px 24px 24px 0;
+  border-bottom: 1px solid var(--hairline);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.landing-discipline-card + .landing-discipline-card {
+  border-left: 1px solid var(--hairline);
+  padding-left: 24px;
+}
+
+.landing-discipline-name {
+  font-family: "Outfit", sans-serif;
+  font-size: 19px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--text);
+}
+
+.landing-discipline-desc {
+  font-size: 14px;
+  line-height: 1.5;
   color: var(--text-2);
   text-wrap: pretty;
 }
 
-/* ---------- why trust it ---------- */
+.landing-discipline-roles {
+  font-size: 13px;
+  color: var(--text);
+  margin-top: 4px;
+}
+
+.landing-discipline-attrs {
+  font-size: 12px;
+  letter-spacing: 0.02em;
+  color: var(--text-2);
+}
+
+.landing-discipline-size {
+  font-family: "Outfit", sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-top: auto;
+  padding-top: 8px;
+}
+
+/* ---------- close ---------- */
+
+.landing-close {
+  display: grid;
+  grid-template-columns: minmax(150px, 200px) minmax(0, 1fr);
+  gap: clamp(24px, 5vw, 72px);
+  padding: clamp(40px, 5vw, 72px) 0 clamp(32px, 4vw, 56px);
+  align-items: start;
+}
 
 .landing-trust {
   list-style: none;
-  border-top: 1px solid var(--hairline);
-  border-bottom: 1px solid var(--hairline);
-  padding: 20px 0;
-  margin-bottom: 40px;
   display: grid;
-  gap: 10px;
+  gap: 0;
+  border-top: 1px solid var(--hairline);
+  margin-bottom: 40px;
 }
 
 .landing-trust li {
   font-size: 15px;
+  line-height: 1.5;
   color: var(--text-2);
-  padding-left: 22px;
+  padding: 16px 0 16px 26px;
   position: relative;
+  border-bottom: 1px solid var(--hairline);
+  text-wrap: pretty;
 }
 
 .landing-trust li::before {
-  content: "▸";
+  content: "";
   position: absolute;
   left: 0;
-  color: var(--accent);
+  top: 23px;
+  width: 8px;
+  height: 2px;
+  background: var(--accent);
 }
 
-/* ---------- the one action ---------- */
-
-.landing-action {
-  text-align: center;
-}
-
+/* The one action: a pill with a nested icon, not a naked arrow. */
 .cta {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
   font-family: "Outfit", sans-serif;
-  font-size: 17px;
+  font-size: 16px;
   font-weight: 600;
+  letter-spacing: 0.01em;
   text-decoration: none;
   background: var(--accent);
   color: var(--accent-ink);
-  padding: 14px 32px;
-  border-radius: var(--r-md);
-  min-height: 44px;
-  transition: filter 0.15s ease;
+  padding: 8px 8px 8px 28px;
+  border-radius: 999px;
+  min-height: 52px;
+  transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1), background-color 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.cta-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.16);
+  transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1), background-color 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.cta-icon svg {
+  width: 16px;
+  height: 16px;
 }
 
 .cta:hover {
-  filter: brightness(1.08);
+  background: #a8360a;
 }
 
-.cta:focus-visible {
-  outline: 3px solid var(--accent);
-  outline-offset: 3px;
+.cta:hover .cta-icon {
+  transform: translateX(3px) scale(1.04);
+  background: rgba(255, 255, 255, 0.24);
+}
+
+.cta:active {
+  transform: scale(0.985);
 }
 
 .landing-action-note {
-  font-size: 13px;
+  font-size: 14px;
   color: var(--text-2);
-  margin-top: 12px;
+  margin-top: 16px;
 }
 
 /* ---------- footer ---------- */
@@ -191,15 +854,113 @@ body {
 .landing-footer {
   font-size: 13px;
   color: var(--text-2);
-  text-align: center;
   border-top: 1px solid var(--hairline);
-  margin-top: 48px;
-  padding-top: 20px;
+  padding: 24px 0 32px;
   text-wrap: pretty;
 }
 
+/* ---------- scroll entry: one authored moment, exponential ease-out ---------- */
+
+/* One authored entry moment for the ledger rows. The resting state is visible;
+   the observer module adds `.is-pending`, so a blocked or failed script leaves
+   the page readable instead of blank. */
+.landing-ledger > .landing-row,
+.landing-close {
+  transition:
+    opacity 0.9s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.9s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.landing-ledger > .landing-row.is-pending,
+.landing-close.is-pending {
+  opacity: 0;
+  transform: translateY(18px);
+  will-change: opacity, transform;
+}
+
+.landing-ledger > .landing-row.is-visible,
+.landing-close.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .cta {
+  .landing-ledger > .landing-row,
+  .landing-close {
+    opacity: 1;
+    transform: none;
     transition: none;
+  }
+}
+
+/* ---------- responsive ---------- */
+
+@media (max-width: 860px) {
+  .landing-row,
+  .landing-close {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 24px;
+  }
+
+  .landing-rail {
+    position: static;
+  }
+
+  .landing-rail-facts {
+    grid-auto-flow: column;
+    justify-content: start;
+    gap: 28px;
+  }
+
+  .landing-rail-label {
+    padding-bottom: 10px;
+    margin-bottom: 14px;
+  }
+
+  .landing-intro {
+    max-width: none;
+  }
+
+  .landing-claim {
+    margin-bottom: 28px;
+  }
+
+  .landing-hero .pitch {
+    padding: 18px 16px 22px;
+    gap: 14px;
+  }
+
+  .landing-hero .team {
+    padding: 12px;
+  }
+
+  .landing-hero .team .avg b {
+    font-size: 20px;
+  }
+
+  .landing-hero .scale {
+    height: 56px;
+  }
+
+  .landing-bracket {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 20px;
+  }
+
+  .landing-bracket-column {
+    min-width: 100%;
+    border-left: none;
+    padding: 0;
+  }
+
+  .landing-bracket-advancing {
+    transform: rotate(90deg);
+    padding: 0;
+  }
+
+  .landing-discipline-card + .landing-discipline-card {
+    border-left: none;
+    padding-left: 0;
   }
 }

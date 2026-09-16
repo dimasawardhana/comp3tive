@@ -3,7 +3,11 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>comp3tive</title>
+    <title>comp3tive — pick the players, get the fairest teams</title>
+    <meta
+      name="description"
+      content="comp3tive splits your group into balanced teams with the smallest possible strength gap, then runs the tournament. Works offline, no account."
+    />
     <script>
       // Returning organizer: this key is written by the app's own community hook
       // (src/domain/useCommunities.ts), and localStorage is origin-scoped, so it
@@ -27,56 +31,175 @@
     <link rel="stylesheet" href="/src/landing.css" />
   </head>
   <body>
+    <!-- LANDING CONTRACT
+         THESIS: the ledger. Every claim about this tool is a row: the product's
+         own verb in a narrow rail, the measured evidence in the wide field
+         beside it. It refuses the category's hero-metric stack and its
+         three-card feature grid.
+         OWN-WORLD: Paper & Pencil — warm paper #FAF8F5, ink #1C1917, one amber
+         #C2410C mark, Outfit display over Familjen Grotesk body, 12-16px radii,
+         hairline rules instead of shadows. Inherited from DESIGN.md, unchanged.
+         FIRST VIEWPORT: a two-track ledger row. The rail states SPLIT above the
+         real numbers the solver produced (10 players, 2 teams, gap 0.00). The
+         field holds the live SplitScreen at full width, so the first thing read
+         is the mechanism working.
+         SIGNATURE: the ledger rail. A left spine of verbs and tabular numerals
+         that repeats down the page, giving claims a spine the incumbent lacked.
+         PATH: wordmark, thesis row (SPLIT), then EDIT, PLAY and DISCIPLINES rows
+         carrying the interaction, the bracket, and the roster model. Close on
+         the single action.
+    -->
     <main class="landing">
-      <svg class="landing-wordmark" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 450 162" role="img" aria-labelledby="comp3tive-t comp3tive-d">
-        <title id="comp3tive-t">comp3tive</title>
-        <defs>
-          <clipPath id="wg">
-            <text x="209" y="128" text-anchor="start" style="font-family:'Outfit','Segoe UI',system-ui,sans-serif;font-weight:600;font-size:128px">3</text>
-          </clipPath>
-        </defs>
-        <text x="6" y="104" text-anchor="start" style="font-family:'Outfit','Segoe UI',system-ui,sans-serif;font-weight:600;font-size:64px;letter-spacing:.06em"><tspan fill="#C2410C">COMP</tspan></text>
-        <text x="209" y="128" text-anchor="start" fill="#57534E" style="font-family:'Outfit','Segoe UI',system-ui,sans-serif;font-weight:600;font-size:128px">3</text>
-        <text x="279.9" y="104" text-anchor="start" style="font-family:'Outfit','Segoe UI',system-ui,sans-serif;font-weight:600;font-size:64px;letter-spacing:.06em"><tspan fill="#57534E">TIVE</tspan></text>
-        <rect x="0" y="0" width="450" height="81" fill="#C2410C" clip-path="url(#wg)"/>
-      </svg>
+      <header class="landing-masthead">
+        <svg class="landing-wordmark" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 450 162" role="img" aria-labelledby="comp3tive-t">
+          <title id="comp3tive-t">comp3tive</title>
+          <defs>
+            <clipPath id="wg">
+              <text x="209" y="128" text-anchor="start" style="font-family:'Outfit','Segoe UI',system-ui,sans-serif;font-weight:600;font-size:128px">3</text>
+            </clipPath>
+          </defs>
+          <text x="6" y="104" text-anchor="start" style="font-family:'Outfit','Segoe UI',system-ui,sans-serif;font-weight:600;font-size:64px;letter-spacing:.06em"><tspan fill="#C2410C">COMP</tspan></text>
+          <text x="209" y="128" text-anchor="start" fill="#57534E" style="font-family:'Outfit','Segoe UI',system-ui,sans-serif;font-weight:600;font-size:128px">3</text>
+          <text x="279.9" y="104" text-anchor="start" style="font-family:'Outfit','Segoe UI',system-ui,sans-serif;font-weight:600;font-size:64px;letter-spacing:.06em"><tspan fill="#57534E">TIVE</tspan></text>
+          <rect x="0" y="0" width="450" height="81" fill="#C2410C" clip-path="url(#wg)"/>
+        </svg>
+      </header>
 
-      <p class="kicker" aria-hidden="true">Fair split · Tournaments</p>
-      <h1>Split the group into fair teams.</h1>
-      <p class="landing-lede">
-        comp3tive builds balanced teams from your roster — futsal, MLBB, badminton — then runs the
-        tournament on those teams.
-      </p>
+      <div class="landing-ledger">
+        <div class="landing-intro">
+          <h1>Pick the players. Get the fairest teams.</h1>
+          <p class="landing-lede">
+            comp3tive splits your roster with the smallest strength gap that exists for that pool —
+            exact, not estimated — honoring every role along the way. Futsal, MLBB, badminton, then
+            the tournament on those teams.
+          </p>
+        </div>
 
-      <div id="landing-hero" aria-label="Split result"></div>
-      <script type="module" src="/src/landing.tsx"></script>
+        <section class="landing-row landing-row-hero" aria-labelledby="landing-row-split">
+          <div class="landing-rail">
+            <p class="landing-rail-label" id="landing-row-split">Split</p>
+            <dl class="landing-rail-facts">
+              <div class="landing-fact">
+                <dt>Players</dt>
+                <dd><span data-landing-players>10</span></dd>
+              </div>
+              <div class="landing-fact">
+                <dt>Teams</dt>
+                <dd><span data-landing-teams>2</span></dd>
+              </div>
+              <div class="landing-fact landing-fact-accent">
+                <dt>Gap</dt>
+                <dd><span data-landing-gap>0.00</span></dd>
+              </div>
+            </dl>
+          </div>
+          <div class="landing-field">
+            <div id="landing-deal"></div>
+            <div id="landing-hero" class="landing-hero" aria-label="Split result"></div>
+            <p class="landing-field-note">
+              Ten rated players, two teams. The solver places every one of them, then measures the
+              gap between the teams — the needle in the live split screen below.
+            </p>
+          </div>
+        </section>
 
-      <dl class="landing-features">
-        <dt>Split</dt>
-        <dd>Pick who&rsquo;s here. Get teams with the smallest possible strength gap — exact, not guessed.</dd>
+        <section class="landing-row" aria-labelledby="landing-row-edit">
+          <div class="landing-rail">
+            <p class="landing-rail-label" id="landing-row-edit">Edit</p>
+            <dl class="landing-rail-facts">
+              <div class="landing-fact">
+                <dt>Re-rolls</dt>
+                <dd>&infin;</dd>
+              </div>
+              <div class="landing-fact">
+                <dt>Swaps</dt>
+                <dd>live</dd>
+              </div>
+            </dl>
+          </div>
+          <div class="landing-field">
+            <p class="landing-claim">
+              Swap two players and the meter moves with you. You are never told the teams are fair —
+              you watch the number that proves it, and re-roll until it says what you want.
+            </p>
+          </div>
+        </section>
 
-        <dt>Edit</dt>
-        <dd>Swap anyone. The gap updates live, so you can see whether the change was fair.</dd>
+        <section class="landing-row" aria-labelledby="landing-row-play">
+          <div class="landing-rail">
+            <p class="landing-rail-label" id="landing-row-play">Play</p>
+            <dl class="landing-rail-facts">
+              <div class="landing-fact">
+                <dt>Formats</dt>
+                <dd>3</dd>
+              </div>
+              <div class="landing-fact">
+                <dt>Bracket</dt>
+                <dd>live</dd>
+              </div>
+            </dl>
+          </div>
+          <div class="landing-field">
+            <p class="landing-claim">
+              Series, single elimination, or Swiss — recorded as you play, on the same teams the
+              solver just proved fair.
+            </p>
+            <div id="landing-play"></div>
+          </div>
+        </section>
 
-        <dt>Play</dt>
-        <dd>Run a series, single elimination, or Swiss. Record results as they happen.</dd>
-      </dl>
-
-      <ul class="landing-trust">
-        <li>The gap is the proven minimum for your pool, not a heuristic.</li>
-        <li>Works with no signal. The court has no wifi.</li>
-        <li>Your data stays on your device. No account, no server.</li>
-      </ul>
-
-      <div class="landing-action">
-        <a class="cta" href="/app/">Open comp3tive</a>
-        <p class="landing-action-note">Free, no account. Runs in your browser.</p>
+        <section class="landing-row" aria-labelledby="landing-row-disciplines">
+          <div class="landing-rail">
+            <p class="landing-rail-label" id="landing-row-disciplines">Roster</p>
+            <dl class="landing-rail-facts">
+              <div class="landing-fact">
+                <dt>Disciplines</dt>
+                <dd>3+</dd>
+              </div>
+              <div class="landing-fact">
+                <dt>Roles</dt>
+                <dd>tracked</dd>
+              </div>
+            </dl>
+          </div>
+          <div class="landing-field">
+            <p class="landing-claim">
+              A player carries a rating and a set of roles per discipline. The split reads both, so
+              nobody ends up on a team that has no goalkeeper.
+            </p>
+            <div id="landing-disciplines"></div>
+          </div>
+        </section>
       </div>
 
+      <section class="landing-close" aria-labelledby="landing-row-close">
+        <div class="landing-rail">
+          <p class="landing-rail-label" id="landing-row-close">Open</p>
+        </div>
+        <div class="landing-field">
+          <ul class="landing-trust">
+            <li>The gap is the proven minimum for your pool, not a heuristic.</li>
+            <li>Works with no signal. The court has no wifi.</li>
+            <li>Your data stays on your device. No account, no server.</li>
+          </ul>
+          <div class="landing-action">
+            <a class="cta" href="/app/">
+              <span>Open comp3tive</span>
+              <span class="cta-icon" aria-hidden="true">
+                <svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M3.5 8h9M8.5 4l4 4-4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </span>
+            </a>
+            <p class="landing-action-note">Free, no account. Runs in your browser.</p>
+          </div>
+        </div>
+      </section>
 
       <footer class="landing-footer">
         comp3tive — fair teams for futsal nights, MLBB sessions, and everything after.
       </footer>
     </main>
+    <script type="module" src="/src/landing.tsx"></script>
   </body>
 </html>

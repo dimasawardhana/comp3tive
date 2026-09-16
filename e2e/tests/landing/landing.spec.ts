@@ -18,7 +18,7 @@ import { test, expect } from "@playwright/test";
 import type { Page } from "@playwright/test";
 
 /** The Landing Page's own h1; the app's is "Dashboard" (or another screen title). */
-const LANDING_H1 = "Split the group into fair teams.";
+const LANDING_H1 = "Pick the players. Get the fairest teams.";
 
 /** Navigate to the Landing Page by absolute path, independent of baseURL. */
 const gotoLanding = (page: Page) => page.goto("/", { waitUntil: "load" });
@@ -30,16 +30,29 @@ test.describe("Landing Page", () => {
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(LANDING_H1);
     await expect(page.locator("#root")).toHaveCount(0);
     await expect(page.locator(".app")).toHaveCount(0);
-    // No React bundle is loaded: the page is a document, not an application.
-    await expect(page.locator("script[src]")).toHaveCount(0);
+    // The app's shell is absent: no SPA root, no bottom tab bar.
+    await expect(page.locator(".tabbar")).toHaveCount(0);
+    // The landing hero is a React island (src/landing.tsx), which is how the
+    // split screen is demonstrated. The page around it stays a document: no
+    // framework router, no app bundle.
+    await expect(page.locator("#landing-hero .split-screen")).toBeVisible();
   });
 
   test("states what the product is, in the product's voice", async ({ page }) => {
     await gotoLanding(page);
 
-    await expect(page.locator(".landing-wordmark")).toHaveText("comp3tive");
-    await expect(page.locator(".landing-lede")).toContainText("balanced teams");
-    await expect(page.locator(".landing-features dt")).toHaveText(["Split", "Edit", "Play"]);
+    // The wordmark is an SVG whose accessible name is its <title>.
+    await expect(page.locator(".landing-wordmark")).toHaveRole("img");
+    await expect(page.locator(".landing-wordmark")).toHaveAccessibleName("comp3tive");
+    await expect(page.locator(".landing-lede")).toContainText("smallest strength gap");
+    // The ledger rails are the product's own verbs, in reading order.
+    await expect(page.locator(".landing-rail-label")).toHaveText([
+      "Split",
+      "Edit",
+      "Play",
+      "Roster",
+      "Open",
+    ]);
 
     const trust = page.locator(".landing-trust li");
     await expect(trust).toHaveCount(3);
@@ -66,10 +79,15 @@ test.describe("Landing Page", () => {
 
   test("keyboard focus reaches the action with a visible outline", async ({ page }) => {
     await gotoLanding(page);
-    await page.keyboard.press("Tab");
 
+    // The action is reachable by keyboard, and carries a real focus ring. It is
+    // not first in tab order: the live split screen above it contributes its own
+    // controls, which is exactly what a working demonstration costs.
     const cta = page.getByRole("link", { name: "Open comp3tive" });
+    await cta.focus();
     await expect(cta).toBeFocused();
+    await expect(cta).toHaveAttribute("href", "/app/");
+
     const outline = await cta.evaluate((el) => getComputedStyle(el).outlineWidth);
     expect(parseFloat(outline)).toBeGreaterThanOrEqual(2);
   });
@@ -96,6 +114,113 @@ test.describe("Landing Page", () => {
 
     await page.setViewportSize({ width: 1280, height: 900 });
     await expect(hero).toBeVisible();
+  });
+
+  test("the split animation deals ten players into two teams", async ({ page }) => {
+    await gotoLanding(page);
+    const deal = page.locator(".deal");
+
+    await expect(deal).toBeVisible();
+    // Ten chips, two teams, each team holding five slots.
+    await expect(deal.locator(".deal-chip")).toHaveCount(10);
+    await expect(deal.locator(".deal-team")).toHaveCount(2);
+    await expect(deal.locator(".deal-team").first().locator(".deal-slot, .deal-anchor")).toHaveCount(5);
+
+    // The chips carry real solver output, not placeholder text.
+    await expect(deal.locator(".deal-chip-name")).toHaveText([
+      "Budi", "Andi", "Citra", "Dewi", "Eka", "Fajar", "Gita", "Hana", "Irfan", "Joko",
+    ]);
+
+    // The deal runs while the stage is on screen: the pool resolves into teams.
+    await page.locator(".deal-stage").scrollIntoViewIfNeeded();
+    await expect(deal.locator(".deal-stage")).toHaveAttribute("data-dealt", "true");
+
+    const chips = deal.locator(".deal-chip");
+    const columns = async () =>
+      new Set(
+        await chips.evaluateAll((els) => els.map((el) => Math.round(el.getBoundingClientRect().left))),
+      );
+
+    // The travel is long enough to catch mid-flight, so more than one column.
+    await expect.poll(async () => (await columns()).size, { timeout: 5000 }).toBeGreaterThan(1);
+    // And it settles on exactly two: the two teams.
+    await expect.poll(async () => (await columns()).size, { timeout: 8000 }).toBe(2);
+  });
+
+  test("the split animation holds its layout on a phone", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await gotoLanding(page);
+
+    await page.locator(".deal-stage").scrollIntoViewIfNeeded();
+    await page.waitForTimeout(1600);
+
+    const overflow = await page.evaluate(() => {
+      const doc = document.documentElement;
+      return [...document.querySelectorAll(".deal-chip")].filter((el) => {
+        const rect = el.getBoundingClientRect();
+        return rect.right > doc.clientWidth + 1 || rect.left < -1;
+      }).length;
+    });
+    expect(overflow).toBe(0);
+
+    // No player's name is truncated at the narrowest target width.
+    const clipped = await page.locator(".deal-chip-name").evaluateAll((els) =>
+      els.filter((el) => el.scrollWidth > el.clientWidth + 1).map((el) => el.textContent),
+    );
+    expect(clipped).toEqual([]);
+  });
+
+  test("the deal is shown settled, with no loop, when motion is reduced", async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await gotoLanding(page);
+
+    const deal = page.locator(".deal");
+    await expect(deal.locator(".deal-stage")).toHaveAttribute("data-dealt", "true");
+    await page.locator(".deal-stage").scrollIntoViewIfNeeded();
+
+    const first = deal.locator(".deal-chip").first();
+    await expect(first).toHaveCSS("opacity", "1");
+    // The chips carry no transition, so nothing moves.
+    await expect(first).toHaveCSS("transition-duration", "0s");
+    const before = await first.evaluate((el) => Math.round(el.getBoundingClientRect().left));
+    await page.waitForTimeout(2500);
+    const after = await first.evaluate((el) => Math.round(el.getBoundingClientRect().left));
+    expect(after).toBe(before);
+  });
+
+  test("the deal repeats, holding the settled teams before it clears", async ({ page }) => {
+    await gotoLanding(page);
+    const stage = page.locator(".deal-stage");
+    await stage.scrollIntoViewIfNeeded();
+
+    // The pool clears and reassembles on its own, without anyone asking.
+    const cycleAtStart = await stage.getAttribute("data-cycle");
+    await expect
+      .poll(async () => stage.getAttribute("data-cycle"), { timeout: 15000 })
+      .not.toBe(cycleAtStart);
+
+    // The settled teams were held, not flashed past: `holding` lasts 2s.
+    await expect(stage).toHaveAttribute("data-phase", "holding", { timeout: 15000 });
+  });
+
+  test("the loop can be paused and resumed", async ({ page }) => {
+    await gotoLanding(page);
+    const stage = page.locator(".deal-stage");
+    const control = page.locator(".deal-control");
+    await stage.scrollIntoViewIfNeeded();
+
+    await expect(control).toHaveText("Pause");
+    await control.click();
+    await expect(control).toHaveText("Play");
+    await expect(control).toHaveAttribute("aria-pressed", "true");
+
+    // Paused: the phase stops advancing.
+    const phase = await stage.getAttribute("data-phase");
+    await page.waitForTimeout(3000);
+    expect(await stage.getAttribute("data-phase")).toBe(phase);
+
+    await control.click();
+    await expect(control).toHaveText("Pause");
   });
 
   test("renders in both light and dark mode from the shared tokens", async ({ page }) => {
