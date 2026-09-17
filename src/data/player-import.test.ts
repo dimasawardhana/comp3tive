@@ -74,18 +74,36 @@ describe("parsePlayerCsv", () => {
     expect(skipped).toEqual([{ line: 2, reason: 'Strength "strong" is not a number.' }]);
   });
 
-  it("costs only the bad line: an unclosed quote never consumes the rows after it", () => {
-    const { rows, skipped } = parsePlayerCsv(
-      'name,discipline,strength\n"Smith\nJohn, futsal, 4\nAndi, futsal, 3',
-    );
-    // Line 2 is reported once and dropped. The cap stops the broken record from
-    // claiming line 3, which is then read on its own and does parse as a row —
-    // a consequence of never discarding a line a bad record reached over. The
-    // lines that matter, including Andi, all survive.
+  it("refuses a field-initial unclosed quote rather than importing its tail", () => {
+    const { rows, skipped } = parsePlayerCsv('name,discipline,strength\n"Smith\nJohn, futsal, 4');
+    // A quote that opened a field is multi-line intent, so the line it reached
+    // over belongs to the broken record. `John` must never become a player.
+    expect(rows).toEqual([]);
     expect(skipped).toEqual([
       { line: 2, reason: "Unclosed quoted field; this record was not imported." },
     ]);
-    expect(rows).toContainEqual({ line: 4, name: "Andi", discipline: "futsal", strength: 3 });
+  });
+
+  it("costs a mid-token stray quote its own line, and imports the next", () => {
+    const { rows, skipped } = parsePlayerCsv('O"Brien, futsal, 4\nAndi, futsal, 3');
+    // The quote opened inside a token, so it is a typo on line 1 alone: line 2 is
+    // a record in its own right and imports.
+    expect(skipped).toEqual([
+      { line: 1, reason: "Unclosed quoted field; this record was not imported." },
+    ]);
+    expect(rows).toEqual([{ line: 2, name: "Andi", discipline: "futsal", strength: 3 }]);
+  });
+
+  it("imports the fresh row after a field-initial quote, which consumes only its own continuation", () => {
+    const { rows, skipped } = parsePlayerCsv(
+      'name,discipline,strength\n"Smith\nJohn, futsal, 4\nAndi, futsal, 3',
+    );
+    // The field-initial quote claims line 3 as its continuation, so no `John`
+    // player appears — but line 4 was never part of the broken record and imports.
+    expect(rows).toEqual([{ line: 4, name: "Andi", discipline: "futsal", strength: 3 }]);
+    expect(skipped).toEqual([
+      { line: 2, reason: "Unclosed quoted field; this record was not imported." },
+    ]);
   });
 
   it("imports every other row of a roster whose middle row has one stray quote", () => {
@@ -93,7 +111,7 @@ describe("parsePlayerCsv", () => {
       "name,discipline,strength",
       "Andi, futsal, 3",
       "Budi, futsal, 4",
-      '"Cita, futsal, 5',
+      'Cita", futsal, 5',
       "Dewi, futsal, 2",
       "Eka, futsal, 3",
       "Fajar, futsal, 4",

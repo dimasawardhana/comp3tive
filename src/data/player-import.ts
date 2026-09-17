@@ -34,20 +34,28 @@ export function assertImportSize(bytes: number): void {
 /** One parsed line: the fields, and whether a quoted field was left open. */
 interface ParsedLine {
   fields: string[];
-  /** True when the line ends inside quotes, so its record continues on the next. */
+  /** True when the line ends inside quotes. */
   open: boolean;
+  /**
+   * True when the quote that is still open began a field (`"Smith`). That is
+   * multi-line intent, so the record is joined and its continuation consumed.
+   * False means it opened mid-token (`O"Brien`, `5" tall`), which is a typo: the
+   * record is refused and the next line is read on its own.
+   */
+  fieldInitial: boolean;
 }
 
 /**
  * Split one CSV line into fields. `"` toggles in-quote, `""` inside quotes is a
  * literal quote, and a comma inside quotes is data — so `"Smith, John", futsal, 4`
- * is three fields, not four. `open` reports a quote that never closed, which
- * means the record runs on to the following line.
+ * is three fields, not four. `open` reports a quote that never closed, and
+ * `fieldInitial` reports whether that quote began its field.
  */
 function splitCsvLine(line: string): ParsedLine {
   const fields: string[] = [];
   let field = "";
   let inQuotes = false;
+  let quoteOpenedField = false;
   for (let i = 0; i < line.length; i++) {
     const ch = line[i];
     if (inQuotes) {
@@ -63,14 +71,16 @@ function splitCsvLine(line: string): ParsedLine {
       }
       continue;
     }
-    if (ch === '"') inQuotes = true;
-    else if (ch === ",") {
+    if (ch === '"') {
+      inQuotes = true;
+      quoteOpenedField = field.trim() === "";
+    } else if (ch === ",") {
       fields.push(field.trim());
       field = "";
     } else field += ch;
   }
   fields.push(field.trim());
-  return { fields, open: inQuotes };
+  return { fields, open: inQuotes, fieldInitial: quoteOpenedField };
 }
 
 /**
@@ -113,11 +123,8 @@ export function parsePlayerCsv(text: string): { rows: CsvRow[]; skipped: ImportS
     const start = firstLine + 1;
     const isFirstRecord = !seenRecord;
     // A quoted field may span lines: join them while the quote stays open, but for
-    // at most MAX_RECORD_LINES. The joining is a candidate read — a record whose
-    // quote never closes is reported once against its first line and the next line
-    // is then read on its own, so one stray quote can never claim the rest of the
-    // file. The cost is that the line such a candidate reached over is read as its
-    // own record; losing rows would be the worse trade.
+    // at most MAX_RECORD_LINES. This is a candidate read — a record it cannot
+    // close is reported once against its first line.
     let last = firstLine;
     let raw = lines[firstLine];
     let parsed = splitCsvLine(raw);
@@ -127,7 +134,13 @@ export function parsePlayerCsv(text: string): { rows: CsvRow[]; skipped: ImportS
       parsed = splitCsvLine(raw);
     }
     if (parsed.open) {
-      i = firstLine + 1;
+      // Where the quote opened decides what happens to the lines it reached over.
+      // A field-initial quote (`"Smith`) is multi-line intent, so its continuation
+      // belongs to the broken record and must not be re-read as a record of its
+      // own — that is how a fragment of a name becomes a phantom player. A quote
+      // opened mid-token (`O"Brien`) is a typo on this line alone, so the next line
+      // is read on its own and a valid row after it still imports.
+      i = parsed.fieldInitial ? last + 1 : firstLine + 1;
       skipped.push({ line: start, reason: "Unclosed quoted field; this record was not imported." });
       continue;
     }
