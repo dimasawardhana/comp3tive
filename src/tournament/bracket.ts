@@ -158,27 +158,66 @@ const playedPairs = (t: Tournament): Set<string> => {
   return set;
 };
 
+/**
+ * Choose a rematch-free, legal (|Δwins| <= 1) pairing of the whole field.
+ * Deterministic depth-first search: take the first unpaired team, try opponents
+ * in a fixed order (smallest wins difference first, then stronger seed), and
+ * backtrack when a choice strands the remainder. Returns `null` only when no
+ * rematch-free legal assignment exists.
+ */
+function selectPairing(
+  field: TournamentTeam[],
+  recs: Map<Id, TeamRecord>,
+  played: Set<string>,
+): [TournamentTeam, TournamentTeam][] | null {
+  const seedIndex = new Map<Id, number>();
+  field.forEach((team, i) => seedIndex.set(team.id, i));
+  const byId = new Map(field.map((team) => [team.id, team]));
+
+  const pairUp = (
+    remaining: Id[],
+    pairs: [TournamentTeam, TournamentTeam][],
+  ): [TournamentTeam, TournamentTeam][] | null => {
+    if (remaining.length === 0) return pairs;
+    const [a, ...rest] = remaining;
+    const aWins = recs.get(a)!.wins;
+    const candidates = rest
+      .filter((b) => Math.abs(aWins - recs.get(b)!.wins) <= 1 && !played.has([a, b].sort().join(":")))
+      .sort(
+        (x, y) =>
+          Math.abs(aWins - recs.get(x)!.wins) - Math.abs(aWins - recs.get(y)!.wins) ||
+          seedIndex.get(x)! - seedIndex.get(y)!,
+      );
+    for (const b of candidates) {
+      const next = pairUp(rest.filter((id) => id !== b), [...pairs, [byId.get(a)!, byId.get(b)!]]);
+      if (next) return next;
+    }
+    return null;
+  };
+
+  return pairUp(field.map((team) => team.id), []);
+}
+
 /** Pair the next Swiss round: same-record groups, no rematches, floats for odd groups. */
 function pairRound(t: Tournament, recs: Map<Id, TeamRecord>, played: Set<string>): TournamentMatch[] {
-  const sorted = t.teams
+  const field = t.teams
     .slice()
     .sort((a, b) => recs.get(b.id)!.wins - recs.get(a.id)!.wins || a.id.localeCompare(b.id));
+  // A rematch-free legal pairing exists in every reachable Swiss position at
+  // n <= 8; asking for one is the normal path.
+  const legal = selectPairing(field, recs, played);
   const pairs: [TournamentTeam, TournamentTeam][] = [];
-  const remaining = [...sorted];
-  while (remaining.length > 1) {
-    const a = remaining.shift()!;
-    const ai = remaining.findIndex(
-      (b) =>
-        Math.abs(recs.get(a.id)!.wins - recs.get(b.id)!.wins) <= 1 &&
-        !played.has([a.id, b.id].sort().join(":")),
-    );
-    if (ai === -1) {
-      // No eligible opponent left (only possible at tiny sizes); pair with the next team.
-      pairs.push([a, remaining.shift()!]);
-      continue;
+  if (legal === null) {
+    // Last resort: no rematch-free legal assignment exists, so a repeat is
+    // unavoidable. Pair the field in order and let the record rule float.
+    const remaining = [...field];
+    while (remaining.length > 1) {
+      const a = remaining.shift()!;
+      const ai = remaining.findIndex((b) => Math.abs(recs.get(a.id)!.wins - recs.get(b.id)!.wins) <= 1);
+      pairs.push([a, remaining.splice(ai === -1 ? 0 : ai, 1)[0]]);
     }
-    const b = remaining.splice(ai, 1)[0];
-    pairs.push([a, b]);
+  } else {
+    pairs.push(...legal);
   }
   const round = t.matches.reduce((max, m) => Math.max(max, m.round), 0) + 1;
   return pairs.map(([a, b], p) => ({
@@ -299,17 +338,44 @@ export function undoLastGame(tournament: Tournament): Tournament {
 }
 
 
-/** Swiss standings: series wins, then team strength, then game wins. */
+/**
+ * Swiss standings, crowned by play: series wins, then the head-to-head winner
+ * when exactly two teams share a record (Swiss guarantees at most one meeting
+ * per pair, so it is well defined there), then game difference, then game wins,
+ * then id. The pre-tournament seed is deliberately absent: seeding builds the
+ * bracket, play decides the table.
+ */
 export function standings(tournament: Tournament): { teamId: Id; wins: number; gameWins: number }[] {
   const recs = records(tournament);
+  const losses = new Map<Id, number>();
+  const headToHead = new Map<string, Id>();
+  for (const r of recs.values()) losses.set(r.team.id, 0);
+  for (const m of tournament.matches) {
+    if (m.teamAId && m.teamBId && m.winnerTeamId) {
+      headToHead.set([m.teamAId, m.teamBId].sort().join(":"), m.winnerTeamId);
+    }
+    for (const g of m.games) {
+      const loser =
+        g.winnerTeamId === m.teamAId ? m.teamBId : g.winnerTeamId === m.teamBId ? m.teamAId : null;
+      if (loser) losses.set(loser, (losses.get(loser) ?? 0) + 1);
+    }
+  }
+  const tiedOnWins = new Map<number, number>();
+  for (const r of recs.values()) tiedOnWins.set(r.wins, (tiedOnWins.get(r.wins) ?? 0) + 1);
   return [...recs.values()]
-    .sort(
-      (a, b) =>
-        b.wins - a.wins ||
-        b.team.strength - a.team.strength ||
+    .sort((a, b) => {
+      if (b.wins !== a.wins) return b.wins - a.wins;
+      if (tiedOnWins.get(a.wins) === 2) {
+        const winner = headToHead.get([a.team.id, b.team.id].sort().join(":"));
+        if (winner === a.team.id) return -1;
+        if (winner === b.team.id) return 1;
+      }
+      return (
+        (b.gameWins - (losses.get(b.team.id) ?? 0)) - (a.gameWins - (losses.get(a.team.id) ?? 0)) ||
         b.gameWins - a.gameWins ||
-        a.team.id.localeCompare(b.team.id),
-    )
+        a.team.id.localeCompare(b.team.id)
+      );
+    })
     .map((r) => ({ teamId: r.team.id, wins: r.wins, gameWins: r.gameWins }));
 }
 
