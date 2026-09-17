@@ -297,3 +297,32 @@ describe("parseBackup: player validation", () => {
     expect(() => parseBackup(text, SEED_DISCIPLINES)).toThrow(/malformed player/);
   });
 });
+
+describe("parseBackup: a two-community round trip keeps every record's own community", () => {
+  it("preserves communityId per record and references no missing community", () => {
+    const communities = [community("c1", "Alpha Crew"), community("c2", "Beta Guild")];
+    const players = [
+      { ...player("a1", "Alpha One"), communityId: "c1" },
+      { ...player("b1", "Beta One"), communityId: "c2" },
+    ];
+    const sessions = [{ ...session("s-beta"), communityId: "c2" }];
+    const tournaments = [{ ...tournament("tr-alpha"), communityId: "c1" }];
+    const squads = [{ ...savedSquad("q-beta", "Beta Squad"), communityId: "c2" }];
+
+    const parsed = parseBackup(serializeBackup(players, sessions, communities, tournaments, squads));
+
+    expect(parsed.players.map((p) => p.communityId)).toEqual(["c1", "c2"]);
+    expect(parsed.sessions[0].communityId).toBe("c2");
+    expect(parsed.tournaments[0].communityId).toBe("c1");
+    expect(parsed.savedSquads[0].communityId).toBe("c2");
+
+    const known = new Set(parsed.communities.map((c) => c.id));
+    const referenced = [
+      ...parsed.players,
+      ...parsed.sessions,
+      ...parsed.tournaments,
+      ...parsed.savedSquads,
+    ].map((r) => r.communityId);
+    expect(referenced.every((id) => known.has(id))).toBe(true);
+  });
+});

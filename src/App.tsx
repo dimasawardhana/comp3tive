@@ -453,13 +453,25 @@ export default function App() {
     ) {
       return;
     }
-    // v1 backups (e.g. mpl-id-roster.json): adopt players into active community, not synthetic default.
-    const importCommunityId = activeCommunity?.id ?? newCommunities[0]?.id ?? "community-default";
+    // parseBackup has already resolved every communityId — including adopting a
+    // record whose id is missing or unknown (the v1 case) into the first
+    // community — so each imported record keeps its own.
     for (const c of newCommunities) await communityStore.saveCommunity(c);
-    for (const p of newPlayers) await roster.savePlayer({ ...p, communityId: importCommunityId });
+    // The hooks hold their own copies of the store's lists, and handleImport
+    // writes through the stores, so nothing below is on screen until re-read:
+    // an imported community would be absent from the dropdown and its records
+    // invisible. Communities come first, before the records whose communityId
+    // they explain — a player whose community is not yet in hook state is
+    // re-homed by the orphan-adoption effect above.
+    await communities.refresh();
+    for (const p of newPlayers) await roster.savePlayer(p);
     for (const s of newSessions) await sessionStore.saveSession(s);
     for (const t of newTournaments) await tournamentStore.saveTournament(t);
-    for (const q of newSquads) await squadStore.saveSavedSquad({ ...q, communityId: importCommunityId });
+    for (const q of newSquads) await squadStore.saveSavedSquad(q);
+    await roster.refresh();
+    await sessions.refresh();
+    await tournaments.refresh();
+    await savedSquads.refresh();
   };
 
 
