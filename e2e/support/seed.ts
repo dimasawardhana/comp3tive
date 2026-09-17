@@ -12,9 +12,26 @@
  *   makes the app fall back to the first community in list order.
  * - The discipline catalog is deliberately left empty: useDisciplines restores
  *   SEED_DISCIPLINES when the catalog is empty.
+ * - A player row that carries its own `capabilities` keeps them; a row that
+ *   supplies none gets `mlbbCap`. That is what makes a futsal-capable or a
+ *   deliberately malformed player seedable.
+ *
+ * `gotoSeeded` disposes its init script as soon as the app has rendered. A
+ * seeded world's only job is to establish the starting state, and Playwright
+ * replays an init script on every navigation, so leaving it installed would
+ * make a later `page.reload()` re-apply the seed over whatever the test did in
+ * the app: deleted rows come back and edits are undone, and a persistence
+ * assertion ends up testing the harness instead of the app. The seed has landed
+ * once the app is on screen, so the script is removed there and no spec has to
+ * remember to do it. (`e2e/tests/roster/delete-row.spec.ts` held the returned
+ * Disposable by hand before this was built into the helper.)
  */
-import { test, expect } from "@playwright/test";
+import { expect } from "@playwright/test";
 import type { Locator, Page } from "@playwright/test";
+import { DB_VERSION } from "../../src/storage/indexed-db";
+
+/** Re-exported for specs that read IndexedDB themselves (e.g. persistence probes). */
+export { DB_VERSION };
 
 /** The five hub destinations, matching NAV_ITEMS (src/App.tsx:62-68). */
 export type HubName = "Home" | "Roster" | "Games" | "History" | "Squads";
@@ -62,12 +79,11 @@ export const splitOf = (playerIds: string[]) => ({
 
 /** Turn a world into an init script that seeds IndexedDB before app code runs. */
 export function seedScript(world: SeedWorld): string {
-  const players = world.players.map((p) => ({
-    id: p.id,
-    communityId: p.communityId,
-    name: p.name,
-    capabilities: [mlbbCap],
-  }));
+  // Capabilities pass through: a row that carries its own keeps it, so
+  // futsal-capable and deliberately-malformed players are both seedable. A row
+  // that supplies none gets the MLBB default, which is the only discipline the
+  // unqualified worlds below mean.
+  const players = world.players.map((p) => (p.capabilities ? p : { ...p, capabilities: [mlbbCap] }));
   const db = {
     communities: world.communities,
     players,
@@ -77,7 +93,7 @@ export function seedScript(world: SeedWorld): string {
   };
   return `(() => {
     const STORES = ["communities", "players", "sessions", "tournaments", "saved-squads", "disciplines"];
-    const request = indexedDB.open("comp3tive", 6);
+    const request = indexedDB.open("comp3tive", ${DB_VERSION});
     request.onupgradeneeded = () => {
       const db = request.result;
       for (const name of STORES) {
@@ -100,9 +116,11 @@ export function seedScript(world: SeedWorld): string {
 
 /** Seed a world, then load the app (which lands on the Dashboard). */
 export async function gotoSeeded(page: Page, world: SeedWorld): Promise<void> {
-  await page.addInitScript(seedScript(world));
+  const seed = await page.addInitScript(seedScript(world));
   await page.goto("./");
   await expect(page.locator(".app")).toBeVisible({ timeout: 15000 });
+  // The world is on disk now; a later navigation must not replay it (see header).
+  await seed.dispose();
 }
 
 /**

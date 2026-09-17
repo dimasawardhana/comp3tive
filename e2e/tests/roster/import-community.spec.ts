@@ -5,7 +5,7 @@
  */
 import { expect, test } from "@playwright/test";
 import type { Page } from "@playwright/test";
-import { gotoHubSeeded, MLBB_ID, splitOf, type SeedWorld } from "../../support/seed";
+import { gotoHubSeeded, DB_VERSION, MLBB_ID, splitOf, type SeedWorld } from "../../support/seed";
 
 const activeOnly = (): SeedWorld => ({
   communities: [{ id: "comm-active", name: "Active Crew", createdAt: 100 }],
@@ -47,10 +47,11 @@ const twoCommunityBackup = () =>
 
 /** The communityId of every persisted player, sorted. */
 function storedPlayerCommunityIds(page: Page) {
+  // The version is passed in rather than written here: this runs in the browser.
   return page.evaluate(
-    () =>
+    (version) =>
       new Promise<string[]>((resolve) => {
-        const request = indexedDB.open("comp3tive", 6);
+        const request = indexedDB.open("comp3tive", version);
         request.onerror = () => resolve([]);
         request.onsuccess = () => {
           const db = request.result;
@@ -62,6 +63,7 @@ function storedPlayerCommunityIds(page: Page) {
           };
         };
       }),
+    DB_VERSION,
   );
 }
 

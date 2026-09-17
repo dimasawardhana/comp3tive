@@ -2,22 +2,38 @@
  * Tournament squad split: verify SplitScreen shows tournament context
  * when entered from a tournament draft.
  *
- * Flow: seed a community with four players -> create a Series tournament ->
- * open draft page -> click "Split your teams" -> land in match setup (locked to
- * tournament). The players are MLBB-capable (seedScript hardcodes mlbbCap), the
- * tournament is Futsal, so the setup screen has no eligible players — which the
- * final assertion below relies on.
+ * Flow: seed a community with four futsal players -> create a Series tournament
+ * -> open draft page -> click "Split your teams" -> land in match setup (locked
+ * to tournament). The players carry a Futsal capability, so the setup screen
+ * has eligible players for the tournament's own discipline; the final assertion
+ * below is about the tournament context surviving the handoff.
  */
 import { test, expect } from "@playwright/test";
 import { gotoHubSeeded, type SeedWorld } from "../../support/seed";
 
+const FUTSAL_ROLES = ["goalkeeper", "defender", "winger", "pivot"];
+
+const futsalPlayer = (id: string, name: string) => ({
+  id,
+  communityId: "comm-split",
+  name,
+  capabilities: [
+    {
+      disciplineId: "futsal",
+      attributeRatings: { technical: 4, fitness: 4, "game-iq": 4 },
+      eligibleRoles: FUTSAL_ROLES,
+      preferredRole: null,
+    },
+  ],
+});
+
 const world = (): SeedWorld => ({
   communities: [{ id: "comm-split", name: "Tourney Squad", createdAt: 100 }],
   players: [
-    { id: "sp-1", communityId: "comm-split", name: "Split One" },
-    { id: "sp-2", communityId: "comm-split", name: "Split Two" },
-    { id: "sp-3", communityId: "comm-split", name: "Split Three" },
-    { id: "sp-4", communityId: "comm-split", name: "Split Four" },
+    futsalPlayer("sp-1", "Split One"),
+    futsalPlayer("sp-2", "Split Two"),
+    futsalPlayer("sp-3", "Split Three"),
+    futsalPlayer("sp-4", "Split Four"),
   ],
   sessions: [],
   tournaments: [],
@@ -44,6 +60,6 @@ test("tournament split: draft page links to match setup with tournament context"
 
   // Verify tournament context in match setup: section 1 (discipline) is locked
   // (the game cards should be disabled except the tournament's chosen one)
-  // Since no players have Futsal capability, the "Who's playing?" section shows empty state
+  // The four futsal players are eligible for the Futsal tournament.
   await expect(page.locator(".screen h1")).toHaveText("Set the match");
 });

@@ -1,11 +1,20 @@
 import { test, expect } from "@playwright/test";
+import { gotoSeeded, type SeedWorld } from "../../support/seed";
 
 test.use({ viewport: { width: 390, height: 844 } });
 
+const world = (): SeedWorld => ({
+  communities: [{ id: "comm-viewport", name: "Viewport Test", createdAt: 100 }],
+  players: [],
+  sessions: [],
+  tournaments: [],
+  squads: [],
+  activeCommunityId: "comm-viewport",
+});
+
 /** Verify panel + navigation stay on viewport (fixed/sticky). */
 test("panel and navigation stay on viewport", async ({ page }) => {
-  await page.goto("./");
-  await expect(page.locator(".app")).toBeVisible({ timeout: 15000 });
+  await gotoSeeded(page, world());
 
   // 1. Topbar is sticky (stays at top when scrolling)
   const topbar = page.locator(".topbar-wrap");

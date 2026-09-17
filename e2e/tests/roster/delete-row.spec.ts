@@ -4,7 +4,7 @@
  * that reloads between steps passes today, which is why this one does not.
  */
 import { expect, test } from "@playwright/test";
-import { hubButton, MLBB_ID, seedScript, splitOf, type SeedWorld } from "../../support/seed";
+import { gotoHubSeeded, hubButton, MLBB_ID, splitOf, type SeedWorld } from "../../support/seed";
 
 const world = (): SeedWorld => ({
   communities: [{ id: "comm-del", name: "Delete Crew", createdAt: 100 }],
@@ -54,15 +54,10 @@ const world = (): SeedWorld => ({
 });
 
 test("deleting a player, a tournament and a session removes the row without a reload", async ({ page }) => {
-  // The seed is installed directly rather than through `gotoHubSeeded` because
-  // Playwright replays every init script on navigation: seeding through it would
-  // make the reload below re-create the deleted record, so the persistence half
-  // of this test would be asserting the harness instead of the app. Holding the
-  // disposable keeps the reload a real one while stopping the replay.
-  const seed = await page.addInitScript(seedScript(world()));
-  await page.goto("./");
-  await expect(page.locator(".app")).toBeVisible({ timeout: 15000 });
-  await hubButton(page, "Roster").click();
+  // `gotoHubSeeded` removes its init script once the world has landed, so the
+  // reloads below are real ones: deleted records stay deleted instead of being
+  // re-seeded, and the persistence assertions are about the app, not the harness.
+  await gotoHubSeeded(page, world(), "Roster");
   await expect(page.locator(".screen h1")).toBeVisible();
   await expect(page.locator(".roster .row")).toHaveCount(3);
 
@@ -77,7 +72,6 @@ test("deleting a player, a tournament and a session removes the row without a re
   await expect(page.locator(".roster .row")).toHaveCount(2, { timeout: 5000 });
 
   // And the delete must be persisted, so it survives one.
-  await seed.dispose();
   await page.reload();
   await expect(page.locator(".screen h1")).toBeVisible({ timeout: 15000 });
   await hubButton(page, "Roster").click();
