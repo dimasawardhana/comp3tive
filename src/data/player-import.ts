@@ -2,6 +2,13 @@ import type { Discipline, Id, Player } from "../domain/types";
 
 /** Refuse a file too large to parse sensibly. A guard, not a security control. */
 export const MAX_IMPORT_BYTES = 5 * 1024 * 1024;
+/**
+ * Physical lines one record may span. A quoted value carrying one newline is
+ * real; a longer run means an unbalanced quote. Keeping this at two is what
+ * bounds the damage a single stray quote can do — at most the one line it drags
+ * along — and reading resumes on the line after the bad record, never at EOF.
+ */
+const MAX_RECORD_LINES = 2;
 
 /** One successfully parsed CSV line, with its 1-based line number preserved. */
 export interface CsvRow {
@@ -102,24 +109,30 @@ export function parsePlayerCsv(text: string): { rows: CsvRow[]; skipped: ImportS
       i++;
       continue;
     }
-    const start = i + 1;
+    const firstLine = i;
+    const start = firstLine + 1;
     const isFirstRecord = !seenRecord;
-    seenRecord = true;
-    // A quoted field may span lines: keep reading while a quote stays open.
-    let raw = lines[i];
+    // A quoted field may span lines: join them while the quote stays open, but for
+    // at most MAX_RECORD_LINES. The joining is a candidate read — a record whose
+    // quote never closes is reported once against its first line and the next line
+    // is then read on its own, so one stray quote can never claim the rest of the
+    // file. The cost is that the line such a candidate reached over is read as its
+    // own record; losing rows would be the worse trade.
+    let last = firstLine;
+    let raw = lines[firstLine];
     let parsed = splitCsvLine(raw);
-    while (parsed.open && i + 1 < lines.length) {
-      i++;
-      raw += `\n${lines[i]}`;
+    while (parsed.open && last + 1 < lines.length && last < firstLine + MAX_RECORD_LINES - 1) {
+      last++;
+      raw += `\n${lines[last]}`;
       parsed = splitCsvLine(raw);
     }
-    i++;
     if (parsed.open) {
-      // A quote that never closes is one bad record, reported once — its trailing
-      // lines must not be imported as a fragment of its name.
+      i = firstLine + 1;
       skipped.push({ line: start, reason: "Unclosed quoted field; this record was not imported." });
       continue;
     }
+    i = last + 1;
+    seenRecord = true;
     const fields = parsed.fields;
     if (isFirstRecord && isHeader(fields)) continue;
     if (fields.length < 3) {
