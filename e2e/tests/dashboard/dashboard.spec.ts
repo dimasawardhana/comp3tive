@@ -1,10 +1,8 @@
 import { test, expect } from "@playwright/test";
 import {
   MLBB_ID,
-  gotoHubSeeded,
   gotoSeeded,
   hubButton,
-  mlbbCap,
   splitOf,
   statValue,
   type SeedWorld,

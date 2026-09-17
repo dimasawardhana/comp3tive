@@ -23,6 +23,11 @@ for (const viewport of [
       await expect(hubButton(page, hub)).toBeVisible();
     }
 
+    // Five slots, in whichever layout this width ships. A sixth NAV_ITEMS entry
+    // would render a sixth control into a five-slot bar and break the layout,
+    // and HubName is hand-written so tsc cannot catch the drift.
+    await expect(page.locator(".rail-link:visible, .bottom-nav .nav-link:visible")).toHaveCount(5);
+
     await hubButton(page, "Games").click();
     await expect(page.locator(".screen h1")).toHaveText("Games");
   });

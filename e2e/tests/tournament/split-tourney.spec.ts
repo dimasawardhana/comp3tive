@@ -2,9 +2,11 @@
  * Tournament squad split: verify SplitScreen shows tournament context
  * when entered from a tournament draft.
  *
- * Flow: seed a community with four futsal-capable players -> create a Series
- * tournament -> open draft page -> click "Split your teams" -> land in match
- * setup (locked to tournament).
+ * Flow: seed a community with four players -> create a Series tournament ->
+ * open draft page -> click "Split your teams" -> land in match setup (locked to
+ * tournament). The players are MLBB-capable (seedScript hardcodes mlbbCap), the
+ * tournament is Futsal, so the setup screen has no eligible players — which the
+ * final assertion below relies on.
  */
 import { test, expect } from "@playwright/test";
 import { gotoHubSeeded, type SeedWorld } from "../../support/seed";
