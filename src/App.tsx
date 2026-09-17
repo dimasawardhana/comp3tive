@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import {
   computeStrength,
-  type Capability,
   type Community,
   type Discipline,
   type GameResult,
@@ -45,6 +44,7 @@ import { GamesScreen } from "./tournament/GamesScreen";
 import { TournamentScreen } from "./tournament/TournamentScreen";
 import { buildBracket, applyResult, undoLastGame } from "./tournament/bracket";
 import { serializeBackup, parseBackup } from "./data/transfer";
+import { assertImportSize, csvRowsToPlayers, parsePlayerCsv } from "./data/player-import";
 import { validatePlayer } from "./domain/validation";
 import { validateTeamParticipation } from "./tournament/team-participation-validator";
 import { validateTournamentSpec } from "./tournament/tournament-validation";
@@ -533,6 +533,7 @@ export default function App() {
     const file = e.target.files?.[0];
     if (!file) return;
     try {
+      assertImportSize(file.size);
       const text = await file.text();
       const trimmed = text.trim();
 
@@ -597,46 +598,25 @@ export default function App() {
 
       // CSV branch
       if (!activeCommunity) {
-        alert("Pick or create a community before importing a CSV.");
+        notify("Pick or create a community before importing a CSV.", "error");
         return;
       }
-      const lines = text.split(/\r?\n/).filter((l) => l.trim());
-      const startIdx = lines[0]?.toLowerCase().includes("name") ? 1 : 0;
-      let imported = 0;
-      for (let i = startIdx; i < lines.length; i++) {
-        const parts = lines[i].split(",").map((p) => p.trim().replace(/^"|"$/g, ""));
-        const name = parts[0];
-        if (!name) continue;
-        const disciplineShort = parts[1]?.toLowerCase() || "";
-        const strength = parts[2] ? Number(parts[2]) : 3;
-        const matchedDiscipline = disciplines.find(
-          (d) => d.shortName.toLowerCase() === disciplineShort || d.name.toLowerCase() === disciplineShort,
+      const { rows, skipped: unparsed } = parsePlayerCsv(text);
+      const { players: imported, skipped: unresolved } = csvRowsToPlayers(rows, disciplines, activeCommunity.id);
+      for (const player of imported) await roster.savePlayer(player);
+      const skipped = [...unparsed, ...unresolved].sort((a, b) => a.line - b.line);
+      notify(
+        `Imported ${imported.length} player${imported.length === 1 ? "" : "s"} into ${activeCommunity.name}.`,
+        "success",
+      );
+      if (skipped.length > 0) {
+        notify(
+          `Skipped ${skipped.length} row${skipped.length === 1 ? "" : "s"}. Line ${skipped[0].line}: ${skipped[0].reason}`,
+          "error",
         );
-        const capability: Capability | null = matchedDiscipline
-          ? {
-              disciplineId: matchedDiscipline.id,
-              attributeRatings: Object.fromEntries(
-                matchedDiscipline.attributes.map((a) => [
-                  a.id,
-                  Math.max(1, Math.min(5, strength)) as 1 | 2 | 3 | 4 | 5,
-                ]),
-              ),
-              eligibleRoles: matchedDiscipline.roles.map((r) => r.id),
-              preferredRole: null,
-            }
-          : null;
-        const player: Player = {
-          id: crypto.randomUUID(),
-          communityId: activeCommunity.id,
-          name,
- capabilities: capability ? [capability] : [],
-        };
-        await roster.savePlayer(player);
-        imported++;
       }
-      alert(`Imported ${imported} player${imported === 1 ? "" : "s"}.`);
     } catch (err) {
-      alert(`Import failed: ${err instanceof Error ? err.message : String(err)}`);
+      notify(`Import failed: ${formatError(err)}`, "error");
     } finally {
       if (fileInputRef.current) fileInputRef.current.value = "";
     }
