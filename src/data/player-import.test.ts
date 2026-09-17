@@ -24,9 +24,41 @@ describe("parsePlayerCsv", () => {
     expect(rows[0].name).toBe('Say "hi"');
   });
 
+  it("reads a quoted field that spans a line as one value", () => {
+    const { rows, skipped } = parsePlayerCsv('name,discipline,strength\n"Smith\nJohn", futsal, 4');
+    expect(skipped).toEqual([]);
+    expect(rows).toEqual([{ line: 2, name: "Smith\nJohn", discipline: "futsal", strength: 4 }]);
+  });
+
   it("skips a quoted header", () => {
-    const { rows } = parsePlayerCsv('"Name","Discipline","Strength"\nBudi,futsal,4');
+    const { rows, skipped } = parsePlayerCsv('"Name","Discipline","Strength"\nBudi,futsal,4');
+    // `skipped` must be empty: the header is skipped, not rejected by a guard.
+    expect(skipped).toEqual([]);
     expect(rows).toEqual([{ line: 2, name: "Budi", discipline: "futsal", strength: 4 }]);
+  });
+
+  it("skips an unquoted header", () => {
+    const { rows, skipped } = parsePlayerCsv("Name,Discipline,Strength\nBudi,futsal,4");
+    expect(skipped).toEqual([]);
+    expect(rows).toEqual([{ line: 2, name: "Budi", discipline: "futsal", strength: 4 }]);
+  });
+
+  it("still detects the header after a leading blank line", () => {
+    const { rows, skipped } = parsePlayerCsv("\nname,discipline,strength\nBudi, futsal, 4");
+    expect(skipped).toEqual([]);
+    expect(rows).toEqual([{ line: 3, name: "Budi", discipline: "futsal", strength: 4 }]);
+  });
+
+  it("imports a first-row player whose name merely contains the header word", () => {
+    const { rows, skipped } = parsePlayerCsv("Nameer, futsal, 4");
+    expect(skipped).toEqual([]);
+    expect(rows).toEqual([{ line: 1, name: "Nameer", discipline: "futsal", strength: 4 }]);
+  });
+
+  it("imports a first-row player literally named Name", () => {
+    const { rows, skipped } = parsePlayerCsv("Name, futsal, 4");
+    expect(skipped).toEqual([]);
+    expect(rows).toEqual([{ line: 1, name: "Name", discipline: "futsal", strength: 4 }]);
   });
 
   it("skips a row with fewer than three fields, by line number", () => {
@@ -40,6 +72,14 @@ describe("parsePlayerCsv", () => {
   it("skips a strength that is not a number rather than defaulting it", () => {
     const { skipped } = parsePlayerCsv("name, discipline, strength\nBudi, futsal, strong");
     expect(skipped).toEqual([{ line: 2, reason: 'Strength "strong" is not a number.' }]);
+  });
+
+  it("reports an unclosed quote once, and invents no player from its tail", () => {
+    const { rows, skipped } = parsePlayerCsv('name,discipline,strength\n"Smith\nJohn, futsal, 4');
+    expect(rows).toEqual([]);
+    expect(skipped).toEqual([
+      { line: 2, reason: "Unclosed quoted field; this record was not imported." },
+    ]);
   });
 });
 
