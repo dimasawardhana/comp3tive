@@ -1,4 +1,4 @@
-import type { Community, Discipline, Player, SavedSquad, Session, Tournament } from "../domain/types";
+import type { Capability, Community, Discipline, Player, SavedSquad, Session, Tournament } from "../domain/types";
 import { validatePlayer } from "../domain/validation";
 
 /**
@@ -48,6 +48,16 @@ function isPlayer(v: unknown): v is Player {
     typeof v.id === "string" &&
     typeof v.name === "string" &&
     Array.isArray(v.capabilities)
+  );
+}
+
+/** The three fields validateCapability dereferences; checked before the call. */
+function isCapabilityShape(v: unknown): v is Capability {
+  return (
+    isRecord(v) &&
+    typeof v.disciplineId === "string" &&
+    isRecord(v.attributeRatings) &&
+    Array.isArray(v.eligibleRoles)
   );
 }
 
@@ -115,7 +125,20 @@ export function parseBackup(text: string, disciplines?: Discipline[]): BackupDat
   // too: shape alone lets a capability through that computeStrength throws on.
   if (disciplines) {
     for (const p of data.players as Player[]) {
-      const problems = validatePlayer(p, disciplines);
+      // validateCapability dereferences these, so a non-record capability or one
+      // missing them must fail with this module's own message, not a TypeError.
+      if (!p.capabilities.every(isCapabilityShape)) {
+        throw new Error("Backup contains a malformed player.");
+      }
+      // A backup carries no catalog of its own, so a capability for a discipline
+      // this device has not created yet is a legitimate record: the
+      // discipline-delete copy promises those ratings survive. Such a capability
+      // can never reach computeStrength, which resolves capabilities through the
+      // local catalog, so narrowing this one rule out costs no protection. Every
+      // other invariant (duplicates included) still throws.
+      const problems = validatePlayer(p, disciplines).filter(
+        (issue) => !issue.message.startsWith("Unknown discipline "),
+      );
       if (problems.length > 0) {
         throw new Error(`Backup player "${p.name}" is invalid: ${problems[0].message}`);
       }

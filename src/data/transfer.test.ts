@@ -260,4 +260,40 @@ describe("parseBackup: player validation", () => {
     });
     expect(parseBackup(text, SEED_DISCIPLINES).players).toHaveLength(1);
   });
+
+  it("restores a capability whose discipline the supplied catalog does not know", () => {
+    // A backup carries no catalog, so a discipline created on another device is
+    // legitimately absent here - and the discipline-delete copy promises those
+    // ratings survive ("Players with capabilities in it will still have those
+    // ratings"). Refusing the whole file would break a legitimate restore.
+    const text = backup([
+      {
+        id: "p1",
+        communityId: "c1",
+        name: "Player 1",
+        capabilities: [{ ...validCap, disciplineId: "padel" }],
+      },
+    ]);
+    expect(parseBackup(text, SEED_DISCIPLINES).players).toHaveLength(1);
+  });
+
+  it("narrows only the unknown-discipline rule, keeping the rest for those capabilities", () => {
+    const unknownCap = { ...validCap, disciplineId: "padel" };
+    const text = backup([
+      { id: "p1", communityId: "c1", name: "Player 1", capabilities: [unknownCap, unknownCap] },
+    ]);
+    expect(() => parseBackup(text, SEED_DISCIPLINES)).toThrow(/At most one capability per discipline/);
+  });
+
+  it("rejects a capability element that is not an object", () => {
+    const text = backup([{ id: "p1", communityId: "c1", name: "Player 1", capabilities: [null] }]);
+    expect(() => parseBackup(text, SEED_DISCIPLINES)).toThrow(/malformed player/);
+  });
+
+  it("rejects a capability missing its ratings and eligibility lists", () => {
+    const text = backup([
+      { id: "p1", communityId: "c1", name: "Player 1", capabilities: [{ disciplineId: "mlbb" }] },
+    ]);
+    expect(() => parseBackup(text, SEED_DISCIPLINES)).toThrow(/malformed player/);
+  });
 });
