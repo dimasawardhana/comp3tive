@@ -19,6 +19,13 @@ interface Props {
 }
 
 const BIB = ["a", "b", "c", "d", "e"];
+/** Team-membership signature, order-independent: used to detect a real re-roll. */
+function signature(result: SplitResult): string {
+  return result.teams
+    .map((t) => t.slots.map((s) => s.playerId).sort().join(","))
+    .sort()
+    .join("|");
+}
 
 function playerCapability(player: Player, discipline: Discipline): Capability | undefined {
   return player.capabilities.find((c) => c.disciplineId === discipline.id);
@@ -253,14 +260,28 @@ export function SplitScreen({ session, discipline, roster, onPersistResult, onSu
   };
 
   const reroll = () => {
-    const next = freshSplit(
-      result.teams.flatMap((t) => t.slots.map((s) => s.playerId)),
-      roster,
-      discipline,
-      { teamCount: result.teams.length },
-    );
+    // The pool is the session's own pool, not the teams on screen: a player who
+    // sat out (an MLBB leftover, a futsal sub past capacity) is eligible again.
+    const pool = session.poolPlayerIds.filter((id) => roster.some((p) => p.id === id));
+    const settings = { teamCount: session.settings.teamCount };
+    const before = signature(result);
+    let next = result;
+    let rolled = false;
+    // A bounded walk: skip variety counters that reproduce the current teams,
+    // so a click that can change the teams changes them.
+    for (let n = rerollCount; n < rerollCount + 8; n++) {
+      const candidate = freshSplit(pool, roster, discipline, settings, { variety: n });
+      if (signature(candidate) !== before) {
+        next = candidate;
+        rolled = true;
+        break;
+      }
+      if (n === rerollCount) next = candidate; // no other arrangement exists
+    }
     void commit(next);
-    setRerollCount((n) => n + 1);
+    // Only count a roll that actually changed the teams, so `Roll #N` never
+    // reports a roll that did not happen.
+    if (rolled) setRerollCount((n) => n + 1);
   };
 
   const toggleSwapMode = () => {
