@@ -341,9 +341,16 @@ export function undoLastGame(tournament: Tournament): Tournament {
 /**
  * Swiss standings, crowned by play: series wins, then the head-to-head winner
  * when exactly two teams share a record (Swiss guarantees at most one meeting
- * per pair, so it is well defined there), then game difference, then game wins,
- * then id. The pre-tournament seed is deliberately absent: seeding builds the
+ * per pair, so it is well defined there), then game difference, then game wins.
+ * Those three keys read the played record, not the seed: seeding builds the
  * bracket, play decides the table.
+ *
+ * Ascending `team.id` is the deterministic last resort when all three tie, and
+ * it is *not* seed-neutral: ids are handed out in strength order (`team-1` is
+ * the strongest, `src/App.tsx`), so in the rare fully-tied case the id key can
+ * still reproduce the pre-tournament seed. Once wins, difference and gameWins
+ * all tie, some deterministic final key is unavoidable; this one is stated
+ * rather than implied.
  */
 export function standings(tournament: Tournament): { teamId: Id; wins: number; gameWins: number }[] {
   const recs = records(tournament);

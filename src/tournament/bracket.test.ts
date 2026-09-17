@@ -428,3 +428,53 @@ describe("swiss: pairing is rematch-free whenever a rematch-free pairing exists"
     expect(standings(u).map((s) => s.teamId)).toEqual(["a", "c", "d", "b"]);
   });
 });
+describe("swiss: the last-resort pairing when no rematch-free assignment exists", () => {
+  it("pairs the field in order and seats every team when every pair has already met", () => {
+    // A hand-authored round 1 containing every pair. When it completes, `settle`
+    // calls `pairRound` with all six pairs already in `played`, so `selectPairing`
+    // returns null and the documented last resort runs: a repeat is unavoidable,
+    // so the field is paired in order and the record rule floats.
+    const teams = [team("t1", 4), team("t2", 3), team("t3", 2), team("t4", 1)];
+    const m = (id: Id, p: number, a: Id, b: Id, winner: Id): TournamentMatch => ({
+      id,
+      round: 1,
+      position: p,
+      teamAId: a,
+      teamBId: b,
+      games: [],
+      winnerTeamId: winner,
+      winnerNext: null,
+      loserNext: null,
+    });
+    // Every one of the six pairs, with each team playing three matches.
+    // Winners leave the field t1(2w) t2(2w) t3(1w) t4(1w) — t1 and t2 on the same
+    // record, t3 and t4 on the same record.
+    const pairsAlready = [
+      m("m-1-0", 0, "t1", "t2", "t2"), // t2: 1
+      m("m-1-1", 1, "t1", "t3", "t1"), // t1: 1
+      m("m-1-2", 2, "t1", "t4", "t1"), // t1: 2
+      m("m-1-3", 3, "t2", "t3", "t3"), // t3: 1
+      m("m-1-4", 4, "t2", "t4", "t2"), // t2: 2
+      m("m-1-5", 5, "t3", "t4", "t4"), // t4: 1
+      // t1: beats t3, t4 (2w); t2: beats t1, t4 (2w); t3: beats t2 (1w); t4: beats t3 (1w).
+    ];
+    // Best-of-1 so one game decides each match; `settle` re-derives the winners.
+    let t: Tournament = { ...tourneyWith("swiss", teams, { seriesLength: 1 }), matches: pairsAlready };
+    for (const match of pairsAlready) t = applyResult(t, match.id, [game(match.winnerTeamId!)]);
+
+    const r2 = t.matches.filter((x) => x.round === 2).slice().sort((a, b) => a.position - b.position);
+    // The field is [t1, t2, t3, t4]; the last resort pairs it in order, each pair
+    // with the first opponent inside its own record band.
+    expect(r2).toHaveLength(2);
+    expect(r2.map((x) => [x.teamAId, x.teamBId])).toEqual([
+      ["t1", "t2"],
+      ["t3", "t4"],
+    ]);
+    const played = new Set(pairsAlready.map((x) => [x.teamAId!, x.teamBId!].sort().join(":")));
+    for (const match of r2) {
+      expect(played.has([match.teamAId!, match.teamBId!].sort().join(":"))).toBe(true);
+    }
+    // Every team still plays: the last resort floats the record rule, it does not drop anyone.
+    expect(new Set(r2.flatMap((x) => [x.teamAId, x.teamBId])).size).toBe(4);
+  });
+});
