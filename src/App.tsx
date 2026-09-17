@@ -480,7 +480,11 @@ export default function App() {
   };
 
   const deletePlayer = async (id: Id) => {
-    await rosterStore.deletePlayer(id);
+    try {
+      await roster.deletePlayer(id);
+    } catch (err) {
+      notify(`Could not delete the player: ${formatError(err)}`, "error");
+    }
   };
 
   const saveDiscipline = async (d: Discipline) => {
@@ -760,7 +764,11 @@ export default function App() {
     await recordResult(matchId, games);
   };
   const deleteTournament = async (id: Id) => {
-    await tournamentStore.deleteTournament(id);
+    try {
+      await tournaments.deleteTournament(id);
+    } catch (err) {
+      notify(`Could not delete the tournament: ${formatError(err)}`, "error");
+    }
   };
 
   const deleteTournamentFromUI = async (id: Id) => {
@@ -1206,7 +1214,13 @@ export default function App() {
           loading={sessions.loading}
           disciplines={disciplines}
           onReopen={(session) => pushView({ mode: "split", session, source: "session" })}
-          onDelete={async (id) => { await sessionStore.deleteSession(id); }}
+          onDelete={async (id) => {
+            try {
+              await sessions.deleteSession(id);
+            } catch (err) {
+              notify(`Could not delete the session: ${formatError(err)}`, "error");
+            }
+          }}
         />
       )}
 
