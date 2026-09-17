@@ -10,7 +10,7 @@
 
 **Blocked by:** —
 
-**Status:** open
+**Status:** resolved
 
 - [ ] The three `inspect*.spec.ts` files are deleted
 - [ ] `review.spec.ts` is either implemented (a real review-panel assertion) or deleted — not left skipped
@@ -23,3 +23,13 @@
 **Design reference:** none.
 
 **Notes:** Deliberately separate from the docs reconciliation (ticket 06) and from the Landing Page tickets. The `dashboard.spec.ts` seeding pattern is the model worth keeping — it is the only spec that controls its world instead of clicking its way to one.
+
+## Comments
+
+Resolved by commit `f7986c4` ("test: prune the specs that assert nothing and untrack the reports"),
+which deletes `e2e/pages/`, `review.spec.ts` and the inspect/journey specs, untracks
+`playwright-report/` and `test-results/`, and adds both to `.gitignore`.
+
+Also absorbed into Phase A of the debt repayment effort as
+`.scratch/debt/issues/09-prune-dead-specs-untrack-reports.md`. Do not start that copy — this ticket's
+work has shipped.

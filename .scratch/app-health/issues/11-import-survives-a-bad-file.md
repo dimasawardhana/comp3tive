@@ -21,7 +21,7 @@ memory.
 **Blocked by:** 10 — same function, and 10 replaces the `alert()` calls this ticket's messages go
 through.
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 - [ ] A CSV field wrapped in quotes, with or without an embedded comma, imports as a single value
 - [ ] A CSV row naming a discipline that does not exist is reported by name — the user learns which
@@ -45,3 +45,15 @@ the two-dependency `package.json` are load-bearing parts of this project's ident
 
 The size limit is a guard against a self-inflicted freeze, not a security control. Pick a number
 that is generous for a real roster (a few MB) and state it in the message.
+
+## Comments
+
+Resolved by commit `3a85f65` ("fix: import survives a bad file"), which adds
+`src/data/player-import.ts` with a quoted-field state machine (`"Smith, John", futsal, 4` imports
+one player named `Smith, John`), an unknown-discipline skip reported with its line number, and
+`assertImportSize` (`MAX_IMPORT_BYTES = 5 * 1024 * 1024`) called on `file.size` before
+`await file.text()`.
+
+Also absorbed into Phase A of the debt repayment effort as
+`.scratch/debt/issues/08-import-survives-a-bad-file.md`. Do not start that copy — this ticket's
+work has shipped.

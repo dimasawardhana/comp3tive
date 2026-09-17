@@ -30,7 +30,7 @@ because it was seeded first.
 
 **Blocked by:** None — can start immediately.
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 - [ ] When a rematch-free pairing under the same-record (±1 wins) rule exists, it is chosen —
       asserted exhaustively over outcome patterns, not with a single fixture
@@ -56,3 +56,14 @@ tied teams, game difference, or an explicit final between tied leaders. Which on
 about what the product's fairness claim means once a bracket is involved, and it belongs in this
 ticket's Answer. The current order is defensible for *seeding* and wrong for *crowning*; those may
 want to be two different sorts.
+
+## Comments
+
+Resolved by commit `feb79b7` ("fix: swiss pairs without rematches and crowns by play"), which
+replaces the first-fit pairing with a search that prefers a rematch-free pairing when one exists
+and drops `team.strength` from the crowning sort. `src/tournament/bracket.test.ts` gains the
+exhaustive pattern block and the 2–4 tie fixture.
+
+Also absorbed into Phase A of the debt repayment effort as
+`.scratch/debt/issues/07-swiss-pairs-without-rematches.md`. Do not start that copy — this ticket's
+work has shipped.

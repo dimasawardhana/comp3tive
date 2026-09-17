@@ -4,10 +4,15 @@
 
 **Blocked by:** 02 — Dashboard screen (the actions live on the dashboard).
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 - [ ] Clicking "Split match" starts an ad-hoc split and lands on the match setup screen.
 - [ ] Clicking "+ New tournament" opens the Games hub's new-tournament create modal.
 - [ ] Clicking "Browse saved squads" opens the Saved Squads hub.
 - [ ] Clicking "+ Add player" opens the roster's add-player modal.
 - [ ] On a fresh community, the guided empty state's primary action is wired to the same first step (add players / split) and works.
+
+## Comments
+
+Resolved by commit `3728887` ("feat: wire dashboard actions to existing flows"), which routes
+"Split match", "+ New tournament", "Browse saved squads" and "+ Add player" to their existing flows.

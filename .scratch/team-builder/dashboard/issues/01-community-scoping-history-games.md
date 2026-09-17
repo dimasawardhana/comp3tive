@@ -4,9 +4,14 @@
 
 **Blocked by:** None — can start immediately.
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 - [ ] With two communities, each containing its own sessions, the History tab shows only the active community's sessions.
 - [ ] With two communities, each containing its own tournaments, the Games tab shows only the active community's tournaments.
 - [ ] Switching the active community updates both lists without a reload.
 - [ ] An organizer with no records in the active community sees the hub's empty state even when other communities have records.
+
+## Comments
+
+Resolved by commit `73f6646` ("fix: community-scope History sessions and Games tournaments"),
+which scopes the History sessions list and the Games tournaments list to the active community.

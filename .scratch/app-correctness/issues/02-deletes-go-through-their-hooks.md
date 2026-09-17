@@ -18,7 +18,7 @@ Each hook's `delete*` does the same store write *and* updates its own state; the
 
 **Blocked by:** —
 
-**Status:** open
+**Status:** resolved
 
 - [ ] Deleting a player removes the row from the roster without a reload
 - [ ] Deleting a tournament removes the row from the Games list without a reload
@@ -31,3 +31,13 @@ Each hook's `delete*` does the same store write *and* updates its own state; the
 **Design reference:** none.
 
 **Notes:** These are one-line changes each. The reason they matter more than their size is that the product currently confirms a destructive action and then visibly does not perform it.
+
+## Comments
+
+Resolved by commit `a651062` ("fix: deletes go through the hook that owns the list"), which routes
+`deletePlayer` and `deleteTournament` through their hooks and adds
+`e2e/tests/roster/delete-row.spec.ts`.
+
+Also absorbed into Phase A of the debt repayment effort as
+`.scratch/debt/issues/04-deletes-remove-the-row-from-the-screen.md`. Do not start that copy — this
+ticket's work has shipped.
