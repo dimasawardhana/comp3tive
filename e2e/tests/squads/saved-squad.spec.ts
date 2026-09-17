@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { hubButton } from "../../support/seed";
 
 const mlbbCap = (pref: string) => ({
   disciplineId: "mlbb",
@@ -64,7 +65,7 @@ test("saved squad flow: save from split, list, use in tournament", async ({ page
   await expect(modal).not.toBeVisible({ timeout: 5000 });
 
   // Squads tab lists it.
-  await page.locator(".bottom-nav .nav-link").nth(4).click();
+  await hubButton(page, "Squads").click();
   await expect(page.locator(".screen h1")).toHaveText("Saved squads");
   await expect(page.getByText("Friday Scrims")).toBeVisible({ timeout: 5000 });
 
@@ -80,7 +81,7 @@ test("saved squad flow: save from split, list, use in tournament", async ({ page
   await page.getByRole("button", { name: "← Squads" }).click();
 
   // Create a 2-team MLBB Series tournament.
-  await page.locator(".bottom-nav .nav-link").nth(1).click();
+  await hubButton(page, "Games").click();
   await page.getByRole("button", { name: "+ New tournament" }).first().click();
   await page.locator("#tournament-name").fill("Smoke Series");
   await page.locator(".chip", { hasText: "MLBB" }).click();
@@ -94,7 +95,7 @@ test("saved squad flow: save from split, list, use in tournament", async ({ page
 
   // Consume it -> bracket built from the saved teams (snapshot semantics).
   await page.locator("[data-testid^='use-squad-']").click();
-  await expect(page.locator(".tournament-header h1")).toHaveText("Smoke Series", { timeout: 5000 });
+  await expect(page.locator(".screen h1")).toHaveText("Smoke Series", { timeout: 5000 });
   await expect(page.locator(".bracket-match").first()).toContainText("Team A");
   await expect(page.locator(".bracket-match").first()).toContainText("Team B");
 });

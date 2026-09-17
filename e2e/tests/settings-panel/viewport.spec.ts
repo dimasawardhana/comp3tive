@@ -1,5 +1,7 @@
 import { test, expect } from "@playwright/test";
 
+test.use({ viewport: { width: 390, height: 844 } });
+
 /** Verify panel + navigation stay on viewport (fixed/sticky). */
 test("panel and navigation stay on viewport", async ({ page }) => {
   await page.goto("./");
@@ -11,14 +13,16 @@ test("panel and navigation stay on viewport", async ({ page }) => {
   const topbarBox1 = await topbar.boundingBox();
   expect(topbarBox1).not.toBeNull();
 
-  // 2. Bottom nav is fixed at viewport bottom
+  // 2. Bottom nav is sticky at the bottom of the layout column
   const nav = page.locator(".bottom-nav");
   await expect(nav).toBeVisible();
+  const navPos = await nav.evaluate((el) => window.getComputedStyle(el).position);
+  expect(navPos).toBe("sticky");
   const navBox = await nav.boundingBox();
   expect(navBox).not.toBeNull();
   const viewportSize = page.viewportSize();
   if (navBox && viewportSize) {
-    // nav bottom should be at or near viewport bottom
+    // The bar occupies the foot of the viewport.
     expect(navBox.y + navBox.height).toBeGreaterThanOrEqual(viewportSize.height - 5);
   }
 

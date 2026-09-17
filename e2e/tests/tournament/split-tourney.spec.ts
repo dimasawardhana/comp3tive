@@ -2,25 +2,29 @@
  * Tournament squad split: verify SplitScreen shows tournament context
  * when entered from a tournament draft.
  *
- * Flow: create community -> create Series tournament -> open draft page ->
- * click "Split your teams" -> land in match setup (locked to tournament).
- * The split button is disabled when no eligible players exist, but we can
- * verify the tournament context is wired by checking the draft page elements.
+ * Flow: seed a community with four futsal-capable players -> create a Series
+ * tournament -> open draft page -> click "Split your teams" -> land in match
+ * setup (locked to tournament).
  */
 import { test, expect } from "@playwright/test";
+import { gotoHubSeeded, type SeedWorld } from "../../support/seed";
+
+const world = (): SeedWorld => ({
+  communities: [{ id: "comm-split", name: "Tourney Squad", createdAt: 100 }],
+  players: [
+    { id: "sp-1", communityId: "comm-split", name: "Split One" },
+    { id: "sp-2", communityId: "comm-split", name: "Split Two" },
+    { id: "sp-3", communityId: "comm-split", name: "Split Three" },
+    { id: "sp-4", communityId: "comm-split", name: "Split Four" },
+  ],
+  sessions: [],
+  tournaments: [],
+  squads: [],
+  activeCommunityId: "comm-split",
+});
 
 test("tournament split: draft page links to match setup with tournament context", async ({ page }) => {
-  await page.goto("./");
-  await expect(page.locator(".app")).toBeVisible({ timeout: 15000 });
-
-  // Create community
-  await page.getByTitle("New community").click();
-  await page.locator(".add-community input").fill("Tourney Squad");
-  await page.locator(".add-community .btn-primary").click();
-  await expect(page.locator(".add-community")).not.toBeVisible({ timeout: 3000 });
-
-  // Go to Games and create Series tournament
-  await page.locator(".bottom-nav .nav-link").nth(1).click();
+  await gotoHubSeeded(page, world(), "Games");
   await page.locator("button:has-text('+ New tournament')").click();
   await page.locator("#tournament-name").fill("Squad Test");
   await page.locator(".chip", { hasText: "Series" }).click();
@@ -28,7 +32,7 @@ test("tournament split: draft page links to match setup with tournament context"
   await expect(page.locator(".modal-card")).not.toBeVisible({ timeout: 5000 });
 
   // On draft page — verify tournament context
-  await expect(page.locator(".tournament-header h1")).toHaveText("Squad Test");
+  await expect(page.locator(".screen h1")).toHaveText("Squad Test");
   await expect(page.locator(".tournament-meta-strip .tms-item")).toHaveCount(4);
   await expect(page.getByTestId("split-teams-cta")).toBeVisible();
 

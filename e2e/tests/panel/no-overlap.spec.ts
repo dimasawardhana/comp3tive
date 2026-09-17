@@ -1,8 +1,10 @@
 import { test, expect } from "@playwright/test";
 
-/** Verify content is not cut off by sticky topbar / fixed bottom-nav.
+test.use({ viewport: { width: 390, height: 844 } });
+
+/** Verify content is not cut off by sticky topbar / sticky bottom-nav.
  *  Simplified: create community, import players via file, verify no overlap. */
-test("panel: content not cut by fixed nav", async ({ page }) => {
+test("panel: content not cut by sticky nav", async ({ page }) => {
   await page.goto("./");
   await expect(page.locator(".app")).toBeVisible({ timeout: 15000 });
 
@@ -28,34 +30,27 @@ test("panel: content not cut by fixed nav", async ({ page }) => {
     await expect(modal).not.toBeVisible({ timeout: 5000 });
   }
 
-  // 3. Verify .app has padding-bottom >= 64px (clears fixed nav)
-  const appPadding = await page.locator(".app").evaluate((el) => {
-    return parseInt(window.getComputedStyle(el).paddingBottom);
-  });
-  expect(appPadding).toBeGreaterThanOrEqual(64);
+  // 3. Scroll to the bottom and verify the last row clears the sticky bar.
+  //    The bar is `position: sticky; bottom: 0` inside the app column
+  //    (src/index.css:685), so it sits in normal flow at the column's foot and
+  //    the document's scrollable tail is below it.
+  await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+  const lastPlayer = page.locator(".roster .row").last();
+  const playerBox = await lastPlayer.boundingBox();
+  const navBox = await page.locator(".bottom-nav").boundingBox();
+  expect(playerBox).not.toBeNull();
+  expect(navBox).not.toBeNull();
+  if (playerBox && navBox) {
+    expect(playerBox.y + playerBox.height).toBeLessThanOrEqual(navBox.y + 1);
+  }
 
   // 4. Verify topbar is sticky
   const topbarPos = await page.locator(".topbar-wrap").evaluate((el) => window.getComputedStyle(el).position);
   expect(topbarPos).toBe("sticky");
 
-  // 5. Verify bottom-nav is fixed
+  // 5. Verify the bottom nav is sticky, not fixed
   const navPos = await page.locator(".bottom-nav").evaluate((el) => window.getComputedStyle(el).position);
-  expect(navPos).toBe("fixed");
-
-  // 6. Scroll to last player and verify it's not cut off
-  const lastPlayer = page.locator(".roster .row").last();
-  await lastPlayer.scrollIntoViewIfNeeded();
-  await page.waitForTimeout(200);
-
-  const playerBox = await lastPlayer.boundingBox();
-  const viewportSize = page.viewportSize();
-  expect(playerBox).not.toBeNull();
-  expect(viewportSize).not.toBeNull();
-  if (playerBox && viewportSize) {
-    // Last player should be fully within viewport (not cut by fixed nav)
-    const playerBottom = playerBox.y + playerBox.height;
-    expect(playerBottom).toBeLessThanOrEqual(viewportSize.height);
-  }
+  expect(navPos).toBe("sticky");
 
   // 7. Verify topbar is visible at top after scroll
   const topbarBox = await page.locator(".topbar-wrap").boundingBox();

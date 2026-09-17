@@ -2,6 +2,7 @@
  * Critical path smoke: split team flow.
  */
 import { test, expect } from "@playwright/test";
+import { hubButton } from "../../support/seed";
 
 test.describe("Split team", () => {
   test("app loads and split flow is reachable", async ({ page }) => {
@@ -17,6 +18,6 @@ test.describe("Split team", () => {
 
     // The split button is present on the Games screen; verify app stability
     await page.getByRole("button", { name: "Games" }).click();
-    await expect(page.locator(".bottom-nav")).toBeVisible({ timeout: 5000 });
+    await expect(hubButton(page, "Games")).toBeVisible({ timeout: 5000 });
   });
 });

@@ -1,121 +1,14 @@
-/**
- * Dashboard hub coverage (ticket 05). Every test seeds a known world directly
- * through IndexedDB (same "direct store manipulation" seam setup.spec uses —
- * the dashboard is view composition over the existing community-scoped lists,
- * so the fast, deterministic path is to control the lists themselves). Seeding
- * happens in addInitScript so it lands before app code reads the stores.
- *
- * DB shape notes the seeds rely on:
- * - All stores live in one database ("comp3tive"), one object store per
- *   aggregate, keyed by id, ordered by key within the store. Object-store keys
- *   are written in the same order the app expects its lists: communities by
- *   creation (first-created = first item), players/sessions/squads/tournaments
- *   with newest LAST so the app's newest-first sort puts the newest FIRST.
- * - localStorage "tb-community" pins the active community; an unknown value
- *   makes the app fall back to the first community in list order.
- * - The discipline catalog is seeded on first open (futsal, mlbb). Disciplines
- *   are global (not community-scoped) so both communities share them.
- *
- * The app under test lands on the Dashboard on every fresh load (ADR-0005).
- */
 import { test, expect } from "@playwright/test";
-import type { Page } from "@playwright/test";
-
-/** mlbb discipline id is stable: futsal and mlbb are seeded in key order. */
-const MLBB_ID = "mlbb";
-
-interface SeedWorld {
-  communities: { id: string; name: string; createdAt: number }[];
-  /** Roster players, newest last. */
-  players: Array<Record<string, unknown>>;
-  /** Sessions (history rows), newest last. */
-  sessions: Array<Record<string, unknown>>;
-  /** Tournaments (draft/active count on the dashboard), newest last. */
-  tournaments: Array<Record<string, unknown>>;
-  /** Saved squads, newest last. */
-  squads: Array<Record<string, unknown>>;
-  /** id of the community the app should treat as active. */
-  activeCommunityId: string;
-}
-
-const mlbbCap = {
-  disciplineId: MLBB_ID,
-  attributeRatings: { mechanics: 4, "game-sense": 4, "hero-pool": 4, teamwork: 4 },
-  eligibleRoles: ["tank", "assassin", "mage", "marksman", "fighter"],
-  preferredRole: null,
-};
-
-/** One split team with a real player on it; the ledger only needs ids. */
-const teamOf = (index: number, playerId: string) => ({
-  index,
-  slots: [{ playerId, roleId: index === 0 ? "tank" : "assassin" }],
-  totalStrength: 16,
-  avgStrength: 4,
-});
-
-/** A minimal fair-split result; the dashboard never reads past the shape. */
-const splitOf = (playerIds: string[]) => ({
-  teams: playerIds.map((id, i) => teamOf(i, id)),
-  gap: 0,
-  flags: [],
-  unassigned: [],
-  solver: { optimal: true, nodesExplored: 0, elapsedMs: 0 },
-});
-
-/** Turn a world into an init script that seeds IndexedDB before app code runs. */
-function seedScript(world: SeedWorld): string {
-  const players = world.players.map((p) => ({
-    id: p.id,
-    communityId: p.communityId,
-    name: p.name,
-    capabilities: [mlbbCap],
-  }));
-  const db = {
-    communities: world.communities,
-    players,
-    sessions: world.sessions,
-    tournaments: world.tournaments,
-    "saved-squads": world.squads,
-  };
-  return `(() => {
-    const STORES = ["communities", "players", "sessions", "tournaments", "saved-squads", "disciplines"];
-    const request = indexedDB.open("comp3tive", 6);
-    request.onupgradeneeded = () => {
-      const db = request.result;
-      for (const name of STORES) {
-        if (!db.objectStoreNames.contains(name)) db.createObjectStore(name, { keyPath: "id" });
-      }
-    };
-    request.onsuccess = () => {
-      const db = request.result;
-      localStorage.setItem("tb-community", ${JSON.stringify(world.activeCommunityId)});
-      for (const [storeName, rows] of Object.entries(${JSON.stringify(db)})) {
-        if (!rows.length) continue;
-        const tx = db.transaction(storeName, "readwrite");
-        for (const row of rows) tx.objectStore(storeName).put(row);
-      }
-      db.close();
-    };
-    request.onerror = () => console.error("seed failed");
-  })();`;
-}
-
-/** Seed a world, then load the app (which lands on the Dashboard). */
-async function gotoSeeded(page: Page, world: SeedWorld) {
-  await page.addInitScript(seedScript(world));
-  await page.goto("./");
-  await expect(page.locator(".app")).toBeVisible({ timeout: 15000 });
-}
-
-/** Click a bottom-nav slot by its accessible label. */
-const hub = (page: Page, name: string) => page.getByRole("button", { name, exact: true });
-
-/** The stat card on the Dashboard whose label matches <label>. */
-const statCard = (page: Page, label: string) =>
-  page.locator(".dashboard-stat", { has: page.locator(".tournament-meta-card-label", { hasText: label }) });
-
-const statValue = async (page: Page, label: string) =>
-  (await statCard(page, label).locator(".tournament-meta-card-value").innerText()).trim();
+import {
+  MLBB_ID,
+  gotoHubSeeded,
+  gotoSeeded,
+  hubButton,
+  mlbbCap,
+  splitOf,
+  statValue,
+  type SeedWorld,
+} from "../../support/seed";
 
 const twoCommunities = (): SeedWorld => ({
   communities: [
@@ -129,42 +22,39 @@ const twoCommunities = (): SeedWorld => ({
   activeCommunityId: "comm-alpha",
 });
 
-test("fresh load lands on the Dashboard with a centered Home tab", async ({ page }) => {
+test("fresh load lands on the Dashboard with the five hub tabs", async ({ page }) => {
   await gotoSeeded(page, twoCommunities());
 
   // ADR-0005: the view stack root is the dashboard view; every fresh load lands here.
   await expect(page.locator(".screen h1")).toHaveText("Dashboard");
 
-  // The five-slot layout: Roster · Games · Home · History · Squads, Home centered.
-  const nav = page.locator(".bottom-nav .nav-link");
-  await expect(nav).toHaveCount(5);
-  // The visible text carries the glyphs ("⌂Home"); assert the accessible slot
-  // labels (aria-labels) instead of rendered text.
-  await expect(nav.nth(0)).toHaveAttribute("aria-label", "Roster");
-  await expect(nav.nth(1)).toHaveAttribute("aria-label", "Games");
-  await expect(nav.nth(2)).toHaveAttribute("aria-label", "Home");
-  await expect(nav.nth(3)).toHaveAttribute("aria-label", "History");
-  await expect(nav.nth(4)).toHaveAttribute("aria-label", "Saved squads");
+  // The five-slot layout. The nav buttons carry no aria-label: their accessible
+  // name IS their visible label (the icon span is aria-hidden), which is what
+  // hubButton resolves. Exactly one control matches each name at this width.
+  for (const hub of ["Home", "Roster", "Games", "History", "Squads"] as const) {
+    await expect(hubButton(page, hub)).toHaveCount(1);
+    await expect(hubButton(page, hub)).toBeVisible();
+  }
   // Home marks the dashboard as current (the stack root is the dashboard view).
-  await expect(hub(page, "Home")).toHaveAttribute("aria-current", "page");
+  await expect(hubButton(page, "Home")).toHaveAttribute("aria-current", "page");
 });
 
 test("Home tab returns to the Dashboard from each hub", async ({ page }) => {
   await gotoSeeded(page, twoCommunities());
 
-  // The Squads nav slot carries the accessible label "Saved squads" (its h1 too).
+  // [nav label hubButton resolves, the .screen h1 that hub renders]
   const hubs = [
     ["Roster", "comp3tive"],
     ["Games", "Games"],
     ["History", "History"],
-    ["Saved squads", "Saved squads"],
+    ["Squads", "Saved squads"],
   ] as const;
   for (const [navLabel, hubH1] of hubs) {
-    await hub(page, navLabel).click();
+    await hubButton(page, navLabel).click();
     await expect(page.locator(".screen h1")).toHaveText(hubH1);
-    await hub(page, "Home").click();
+    await hubButton(page, "Home").click();
     await expect(page.locator(".screen h1")).toHaveText("Dashboard");
-    await expect(hub(page, "Home")).toHaveAttribute("aria-current", "page");
+    await expect(hubButton(page, "Home")).toHaveAttribute("aria-current", "page");
   }
 });
 
@@ -262,7 +152,7 @@ test("a fresh community shows the guided empty state instead of stat cards", asy
   await expect(page.locator(".dashboard-empty .btn-primary")).toHaveText("+ Add players");
 
   // Home still marks the dashboard as current (the dashboard is the root hub).
-  await expect(hub(page, "Home")).toHaveAttribute("aria-current", "page");
+  await expect(hubButton(page, "Home")).toHaveAttribute("aria-current", "page");
 });
 
 test("dashboard actions land on their destinations", async ({ page }) => {
@@ -298,13 +188,13 @@ test("dashboard actions land on their destinations", async ({ page }) => {
   // The modal overlays the nav, so close it (X) before travelling Home.
   await page.locator(".modal-card .modal-close").click();
   await expect(page.locator(".modal-card")).not.toBeVisible();
-  await hub(page, "Home").click();
+  await hubButton(page, "Home").click();
   await expect(page.locator(".screen h1")).toHaveText("Dashboard");
 
   // Browse saved squads -> the Squads hub.
   await page.getByRole("button", { name: "Browse saved squads" }).click();
   await expect(page.locator(".screen h1")).toHaveText("Saved squads");
-  await hub(page, "Home").click();
+  await hubButton(page, "Home").click();
   await expect(page.locator(".screen h1")).toHaveText("Dashboard");
 
   // + Add player -> the Roster hub with the add-player modal open. The roster
@@ -378,12 +268,12 @@ test("History and Games show only the active community's records and counts matc
   expect(await statValue(page, "Tournaments")).toBe("1");
 
   // Alpha History: its one session is listed (Beta has no sessions to leak).
-  await hub(page, "History").click();
+  await hubButton(page, "History").click();
   await expect(page.locator(".screen h1")).toHaveText("History");
   await expect(page.locator(".history-row")).toHaveCount(1);
 
   // Alpha Games: its one tournament is listed.
-  await hub(page, "Games").click();
+  await hubButton(page, "Games").click();
   await expect(page.locator(".screen h1")).toHaveText("Games");
   await expect(page.locator(".roster .row")).toHaveCount(1);
   await expect(page.locator(".roster .row").first()).toContainText("Alpha Cup");
@@ -395,13 +285,13 @@ test("History and Games show only the active community's records and counts matc
 
   // Beta owns nothing of its own: History and Games show their empty states,
   // not Alpha's records.
-  await hub(page, "History").click();
+  await hubButton(page, "History").click();
   await expect(page.locator(".empty .big")).toHaveText("Sessions appear here");
-  await hub(page, "Games").click();
+  await hubButton(page, "Games").click();
   await expect(page.locator(".empty .big")).toHaveText("Run a competition");
 
   // The dashboard counts follow the active community: 1 Beta player, 0 / 0.
-  await hub(page, "Home").click();
+  await hubButton(page, "Home").click();
   await expect(page.locator(".screen h1")).toHaveText("Dashboard");
   expect(await statValue(page, "Players")).toBe("1");
   expect(await statValue(page, "Saved squads")).toBe("0");
@@ -486,7 +376,7 @@ test("dashboard teasers show the newest players and active tournaments and drill
   await expect(page.locator("#player-name")).toHaveValue("Alpha Four");
   await page.locator(".modal-card .modal-close").click();
   await expect(page.locator(".modal-card")).not.toBeVisible();
-  await hub(page, "Home").click();
+  await hubButton(page, "Home").click();
   await expect(page.locator(".screen h1")).toHaveText("Dashboard");
 
   // Active tournaments: the single active one only (draft and complete excluded),
@@ -502,7 +392,7 @@ test("dashboard teasers show the newest players and active tournaments and drill
 
   // Tapping the tournament teaser opens that tournament.
   await tourneyTeasers.first().click();
-  await expect(page.locator(".tournament-header h1")).toHaveText("Live Cup");
+  await expect(page.locator(".screen h1")).toHaveText("Live Cup");
 });
 
 test("dashboard teasers empty invites reach the create flows and follow the community", async ({ page }) => {
@@ -531,7 +421,7 @@ test("dashboard teasers empty invites reach the create flows and follow the comm
   await activeSection.getByRole("button", { name: "+ Create one" }).click();
   await expect(page.locator(".modal-title")).toHaveText("New tournament");
   await page.locator(".modal-card .modal-close").click();
-  await hub(page, "Home").click();
+  await hubButton(page, "Home").click();
   await expect(page.locator(".screen h1")).toHaveText("Dashboard");
 
   // Switch to Beta: nothing of its own, so its only roster entry is gone.
