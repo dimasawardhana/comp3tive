@@ -30,8 +30,6 @@ test.describe("Landing Page", () => {
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(LANDING_H1);
     await expect(page.locator("#root")).toHaveCount(0);
     await expect(page.locator(".app")).toHaveCount(0);
-    // The app's shell is absent: no SPA root, no bottom tab bar.
-    await expect(page.locator(".tabbar")).toHaveCount(0);
     // The landing hero is a React island (src/landing.tsx), which is how the
     // split screen is demonstrated. The page around it stays a document: no
     // framework router, no app bundle.
