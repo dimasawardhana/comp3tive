@@ -45,6 +45,7 @@ import { GamesScreen } from "./tournament/GamesScreen";
 import { TournamentScreen } from "./tournament/TournamentScreen";
 import { buildBracket, applyResult, undoLastGame } from "./tournament/bracket";
 import { serializeBackup, parseBackup } from "./data/transfer";
+import { validatePlayer } from "./domain/validation";
 import { validateTeamParticipation } from "./tournament/team-participation-validator";
 import { validateTournamentSpec } from "./tournament/tournament-validation";
 const communityStore = createIndexedDbCommunityStore();
@@ -426,9 +427,9 @@ export default function App() {
   const handleImport = async (file: File) => {
     let data;
     try {
-      data = parseBackup(await file.text());
+      data = parseBackup(await file.text(), disciplines);
     } catch (err) {
-      alert(`Import failed: ${err instanceof Error ? err.message : String(err)}`);
+      notify(`Import failed: ${formatError(err)}`, "error");
       return;
     }
     // Merge with existing data: add only new ids, never overwrite.
@@ -529,11 +530,11 @@ export default function App() {
         try {
           parsed = JSON.parse(trimmed);
         } catch {
-          alert("That file is not valid JSON.");
+          notify("That file is not valid JSON.", "error");
           return;
         }
         if (!parsed || typeof parsed !== "object") {
-          alert("That JSON file does not contain a recognizable roster.");
+          notify("That JSON file does not contain a recognizable roster.", "error");
           return;
         }
         const obj = parsed as Record<string, unknown>;
@@ -545,10 +546,11 @@ export default function App() {
         // Players-only JSON
         if (Array.isArray(obj.players)) {
           if (!activeCommunity) {
-            alert("Pick or create a community before importing a player file.");
+            notify("Pick or create a community before importing a player file.", "error");
             return;
           }
           let imported = 0;
+          const rejected: { name: string; reason: string }[] = [];
           for (const raw of obj.players) {
             if (!raw || typeof raw !== "object") continue;
             const p = raw as Partial<Player> & { id?: string; name?: string };
@@ -560,13 +562,24 @@ export default function App() {
               notes: p.notes,
               capabilities: Array.isArray(p.capabilities) ? p.capabilities : [],
             };
+            const problems = validatePlayer(player, disciplines);
+            if (problems.length > 0) {
+              rejected.push({ name: player.name, reason: problems[0].message });
+              continue;
+            }
             await roster.savePlayer(player);
             imported++;
           }
-          alert(`Imported ${imported} player${imported === 1 ? "" : "s"} into ${activeCommunity.name}.`);
+          notify(`Imported ${imported} player${imported === 1 ? "" : "s"} into ${activeCommunity.name}.`, "success");
+          if (rejected.length > 0) {
+            notify(
+              `Skipped ${rejected.length} player${rejected.length === 1 ? "" : "s"}. First: "${rejected[0].name}" — ${rejected[0].reason}`,
+              "error",
+            );
+          }
           return;
         }
-        alert("That JSON file is not a recognized roster or backup.");
+        notify("That JSON file is not a recognized roster or backup.", "error");
         return;
       }
 

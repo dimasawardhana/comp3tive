@@ -1,4 +1,5 @@
-import type { Community, Player, SavedSquad, Session, Tournament } from "../domain/types";
+import type { Community, Discipline, Player, SavedSquad, Session, Tournament } from "../domain/types";
+import { validatePlayer } from "../domain/validation";
 
 /**
  * The exported backup shape. Bump `version` when the format changes.
@@ -92,7 +93,7 @@ function isTournament(v: unknown): v is Tournament {
  * any problem (invalid JSON, unsupported version, malformed records).
  * Records missing a communityId are adopted into the first community.
  */
-export function parseBackup(text: string): BackupData {
+export function parseBackup(text: string, disciplines?: Discipline[]): BackupData {
   let data: unknown;
   try {
     data = JSON.parse(text);
@@ -109,6 +110,16 @@ export function parseBackup(text: string): BackupData {
 
   for (const p of data.players) {
     if (!isPlayer(p)) throw new Error("Backup contains a malformed player.");
+  }
+  // When the caller supplies the catalog, the model invariants are checked here
+  // too: shape alone lets a capability through that computeStrength throws on.
+  if (disciplines) {
+    for (const p of data.players as Player[]) {
+      const problems = validatePlayer(p, disciplines);
+      if (problems.length > 0) {
+        throw new Error(`Backup player "${p.name}" is invalid: ${problems[0].message}`);
+      }
+    }
   }
   for (const s of data.sessions) {
     if (!isSession(s)) throw new Error("Backup contains a malformed session.");
