@@ -583,7 +583,17 @@ export default function App() {
             await roster.savePlayer(player);
             imported++;
           }
-          notify(`Imported ${imported} player${imported === 1 ? "" : "s"} into ${activeCommunity.name}.`, "success");
+          // A file that yielded no player must not report one: an all-rejected
+          // file, or one whose rows carry no name at all, would otherwise
+          // announce "Imported 0 players" in success styling.
+          if (imported > 0) {
+            notify(
+              `Imported ${imported} player${imported === 1 ? "" : "s"} into ${activeCommunity.name}.`,
+              "success",
+            );
+          } else {
+            notify(`No players imported into ${activeCommunity.name}.`, "error");
+          }
           if (rejected.length > 0) {
             notify(
               `Skipped ${rejected.length} player${rejected.length === 1 ? "" : "s"}. First: "${rejected[0].name}" — ${rejected[0].reason}`,
@@ -605,10 +615,16 @@ export default function App() {
       const { players: imported, skipped: unresolved } = csvRowsToPlayers(rows, disciplines, activeCommunity.id);
       for (const player of imported) await roster.savePlayer(player);
       const skipped = [...unparsed, ...unresolved].sort((a, b) => a.line - b.line);
-      notify(
-        `Imported ${imported.length} player${imported.length === 1 ? "" : "s"} into ${activeCommunity.name}.`,
-        "success",
-      );
+      // Same rule as the JSON branch: a CSV of blank lines imports nothing and
+      // must not claim a success.
+      if (imported.length > 0) {
+        notify(
+          `Imported ${imported.length} player${imported.length === 1 ? "" : "s"} into ${activeCommunity.name}.`,
+          "success",
+        );
+      } else {
+        notify(`No players imported into ${activeCommunity.name}.`, "error");
+      }
       if (skipped.length > 0) {
         notify(
           `Skipped ${skipped.length} row${skipped.length === 1 ? "" : "s"}. Line ${skipped[0].line}: ${skipped[0].reason}`,

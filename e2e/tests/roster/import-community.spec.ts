@@ -5,7 +5,7 @@
  */
 import { expect, test } from "@playwright/test";
 import type { Page } from "@playwright/test";
-import { gotoHubSeeded, DB_VERSION, MLBB_ID, splitOf, type SeedWorld } from "../../support/seed";
+import { gotoHubSeeded, hubButton, DB_VERSION, MLBB_ID, splitOf, type SeedWorld } from "../../support/seed";
 
 const activeOnly = (): SeedWorld => ({
   communities: [{ id: "comm-active", name: "Active Crew", createdAt: 100 }],
@@ -91,10 +91,10 @@ test("a merged backup leaves each record in its own community", async ({ page })
   await page.getByRole("button", { name: "Active community" }).click();
   await page.locator(".squad-menu-item", { hasText: "Beta Guild" }).click();
   await expect(page.locator(".squad-select-value")).toHaveText("Beta Guild");
-  await page.getByRole("button", { name: "Roster", exact: true }).click();
+  await hubButton(page, "Roster").click();
   await expect(page.locator(".roster .row")).toHaveCount(1);
   await expect(page.locator(".roster .row").first()).toContainText("Beta One");
-  await page.getByRole("button", { name: "Squads", exact: true }).click();
+  await hubButton(page, "Squads").click();
   await expect(page.locator(".screen h1")).toHaveText("Saved squads");
   await expect(page.locator(".history-row")).toHaveCount(1);
   await expect(page.locator(".history-row").first()).toContainText("Beta Squad");
@@ -103,7 +103,7 @@ test("a merged backup leaves each record in its own community", async ({ page })
   await page.getByRole("button", { name: "Active community" }).click();
   await page.locator(".squad-menu-item", { hasText: "Alpha Crew" }).click();
   await expect(page.locator(".squad-select-value")).toHaveText("Alpha Crew");
-  await page.getByRole("button", { name: "Roster", exact: true }).click();
+  await hubButton(page, "Roster").click();
   await expect(page.locator(".roster .row")).toHaveCount(1);
   await expect(page.locator(".roster .row").first()).toContainText("Alpha One");
 
@@ -111,6 +111,6 @@ test("a merged backup leaves each record in its own community", async ({ page })
   await page.getByRole("button", { name: "Active community" }).click();
   await page.locator(".squad-menu-item", { hasText: "Active Crew" }).click();
   await expect(page.locator(".squad-select-value")).toHaveText("Active Crew");
-  await page.getByRole("button", { name: "Roster", exact: true }).click();
+  await hubButton(page, "Roster").click();
   await expect(page.locator(".roster .row")).toHaveCount(0);
 });

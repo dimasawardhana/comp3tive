@@ -140,6 +140,13 @@ export function parsePlayerCsv(text: string): { rows: CsvRow[]; skipped: ImportS
       // own — that is how a fragment of a name becomes a phantom player. A quote
       // opened mid-token (`O"Brien`) is a typo on this line alone, so the next line
       // is read on its own and a valid row after it still imports.
+      //
+      // MAX_RECORD_LINES narrows that class rather than closing it. The joining
+      // loop stops after two lines, so a quote still open at the cap leaks its
+      // tail as a record of its own: `"Smith\nJohn\nJr, futsal, 4` yields a player
+      // named `Jr`. Consuming without the cap was worse — one unbalanced quote
+      // swallowed the rest of the file — so the cap is the deliberate trade, and
+      // a test pins it.
       i = parsed.fieldInitial ? last + 1 : firstLine + 1;
       skipped.push({ line: start, reason: "Unclosed quoted field; this record was not imported." });
       continue;
