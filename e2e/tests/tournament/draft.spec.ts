@@ -1,17 +1,22 @@
 import { test, expect } from "@playwright/test";
+import { gotoHubSeeded, type SeedWorld } from "../../support/seed";
+
+const world = (): SeedWorld => ({
+  communities: [{ id: "comm-draft", name: "Draft Test", createdAt: 100 }],
+  players: [
+    { id: "dr-1", communityId: "comm-draft", name: "Draft One" },
+    { id: "dr-2", communityId: "comm-draft", name: "Draft Two" },
+    { id: "dr-3", communityId: "comm-draft", name: "Draft Three" },
+    { id: "dr-4", communityId: "comm-draft", name: "Draft Four" },
+  ],
+  sessions: [],
+  tournaments: [],
+  squads: [],
+  activeCommunityId: "comm-draft",
+});
 
 test("tournament draft: h1, meta cards, pre-split preview", async ({ page }) => {
-  await page.goto("./");
-  await expect(page.locator(".app")).toBeVisible({ timeout: 15000 });
-
-  // Create community
-  await page.getByTitle("New community").click();
-  await page.locator(".add-community input").fill("Draft Test");
-  await page.locator(".add-community .btn-primary").click();
-  await expect(page.locator(".add-community")).not.toBeVisible({ timeout: 3000 });
-
-  // Go to Games
-  await page.locator(".bottom-nav .nav-link").nth(1).click();
+  await gotoHubSeeded(page, world(), "Games");
 
   // Create a tournament
   await page.locator("button:has-text('+ New tournament')").click();

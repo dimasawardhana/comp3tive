@@ -1,30 +1,32 @@
 import { test, expect } from "@playwright/test";
+import { gotoHubSeeded, type SeedWorld } from "../../support/seed";
+
+/** A futsal-capable player: the seed's default capability is MLBB, not futsal. */
+const futsalPlayer = (id: string, name: string, rating: number) => ({
+  id,
+  communityId: "comm-match",
+  name,
+  capabilities: [
+    {
+      disciplineId: "futsal",
+      attributeRatings: { technical: rating, fitness: rating, "game-iq": rating },
+      eligibleRoles: ["goalkeeper", "defender", "winger", "pivot"],
+      preferredRole: "goalkeeper",
+    },
+  ],
+});
+
+const world = (): SeedWorld => ({
+  communities: [{ id: "comm-match", name: "Match Test", createdAt: 100 }],
+  players: [futsalPlayer("m1", "Player 1", 4), futsalPlayer("m2", "Player 2", 4)],
+  sessions: [],
+  tournaments: [],
+  squads: [],
+  activeCommunityId: "comm-match",
+});
 
 test("match-setup: discipline first, then players, then teams", async ({ page }) => {
-  await page.goto("./");
-  await expect(page.locator(".app")).toBeVisible({ timeout: 15000 });
-
-  // Create community
-  await page.getByTitle("New community").click();
-  await page.locator(".add-community input").fill("Match Test");
-  await page.locator(".add-community .btn-primary").click();
-  await expect(page.locator(".add-community")).not.toBeVisible({ timeout: 3000 });
-
-  // The app lands on the Dashboard; the roster toolbar lives on the Roster hub.
-  await page.getByRole("button", { name: "Roster" }).click();
-
-  // Add 2 players with Futsal capability via direct store manipulation
-  // (skip the complex modal flow; just verify layout structure)
-  // Add players via the simpler flow
-  for (let i = 0; i < 2; i++) {
-    await page.getByRole("button", { name: /Add Player/ }).click();
-    const modal = page.locator(".modal-card");
-    await expect(modal).toBeVisible();
-    await modal.locator("#player-name").fill(`Player ${i + 1}`);
-    // Just save with default (no capabilities) — we only test layout
-    await modal.locator(".btn-primary").click();
-    await expect(modal).not.toBeVisible({ timeout: 5000 });
-  }
+  await gotoHubSeeded(page, world(), "Roster");
 
   // Trigger match setup — click Split match button
   const splitMatchBtn = page.getByRole("button", { name: /Split match/ }).first();

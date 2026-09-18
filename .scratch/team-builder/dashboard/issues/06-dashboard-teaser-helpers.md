@@ -4,9 +4,14 @@
 
 **Blocked by:** None — can start immediately.
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 - [ ] A helper returns the last three players of a roster list, in roster order.
 - [ ] A helper returns the three most recent active-status tournaments (by createdAt descending), excluding drafts and complete tournaments.
 - [ ] Both helpers return fewer than three items when the list has fewer, and an empty list when the input is empty.
 - [ ] Unit tests cover order, fewer-than-three, empty, and equal-createdAt ties.
+
+## Comments
+
+Resolved by commit `94a5757` ("feat: add dashboard teaser helpers for recent players and active
+tournaments (ticket 06)"), which adds `src/dashboardTeasers.ts` and its unit test.

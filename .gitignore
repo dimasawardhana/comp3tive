@@ -2,3 +2,20 @@ node_modules/
 dist/
 *.tsbuildinfo
 .DS_Store
+
+# Playwright output — regenerate locally, never commit
+playwright-report/
+test-results/
+
+# Tool scratch — skill and machine session state, regenerated per run
+.impeccable/
+.omp_session/
+.superpowers/
+.scratch/review/
+
+# Local secrets and deploy state (Cloudflare static-assets Worker)
+.env
+.env.*
+!.env.example
+.dev.vars*
+.wrangler/

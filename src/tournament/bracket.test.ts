@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { applyResult, buildBracket, standings } from "./bracket";
-import type { GameResult, Tournament, TournamentTeam } from "../domain/types";
+import type { GameResult, Id, Tournament, TournamentMatch, TournamentTeam } from "../domain/types";
 
 const team = (id: string, strength: number): TournamentTeam => ({
   id,
@@ -260,12 +260,12 @@ describe("applyResult: swiss", () => {
     t = applyResult(t, "m-2-1", [game("t2"), game("t2")]);
     expect(t.status).toBe("complete");
     const table = standings(t);
-    expect(table[0].teamId).toBe("t1"); // 2 wins, strongest
+    expect(table[0].teamId).toBe("t1"); // 2 wins
     expect(table[1].teamId).toBe("t2");
     expect(table.map((s) => s.teamId)).toEqual(["t1", "t2", "t3", "t4"]);
   });
 
-  it("standings tiebreak: wins, then strength, then game wins", () => {
+  it("standings tiebreak: wins, then head-to-head, then game difference and game wins", () => {
     const teams = [team("a", 5), team("b", 4), team("c", 3), team("d", 2)];
     let t = buildBracket(tourneyWith("swiss", teams));
     t = applyResult(t, "m-1-0", [game("a"), game("a")]);
@@ -273,7 +273,7 @@ describe("applyResult: swiss", () => {
     t = applyResult(t, "m-2-0", [game("a"), game("c"), game("a")]); // a beats c 2-1
     t = applyResult(t, "m-2-1", [game("d"), game("d")]);
     const table = standings(t);
-    // a: 2 wins; then 1-win teams by strength desc: c(3) before d(2); b: 0 wins
+    // a: 2 wins; then the 1-win pair by head-to-head: c beat d in round 1; b: 0 wins
     expect(table[0].teamId).toBe("a");
     expect(table[1].teamId).toBe("c");
     expect(table[2].teamId).toBe("d");
@@ -297,5 +297,184 @@ describe("applyResult: swiss", () => {
     // all six teams play in round 2
     const participants = new Set(r2.flatMap((m) => [m.teamAId, m.teamBId]));
     expect(participants.size).toBe(6);
+  });
+});
+describe("swiss: pairing is rematch-free whenever a rematch-free pairing exists", () => {
+  /** Every legal outcome pattern for a round: each match is won by either side. */
+  function outcomes(matchesInRound: Tournament["matches"]): Id[][] {
+    const options = matchesInRound.map((m) => [m.teamAId!, m.teamBId!]);
+    return options.reduce<Id[][]>((acc, winners) => acc.flatMap((soFar) => winners.map((w) => [...soFar, w])), [[]]);
+  }
+
+  const roundOf = (t: Tournament, r: number) =>
+    t.matches.filter((m) => m.round === r).slice().sort((a, b) => a.position - b.position);
+
+  /** Record one outcome per match of the round, letting `settle` generate the next. */
+  const play = (t: Tournament, r: number, winners: Id[]) =>
+    roundOf(t, r).reduce((acc, m, i) => applyResult(acc, m.id, [game(winners[i])]), t);
+
+  const pairKey = (a: Id, b: Id) => [a, b].sort().join(":");
+
+  /** Only matches with recorded games have been played; generation is eager. */
+  function playedPairs(t: Tournament): Set<string> {
+    const keys = new Set<string>();
+    for (const m of t.matches) {
+      if (m.teamAId && m.teamBId && m.games.length > 0) keys.add(pairKey(m.teamAId, m.teamBId));
+    }
+    return keys;
+  }
+
+  function winsOf(t: Tournament, teams: TournamentTeam[]): Map<Id, number> {
+    const wins = new Map<Id, number>();
+    for (const tm of teams) wins.set(tm.id, 0);
+    for (const m of t.matches) if (m.winnerTeamId) wins.set(m.winnerTeamId, wins.get(m.winnerTeamId)! + 1);
+    return wins;
+  }
+
+  /** Brute-force oracle: is a rematch-free, |Δwins| <= 1 assignment of all teams possible? */
+  function rematchFreeExists(remaining: Id[], wins: Map<Id, number>, played: Set<string>): boolean {
+    if (remaining.length === 0) return true;
+    const [a, ...rest] = remaining;
+    return rest.some(
+      (b, i) =>
+        Math.abs(wins.get(a)! - wins.get(b)!) <= 1 &&
+        !played.has(pairKey(a, b)) &&
+        rematchFreeExists([...rest.slice(0, i), ...rest.slice(i + 1)], wins, played),
+    );
+  }
+
+  it("avoids a rematch in every reachable pattern where one is avoidable", () => {
+    const seen: Record<number, number> = { 4: 0, 6: 0, 8: 0 };
+    for (const n of [4, 6, 8]) {
+      const teams = seeded(n);
+      const totalRounds = Math.ceil(Math.log2(n));
+      // Best-of-1: one game decides a match, so a round completes in one step.
+      const first = buildBracket({ ...tourney("swiss", n), seriesLength: 1 });
+      let states: Tournament[] = [first];
+      for (let r = 1; r < totalRounds; r++) {
+        states = states.flatMap((s) => outcomes(roundOf(s, r)).map((winners) => play(s, r, winners)));
+      }
+      for (const state of states) {
+        const generated = roundOf(state, totalRounds);
+        if (generated.length === 0) continue;
+        seen[n]++;
+        // A round always seats every team.
+        expect(generated.length * 2).toBe(n);
+        const played = playedPairs(state);
+        const wins = winsOf(state, teams);
+        const field = [...teams].sort((a, b) => wins.get(b.id)! - wins.get(a.id)! || a.id.localeCompare(b.id));
+        const repeated = generated.some((m) => m.teamAId && m.teamBId && played.has(pairKey(m.teamAId, m.teamBId)));
+        // The oracle decides "exists" independently, so the assertion cannot
+        // simply agree with a buggy implementation.
+        if (rematchFreeExists(field.map((x) => x.id), wins, played)) expect(repeated).toBe(false);
+      }
+    }
+    expect(seen[4]).toBe(4);
+    expect(seen[6]).toBe(64);
+    expect(seen[8]).toBe(256);
+  });
+
+  it("crowns a 3-way tie on 2 wins by game difference, not by pre-tournament seed", () => {
+    const teams = [team("t1", 6), team("t2", 5), team("t3", 4), team("t4", 3), team("t5", 2), team("t6", 1)];
+    const m = (id: Id, r: number, p: number, a: Id, b: Id, winners: Id[]): TournamentMatch => ({
+      id,
+      round: r,
+      position: p,
+      teamAId: a,
+      teamBId: b,
+      games: winners.map(game),
+      winnerTeamId: winners.filter((w) => w === a).length > winners.filter((w) => w === b).length ? a : b,
+      winnerNext: null,
+      loserNext: null,
+    });
+    const t: Tournament = {
+      ...tourneyWith("swiss", teams),
+      status: "complete",
+      matches: [
+        m("m-1-0", 1, 0, "t1", "t2", ["t1", "t1"]),
+        m("m-1-1", 1, 1, "t3", "t4", ["t3", "t3"]),
+        m("m-1-2", 1, 2, "t5", "t6", ["t5", "t5"]),
+        m("m-2-0", 2, 0, "t1", "t3", ["t1", "t1"]),
+        m("m-2-1", 2, 1, "t5", "t2", ["t5", "t5"]),
+        m("m-2-2", 2, 2, "t4", "t6", ["t4", "t4"]),
+        // Round 3: t1(2-0) beats t5(1-1); t3(1-1) beats t2(1-1) 2-1; t4(1-1) beats t6(0-2).
+        m("m-3-0", 3, 0, "t1", "t5", ["t1", "t1"]),
+        m("m-3-1", 3, 1, "t3", "t2", ["t3", "t2", "t3"]),
+        m("m-3-2", 3, 2, "t4", "t6", ["t4", "t4"]),
+      ],
+    };
+    const order = standings(t).map((s) => s.teamId);
+    // t1 finishes 3-0. t3, t4 and t5 all finish 2-2; among them the order must
+    // follow play — t4 and t5 at game difference +2, t3 at +1 — and never the
+    // seed, which would put t3 (seeded 3rd) above t4 and t5.
+    expect(order[0]).toBe("t1");
+    expect(order.slice(1, 4)).toEqual(["t4", "t5", "t3"]);
+  });
+
+  it("keeps the recorded order of the two pre-existing standings fixtures", () => {
+    let t = buildBracket(tourney("swiss", 4));
+    t = applyResult(t, "m-1-0", [game("t1"), game("t1")]);
+    t = applyResult(t, "m-1-1", [game("t3"), game("t3")]);
+    t = applyResult(t, "m-2-0", [game("t1"), game("t1")]);
+    t = applyResult(t, "m-2-1", [game("t2"), game("t2")]);
+    expect(standings(t).map((s) => s.teamId)).toEqual(["t1", "t2", "t3", "t4"]);
+
+    const teams = [team("a", 5), team("b", 4), team("c", 3), team("d", 2)];
+    let u = buildBracket(tourneyWith("swiss", teams));
+    u = applyResult(u, "m-1-0", [game("a"), game("a")]);
+    u = applyResult(u, "m-1-1", [game("c"), game("c")]);
+    u = applyResult(u, "m-2-0", [game("a"), game("c"), game("a")]);
+    u = applyResult(u, "m-2-1", [game("d"), game("d")]);
+    expect(standings(u).map((s) => s.teamId)).toEqual(["a", "c", "d", "b"]);
+  });
+});
+describe("swiss: the last-resort pairing when no rematch-free assignment exists", () => {
+  it("pairs the field in order and seats every team when every pair has already met", () => {
+    // A hand-authored round 1 containing every pair. When it completes, `settle`
+    // calls `pairRound` with all six pairs already in `played`, so `selectPairing`
+    // returns null and the documented last resort runs: a repeat is unavoidable,
+    // so the field is paired in order and the record rule floats.
+    const teams = [team("t1", 4), team("t2", 3), team("t3", 2), team("t4", 1)];
+    const m = (id: Id, p: number, a: Id, b: Id, winner: Id): TournamentMatch => ({
+      id,
+      round: 1,
+      position: p,
+      teamAId: a,
+      teamBId: b,
+      games: [],
+      winnerTeamId: winner,
+      winnerNext: null,
+      loserNext: null,
+    });
+    // Every one of the six pairs, with each team playing three matches.
+    // Winners leave the field t1(2w) t2(2w) t3(1w) t4(1w) — t1 and t2 on the same
+    // record, t3 and t4 on the same record.
+    const pairsAlready = [
+      m("m-1-0", 0, "t1", "t2", "t2"), // t2: 1
+      m("m-1-1", 1, "t1", "t3", "t1"), // t1: 1
+      m("m-1-2", 2, "t1", "t4", "t1"), // t1: 2
+      m("m-1-3", 3, "t2", "t3", "t3"), // t3: 1
+      m("m-1-4", 4, "t2", "t4", "t2"), // t2: 2
+      m("m-1-5", 5, "t3", "t4", "t4"), // t4: 1
+      // t1: beats t3, t4 (2w); t2: beats t1, t4 (2w); t3: beats t2 (1w); t4: beats t3 (1w).
+    ];
+    // Best-of-1 so one game decides each match; `settle` re-derives the winners.
+    let t: Tournament = { ...tourneyWith("swiss", teams, { seriesLength: 1 }), matches: pairsAlready };
+    for (const match of pairsAlready) t = applyResult(t, match.id, [game(match.winnerTeamId!)]);
+
+    const r2 = t.matches.filter((x) => x.round === 2).slice().sort((a, b) => a.position - b.position);
+    // The field is [t1, t2, t3, t4]; the last resort pairs it in order, each pair
+    // with the first opponent inside its own record band.
+    expect(r2).toHaveLength(2);
+    expect(r2.map((x) => [x.teamAId, x.teamBId])).toEqual([
+      ["t1", "t2"],
+      ["t3", "t4"],
+    ]);
+    const played = new Set(pairsAlready.map((x) => [x.teamAId!, x.teamBId!].sort().join(":")));
+    for (const match of r2) {
+      expect(played.has([match.teamAId!, match.teamBId!].sort().join(":"))).toBe(true);
+    }
+    // Every team still plays: the last resort floats the record rule, it does not drop anyone.
+    expect(new Set(r2.flatMap((x) => [x.teamAId, x.teamBId])).size).toBe(4);
   });
 });

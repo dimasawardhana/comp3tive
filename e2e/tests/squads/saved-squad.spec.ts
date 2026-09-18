@@ -1,5 +1,7 @@
 import { test, expect } from "@playwright/test";
+import { gotoHubSeeded, hubButton, type SeedWorld } from "../../support/seed";
 
+/** One MLBB capability with a chosen preferred role. */
 const mlbbCap = (pref: string) => ({
   disciplineId: "mlbb",
   attributeRatings: { mechanics: 4, "game-sense": 4, "hero-pool": 4, teamwork: 4 },
@@ -7,31 +9,28 @@ const mlbbCap = (pref: string) => ({
   preferredRole: pref,
 });
 
-test("saved squad flow: save from split, list, use in tournament", async ({ page }) => {
-  await page.goto("./");
-  await expect(page.locator(".app")).toBeVisible({ timeout: 15000 });
+const roles = ["tank", "assassin", "mage", "marksman", "fighter"];
+const names = ["Alpha", "Bravo", "Charlie", "Delta", "Echo", "Foxtrot", "Golf", "Hotel", "India", "Juliet"];
 
-  // Work in the active community (Default on a fresh profile). Re-imports
-  // upsert by id, so reruns converge on the same 10 players.
-  await expect(page.locator(".squad-select-value")).toBeVisible({ timeout: 5000 });
-    // The app lands on the Dashboard; the roster toolbar lives on the Roster hub.
-  await page.getByRole("button", { name: "Roster" }).click();
-  await expect(page.getByText("+ Add Player")).toBeVisible({ timeout: 5000 });
-
-  // Import a players-only roster (10 MLBB-eligible players) via the toolbar input.
-  const roles = ["tank", "assassin", "mage", "marksman", "fighter"];
-  const names = ["Alpha", "Bravo", "Charlie", "Delta", "Echo", "Foxtrot", "Golf", "Hotel", "India", "Juliet"];
-  const players = names.map((n, i) => ({
+/** The 10 MLBB players the flow splits, each with a distinct preferred role. */
+const world = (): SeedWorld => ({
+  communities: [{ id: "comm-squad", name: "Squad Test", createdAt: 100 }],
+  players: names.map((n, i) => ({
     id: `p${i + 1}`,
+    communityId: "comm-squad",
     name: n,
     capabilities: [mlbbCap(roles[i % 5])],
-  }));
-  const buffer = Buffer.from(JSON.stringify({ players }), "utf8");
-  await page.setInputFiles('input[type="file"]', {
-    name: "roster.json",
-    mimeType: "application/json",
-    buffer,
-  });
+  })),
+  sessions: [],
+  tournaments: [],
+  squads: [],
+  activeCommunityId: "comm-squad",
+});
+
+test("saved squad flow: save from split, list, use in tournament", async ({ page }) => {
+  await gotoHubSeeded(page, world(), "Roster");
+  await expect(page.locator(".squad-select-value")).toBeVisible({ timeout: 5000 });
+  await expect(page.getByText("+ Add Player")).toBeVisible({ timeout: 5000 });
   await expect(page.getByText("Alpha")).toBeVisible({ timeout: 5000 });
   await expect(page.getByText("Juliet")).toBeVisible({ timeout: 5000 });
 
@@ -64,7 +63,7 @@ test("saved squad flow: save from split, list, use in tournament", async ({ page
   await expect(modal).not.toBeVisible({ timeout: 5000 });
 
   // Squads tab lists it.
-  await page.locator(".bottom-nav .nav-link").nth(4).click();
+  await hubButton(page, "Squads").click();
   await expect(page.locator(".screen h1")).toHaveText("Saved squads");
   await expect(page.getByText("Friday Scrims")).toBeVisible({ timeout: 5000 });
 
@@ -80,7 +79,7 @@ test("saved squad flow: save from split, list, use in tournament", async ({ page
   await page.getByRole("button", { name: "← Squads" }).click();
 
   // Create a 2-team MLBB Series tournament.
-  await page.locator(".bottom-nav .nav-link").nth(1).click();
+  await hubButton(page, "Games").click();
   await page.getByRole("button", { name: "+ New tournament" }).first().click();
   await page.locator("#tournament-name").fill("Smoke Series");
   await page.locator(".chip", { hasText: "MLBB" }).click();
@@ -94,7 +93,7 @@ test("saved squad flow: save from split, list, use in tournament", async ({ page
 
   // Consume it -> bracket built from the saved teams (snapshot semantics).
   await page.locator("[data-testid^='use-squad-']").click();
-  await expect(page.locator(".tournament-header h1")).toHaveText("Smoke Series", { timeout: 5000 });
+  await expect(page.locator(".screen h1")).toHaveText("Smoke Series", { timeout: 5000 });
   await expect(page.locator(".bracket-match").first()).toContainText("Team A");
   await expect(page.locator(".bracket-match").first()).toContainText("Team B");
 });

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { parseBackup, serializeBackup } from "./transfer";
 import { SAMPLE_PLAYERS } from "./samplePlayers";
+import { SEED_DISCIPLINES } from "../domain/seed";
 import type { Community, Player, SavedSquad, Session, Tournament } from "../domain/types";
 
 const community = (id: string, name: string): Community => ({ id, name, createdAt: 1000 });
@@ -164,5 +165,164 @@ describe("parseBackup validation", () => {
       savedSquads: [{ id: "q1" }],
     });
     expect(() => parseBackup(text)).toThrow(/malformed saved squad/);
+  });
+});
+
+describe("parseBackup: player validation", () => {
+  const validCap = {
+    disciplineId: "mlbb",
+    attributeRatings: { mechanics: 4, "game-sense": 4, "hero-pool": 4, teamwork: 4 },
+    eligibleRoles: ["tank", "assassin", "mage", "marksman", "fighter"],
+    preferredRole: "tank",
+  };
+  const backup = (players: unknown[]) =>
+    JSON.stringify({
+      version: 4,
+      exportedAt: "",
+      communities: [community("c1", "Sunday futsal")],
+      players,
+      sessions: [],
+      tournaments: [],
+      savedSquads: [],
+    });
+
+  it("rejects a capability missing an attribute rating, naming the player and the attribute", () => {
+    const text = backup([
+      {
+        id: "p3",
+        communityId: "c1",
+        name: "Player 3",
+        capabilities: [{ ...validCap, attributeRatings: { mechanics: 4 } }],
+      },
+    ]);
+    expect(() => parseBackup(text, SEED_DISCIPLINES)).toThrow(
+      /^Backup player "Player 3" is invalid: Missing rating for attribute "Game Sense"\.$/,
+    );
+  });
+
+  it("rejects a rating outside the attribute scale", () => {
+    const text = backup([
+      {
+        id: "p1",
+        communityId: "c1",
+        name: "Player 1",
+        capabilities: [{ ...validCap, attributeRatings: { ...validCap.attributeRatings, mechanics: 9 } }],
+      },
+    ]);
+    expect(() => parseBackup(text, SEED_DISCIPLINES)).toThrow(/Rating for "Mechanics" must be 1-5, got 9\./);
+  });
+
+  it("rejects an unknown role", () => {
+    const text = backup([
+      {
+        id: "p1",
+        communityId: "c1",
+        name: "Player 1",
+        capabilities: [{ ...validCap, eligibleRoles: ["mage", "wizard"], preferredRole: null }],
+      },
+    ]);
+    expect(() => parseBackup(text, SEED_DISCIPLINES)).toThrow(/Role "wizard" is not part of "Mobile Legends"\./);
+  });
+
+  it("rejects an empty eligibility list", () => {
+    const text = backup([
+      {
+        id: "p1",
+        communityId: "c1",
+        name: "Player 1",
+        capabilities: [{ ...validCap, eligibleRoles: [], preferredRole: null }],
+      },
+    ]);
+    expect(() => parseBackup(text, SEED_DISCIPLINES)).toThrow(/At least one eligible role is required for "Mobile Legends"\./);
+  });
+
+  it("rejects a duplicate capability for one discipline", () => {
+    const text = backup([
+      { id: "p1", communityId: "c1", name: "Player 1", capabilities: [validCap, validCap] },
+    ]);
+    expect(() => parseBackup(text, SEED_DISCIPLINES)).toThrow(/At most one capability per discipline/);
+  });
+
+  it("parses a valid file, with and without the catalog", () => {
+    const text = backup([
+      { id: "p1", communityId: "c1", name: "Player 1", capabilities: [validCap] },
+    ]);
+    expect(parseBackup(text, SEED_DISCIPLINES).players).toHaveLength(1);
+    // The parameter is optional: the shape-only path is unchanged.
+    expect(parseBackup(text).players).toHaveLength(1);
+  });
+
+  it("still adopts a v1 players-only file with zero capabilities", () => {
+    const text = JSON.stringify({
+      version: 1,
+      players: [{ id: "1", name: "Budi", capabilities: [] }],
+      sessions: [],
+    });
+    expect(parseBackup(text, SEED_DISCIPLINES).players).toHaveLength(1);
+  });
+
+  it("restores a capability whose discipline the supplied catalog does not know", () => {
+    // A backup carries no catalog, so a discipline created on another device is
+    // legitimately absent here - and the discipline-delete copy promises those
+    // ratings survive ("Players with capabilities in it will still have those
+    // ratings"). Refusing the whole file would break a legitimate restore.
+    const text = backup([
+      {
+        id: "p1",
+        communityId: "c1",
+        name: "Player 1",
+        capabilities: [{ ...validCap, disciplineId: "padel" }],
+      },
+    ]);
+    expect(parseBackup(text, SEED_DISCIPLINES).players).toHaveLength(1);
+  });
+
+  it("narrows only the unknown-discipline rule, keeping the rest for those capabilities", () => {
+    const unknownCap = { ...validCap, disciplineId: "padel" };
+    const text = backup([
+      { id: "p1", communityId: "c1", name: "Player 1", capabilities: [unknownCap, unknownCap] },
+    ]);
+    expect(() => parseBackup(text, SEED_DISCIPLINES)).toThrow(/At most one capability per discipline/);
+  });
+
+  it("rejects a capability element that is not an object", () => {
+    const text = backup([{ id: "p1", communityId: "c1", name: "Player 1", capabilities: [null] }]);
+    expect(() => parseBackup(text, SEED_DISCIPLINES)).toThrow(/malformed player/);
+  });
+
+  it("rejects a capability missing its ratings and eligibility lists", () => {
+    const text = backup([
+      { id: "p1", communityId: "c1", name: "Player 1", capabilities: [{ disciplineId: "mlbb" }] },
+    ]);
+    expect(() => parseBackup(text, SEED_DISCIPLINES)).toThrow(/malformed player/);
+  });
+});
+
+describe("parseBackup: a two-community round trip keeps every record's own community", () => {
+  it("preserves communityId per record and references no missing community", () => {
+    const communities = [community("c1", "Alpha Crew"), community("c2", "Beta Guild")];
+    const players = [
+      { ...player("a1", "Alpha One"), communityId: "c1" },
+      { ...player("b1", "Beta One"), communityId: "c2" },
+    ];
+    const sessions = [{ ...session("s-beta"), communityId: "c2" }];
+    const tournaments = [{ ...tournament("tr-alpha"), communityId: "c1" }];
+    const squads = [{ ...savedSquad("q-beta", "Beta Squad"), communityId: "c2" }];
+
+    const parsed = parseBackup(serializeBackup(players, sessions, communities, tournaments, squads));
+
+    expect(parsed.players.map((p) => p.communityId)).toEqual(["c1", "c2"]);
+    expect(parsed.sessions[0].communityId).toBe("c2");
+    expect(parsed.tournaments[0].communityId).toBe("c1");
+    expect(parsed.savedSquads[0].communityId).toBe("c2");
+
+    const known = new Set(parsed.communities.map((c) => c.id));
+    const referenced = [
+      ...parsed.players,
+      ...parsed.sessions,
+      ...parsed.tournaments,
+      ...parsed.savedSquads,
+    ].map((r) => r.communityId);
+    expect(referenced.every((id) => known.has(id))).toBe(true);
   });
 });

@@ -1,63 +1,52 @@
 import { test, expect } from "@playwright/test";
+import { gotoHubSeeded, type SeedWorld } from "../../support/seed";
 
-/** Verify content is not cut off by sticky topbar / fixed bottom-nav.
- *  Simplified: create community, import players via file, verify no overlap. */
-test("panel: content not cut by fixed nav", async ({ page }) => {
-  await page.goto("./");
-  await expect(page.locator(".app")).toBeVisible({ timeout: 15000 });
+test.use({ viewport: { width: 390, height: 844 } });
 
-  // 1. Create a community
-  const communityBtn = page.getByTitle("New community");
-  await communityBtn.click();
-  await page.locator(".add-community input").fill("Test Crew");
-  await page.locator(".add-community .btn-primary").click();
-  await expect(page.locator(".add-community")).not.toBeVisible({ timeout: 3000 });
+/** The row stack the test scrolls: 15 players, the default capability each. */
+const world = (): SeedWorld => ({
+  communities: [{ id: "comm-panel", name: "Test Crew", createdAt: 100 }],
+  players: Array.from({ length: 15 }, (_, i) => ({
+    id: `p${String(i + 1).padStart(2, "0")}`,
+    communityId: "comm-panel",
+    name: `Player ${i + 1}`,
+  })),
+  sessions: [],
+  tournaments: [],
+  squads: [],
+  activeCommunityId: "comm-panel",
+});
 
-  // The app lands on the Dashboard; the roster toolbar lives on the Roster hub.
-  await page.getByRole("button", { name: "Roster" }).click();
+/** Verify content is not cut off by sticky topbar / sticky bottom-nav. */
+test("panel: content not cut by sticky nav", async ({ page }) => {
+  await gotoHubSeeded(page, world(), "Roster");
 
-  // 2. Add players via the Add Player button
-  for (let i = 0; i < 15; i++) {
-    await page.getByRole("button", { name: /Add Player/ }).click();
-    const modal = page.locator(".modal-card");
-    await expect(modal).toBeVisible({ timeout: 3000 });
-    const nameInput = modal.locator("input").first();
-    await nameInput.fill(`Player ${i + 1}`);
-    // Click the primary save button in the modal
-    await modal.getByRole("button", { name: /Save|Create|Add/ }).click();
-    await expect(modal).not.toBeVisible({ timeout: 5000 });
+  // 1. The seeded stack is what the scroll below measures.
+  await expect(page.locator(".roster .row")).toHaveCount(15);
+
+  // 2. Scroll to the bottom and verify the last row clears the sticky bar.
+  //    The bar is `position: sticky; bottom: 0` inside the app column
+  //    (src/index.css:685), so it sits in normal flow at the column's foot and
+  //    the document's scrollable tail is below it.
+  await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+  const lastPlayer = page.locator(".roster .row").last();
+  const playerBox = await lastPlayer.boundingBox();
+  const navBox = await page.locator(".bottom-nav").boundingBox();
+  expect(playerBox).not.toBeNull();
+  expect(navBox).not.toBeNull();
+  if (playerBox && navBox) {
+    expect(playerBox.y + playerBox.height).toBeLessThanOrEqual(navBox.y + 1);
   }
 
-  // 3. Verify .app has padding-bottom >= 64px (clears fixed nav)
-  const appPadding = await page.locator(".app").evaluate((el) => {
-    return parseInt(window.getComputedStyle(el).paddingBottom);
-  });
-  expect(appPadding).toBeGreaterThanOrEqual(64);
-
-  // 4. Verify topbar is sticky
+  // 3. Verify topbar is sticky
   const topbarPos = await page.locator(".topbar-wrap").evaluate((el) => window.getComputedStyle(el).position);
   expect(topbarPos).toBe("sticky");
 
-  // 5. Verify bottom-nav is fixed
+  // 4. Verify the bottom nav is sticky, not fixed
   const navPos = await page.locator(".bottom-nav").evaluate((el) => window.getComputedStyle(el).position);
-  expect(navPos).toBe("fixed");
+  expect(navPos).toBe("sticky");
 
-  // 6. Scroll to last player and verify it's not cut off
-  const lastPlayer = page.locator(".roster .row").last();
-  await lastPlayer.scrollIntoViewIfNeeded();
-  await page.waitForTimeout(200);
-
-  const playerBox = await lastPlayer.boundingBox();
-  const viewportSize = page.viewportSize();
-  expect(playerBox).not.toBeNull();
-  expect(viewportSize).not.toBeNull();
-  if (playerBox && viewportSize) {
-    // Last player should be fully within viewport (not cut by fixed nav)
-    const playerBottom = playerBox.y + playerBox.height;
-    expect(playerBottom).toBeLessThanOrEqual(viewportSize.height);
-  }
-
-  // 7. Verify topbar is visible at top after scroll
+  // 5. Verify topbar is visible at top after scroll
   const topbarBox = await page.locator(".topbar-wrap").boundingBox();
   expect(topbarBox).not.toBeNull();
   if (topbarBox) {

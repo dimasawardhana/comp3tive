@@ -1,17 +1,17 @@
 import { test, expect } from "@playwright/test";
+import { gotoHubSeeded, type SeedWorld } from "../../support/seed";
+
+const world = (): SeedWorld => ({
+  communities: [{ id: "comm-create", name: "Create Test", createdAt: 100 }],
+  players: [],
+  sessions: [],
+  tournaments: [],
+  squads: [],
+  activeCommunityId: "comm-create",
+});
 
 test("tournament create: sectioned modal with previews and constraints", async ({ page }) => {
-  await page.goto("./");
-  await expect(page.locator(".app")).toBeVisible({ timeout: 15000 });
-
-  // Create community
-  await page.getByTitle("New community").click();
-  await page.locator(".add-community input").fill("Create Test");
-  await page.locator(".add-community .btn-primary").click();
-  await expect(page.locator(".add-community")).not.toBeVisible({ timeout: 3000 });
-
-  // Go to Games
-  await page.locator(".bottom-nav .nav-link").nth(1).click();
+  await gotoHubSeeded(page, world(), "Games");
   await page.locator("button:has-text('+ New tournament')").click();
   const modal = page.locator(".modal-card");
   await expect(modal).toBeVisible();

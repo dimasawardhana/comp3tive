@@ -12,7 +12,7 @@ of unit tests across 12 files plus 19 Playwright specs, and it is green today
 **Blocked by:** None — can start immediately. Order it after 02, and after
 `.scratch/landing-page/06` lands (that ticket changes what the e2e suite points at).
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 - [ ] A workflow runs, in order: install, typecheck, unit tests, coverage, build, Playwright
 - [ ] It fails the job on any red step — no `continue-on-error`, no `|| true`
@@ -33,3 +33,16 @@ Two deliberate exclusions: **no ESLint** (a fresh config against 9,339 lines is 
 diff and needs its own pass), and **no deploy step** (the Cloudflare configuration is
 `.scratch/landing-page/05`'s business, and wiring deployment into this workflow is not what this
 ticket promises).
+
+## Comments
+
+Resolved by commit `c3d7cb4` ("ci: run typecheck, unit tests, build and the browser suite"), which
+adds `.github/workflows/ci.yml` and the `e2e` script to `package.json`. The workflow runs
+`npm ci` → `npx tsc -b` → `npx vitest run` → `npx vite build` →
+`npx playwright install --with-deps chromium` → `npm run e2e`, every check step bare (no
+`continue-on-error`), and uploads `playwright-report/` on failure.
+
+Also absorbed into Phase A of the debt repayment effort as
+`.scratch/debt/issues/10-ci-runs-the-checks.md`. Do not start that copy — this ticket's work has
+shipped. One deviation from this ticket's acceptance: the coverage step and its artifact were
+deliberately dropped, per the successor's acceptance criteria.

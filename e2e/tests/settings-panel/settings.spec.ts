@@ -1,10 +1,19 @@
 import { test, expect } from "@playwright/test";
+import { gotoSeeded, type SeedWorld } from "../../support/seed";
+
+const world = (): SeedWorld => ({
+  communities: [{ id: "comm-settings", name: "Settings Test", createdAt: 100 }],
+  players: [],
+  sessions: [],
+  tournaments: [],
+  squads: [],
+  activeCommunityId: "comm-settings",
+});
 
 /** Verify settings panel: gear button visible, popover appears below topbar,
  *  theme/layout chips toggle, and changes persist via localStorage. */
 test("settings panel: theme + layout fully functional", async ({ page }) => {
-  await page.goto("./");
-  await expect(page.locator(".app")).toBeVisible({ timeout: 15000 });
+  await gotoSeeded(page, world());
 
   // 1. Gear button visible in topbar
   const gear = page.getByTitle("Settings");

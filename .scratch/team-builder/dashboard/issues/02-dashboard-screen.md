@@ -4,9 +4,14 @@
 
 **Blocked by:** 01 — Community scoping for History and Games (the tournament count must be community-accurate).
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 - [ ] Opening the dashboard shows a header naming the active community and the h1 "Dashboard".
 - [ ] Three stat cards show the active community's player count, saved-squad count, and tournament count (drafts + in-progress), and each matches what its hub shows.
 - [ ] Switching the active community updates the counts and the header name.
 - [ ] A fresh community with no players shows the guided empty state in place of the stat cards.
+
+## Comments
+
+Resolved by commit `f0e2b23` ("feat: add Dashboard hub screen for the active community"),
+which adds `src/DashboardScreen.tsx` and routes the dashboard hub to it.

@@ -1,4 +1,5 @@
-import type { Community, Player, SavedSquad, Session, Tournament } from "../domain/types";
+import type { Capability, Community, Discipline, Player, SavedSquad, Session, Tournament } from "../domain/types";
+import { validatePlayer } from "../domain/validation";
 
 /**
  * The exported backup shape. Bump `version` when the format changes.
@@ -50,6 +51,16 @@ function isPlayer(v: unknown): v is Player {
   );
 }
 
+/** The three fields validateCapability dereferences; checked before the call. */
+function isCapabilityShape(v: unknown): v is Capability {
+  return (
+    isRecord(v) &&
+    typeof v.disciplineId === "string" &&
+    isRecord(v.attributeRatings) &&
+    Array.isArray(v.eligibleRoles)
+  );
+}
+
 function isSession(v: unknown): v is Session {
   return (
     isRecord(v) &&
@@ -92,7 +103,7 @@ function isTournament(v: unknown): v is Tournament {
  * any problem (invalid JSON, unsupported version, malformed records).
  * Records missing a communityId are adopted into the first community.
  */
-export function parseBackup(text: string): BackupData {
+export function parseBackup(text: string, disciplines?: Discipline[]): BackupData {
   let data: unknown;
   try {
     data = JSON.parse(text);
@@ -109,6 +120,29 @@ export function parseBackup(text: string): BackupData {
 
   for (const p of data.players) {
     if (!isPlayer(p)) throw new Error("Backup contains a malformed player.");
+  }
+  // When the caller supplies the catalog, the model invariants are checked here
+  // too: shape alone lets a capability through that computeStrength throws on.
+  if (disciplines) {
+    for (const p of data.players as Player[]) {
+      // validateCapability dereferences these, so a non-record capability or one
+      // missing them must fail with this module's own message, not a TypeError.
+      if (!p.capabilities.every(isCapabilityShape)) {
+        throw new Error("Backup contains a malformed player.");
+      }
+      // A backup carries no catalog of its own, so a capability for a discipline
+      // this device has not created yet is a legitimate record: the
+      // discipline-delete copy promises those ratings survive. Such a capability
+      // can never reach computeStrength, which resolves capabilities through the
+      // local catalog, so narrowing this one rule out costs no protection. Every
+      // other invariant (duplicates included) still throws.
+      const problems = validatePlayer(p, disciplines).filter(
+        (issue) => !issue.message.startsWith("Unknown discipline "),
+      );
+      if (problems.length > 0) {
+        throw new Error(`Backup player "${p.name}" is invalid: ${problems[0].message}`);
+      }
+    }
   }
   for (const s of data.sessions) {
     if (!isSession(s)) throw new Error("Backup contains a malformed session.");

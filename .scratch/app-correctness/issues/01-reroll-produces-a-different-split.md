@@ -20,7 +20,7 @@ with no `options`, and `freshSplit` (`src/session/edit.ts:110-117`) falls throug
 
 **Blocked by:** —
 
-**Status:** open
+**Status:** resolved
 
 - [ ] Re-roll can produce a different team assignment for the same pool (asserted by comparing two consecutive re-rolls at a fixed seed)
 - [ ] Every re-roll still satisfies the discipline's constraints: MLBB teams cover all five roles, team sizes stay within range
@@ -33,3 +33,12 @@ with no `options`, and `freshSplit` (`src/session/edit.ts:110-117`) falls throug
 **Design reference:** `docs/design.md` — the split screen's live gap meter re-settles on re-roll.
 
 **Notes:** `VARIETY_TOLERANCE` is the knob that defines "fair but different". If two re-rolls legitimately return the same teams for a tiny pool (e.g. 4 players, 2 teams, all equal strength), that is correct behaviour and the test must not demand a difference there.
+
+## Comments
+
+Resolved by commit `1e0d433` ("fix: re-roll returns a different fair split, from the session's own pool"),
+which passes an incrementing `variety` counter and rebuilds the pool from the session's own player ids.
+
+Also absorbed into Phase A of the debt repayment effort as
+`.scratch/debt/issues/03-reroll-produces-a-different-split.md`. Do not start that copy — this ticket's
+work has shipped.

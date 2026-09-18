@@ -38,7 +38,7 @@
             "goalkeeper",
             "defender"
           ],
-          "preferredRole": "pivot"
+          "preferredRole": "defender"
         }
       ]
     },
@@ -119,7 +119,7 @@
             "goalkeeper",
             "defender"
           ],
-          "preferredRole": "pivot"
+          "preferredRole": "defender"
         }
       ]
     },
@@ -222,7 +222,7 @@
             "goalkeeper",
             "defender"
           ],
-          "preferredRole": "winger"
+          "preferredRole": "defender"
         }
       ]
     },
@@ -262,7 +262,7 @@
             "goalkeeper",
             "defender"
           ],
-          "preferredRole": "winger"
+          "preferredRole": "defender"
         }
       ]
     },
@@ -303,7 +303,7 @@
             "goalkeeper",
             "defender"
           ],
-          "preferredRole": "pivot"
+          "preferredRole": "defender"
         }
       ]
     },
@@ -365,7 +365,7 @@
             "defender",
             "winger"
           ],
-          "preferredRole": "pivot"
+          "preferredRole": "winger"
         }
       ]
     },
@@ -448,7 +448,7 @@
             "defender",
             "winger"
           ],
-          "preferredRole": "pivot"
+          "preferredRole": "winger"
         }
       ]
     },

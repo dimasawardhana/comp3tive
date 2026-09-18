@@ -15,7 +15,8 @@ const DEFAULT_DB = "comp3tive";
  * their data here, so it is migrated on first open and then removed.
  */
 const LEGACY_DB = "team-builder";
-const DB_VERSION = 6;
+/** The schema version of the app database. Exported so test support derives it. */
+export const DB_VERSION = 6;
 const COMMUNITY_STORE = "communities";
 const PLAYER_STORE = "players";
 const SESSION_STORE = "sessions";

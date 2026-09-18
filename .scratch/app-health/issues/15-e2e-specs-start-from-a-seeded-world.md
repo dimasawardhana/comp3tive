@@ -49,3 +49,11 @@ staleness — better to derive it from the source than to repeat the number.
 **Possible split.** This may be two tickets once the sweep is scoped: the helper plus the specs in
 one directory, then the rest. Decide when you can see how many specs actually need seeding versus how
 many need only a community. Do not force it into one ticket if it does not fit one context window.
+
+## Comments
+
+Absorbed into Phase A of the debt repayment effort as
+`.scratch/debt/issues/11-e2e-specs-start-from-a-seeded-world.md`. Status left as-is; do not start
+this ticket. As of 2026-09-18 that successor has **not** run: `e2e/support/seed.ts` exists and
+`dashboard.spec.ts`-style seeding is not yet generalised across the suite, so this work is genuinely
+outstanding and this ticket has deliberately not been resolved.

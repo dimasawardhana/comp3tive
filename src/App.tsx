@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import {
   computeStrength,
-  type Capability,
   type Community,
   type Discipline,
   type GameResult,
@@ -45,6 +44,8 @@ import { GamesScreen } from "./tournament/GamesScreen";
 import { TournamentScreen } from "./tournament/TournamentScreen";
 import { buildBracket, applyResult, undoLastGame } from "./tournament/bracket";
 import { serializeBackup, parseBackup } from "./data/transfer";
+import { assertImportSize, csvRowsToPlayers, parsePlayerCsv } from "./data/player-import";
+import { validatePlayer } from "./domain/validation";
 import { validateTeamParticipation } from "./tournament/team-participation-validator";
 import { validateTournamentSpec } from "./tournament/tournament-validation";
 const communityStore = createIndexedDbCommunityStore();
@@ -426,9 +427,9 @@ export default function App() {
   const handleImport = async (file: File) => {
     let data;
     try {
-      data = parseBackup(await file.text());
+      data = parseBackup(await file.text(), disciplines);
     } catch (err) {
-      alert(`Import failed: ${err instanceof Error ? err.message : String(err)}`);
+      notify(`Import failed: ${formatError(err)}`, "error");
       return;
     }
     // Merge with existing data: add only new ids, never overwrite.
@@ -452,13 +453,25 @@ export default function App() {
     ) {
       return;
     }
-    // v1 backups (e.g. mpl-id-roster.json): adopt players into active community, not synthetic default.
-    const importCommunityId = activeCommunity?.id ?? newCommunities[0]?.id ?? "community-default";
+    // parseBackup has already resolved every communityId — including adopting a
+    // record whose id is missing or unknown (the v1 case) into the first
+    // community — so each imported record keeps its own.
     for (const c of newCommunities) await communityStore.saveCommunity(c);
-    for (const p of newPlayers) await roster.savePlayer({ ...p, communityId: importCommunityId });
+    // The hooks hold their own copies of the store's lists, and handleImport
+    // writes through the stores, so nothing below is on screen until re-read:
+    // an imported community would be absent from the dropdown and its records
+    // invisible. Communities come first, before the records whose communityId
+    // they explain — a player whose community is not yet in hook state is
+    // re-homed by the orphan-adoption effect above.
+    await communities.refresh();
+    for (const p of newPlayers) await roster.savePlayer(p);
     for (const s of newSessions) await sessionStore.saveSession(s);
     for (const t of newTournaments) await tournamentStore.saveTournament(t);
-    for (const q of newSquads) await squadStore.saveSavedSquad({ ...q, communityId: importCommunityId });
+    for (const q of newSquads) await squadStore.saveSavedSquad(q);
+    await roster.refresh();
+    await sessions.refresh();
+    await tournaments.refresh();
+    await savedSquads.refresh();
   };
 
 
@@ -480,7 +493,11 @@ export default function App() {
   };
 
   const deletePlayer = async (id: Id) => {
-    await rosterStore.deletePlayer(id);
+    try {
+      await roster.deletePlayer(id);
+    } catch (err) {
+      notify(`Could not delete the player: ${formatError(err)}`, "error");
+    }
   };
 
   const saveDiscipline = async (d: Discipline) => {
@@ -516,6 +533,7 @@ export default function App() {
     const file = e.target.files?.[0];
     if (!file) return;
     try {
+      assertImportSize(file.size);
       const text = await file.text();
       const trimmed = text.trim();
 
@@ -525,11 +543,11 @@ export default function App() {
         try {
           parsed = JSON.parse(trimmed);
         } catch {
-          alert("That file is not valid JSON.");
+          notify("That file is not valid JSON.", "error");
           return;
         }
         if (!parsed || typeof parsed !== "object") {
-          alert("That JSON file does not contain a recognizable roster.");
+          notify("That JSON file does not contain a recognizable roster.", "error");
           return;
         }
         const obj = parsed as Record<string, unknown>;
@@ -541,10 +559,11 @@ export default function App() {
         // Players-only JSON
         if (Array.isArray(obj.players)) {
           if (!activeCommunity) {
-            alert("Pick or create a community before importing a player file.");
+            notify("Pick or create a community before importing a player file.", "error");
             return;
           }
           let imported = 0;
+          const rejected: { name: string; reason: string }[] = [];
           for (const raw of obj.players) {
             if (!raw || typeof raw !== "object") continue;
             const p = raw as Partial<Player> & { id?: string; name?: string };
@@ -556,58 +575,64 @@ export default function App() {
               notes: p.notes,
               capabilities: Array.isArray(p.capabilities) ? p.capabilities : [],
             };
+            const problems = validatePlayer(player, disciplines);
+            if (problems.length > 0) {
+              rejected.push({ name: player.name, reason: problems[0].message });
+              continue;
+            }
             await roster.savePlayer(player);
             imported++;
           }
-          alert(`Imported ${imported} player${imported === 1 ? "" : "s"} into ${activeCommunity.name}.`);
+          // A file that yielded no player must not report one: an all-rejected
+          // file, or one whose rows carry no name at all, would otherwise
+          // announce "Imported 0 players" in success styling.
+          if (imported > 0) {
+            notify(
+              `Imported ${imported} player${imported === 1 ? "" : "s"} into ${activeCommunity.name}.`,
+              "success",
+            );
+          } else {
+            notify(`No players imported into ${activeCommunity.name}.`, "error");
+          }
+          if (rejected.length > 0) {
+            notify(
+              `Skipped ${rejected.length} player${rejected.length === 1 ? "" : "s"}. First: "${rejected[0].name}" — ${rejected[0].reason}`,
+              "error",
+            );
+          }
           return;
         }
-        alert("That JSON file is not a recognized roster or backup.");
+        notify("That JSON file is not a recognized roster or backup.", "error");
         return;
       }
 
       // CSV branch
       if (!activeCommunity) {
-        alert("Pick or create a community before importing a CSV.");
+        notify("Pick or create a community before importing a CSV.", "error");
         return;
       }
-      const lines = text.split(/\r?\n/).filter((l) => l.trim());
-      const startIdx = lines[0]?.toLowerCase().includes("name") ? 1 : 0;
-      let imported = 0;
-      for (let i = startIdx; i < lines.length; i++) {
-        const parts = lines[i].split(",").map((p) => p.trim().replace(/^"|"$/g, ""));
-        const name = parts[0];
-        if (!name) continue;
-        const disciplineShort = parts[1]?.toLowerCase() || "";
-        const strength = parts[2] ? Number(parts[2]) : 3;
-        const matchedDiscipline = disciplines.find(
-          (d) => d.shortName.toLowerCase() === disciplineShort || d.name.toLowerCase() === disciplineShort,
+      const { rows, skipped: unparsed } = parsePlayerCsv(text);
+      const { players: imported, skipped: unresolved } = csvRowsToPlayers(rows, disciplines, activeCommunity.id);
+      for (const player of imported) await roster.savePlayer(player);
+      const skipped = [...unparsed, ...unresolved].sort((a, b) => a.line - b.line);
+      // Same rule as the JSON branch: a CSV of blank lines imports nothing and
+      // must not claim a success.
+      if (imported.length > 0) {
+        notify(
+          `Imported ${imported.length} player${imported.length === 1 ? "" : "s"} into ${activeCommunity.name}.`,
+          "success",
         );
-        const capability: Capability | null = matchedDiscipline
-          ? {
-              disciplineId: matchedDiscipline.id,
-              attributeRatings: Object.fromEntries(
-                matchedDiscipline.attributes.map((a) => [
-                  a.id,
-                  Math.max(1, Math.min(5, strength)) as 1 | 2 | 3 | 4 | 5,
-                ]),
-              ),
-              eligibleRoles: matchedDiscipline.roles.map((r) => r.id),
-              preferredRole: null,
-            }
-          : null;
-        const player: Player = {
-          id: crypto.randomUUID(),
-          communityId: activeCommunity.id,
-          name,
- capabilities: capability ? [capability] : [],
-        };
-        await roster.savePlayer(player);
-        imported++;
+      } else {
+        notify(`No players imported into ${activeCommunity.name}.`, "error");
       }
-      alert(`Imported ${imported} player${imported === 1 ? "" : "s"}.`);
+      if (skipped.length > 0) {
+        notify(
+          `Skipped ${skipped.length} row${skipped.length === 1 ? "" : "s"}. Line ${skipped[0].line}: ${skipped[0].reason}`,
+          "error",
+        );
+      }
     } catch (err) {
-      alert(`Import failed: ${err instanceof Error ? err.message : String(err)}`);
+      notify(`Import failed: ${formatError(err)}`, "error");
     } finally {
       if (fileInputRef.current) fileInputRef.current.value = "";
     }
@@ -760,7 +785,11 @@ export default function App() {
     await recordResult(matchId, games);
   };
   const deleteTournament = async (id: Id) => {
-    await tournamentStore.deleteTournament(id);
+    try {
+      await tournaments.deleteTournament(id);
+    } catch (err) {
+      notify(`Could not delete the tournament: ${formatError(err)}`, "error");
+    }
   };
 
   const deleteTournamentFromUI = async (id: Id) => {
@@ -1206,7 +1235,13 @@ export default function App() {
           loading={sessions.loading}
           disciplines={disciplines}
           onReopen={(session) => pushView({ mode: "split", session, source: "session" })}
-          onDelete={async (id) => { await sessionStore.deleteSession(id); }}
+          onDelete={async (id) => {
+            try {
+              await sessions.deleteSession(id);
+            } catch (err) {
+              notify(`Could not delete the session: ${formatError(err)}`, "error");
+            }
+          }}
         />
       )}
 

@@ -1,11 +1,17 @@
 import { test, expect } from "@playwright/test";
+import { gotoHubSeeded, type SeedWorld } from "../../support/seed";
+
+const emptyWorld = (): SeedWorld => ({
+  communities: [{ id: "comm-discipline", name: "Discipline Test", createdAt: 100 }],
+  players: [],
+  sessions: [],
+  tournaments: [],
+  squads: [],
+  activeCommunityId: "comm-discipline",
+});
 
 test("discipline: layout padding + list refreshes after creation", async ({ page }) => {
-  await page.goto("./");
-  await expect(page.locator(".app")).toBeVisible({ timeout: 15000 });
-
-  // The app now lands on the Dashboard; Games is still nav index 1.
-  await page.locator(".bottom-nav .nav-link").nth(1).click();
+  await gotoHubSeeded(page, emptyWorld(), "Games");
   await expect(page.locator(".screen h1")).toHaveText("Games");
   await page.getByRole("button", { name: "Disciplines" }).click();
   await expect(page.locator(".screen h1")).toHaveText("Disciplines");

@@ -1,17 +1,17 @@
 import { test, expect } from "@playwright/test";
+import { gotoHubSeeded, type SeedWorld } from "../../support/seed";
+
+const world = (): SeedWorld => ({
+  communities: [{ id: "comm-history", name: "History Test", createdAt: 100 }],
+  players: [],
+  sessions: [],
+  tournaments: [],
+  squads: [],
+  activeCommunityId: "comm-history",
+});
 
 test("history: layout padding + kicker + lede + empty state", async ({ page }) => {
-  await page.goto("./");
-  await expect(page.locator(".app")).toBeVisible({ timeout: 15000 });
-
-  // Create community
-  await page.getByTitle("New community").click();
-  await page.locator(".add-community input").fill("History Test");
-  await page.locator(".add-community .btn-primary").click();
-  await expect(page.locator(".add-community")).not.toBeVisible({ timeout: 3000 });
-
-  // Navigate to History via bottom nav (index 3; Home now sits at index 2).
-  await page.locator(".bottom-nav .nav-link").nth(3).click();
+  await gotoHubSeeded(page, world(), "History");
 
   // 1. .screen wrapper exists with proper padding
   const screen = page.locator(".screen");
@@ -28,7 +28,7 @@ test("history: layout padding + kicker + lede + empty state", async ({ page }) =
   await expect(h1).toHaveText("History");
   const kicker = page.locator(".screen .kicker").first();
   await expect(kicker).toBeVisible();
-  await expect(kicker).toHaveText(/Game Tape/);
+  await expect(kicker).toHaveText("Game tape");
 
   // 3. Lede description
   await expect(page.locator(".screen .lede")).toBeVisible();

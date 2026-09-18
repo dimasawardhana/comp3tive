@@ -4,7 +4,7 @@
 
 **Blocked by:** 06 — Dashboard teaser helpers (the sections render the helpers' output).
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 - [ ] The Dashboard shows a "Recent players" section with up to three of the most recently added players, each card showing name and discipline badges.
 - [ ] Tapping a recent-player card opens that player's edit flow.
@@ -13,3 +13,8 @@
 - [ ] A section with nothing to show renders a one-line invite with a working create/add link.
 - [ ] Both sections show only the active community's records and update when the community switches.
 - [ ] Existing dashboard behavior (stat cards, guided empty state, actions) is unchanged.
+
+## Comments
+
+Resolved by commit `b05bbb9` ("feat: add recent players and active tournaments teasers to
+Dashboard (ticket 07)"), which renders both teaser sections on the dashboard.

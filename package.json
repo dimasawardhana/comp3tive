@@ -9,7 +9,8 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
-    "capture:hero": "node scripts/capture-hero.mjs"
+    "capture:hero": "node scripts/capture-hero.mjs",
+    "e2e": "playwright test --config=e2e/playwright.config.ts"
   },
   "dependencies": {
     "react": "^19.1.0",

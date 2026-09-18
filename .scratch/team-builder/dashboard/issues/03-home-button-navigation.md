@@ -4,10 +4,19 @@
 
 **Blocked by:** 02 — Dashboard screen (the Home tab opens the dashboard).
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 - [ ] A fresh app load lands on the Dashboard.
 - [ ] The bottom nav shows five slots — Roster, Games, Home, History, Squads — with Home centered and visually distinct, and all five fit on a narrow (mobile) and wide (desktop) viewport.
 - [ ] Clicking Home from any hub returns to the Dashboard.
 - [ ] The active hub is highlighted correctly on each tab, including when a leaf screen is open under a hub.
 - [ ] Existing navigation behaviours (hub tabs still open their hubs; leaf back still returns to its origin) are unchanged.
+
+## Comments
+
+Resolved by commit `a87c705` ("feat: dashboard-first landing with centered Home tab").
+
+Correction: this ticket's acceptance says Home is *centered*. Commit `1702342`
+("feat: rail order + collapse toggle…") shipped Home **first** in NAV_ITEMS
+(src/App.tsx:63-68), in both the rail and the bottom bar. Resolved with that
+order; the centering claim is superseded.

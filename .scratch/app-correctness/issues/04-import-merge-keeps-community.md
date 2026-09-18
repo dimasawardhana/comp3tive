@@ -24,7 +24,7 @@ The comment scopes the intent to **v1** backups, where records genuinely have no
 
 **Blocked by:** —
 
-**Status:** open
+**Status:** resolved
 
 - [ ] Importing a v4 backup with two communities restores players, sessions, tournaments and squads each to their own community
 - [ ] After import, no record references a community that does not exist
@@ -36,3 +36,13 @@ The comment scopes the intent to **v1** backups, where records genuinely have no
 **Design reference:** none.
 
 **Notes:** This is the only one of the four fixes whose symptom is silent — the import reports success, and the missing records are only noticed later, by their absence.
+
+## Comments
+
+Resolved by commit `115a135` ("fix: an import merge keeps each record's own community"), which drops
+the community override from the player and squad loops so every imported record keeps the
+`communityId` `parseBackup` already resolved.
+
+Also absorbed into Phase A of the debt repayment effort as
+`.scratch/debt/issues/06-import-merge-keeps-each-community.md`. Do not start that copy — this ticket's
+work has shipped.
