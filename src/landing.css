@@ -5,6 +5,7 @@
    narrow rail, the measured evidence in the wide field beside it. */
 
 @import "./tokens.css";
+@import "./split.css";
 
 * {
   box-sizing: border-box;
@@ -40,9 +41,10 @@ body {
 }
 
 /* Focus: one visible ring, from the palette.
-   Scoped and specific because src/index.css (imported by the landing island)
-   carries a bare `:focus-visible` rule at specificity (0,1,0) that sets its own
-   outline and a 6px radius — a `:where()` selector here would lose to it. */
+   Scoped and specific because src/split.css (imported above, for the split
+   screen the landing island mounts) carries a bare `:focus-visible` rule at
+   specificity (0,1,0) that sets its own outline and a 6px radius — a
+   `:where()` selector here would lose to it. */
 .landing :is(a, button, [tabindex]):focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 3px;
@@ -444,7 +446,7 @@ body {
 }
 
 /* The split screen is rendered as a React component by src/landing.tsx.
-   SplitScreen carries its own styles from src/index.css; these override the
+   SplitScreen carries its own styles from src/split.css; these override the
    dark panel to a warm notebook surface. */
 .landing-hero .pitch {
   background: var(--surface-2);
@@ -532,7 +534,6 @@ body {
 
 .landing-hero .needle {
   background: var(--accent);
-  animation: pulse-needle 2.4s cubic-bezier(0.22, 1, 0.36, 1) infinite;
   box-shadow: 0 0 0 1px rgba(194, 65, 12, 0.12);
 }
 
@@ -547,9 +548,6 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .landing-hero .needle {
-    animation: none;
-  }
   .landing-hero .team {
     transition: none;
   }

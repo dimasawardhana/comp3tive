@@ -272,7 +272,7 @@ export default function App() {
     setDownloadingId(disciplineId);
     try {
       const { downloadSampleData: download } = await import("./data/sample-data");
-      download(disciplineId);
+      await download(disciplineId);
     } catch {
       notify("Could not download sample data", "error");
     } finally {

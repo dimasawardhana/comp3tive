@@ -4,7 +4,6 @@ import { SplitDeal } from "./landingDeal";
 import { MLBB_DISCIPLINE } from "./domain/seed";
 import { freshSplit } from "./session/edit";
 import type { Session, Player } from "./domain/types";
-import "./index.css";
 
 /**
  * The Landing Page's demonstrations (§ "every claim is a row").

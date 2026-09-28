@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import type { Discipline, Id } from "../domain/types";
-import { hasSampleData, addSampleData, autoGenerateSampleData } from "../data/sample-data";
+import { hasSampleData, addSampleData, autoGenerateSampleData } from "../data/sample-registry";
 import { SEED_DISCIPLINES } from "../domain/seed";
 import type { DisciplineStore } from "../storage/types";
 
