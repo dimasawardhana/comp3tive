@@ -2,6 +2,7 @@ import type { Discipline, Id, Player } from "../domain/types";
 import { capabilityFor } from "./flow";
 import { PageHeader } from "../ui/PageHeader";
 import { Screen } from "../ui/Screen";
+import { Breadcrumb } from "../nav";
 
 interface Props {
   roster: Player[];
@@ -37,13 +38,7 @@ export function MatchScreen(props: Props) {
   return (
     <Screen className="match-setup">
       <PageHeader
-        crumbs={
-          <div className="breadcrumb">
-            <a href="#" onClick={(e) => { e.preventDefault(); props.onBack(); }}>Roster</a>
-            <span className="sep">/</span>
-            <span>Match setup</span>
-          </div>
-        }
+        crumbs={<Breadcrumb crumbs={[{ label: "Roster", go: props.onBack }, { label: "Match setup" }]} />}
         title="Set the match"
         lede="Pick the game first, then the roster. Teams are sized to the game."
       />

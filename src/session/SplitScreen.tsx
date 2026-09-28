@@ -5,6 +5,7 @@ import { freshSplit, swapPlayers } from "./edit";
 import { gapQualifier } from "./gapProvenance";
 import { rerollPool, type SplitSource } from "../shell/useSplitFlow";
 import { BIB } from "../ui/constants";
+import { Breadcrumb } from "../nav";
 import { Modal } from "../ui/Modal";
 
 interface Props {
@@ -231,6 +232,8 @@ export function SplitScreen({ session, discipline, roster, onPersistResult, onSu
   const flags = describeFlags(result, discipline, roster);
   const displayFlags =
     flags.length > 0 ? flags : balanced ? ["All roles covered. Fair game."] : [];
+  // One label for the crumb and the Back button, so they cannot drift apart.
+  const backLabel = source === "session" ? "History" : source === "squad" ? "Squad detail" : "Match setup";
 
   const commit = async (next: SplitResult) => {
     setEditable(next);
@@ -312,11 +315,12 @@ export function SplitScreen({ session, discipline, roster, onPersistResult, onSu
 
   return (
     <div className="screen split-screen">
-      <div className="breadcrumb">
-        <a href="#" onClick={(e) => { e.preventDefault(); /* back handled via app */ }}>Match setup</a>
-        <span className="sep">/</span>
-        <span>Split result</span>
-      </div>
+      <Breadcrumb
+        crumbs={[
+          { label: backLabel, go: onBack },
+          { label: "Split result" },
+        ]}
+      />
 
       <div className="split-head">
         <h2>Tonight&apos;s teams</h2>
@@ -395,7 +399,7 @@ export function SplitScreen({ session, discipline, roster, onPersistResult, onSu
       <div className="bar split-bar">
         {onBack && !swapMode && (
           <button type="button" className="btn btn-ghost" onClick={onBack} data-testid="back-button">
-            ← {source === "session" ? "History" : source === "squad" ? "Squad detail" : "Match setup"}
+            ← {backLabel}
           </button>
         )}
         {onSaveSquad && !swapMode && (

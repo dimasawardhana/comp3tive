@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { Discipline, GameResult, Id, Player, SavedSquad, Tournament, TournamentMatch, TournamentTeam } from "../domain/types";
+import { Breadcrumb } from "../nav";
 import { champion, standings } from "./bracket";
 import { PageHeader } from "../ui/PageHeader";
 import { BIB, FORMAT_LABEL, STATUS_LABEL } from "../ui/constants";
@@ -250,13 +251,7 @@ export function TournamentScreen({ tournament, disciplines, matchingSquads, rost
   return (
     <>
       <PageHeader
-        crumbs={
-          <div className="breadcrumb">
-            <a href="#" onClick={(e) => { e.preventDefault(); onBack(); }}>Games</a>
-            <span className="sep">/</span>
-            <span>{tournament.name}</span>
-          </div>
-        }
+        crumbs={<Breadcrumb crumbs={[{ label: "Games", go: onBack }, { label: tournament.name }]} />}
         title={tournament.name}
         lede={
           <div className="tournament-subtitle">
