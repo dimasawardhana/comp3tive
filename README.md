@@ -1,17 +1,28 @@
 # comp3tive
 
-Split a roster of rated players into balanced teams, then run the tournament on those teams.
+Split a roster of rated players into balanced teams, then run a tournament on teams you can hand it
+— either the ones the solver just made, or a Saved Squad you kept.
 
 - **Disciplines.** Three ship seeded — futsal, MLBB, badminton (`src/domain/seed.ts`) — and the
   Disciplines screen adds more (`src/domain/DisciplinesScreen.tsx`).
-- **Balance.** The solver places every player, reads their rating *and* their roles, and reports the
-  gap between the teams. The split screen says whether that gap is the best it found or a proven
-  minimum (`src/session/gapProvenance.ts`); it never prints a bare number as if it were proof.
-- **Formats.** Series, single elimination, or Swiss (`TournamentFormat` in `src/domain/types.ts`),
-  played on the same teams the solver just balanced.
-- **Local-first.** Everything lives in this browser's IndexedDB (`src/storage/indexed-db.ts`).
-  There is no account and no server in this build, and the trust row on the Landing Page says the
-  same. The optional backend and Accounts are decided in `docs/adr/0007-optional-backend.md` and
+- **Balance.** The solver reads each player's rating *and* their roles, and reports the gap between
+  the teams. Not every player reaches a team: when the requested team sizes leave nobody on the
+  bench, the surplus comes back in `SplitResult.unassigned` and the split screen names each one —
+  *"<name> sits out tonight."* (`src/domain/types.ts`, `src/solver/solver.ts`,
+  `src/session/flow.ts`)
+- **The gap, honestly.** When the search stops short of a minimum, the screen says **"Best gap
+  found."** When it does not, the screen says nothing — and that silence is not always a proof. A
+  manual swap is not a search: the edited result carries `solver.optimal: true` with zero nodes
+  explored, so after you swap two players by hand the qualifier is suppressed and you get a bare
+  `Gap 0.3` for an arrangement nobody proved minimal. `src/session/gapProvenance.ts` documents the
+  case in its own header: *"no search ran, not this arrangement is minimal."*
+- **Formats.** Series, single elimination, or Swiss (`TournamentFormat` in `src/domain/types.ts`).
+- **Your data.** Rosters, Saved Squads, Sessions and Tournaments live in this browser's IndexedDB
+  (`src/storage/indexed-db.ts`). Two smaller things live in `localStorage`: which Community is
+  active (`src/domain/useCommunities.ts`, which "drives every roster/session filter in the app")
+  and theme/layout preferences (`src/shell/usePreferences.ts`). Neither leaves the device.
+- **No account, no server** in this build, and the Landing Page's trust row says the same. The
+  optional backend and Accounts are decided in `docs/adr/0007-optional-backend.md` and
   `docs/adr/0008-account-identity.md` and tracked in `.scratch/backend/` — none of it is built.
 
 `CONTEXT.md` is the authoritative vocabulary — Organizer, Community, Player, Discipline, Team,
@@ -43,8 +54,15 @@ if something is genuinely broken there, the failure surfaces as a bad build or a
 binding rather than a refused install. Tracked in
 [`.scratch/app-health/issues/16-the-engine-floor-is-advisory.md`](.scratch/app-health/issues/16-the-engine-floor-is-advisory.md).
 
-`npm` itself is deliberately not pinned: no script in this repo invokes it beyond the `npm run …`
-aliases below.
+The floor is the intersection of every `engines.node` in `package-lock.json`, and exactly one
+package binds it: `@napi-rs/lzma-linux-x64-gnu`, the native binding `rollup` pulls in **on
+linux-x64 only**. It is an *optional* dependency, so on macOS or Windows npm never installs it and
+its range constrains nothing — which is why a Mac on Node 23 is outside the floor for a package
+that would not have been fetched there.
+
+`npm` itself is deliberately not pinned: no `package.json` script invokes it. The only npm calls
+anywhere in the tree are the `npm run …` aliases below, the Playwright `webServer` command
+(`npm run preview`), and CI's `npm ci`.
 
 The declared toolchain floors, all in `package.json`: React 19.1, TypeScript 5.8, Vite 6, Vitest 3,
 Playwright 1.62, `@types/node` 22.15.
@@ -61,7 +79,7 @@ Playwright 1.62, `@types/node` 22.15.
 | `npm test` | Unit tests — Vitest, `src/**/*.test.ts` |
 | `npm run test:watch` | Unit tests in watch mode |
 | `npm run e2e` | The browser suite — Playwright |
-| `npm run capture:hero` | Capture and self-verify the Landing Page hero image |
+| `npm run capture:hero` | Drive a real split in Chromium and self-check the screenshots it takes |
 
 `npm test` and `npm run test:watch` are unit tests only. The `.tsx` screens have no component tests
 by design; anything that needs a real browser goes through `npm run e2e`.
@@ -83,8 +101,12 @@ a preview server that is already up will be reused — and a stale one serves ol
 
 `npm run capture:hero` has the same prerequisite by hand: it drives a real Chromium against
 `http://localhost:4173/app/`, so `npm run build && npm run preview` must already be serving. It
-writes the PNG to `public/` by default and checks the rendered DOM and the image pixels, so a blank
-or broken shot fails instead of shipping.
+seeds a fictional roster, captures the split screen at two viewports (390×1100 and 1280×800), and
+checks both the rendered DOM and the image pixels, so a blank or broken shot fails instead of
+shipping. The `hero-split-*.png` and `hero-full-*.png` it writes to `public/` are **referenced by
+nothing** — the Landing Page's hero is a live React component mounted into `#landing-hero`
+(`src/landing.tsx`), not an image, and `index.html` contains no `<img>`. The script is a
+capture-and-verify tool; treat its output as a diagnostic, not an asset.
 
 ## Where the repo's knowledge lives
 
