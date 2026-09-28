@@ -109,7 +109,11 @@ exists in `src/`, `index.html` or `app/index.html` — but the second design doc
 disk. Either an owner confirms the deletion (or the pointer line) and this ticket closes, or the
 drift this ticket was written to end is still live.
 
-**One adjacent contradiction found, not fixed here.** `DESIGN.md`'s closing list
-"Things that don't change" still reads `Bottom nav: Roster, Games, History, Squads` — four tabs,
-no Home. The shipped nav is five (`NAV_ITEMS`, `src/App.tsx:63-69`) and this ticket's brief
-requires DESIGN.md's existing content to be otherwise unchanged, so the line was left as found.
+**One adjacent contradiction found here, and fixed in the next round.** `DESIGN.md`'s closing
+list "Things that don't change" read `Bottom nav: Roster, Games, History, Squads` — four tabs, no
+Home — against a five-hub nav (`NAV_ITEMS`, `src/App.tsx:63-69`). My first reading was that the
+brief's "existing content otherwise unchanged" covered it. That was wrong: `DESIGN.md` is not one
+of the owner-gated files, and a file being installed as the design source of truth cannot carry a
+false invariant while the scope note cites a housekeeping rule. `DESIGN.md:213` now lists the five
+hubs in `NAV_ITEMS` order. The scope constraint still stands for design decisions, and it was
+honoured: no token moved and no CSS changed.

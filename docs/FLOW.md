@@ -45,7 +45,10 @@ caller.
 
 ## 2. Leaves
 
-Every non-hub view is a **leaf**: one job, one breadcrumb, one back edge.
+Every non-hub view is a **leaf**: one job, one back edge, and a breadcrumb wherever one is
+rendered — P1's rule, which three of the five leaves below meet today and two do not. The
+Breadcrumb column records what each screen actually renders, not what the rule requires; §3 says
+which is which.
 
 | Leaf | Job | Source(s) | Breadcrumb | Back goes to |
 |------|-----|-----------|------------|--------------|

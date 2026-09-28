@@ -89,11 +89,18 @@ untouched. `grep -L "Status" docs/adr/*.md` returns nothing.
   `superseded by ADR-0007` before this ticket, and `0007` and `0008` were added since the
   acceptance was written. The check that matters, `grep -L "Status" docs/adr/*.md` returning
   nothing, passes for all eight.
-- `grep -rn "nextMatchId" docs/ src/` returning nothing cannot hold as written, because this
-  phase's own plan and spec under `docs/superpowers/` name the field as the thing being fixed.
-  Scoped to the documents the work edits, `nextMatchId` survives only in this ticket, the plan,
-  the spec and the dated `COMP3TIVE_COMPREHENSIVE_ANALYSIS.md`; `docs/spec/0002` was corrected
-  by ticket 16. No source file has ever contained it.
+- `grep -rn "nextMatchId" docs/ src/` returning nothing cannot hold as written. No source file
+  has ever contained the field — `grep -rn "nextMatchId" src/` returns nothing — and every place
+  it appears is a document naming it as the thing being fixed. Six files still carry it, and
+  naming all six is the honest form of this check:
+  `docs/superpowers/plans/2026-09-17-honest-claims.md` (8),
+  `docs/superpowers/specs/2026-09-17-honest-claims-design.md` (3),
+  this ticket (7, six in its own evidence above and one here),
+  `COMP3TIVE_COMPREHENSIVE_ANALYSIS.md` (3, dated evidence),
+  `.scratch/debt/issues/16-reconcile-the-documents-that-contradict-the-code.md` (2) and
+  `.scratch/app-correctness/issues/06-reconcile-stale-docs.md` (1), the two tickets that
+  inherited the claim. `docs/spec/0002`, the only live document that stated the field as
+  current, was corrected by ticket 16.
 
 **ADR-0005 was corrected here, outside this ticket's file list, and the reason is recorded.**
 `docs/adr/0005-dashboard-first.md:9-10` asserted "five bottom-nav slots with the home button

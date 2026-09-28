@@ -203,7 +203,7 @@ Match-night, plain, active. People and what they do, never the system: "Split th
 
 ## Accessibility & quality floor
 
-Mobile-first and thumb-friendly (bottom bar actions, 44px+ targets) · `min-height:100dvh` (no mobile viewport jumps) · visible `:focus-visible` rings in amber (`--accent`) · text contrast ≥ 4.5:1 on every surface in both themes (`--text` on `--surface`, `--text` on bibs, `--surface` on `--panel`, `--text-2` labels at full strength) · responsive to desktop (the app column centers on a subtle hairline frame).
+Mobile-first and thumb-friendly (bottom bar actions, 44px+ targets) · `min-height:100dvh` (no mobile viewport jumps) · visible `:focus-visible` rings in amber (`--accent`) · text contrast ≥ 4.5:1 on every surface in both themes — `--text` on `--surface`, `--text` on bibs, `--text-2` labels at full strength, and **`--panel-text` on `--panel`**, the pairing the split panel actually renders (`src/index.css:1951-1957`), measured at 16.5:1 light and 15.3:1 dark · responsive to desktop (the app column centers on a subtle hairline frame). *The surface token on the panel is not `--surface`: in dark mode that is `#1c1917` on `--panel: #23201c`, 1.08:1.*
 
 ## Things that don't change
 
