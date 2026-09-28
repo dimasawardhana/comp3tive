@@ -55,13 +55,21 @@ export function swapPlayers(
   return recomputeResult(teams, discipline, result.unassigned, roster);
 }
 
-/** Recompute totals, gap, and flags for a (possibly edited) team set. */
+/**
+ * Recompute totals, gap, and flags for a (possibly edited) team set.
+ *
+ * The `solver` default is `optimal: false`, not `true`: recomputing totals is
+ * arithmetic, not a search. A hand edit changes the teams, so whatever search
+ * produced them no longer describes them, and stamping a proof onto the result
+ * would let the screen read silence as minimality. A caller that genuinely
+ * searched passes its own record through instead.
+ */
 export function recomputeResult(
   teams: TeamAssignment[],
   discipline: Discipline,
   unassigned: Id[],
   roster: Player[],
-  solver: SplitResult["solver"] = { optimal: true, nodesExplored: 0, elapsedMs: 0 },
+  solver: SplitResult["solver"] = { optimal: false, nodesExplored: 0, elapsedMs: 0 },
 ): SplitResult {
   const strengthOfId = (id: Id): number => {
     const player = roster.find((p) => p.id === id);

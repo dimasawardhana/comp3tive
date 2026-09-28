@@ -32,9 +32,9 @@ export interface RosterScreenProps {
 /**
  * The roster hub's screen. Its markup moved out of App verbatim; what changed
  * is only which handler each binding names — every `setEditingPlayer`,
- * `filtersByDiscipline`, `clearFilters`, `handleExport` and
- * `randomPlayers` reference became the prop App passes in, and
- * `communityPlayers` became the `players` prop.
+ * `filtersByDiscipline`, `clearFilters` and `handleExport` reference became the
+ * prop App passes in, and `communityPlayers` became the `players` prop. The
+ * Split entry arrives as `onSplitMatch`, bound to App's single ad-hoc handler.
  *
  * `onDelete` is A04's already-catching `deletePlayer` passed straight through:
  * `PlayerEditModal.remove` calls `onClose()` itself, so no try/catch is added

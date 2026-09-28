@@ -11,6 +11,13 @@ interface Props {
   /** Idle button class. Defaults to "btn btn-ghost". */
   className?: string;
   /**
+   * Disables the idle button and the danger confirm alike, so a destructive
+   * action can be neither armed nor fired while a save is in flight. Cancel
+   * deliberately stays live: backing out is never the dangerous half, and
+   * disarming is what lets a user change their mind without waiting.
+   */
+  disabled?: boolean;
+  /**
    * Optional accessible name for the idle button. Required when `label` is a bare
    * verb in a list of repeated rows, so the name stays unique and unchanged.
    * The confirm-state button needs none: it is unique while it is rendered.
@@ -27,11 +34,11 @@ interface Props {
  * of the page: nothing here blocks, and the message is ordinary text in the DOM,
  * so a test — or a screen reader — can read it.
  */
-export function ConfirmButton({ label, confirmLabel, message, onConfirm, className = "btn btn-ghost", ariaLabel }: Props) {
+export function ConfirmButton({ label, confirmLabel, message, onConfirm, className = "btn btn-ghost", ariaLabel, disabled }: Props) {
   const [confirming, setConfirming] = useState(false);
   if (!confirming) {
     return (
-      <button type="button" className={className} aria-label={ariaLabel} onClick={() => setConfirming(true)}>
+      <button type="button" className={className} aria-label={ariaLabel} disabled={disabled} onClick={() => setConfirming(true)}>
         {label}
       </button>
     );
@@ -45,6 +52,7 @@ export function ConfirmButton({ label, confirmLabel, message, onConfirm, classNa
       <button
         type="button"
         className="btn btn-danger-ghost"
+        disabled={disabled}
         onClick={() => {
           setConfirming(false);
           onConfirm();

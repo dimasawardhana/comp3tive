@@ -11,11 +11,14 @@ Split a roster of rated players into balanced teams, then run a tournament on te
   *"<name> sits out tonight."* (`src/domain/types.ts`, `src/solver/solver.ts`,
   `src/session/flow.ts`)
 - **The gap, honestly.** When the search stops short of a minimum, the screen says **"Best gap
-  found."** When it does not, the screen says nothing — and that silence is not always a proof. A
-  manual swap is not a search: the edited result carries `solver.optimal: true` with zero nodes
-  explored, so after you swap two players by hand the qualifier is suppressed and you get a bare
-  `Gap 0.3` for an arrangement nobody proved minimal. `src/session/gapProvenance.ts` documents the
-  case in its own header: *"no search ran, not this arrangement is minimal."*
+  found."** When it does, it stays silent on that point — and the silence is not a bare number:
+  the readout always states a result, either `Gap 0.3. <Team> leads.` or, when `balanced` — a gap
+  of 0.1 or less (`:231`) — `Dead even. Fair game.` (`src/session/SplitScreen.tsx:141-150`). A manual swap is not a
+  search, so an edited result is stamped `solver.optimal: false` (`src/session/edit.ts:72`) and
+  gets the qualifier like any other unproven result: `Gap 0.3. <Team> leads. Best gap found.`, or
+  `Dead even. Best gap found.` It never claims an arrangement is minimal when nobody searched for
+  one. `src/session/gapProvenance.ts` documents the rule in its own header: *"no search ran, not
+  this arrangement is minimal."*
 - **Formats.** Series, single elimination, or Swiss (`TournamentFormat` in `src/domain/types.ts`).
 - **Your data.** Rosters, Saved Squads, Sessions and Tournaments live in this browser's IndexedDB
   (`src/storage/indexed-db.ts`). Two smaller things live in `localStorage`: which Community is

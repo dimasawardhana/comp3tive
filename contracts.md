@@ -491,7 +491,7 @@ B13 was given.
 | `src/App.tsx` | A (delete/import handlers), B15 (two strings), C (decomposition), E (sign-in) | Sequenced, never concurrent: A → B → C → E. |
 | `vite.config.ts` | C29 (conditional, unexercised), D33 (one `plugins[]` entry) | D's edit is additive only. C claims this file conditionally and no task edits it — see §7 D8. |
 | `sample-data/*.json` | A (minimal correction), B20 (rewrite wholesale) | A already landed; B replaces both files and adds badminton. |
-| `docs/FLOW.md` | B16 (owns it), C28 (must leave it byte-identical) | C28's acceptance is `git diff --stat docs/FLOW.md` empty. |
+| `docs/FLOW.md` | B16 (owns it), C28 (citation repointing) | C28's acceptance as written was `git diff --stat docs/FLOW.md` empty. **That record is false and is corrected here:** the controller twice instructed C28 to leave every line-number citation untouched, on the reasoning that stale citations are rot rather than a false claim of source of truth. C28 obeyed, and a review round then proved the file byte-identical. But C11 shrank `src/App.tsx` 600 → 472, which silently invalidated the citations into it. A line-number citation is a claim that a symbol lives at that line, so it is maintained, not left to rot. The rule is now: a phase that moves a symbol repoints the citations that name it, and the check is that every `path:line` in this file resolves to a real symbol at that line. |
 
 `src/tokens.css` is **not** in this table. D's spec lists it against "C29 (the stylesheet split)",
 but C29 never writes that file — `src/index.css:2` and `src/landing.css:7` already import it. The

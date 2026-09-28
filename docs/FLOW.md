@@ -34,14 +34,13 @@ Five bottom-nav hubs. A hub is a top-level home with no back control and no brea
 | 4 | **History** | past ad-hoc splits (Sessions): view, re-roll, save as squad, delete |
 | 5 | **Squads** | saved squads: view, re-split, delete, feed a tournament |
 
-Source of truth: `NAV_ITEMS` at `src/App.tsx:63-69`, rendered in that order by both the desktop
+Source of truth: `NAV_ITEMS` at `src/shell/nav-items.ts:5`, rendered in that order by both the desktop
 rail and the bottom bar. ADR-0005 recorded Home as the **centred** slot; the shipped nav puts it
 first, so the centring claim is superseded by the code.
 
 **Disciplines is reached from Games, not Roster.** The only entry point is the Games hub's
-toolbar button (`src/tournament/GamesScreen.tsx:134-136` → `src/App.tsx:1175`). The Roster hub
-has no Disciplines control, and `showDisciplines` (`src/App.tsx:695-697`) is defined with no
-caller.
+toolbar button (`src/tournament/GamesScreen.tsx:123-126` → `src/shell/ScreenSwitch.tsx:252`). The
+Roster hub has no Disciplines control.
 
 ## 2. Leaves
 
@@ -91,8 +90,8 @@ Not universally true until ticket 28, which has now landed. The first crumb in
 `src/session/SplitScreen.tsx:316-320` *was* a dead link — its handler called `preventDefault`
 and nothing else, under the source comment "back handled via app" — so the only link in that
 block went nowhere. The screen was not missing a back affordance: `onBack` is passed
-(`src/App.tsx:1229`) and renders a working `← Back` button at
-`src/session/SplitScreen.tsx:397-399`. The defect was the crumb, not the screen. All three
+(`src/shell/ScreenSwitch.tsx:305`) and renders a working `← Back` button at
+`src/session/SplitScreen.tsx:400-404`. The defect was the crumb, not the screen. All three
 hand-rolled crumb blocks are now the shared `src/nav.tsx` `Breadcrumb`, which renders a plain
 `<span>` when a crumb has no destination (`src/nav.tsx:24-26`), and the split screen's first
 crumb carries the same label as the screen's own Back control and calls the same `onBack`.

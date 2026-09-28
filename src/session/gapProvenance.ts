@@ -12,10 +12,12 @@ export type GapKind = "proven" | "best-found";
  * (`src/solver/solver.ts:419`) but delegates to `fairSplit` at `:409` when it
  * finds no candidate, and that fallback really is the exact optimum.
  *
- * A `swapPlayers` result carries `optimal: true` with `nodesExplored: 0`
- * (`src/session/edit.ts:64`), which means "no search ran", not "this
- * arrangement is minimal". The split screen deliberately shows no provenance
- * word in that case rather than claiming a proof the user's own edit erased.
+ * A `swapPlayers` result is stamped `optimal: false, nodesExplored: 0`
+ * (`src/session/edit.ts:72`) — no search ran, so the screen says **"Best gap
+ * found."** rather than reading the absence of a qualifier as minimality. It
+ * used to stamp `optimal: true` here, which suppressed the qualifier and left
+ * the screen's own `Gap 0.3. <Team> leads.` / `Dead even. Fair game.` to
+ * stand as an affirmative fairness claim on an arrangement nobody proved.
  */
 export function gapKind(result: SplitResult): GapKind {
   return result.solver.optimal === true ? "proven" : "best-found";

@@ -89,7 +89,6 @@ export interface ScreenSwitchProps {
   filtersByDiscipline: (disciplineId: Id) => void;
   clearFilters: () => void;
   handleExport: () => Promise<void>;
-  randomPlayers: () => void;
   savePlayer: (player: Player) => Promise<void>;
   deletePlayer: (id: Id) => Promise<void>;
   deleteTournament: (id: Id) => Promise<void>;
@@ -169,7 +168,6 @@ export function ScreenSwitch(props: ScreenSwitchProps) {
     filtersByDiscipline,
     clearFilters,
     handleExport,
-    randomPlayers,
     savePlayer,
     deletePlayer,
     deleteTournament,
@@ -237,7 +235,7 @@ export function ScreenSwitch(props: ScreenSwitchProps) {
           onCancelMerge={cancelMerge}
           importFile={importFile}
           onExport={handleExport}
-          onSplitMatch={randomPlayers}
+          onSplitMatch={startAdHocSplit}
           onSavePlayer={savePlayer}
           onDeletePlayer={deletePlayer}
           onCloseEditor={() => setEditingPlayer(null)}

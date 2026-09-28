@@ -78,6 +78,24 @@ describe("swapPlayers", () => {
     }, { teamIndex: a.index, playerId: a.slots[1].playerId });
     expect(swapped).toBe(result); // unchanged reference
   });
+
+  it("stamps the edited result unproven: a hand swap is not a search", () => {
+    // The screen reads `solver.optimal` and nothing else. Stamping a proof onto
+    // a hand-edited arrangement would suppress the qualifier, leaving the
+    // readout's own "Team X leads." / "Dead even. Fair game." to stand as a
+    // fairness claim on teams no search ever examined.
+    const players = tenPlayers();
+    const result = splitFutsal(players);
+    const a = result.teams[0];
+    const b = result.teams[1];
+    const swapped = swapPlayers(result, players, FUTSAL_DISCIPLINE, {
+      teamIndex: a.index,
+      playerId: a.slots[0].playerId,
+    }, { teamIndex: b.index, playerId: b.slots[0].playerId });
+
+    expect(swapped.solver.optimal).toBe(false);
+    expect(swapped.solver.nodesExplored).toBe(0);
+  });
 });
 
 describe("freshSplit", () => {

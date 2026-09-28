@@ -300,10 +300,6 @@ export default function App() {
     return parts.length > 0 ? ` This also permanently deletes ${parts.join(", ")}.` : "";
   };
 
-  const randomPlayers = () => {
-    startMatch("ad-hoc");
-  };
-
   const filtersByDiscipline = (disciplineId: Id) => {
     setFilterIds(prev => prev.includes(disciplineId) ? prev.filter(id => id !== disciplineId) : [...prev, disciplineId]);
   };
@@ -313,8 +309,9 @@ export default function App() {
   };
 
   // Dashboard actions (ticket 04): every exit reuses an existing App flow —
-  // the roster "Split match" handler, the Games create flow, hub navigation,
-  // and the roster "+ Add Player" modal. Only the entry points differ.
+  // the same ad-hoc split handler Roster's "Split match" uses, the Games
+  // create flow, hub navigation, and the roster "+ Add Player" modal. Only
+  // the entry points differ.
   const showSquads = () => {
     gotoHub("squads");
   };
@@ -324,11 +321,10 @@ export default function App() {
     setEditingPlayer("new");
   };
 
+  /** Every non-tournament Split entry — Roster's "Split match" and the
+   *  Dashboard's — starts an ad-hoc split. Neither screen can be showing a
+   *  tournament, so there is nothing to scope it to. */
   const startAdHocSplit = () => {
-    if (view.mode === "tournament" && viewTournament) {
-      startMatch("tournament", viewTournament.id);
-      return;
-    }
     startMatch("ad-hoc");
   };
 
@@ -341,12 +337,12 @@ export default function App() {
     pushView({ mode: "tournament", id });
   };
 
+  /** The bracket's own Split entry. This renders only inside a tournament view,
+   *  so the ad-hoc fallback the old copy carried was unreachable. */
   const startSplit = () => {
-    if (view.mode === "tournament" && viewTournament) {
+    if (viewTournament) {
       startMatch("tournament", viewTournament.id);
-      return;
     }
-    startMatch("ad-hoc");
   };
 
   const deleteTournament = async (id: Id) => {
@@ -443,7 +439,6 @@ export default function App() {
           filtersByDiscipline={filtersByDiscipline}
           clearFilters={clearFilters}
           handleExport={handleExport}
-          randomPlayers={randomPlayers}
           savePlayer={savePlayer}
           deletePlayer={deletePlayer}
           deleteTournament={deleteTournament}

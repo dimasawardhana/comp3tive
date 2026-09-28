@@ -23,9 +23,9 @@ describe("gapKind", () => {
     expect(gapKind(resultWith({ optimal: false, nodesExplored: 4_000_001, elapsedMs: 273 }))).toBe("best-found");
   });
 
-  it("reads only `optimal`: a swap's nodesExplored of 0 is still proven", () => {
-    // `swapPlayers` stamps `optimal: true, nodesExplored: 0` (src/session/edit.ts:64).
-    // The field is provenance, not a property of the current teams.
+  it("reads only `optimal`: `nodesExplored` is provenance detail, not a rule input", () => {
+    // The field is provenance, not a property of the current teams. A result
+    // with `optimal: true` is proven whatever its node count.
     expect(gapKind(resultWith({ optimal: true, nodesExplored: 0, elapsedMs: 0 }))).toBe("proven");
   });
 

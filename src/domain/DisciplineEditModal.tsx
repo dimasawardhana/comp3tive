@@ -314,6 +314,7 @@ export function DisciplineEditModal({
         <div className="bar">
           {isEdit && onDelete && !isBuiltIn ? (
             <ConfirmButton
+              disabled={saving}
               label="Delete"
               confirmLabel="Delete discipline"
               message={`Delete discipline "${discipline.name}"? Players with capabilities in it will still have those ratings, but the discipline won't be available for splitting.`}

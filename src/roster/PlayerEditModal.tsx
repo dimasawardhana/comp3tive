@@ -302,6 +302,7 @@ export function PlayerEditModal({ player, disciplines, communityId, onClose, onS
         <div className="bar">
           {isEdit && onDelete ? (
             <ConfirmButton
+              disabled={saving}
               label="Delete"
               confirmLabel="Delete player"
               message={`Delete player "${player.name}"?`}
