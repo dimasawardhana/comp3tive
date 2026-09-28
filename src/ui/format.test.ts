@@ -20,6 +20,7 @@ describe("relativeTime", () => {
     vi.useFakeTimers();
     vi.setSystemTime(NOW);
     expect(relativeTime(minutesAgo(1))).toBe("1m ago");
+    expect(relativeTime(minutesAgo(1.5))).toBe("1m ago");
     expect(relativeTime(minutesAgo(59))).toBe("59m ago");
   });
 
@@ -27,6 +28,7 @@ describe("relativeTime", () => {
     vi.useFakeTimers();
     vi.setSystemTime(NOW);
     expect(relativeTime(minutesAgo(60))).toBe("1h ago");
+    expect(relativeTime(minutesAgo(90))).toBe("1h ago");
     expect(relativeTime(minutesAgo(23 * 60))).toBe("23h ago");
   });
 

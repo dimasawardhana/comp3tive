@@ -25,9 +25,8 @@ const LANDING_H1 = "Pick the players. Get the fairest teams it can prove.";
 /**
  * The formats a tournament can be run in, keyed by `TournamentFormat`
  * (src/domain/types.ts:25). The map is exhaustive by construction — the same
- * idiom the app's own label maps use (`Record<TournamentFormat, string>` in
- * src/tournament/GamesScreen.tsx:27, src/tournament/TournamentScreen.tsx:26,
- * src/DashboardScreen.tsx:6) — so it mirrors the code that owns the set instead
+ * idiom the app's own label map uses (`Record<TournamentFormat, string>` in
+ * src/ui/constants.ts:7) — so it mirrors the code that owns the set instead
  * of adding a second list of formats. Adding "round-robin" to the union makes
  * this object literal a `tsc` error until the rail's number is rechecked, and
  * the count assertion then fails while the page still reads 3.

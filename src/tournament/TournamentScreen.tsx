@@ -2,7 +2,7 @@ import { useState } from "react";
 import type { Discipline, GameResult, Id, Player, SavedSquad, Tournament, TournamentMatch, TournamentTeam } from "../domain/types";
 import { champion, standings } from "./bracket";
 import { PageHeader } from "../ui/PageHeader";
-import { BIB, FORMAT_LABEL } from "../ui/constants";
+import { BIB, FORMAT_LABEL, STATUS_LABEL } from "../ui/constants";
 import { Modal } from "../ui/Modal";
 
 interface Props {
@@ -279,7 +279,7 @@ export function TournamentScreen({ tournament, disciplines, matchingSquads, rost
         </div>
         <div className="tms-item" role="listitem">
           <span className="tms-label">Status</span>
-          <span className="tms-value">{tournament.status === "draft" ? "Draft" : tournament.status === "active" ? "In progress" : "Complete"}</span>
+          <span className="tms-value">{STATUS_LABEL[tournament.status]}</span>
         </div>
       </div>
 
