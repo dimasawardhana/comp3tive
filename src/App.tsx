@@ -11,25 +11,18 @@ import {
 import { useRoster } from "./roster/useRoster";
 import { useDisciplines } from "./domain/useDisciplines";
 import { useCommunities } from "./domain/useCommunities";
-import { DisciplinesScreen } from "./domain/DisciplinesScreen";
-import { MatchScreen } from "./session/MatchScreen";
-import { SplitScreen } from "./session/SplitScreen";
-import { HistoryScreen } from "./session/HistoryScreen";
 import { useSessions } from "./session/useSessions";
 import { useSavedSquads } from "./session/useSavedSquads";
-import { SquadsScreen } from "./session/SquadsScreen";
-import { DashboardScreen } from "./DashboardScreen";
-import { Screen } from "./ui/Screen";
 import { useTournaments } from "./tournament/useTournaments";
-import { GamesScreen } from "./tournament/GamesScreen";
-import { TournamentScreen } from "./tournament/TournamentScreen";
 import { serializeBackup } from "./data/transfer";
 import { useNavigation } from "./shell/useNavigation";
-import { useSplitFlow, splitFlowRule } from "./shell/useSplitFlow";
+import { useSplitFlow } from "./shell/useSplitFlow";
 import { useCommunityScope } from "./shell/useCommunityScope";
-import { RosterScreen } from "./shell/RosterScreen";
 import { usePlayerImport } from "./shell/usePlayerImport";
 import { AppChrome } from "./shell/AppChrome";
+import { ScreenSwitch } from "./shell/ScreenSwitch";
+import { AddCommunityForm } from "./shell/AddCommunityForm";
+import { useAddCommunity } from "./shell/useAddCommunity";
 import { useStoredPref, useMediaQuery } from "./shell/usePreferences";
 import { useToasts } from "./shell/useToasts";
 import { formatError } from "./ui/format";
@@ -59,8 +52,6 @@ export default function App() {
   const goDisciplines = () => pushView({ mode: "disciplines" });
 
   const { toasts, notify } = useToasts();
-  const [communityName, setCommunityName] = useState("");
-  const [showAddCommunity, setShowAddCommunity] = useState(false);
   const [editingPlayer, setEditingPlayer] = useState<Player | null | "new">(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   /** One toast per record type, however many renders the failing write retries. */
@@ -226,17 +217,14 @@ export default function App() {
     URL.revokeObjectURL(url);
   };
 
-  const createCommunity = async () => {
-    if (!communityName.trim()) return;
-    await communities.create(communityName.trim());
-    setCommunityName("");
-    setShowAddCommunity(false);
-  };
-
-  const cancelAddCommunity = () => {
-    setCommunityName("");
-    setShowAddCommunity(false);
-  };
+  const {
+    showAddCommunity,
+    setShowAddCommunity,
+    communityName,
+    setCommunityName,
+    createCommunity,
+    cancelAddCommunity,
+  } = useAddCommunity(communities.create);
 
   const savePlayer = async (player: Player) => {
     await roster.savePlayer(player);
@@ -402,24 +390,12 @@ export default function App() {
           </div>
         )}
         {showAddCommunity && (
-          <div className="add-community">
-            <div className="form-label">New community</div>
-            <div className="form-row">
-              <input
-                type="text"
-                value={communityName}
-                onChange={(e) => setCommunityName(e.target.value)}
-                placeholder="e.g. Sunday League"
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") createCommunity();
-                  if (e.key === "Escape") cancelAddCommunity();
-                }}
-                autoFocus
-              />
-              <button className="btn btn-primary" onClick={createCommunity}>Create</button>
-              <button className="btn btn-ghost" onClick={cancelAddCommunity} aria-label="Cancel">Cancel</button>
-            </div>
-          </div>
+          <AddCommunityForm
+            communityName={communityName}
+            onCommunityNameChange={setCommunityName}
+            onCreate={createCommunity}
+            onCancel={cancelAddCommunity}
+          />
         )}
         {communities.loading && <p className="status">Loading&hellip;</p>}
         {!communities.loading && communities.communities.length === 0 && !showAddCommunity && (
@@ -430,170 +406,72 @@ export default function App() {
           </div>
         )}
 
-        {view.mode === "dashboard" && (
-          <DashboardScreen
-            community={activeCommunity}
-            players={communityPlayers}
-            squads={communitySquads}
-            tournaments={communityTournaments}
-            disciplines={disciplines}
-            onSplitMatch={startAdHocSplit}
-            onNewTournament={openNewTournament}
-            onBrowseSquads={showSquads}
-            onAddPlayer={addPlayer}
-            onOpenPlayer={(player) => {
-              gotoHub("roster");
-              setEditingPlayer(player);
-            }}
-            onOpenTournament={(tournament) => openTournament(tournament.id)}
-          />
-        )}
-        {view.mode === "roster" && (
-          <RosterScreen
-            activeCommunity={activeCommunity}
-            disciplines={disciplines}
-            players={communityPlayers}
-            visiblePlayers={visiblePlayers}
-            filterIds={filterIds}
-            disciplinesById={disciplinesById}
-            editingPlayer={editingPlayer}
-            fileInputRef={fileInputRef}
-            onToggleFilter={filtersByDiscipline}
-            onClearFilters={clearFilters}
-            onAddPlayer={() => setEditingPlayer("new")}
-            onOpenPlayer={(player) => setEditingPlayer(player)}
-            pendingMerge={importer.pendingMerge}
-            onConfirmMerge={importer.confirmMerge}
-            onCancelMerge={importer.cancelMerge}
-            importFile={importer.importFile}
-            onExport={handleExport}
-            onSplitMatch={randomPlayers}
-            onSavePlayer={savePlayer}
-            onDeletePlayer={deletePlayer}
-            onCloseEditor={() => setEditingPlayer(null)}
-          />
-        )}
-        {view.mode === "games" && (
-          <Screen>
-            <GamesScreen
-              tournaments={communityTournaments}
-              disciplines={disciplines}
-              onCreate={createTournament}
-              onOpen={openTournament}
-              onDelete={deleteTournament}
-              onManageDisciplines={() => goDisciplines()}
-              prefill={tournamentPrefill}
-              onPrefillConsumed={() => setTournamentPrefill(null)}
-              activeCommunity={activeCommunity}
-            />
-          </Screen>
-        )}
-        {view.mode === "tournament" && viewTournament && (
-          <Screen>
-            <TournamentScreen
-              tournament={viewTournament}
-              disciplines={disciplines}
-              matchingSquads={communitySquads.filter(
-                (q) =>
-                  q.disciplineId === viewTournament.disciplineId &&
-                  q.result.teams.length === viewTournament.teamCount,
-              )}
-              roster={communityPlayers}
-              onBack={() => goBack()}
-              onSplit={() => startSplit()}
-              onUseSavedSquad={(squad) => useSquadInTournament(squad, viewTournament.id)}
-              onRecord={recordResult}
-              onUndo={undoLastResult}
-              onDelete={() => deleteTournamentFromUI(viewTournament.id)}
-              onReroll={() => startMatch("tournament", viewTournament.id)}
-              totalPlayers={communityPlayers.length}
-            />
-          </Screen>
-        )}
-
-        {view.mode === "split" && activeSplit && (
-          <SplitScreen
-            session={activeSplit.session}
-            discipline={disciplines.find(d => d.id === activeSplit.session.disciplineId) ?? disciplines[0]}
-            roster={communityPlayers}
-            onPersistResult={async (result) => {
-              // FLOW rule 3: only ad-hoc splits persist re-rolls/swaps to the
-              // Session log. Session/squad sources are synthetic — re-rolling a
-              // reopened History session must not mutate the archived raw log, and
-              // a squad re-split only persists when saved as a new squad.
-              // Tournament splits persist via the bracket (no Session pollution).
-              if (splitFlowRule(activeSplit.source).persistsSession) {
-                const updatedSession = { ...activeSplit.session, result };
-                await sessionStore.saveSession(updatedSession);
-              }
-            }}
-            source={activeSplit.source}
-            onSubmitTournament={
-              splitFlowRule(activeSplit.source).submitsTournament && setup?.tournamentId
-                ? (teams) => consumeTeams(setup.tournamentId!, teams)
-                : undefined
-            }
-            onSaveSquad={(name, result) => saveSquadFromSplit(name, result, activeSplit.session.disciplineId)}
-            onBack={() => goBack()}
-          />
-        )}
-        {view.mode === "history" && (
-          <HistoryScreen
-            sessions={communitySessions}
-            loading={sessions.loading}
-            disciplines={disciplines}
-            onReopen={openSession}
-            onDelete={async (id) => {
-              try {
-                await sessions.deleteSession(id);
-              } catch (err) {
-                notify(`Could not delete the session: ${formatError(err)}`, "error");
-              }
-            }}
-          />
-        )}
-
-        {view.mode === "squads" && (
-          <SquadsScreen
-            squads={communitySquads}
-            loading={savedSquads.loading}
-            disciplines={disciplines}
-            roster={communityPlayers}
-            onBack={() => goBack()}
-            onReSplit={reSplitSquad}
-            onNewTournament={newTournamentFromSquad}
-            onDelete={async (id) => { await savedSquads.deleteSquad(id); }}
-          />
-        )}
-
-        {view.mode === "disciplines" && (
-          <DisciplinesScreen
-            disciplines={disciplines}
-            loading={catalog.loading}
-            onSave={saveDiscipline}
-            onDelete={deleteDiscipline}
-            onBack={() => goBack()}
-            onDownloadSample={downloadSampleData}
-            downloadingId={downloadingId}
-          />
-        )}
-
-        {view.mode === "match" && setup && (
-          <MatchScreen
-            roster={communityPlayers}
-            disciplines={disciplines}
-            disciplineId={setup.disciplineId}
-            selectedIds={setup.selectedIds}
-            teamCount={setup.teamCount}
-            lockedDisciplineId={view.mode === "match" && view.source === "tournament" ? setup.disciplineId : undefined}
-            lockedTeamCount={view.mode === "match" && view.source === "tournament" ? setup.teamCount : undefined}
-            onTogglePlayer={togglePlayer}
-            onSelectDiscipline={selectDiscipline}
-            onTeamCountChange={changeTeamCount}
-            onSplit={split}
-            onBack={() => goBack()}
-          />
-        )}
+        <ScreenSwitch
+          view={view}
+          viewTournament={viewTournament}
+          setup={setup}
+          activeSplit={activeSplit}
+          activeCommunity={activeCommunity}
+          communityPlayers={communityPlayers}
+          communitySquads={communitySquads}
+          communityTournaments={communityTournaments}
+          communitySessions={communitySessions}
+          disciplines={disciplines}
+          disciplinesById={disciplinesById}
+          visiblePlayers={visiblePlayers}
+          filterIds={filterIds}
+          editingPlayer={editingPlayer}
+          fileInputRef={fileInputRef}
+          tournamentPrefill={tournamentPrefill}
+          downloadingId={downloadingId}
+          pendingMerge={importer.pendingMerge}
+          sessionsLoading={sessions.loading}
+          squadsLoading={savedSquads.loading}
+          disciplinesLoading={catalog.loading}
+          sessionStore={sessionStore}
+          notify={notify}
+          goBack={goBack}
+          gotoHub={gotoHub}
+          goDisciplines={goDisciplines}
+          setEditingPlayer={setEditingPlayer}
+          setTournamentPrefill={setTournamentPrefill}
+          startAdHocSplit={startAdHocSplit}
+          openNewTournament={openNewTournament}
+          showSquads={showSquads}
+          addPlayer={addPlayer}
+          openTournament={openTournament}
+          filtersByDiscipline={filtersByDiscipline}
+          clearFilters={clearFilters}
+          handleExport={handleExport}
+          randomPlayers={randomPlayers}
+          savePlayer={savePlayer}
+          deletePlayer={deletePlayer}
+          deleteTournament={deleteTournament}
+          startSplit={startSplit}
+          deleteTournamentFromUI={deleteTournamentFromUI}
+          openSession={openSession}
+          deleteSession={sessions.deleteSession}
+          deleteSquad={savedSquads.deleteSquad}
+          saveDiscipline={saveDiscipline}
+          deleteDiscipline={deleteDiscipline}
+          downloadSampleData={downloadSampleData}
+          confirmMerge={importer.confirmMerge}
+          cancelMerge={importer.cancelMerge}
+          importFile={importer.importFile}
+          createTournament={createTournament}
+          startMatch={startMatch}
+          togglePlayer={togglePlayer}
+          selectDiscipline={selectDiscipline}
+          changeTeamCount={changeTeamCount}
+          split={split}
+          consumeTeams={consumeTeams}
+          recordResult={recordResult}
+          undoLastResult={undoLastResult}
+          saveSquadFromSplit={saveSquadFromSplit}
+          reSplitSquad={reSplitSquad}
+          useSquadInTournament={useSquadInTournament}
+          newTournamentFromSquad={newTournamentFromSquad}
+        />
       </AppChrome>
     </div>
   );
