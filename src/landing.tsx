@@ -120,7 +120,8 @@ function DisciplineSection() {
   return (
     <section className="landing-disciplines" aria-label="Disciplines">
       <p className="landing-disciplines-head">
-        Every role and attribute is accounted for by the split.
+        The split reads every role and attribute, and names who is covering when a team runs
+        short one.
       </p>
       <div className="landing-discipline-grid">
         {DISCIPLINES.map((d) => (

@@ -15,6 +15,7 @@
  * exactly what the returning-organizer check reads.
  */
 import { test, expect } from "@playwright/test";
+import { SEED_DISCIPLINES } from "../../../src/domain/seed";
 import type { Page } from "@playwright/test";
 
 /** The Landing Page's own h1; the app's is "Dashboard" (or another screen title). */
@@ -55,7 +56,7 @@ test.describe("Landing Page", () => {
     const trust = page.locator(".landing-trust li");
     await expect(trust).toHaveCount(3);
     await expect(trust).toContainText([
-      "proven minimum for a two-team split",
+      "The first split is the proven minimum for a two-team pool",
       "stays on your device",
       "no account",
     ]);
@@ -70,6 +71,37 @@ test.describe("Landing Page", () => {
 
     await expect(page.locator(".landing-action-note")).toContainText("no account");
     await expect(page.locator(".landing-footer")).toContainText("fair teams for futsal nights");
+
+    // B14 round 2: the meta description repeated the unscoped claim the lede
+    // had just dropped, and the offline promise is deleted rather than softened
+    // — D02 restores it with the manifest and service worker.
+    const described = (await page.locator('meta[name="description"]').getAttribute("content")) ?? "";
+    expect(described).toContain("it can prove");
+    expect(described).not.toContain("Works offline");
+    expect(described).not.toContain("no signal");
+
+    // The Roster rail counts the catalog, so it is asserted against the catalog
+    // rather than a typed number: a fourth seed must not leave a stale count.
+    await expect(
+      page.locator(".landing-fact", { hasText: "Disciplines" }).locator("dd"),
+    ).toHaveText(String(SEED_DISCIPLINES.length));
+
+    // The cards are a hand-maintained mirror of the seeded disciplines, so the
+    // mirror is pinned to the seed — the drift that made "3+" false cannot recur.
+    await expect(page.locator(".landing-discipline-roles")).toHaveText(
+      SEED_DISCIPLINES.map((d) => d.roles.map((r) => r.name).join(" · ")),
+    );
+
+    // B14 round 2: role coverage is soft — futsal is `rolesRequired: false`
+    // (src/domain/seed.ts) and the app names a coverer
+    // (`No goalkeeper on Team A. Budi is covering.`, src/session/flow.ts). The
+    // page may say the split reports that; it may not promise it never happens.
+    const rosterClaim = page
+      .locator('section[aria-labelledby="landing-row-disciplines"] .landing-claim');
+    await expect(rosterClaim).toContainText("who is covering");
+    await expect(rosterClaim).not.toContainText("no goalkeeper");
+    await expect(page.locator(".landing-disciplines-head")).toContainText("who is covering");
+    await expect(page.locator(".landing-disciplines-head")).not.toContainText("accounted for");
   });
 
   test("the primary action is a real link into the app", async ({ page }) => {
