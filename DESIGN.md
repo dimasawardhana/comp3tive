@@ -203,7 +203,16 @@ Match-night, plain, active. People and what they do, never the system: "Split th
 
 ## Accessibility & quality floor
 
-Mobile-first and thumb-friendly (bottom bar actions, 44px+ targets) · `min-height:100dvh` (no mobile viewport jumps) · visible `:focus-visible` rings in amber (`--accent`) · text contrast ≥ 4.5:1 on every surface in both themes — `--text` on `--surface`, `--text` on bibs, `--text-2` labels at full strength, and **`--panel-text` on `--panel`**, the pairing the split panel actually renders (`src/index.css:1951-1957`), measured at 16.5:1 light and 15.3:1 dark · responsive to desktop (the app column centers on a subtle hairline frame). *The surface token on the panel is not `--surface`: in dark mode that is `#1c1917` on `--panel: #23201c`, 1.08:1.*
+Mobile-first and thumb-friendly (bottom bar actions, 44px+ targets) · `min-height:100dvh` (no mobile viewport jumps) · visible `:focus-visible` rings in amber (`--accent`) · text contrast ≥ 4.5:1 on every surface in both themes — `--text` on `--surface`, `--text-2` labels at full strength, and `--panel-text` on `--panel`, the pairing the split panel actually renders (`src/index.css:1951-1957`), measured at 16.5:1 light and 15.3:1 dark. The surface token on the panel is not `--surface`: in dark mode that is `#1c1917` on `--panel: #23201c`, 1.08:1 · responsive to desktop (the app column centers on a subtle hairline frame).
+
+**Team bibs are the one surface this floor is not met on, and the gap is in the CSS.** The bib
+colours do not change between themes (`src/tokens.css:19-23`, `:51-55`), and the text drawn on
+them is `#ffffff` (`src/index.css:1982`, `src/landing.css:478`), which measures **1.60–3.35:1**
+across the five — below 4.5:1 in both themes, worst on `--bib-a` yellow at 1.60:1. The pairing
+that would pass is `--text` on the bibs: 5.23–10.95:1 in light mode, but 1.51–3.16:1 in dark, and
+it is not the one rendered in either theme. Closing this means changing a token or the chip, not
+this sentence; the rule stands as written and the violation is named here so neither is mistaken
+for the other.
 
 ## Things that don't change
 
