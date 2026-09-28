@@ -88,7 +88,7 @@ content="comp3tive splits your group into balanced teams with the smallest possi
 | "stays on your device" (`index.html:183`) | **true** | keep verbatim |
 | "Free, no account. Runs in your browser." (`index.html:194`) | **true** | keep; promoted to the trust list |
 | "Works offline" in meta (`index.html:9`) | false | removed |
-| "fair teams for futsal nights, MLBB sessions" (`index.html:200`) | **true** | keep |
+| "the fairest teams it can prove, for futsal nights, MLBB sessions" (`index.html:200`) | **overclaim as first written** — "fair teams" asserts the optimality the split screen refuses to assert when it prints "Best gap found." (`src/session/gapProvenance.ts:32`) | reworded 2026-09-28 to "it can prove"; keep the shipped string |
 
 7. **Preserved, do not touch:** the rail labels `["Split","Edit","Play","Roster","Open"]`
    (`index.html:80,105,127,152,171`); the wordmark SVG and its `<title>` (`index.html:54-63`); the

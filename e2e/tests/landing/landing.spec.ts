@@ -106,8 +106,24 @@ test.describe("Landing Page", () => {
     await expect(editClaim).not.toContainText("never told the teams are fair");
     await expect(editClaim).toContainText("best it found");
 
+    // The bracket preview's head was the last unqualified fairness claim on the
+    // page. The split it sits above is not always a proof: the screen prints
+    // "Best gap found." (src/session/gapProvenance.ts:32) whenever the search
+    // did not prove the minimum, which is what the hero's own demo does on the
+    // second click — so "the teams that are already fair" is false of the page
+    // that ships it. The claim that survives is provenance, not fairness: the
+    // tournament is handed the split's own teams (SplitScreen.tsx:421,
+    // `onSubmitTournament(result.teams)`), which is what the Play row and the
+    // lede already teach. Pinned exactly, so neither a reword nor a re-dropped
+    // scope can pass here.
+    const bracketHead = page.locator(".landing-tournament-head");
+    await expect(bracketHead).toHaveText(
+      "Then run the tournament on the teams the split made.",
+    );
+    await expect(bracketHead).not.toContainText("already fair");
+
     await expect(page.locator(".landing-action-note")).toContainText("no account");
-    // The footer was the last unqualified fairness claim left on the page: the
+    // The footer was the other unqualified fairness claim on the page: the
     // h1, the meta and the lede were scoped to "it can prove" in B14, and the
     // split screen says "Best gap found." (src/session/gapProvenance.ts:32),
     // pinned by e2e/tests/split/gap-provenance.spec.ts:144. Pinned exactly, so

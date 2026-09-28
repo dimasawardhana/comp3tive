@@ -50,7 +50,7 @@ function BracketPreview() {
   return (
     <section className="landing-tournament" aria-label="Tournament preview">
       <p className="landing-tournament-head">
-        Then run the tournament on the teams that are already fair.
+        Then run the tournament on the teams the split made.
       </p>
       <div className="landing-bracket">
         <div className="landing-bracket-column">

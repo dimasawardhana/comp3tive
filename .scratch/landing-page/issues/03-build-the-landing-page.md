@@ -22,7 +22,11 @@ One column, centered, max-width ~640px for text (the app's own measure), full-bl
   - `Your data stays on your device. No account, no server.`
 - **Primary action:** `Open comp3tive` → `/app` (a real `<a href="/app/">`, styled as a button — not a JS click handler)
 - **Under the action:** `Free, no account. Runs in your browser.`
-- **Footer:** `comp3tive — fair teams for futsal nights, MLBB sessions, and everything after.`
+- **Footer:** `comp3tive — the fairest teams it can prove, for futsal nights, MLBB sessions, and everything after.`
+  <!-- Corrected 2026-09-28: this ticket specified an unqualified "fair teams".
+       The split screen prints "Best gap found." whenever the search did not prove
+       the minimum (src/session/gapProvenance.ts:32), so the shipped footer is
+       scoped to "it can prove". The rest of this block is the pre-ledger page. -->
 
 ## The hero
 

@@ -307,7 +307,7 @@ optimal (`optimal: true`, `nodesExplored: 51`, gap `0.10`).
 | "Your data stays on your device. No account, no server." (`index.html:183`) | **true** (IndexedDB, ADR-0001) | keep verbatim |
 | "Free, no account. Runs in your browser." (`index.html:194`) | **true** | keep; promoted into the trust list |
 | `<meta name="description">` "Works offline, no account." (`index.html:9`) | **false** on the offline half | drop "Works offline," keep "no account" |
-| "fair teams for futsal nights, MLBB sessions" (`index.html:200`) | **true** | keep |
+| "the fairest teams it can prove, for futsal nights, MLBB sessions" (`index.html:200`) | **overclaim as first written** — "fair teams" asserts the optimality the split screen refuses to assert when it prints "Best gap found." (`src/session/gapProvenance.ts:32`) | reworded 2026-09-28 to "it can prove"; keep the shipped string |
 
 **6. The e2e spec changes — required, not optional.** This is the one place the repo currently
 *enforces* the false claims. `e2e/tests/landing/landing.spec.ts:57-63` asserts them verbatim:
