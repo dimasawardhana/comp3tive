@@ -1,6 +1,5 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  type Community,
   type Discipline,
   type GameResult,
   type Id,
@@ -48,6 +47,7 @@ import { validateTournamentSpec } from "./tournament/tournament-validation";
 import { useNavigation, type HubMode } from "./shell/useNavigation";
 import { NAV_ITEMS } from "./shell/nav-items";
 import type { SplitSource } from "./shell/useSplitFlow";
+import { useCommunityScope } from "./shell/useCommunityScope";
 const communityStore = createIndexedDbCommunityStore();
 const rosterStore = createIndexedDbRosterStore();
 const sessionStore = createIndexedDbSessionStore();
@@ -165,29 +165,36 @@ export default function App() {
   }, [themePref, layoutPref]);
 
   const disciplines = catalog.disciplines;
-  const disciplinesById = new Map(disciplines.map((d) => [d.id, d]));
-  const activeCommunity: Community | null =
-    communities.communities.find((c) => c.id === communities.activeId) ?? null;
-  const communityPlayers = activeCommunity
-    ? roster.players.filter((p) => p.communityId === activeCommunity.id)
-    : [];
-  // Community scoping (CONTEXT): every list shows only the active community's
-  // records — sessions (History) and tournaments (Games) follow the players
-  // and saved squads, which already filter by communityId here.
-  const communitySessions = activeCommunity
-    ? sessions.sessions.filter((s) => s.communityId === activeCommunity.id)
-    : [];
-  const communityTournaments = activeCommunity
-    ? tournaments.tournaments.filter((t) => t.communityId === activeCommunity.id)
-    : [];
-  const communitySquads = activeCommunity
-    ? savedSquads.squads.filter((q) => q.communityId === activeCommunity.id)
-    : [];
+  // The community-scoping rule itself lives in useCommunityScope; this is the
+  // app's single call site for it.
+  const {
+    activeCommunity,
+    disciplinesById,
+    players: communityPlayers,
+    sessions: communitySessions,
+    tournaments: communityTournaments,
+    squads: communitySquads,
+  } = useCommunityScope({
+    communities: communities.communities,
+    activeCommunityId: communities.activeId,
+    players: roster.players,
+    sessions: sessions.sessions,
+    tournaments: tournaments.tournaments,
+    squads: savedSquads.squads,
+    disciplines,
+  });
   const visiblePlayers = filterIds.length === 0
     ? communityPlayers
     : communityPlayers.filter((p) => p.capabilities.some((c) => filterIds.includes(c.disciplineId)));
-  const viewTournament =
-    view.mode === "tournament" ? tournaments.tournaments.find((t) => t.id === view.id) ?? null : null;
+  // The unscoped source is deliberate: `find` by id is already unique, and
+  // narrowing it is a behaviour change no ticket asks for.
+  const viewTournament = useMemo(
+    () =>
+      view.mode === "tournament"
+        ? tournaments.tournaments.find((t) => t.id === view.id) ?? null
+        : null,
+    [view, tournaments.tournaments],
+  );
 
   // Legacy data (pre-community) has no communityId: adopt it into the active community.
   useEffect(() => {
@@ -1129,9 +1136,8 @@ export default function App() {
           <TournamentScreen
             tournament={viewTournament}
             disciplines={disciplines}
-            matchingSquads={savedSquads.squads.filter(
+            matchingSquads={communitySquads.filter(
               (q) =>
-                q.communityId === activeCommunity?.id &&
                 q.disciplineId === viewTournament.disciplineId &&
                 q.result.teams.length === viewTournament.teamCount,
             )}
@@ -1192,7 +1198,7 @@ export default function App() {
 
       {view.mode === "squads" && (
         <SquadsScreen
-          squads={savedSquads.squads.filter((q) => q.communityId === activeCommunity?.id)}
+          squads={communitySquads}
           loading={savedSquads.loading}
           disciplines={disciplines}
           roster={communityPlayers}
