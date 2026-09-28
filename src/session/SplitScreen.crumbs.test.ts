@@ -78,6 +78,8 @@ describe("SplitScreen breadcrumb", () => {
     expect(crumbOf(split("ad-hoc", undefined))).toBe(
       '<div class="breadcrumb"><span>Match setup</span><span class="sep">/</span><span>Split result</span></div>',
     );
-    expect(backButtonOf(split("ad-hoc", undefined))).toBe("");
+    // Asserted on the whole document, not on a testid lookup: a renamed attribute
+    // would make a `backButtonOf(...) === ""` assertion pass vacuously.
+    expect(split("ad-hoc", undefined)).not.toContain("back-button");
   });
 });

@@ -87,14 +87,16 @@ Rules:
 
 Breadcrumbs are links — every crumb above the current screen navigates there.
 
-Not yet universally true: the first crumb in `src/session/SplitScreen.tsx:316-320` is a dead
-link — its handler calls `preventDefault` and nothing else, under the source comment "back
-handled via app" — so the only link in that block goes nowhere. The screen is not missing a back
-affordance: `onBack` is passed (`src/App.tsx:1229`) and renders a working `← Back` button at
-`src/session/SplitScreen.tsx:397-399`. The defect is the crumb, not the screen. Ticket 28
-replaces all three hand-rolled crumb blocks with the shared `src/nav.tsx` `Breadcrumb`, which
-renders a plain `<span>` when a crumb has no destination (`src/nav.tsx:24-26`), and fixes this
-block. Until then, treat this paragraph as the rule and the split screen as the exception.
+Not universally true until ticket 28, which has now landed. The first crumb in
+`src/session/SplitScreen.tsx:316-320` *was* a dead link — its handler called `preventDefault`
+and nothing else, under the source comment "back handled via app" — so the only link in that
+block went nowhere. The screen was not missing a back affordance: `onBack` is passed
+(`src/App.tsx:1229`) and renders a working `← Back` button at
+`src/session/SplitScreen.tsx:397-399`. The defect was the crumb, not the screen. All three
+hand-rolled crumb blocks are now the shared `src/nav.tsx` `Breadcrumb`, which renders a plain
+`<span>` when a crumb has no destination (`src/nav.tsx:24-26`), and the split screen's first
+crumb names the source's own Back destination and calls the same `onBack`. Every crumb above
+the current screen now navigates there.
 
 ```
 Roster / Match setup                                   (ad-hoc)
@@ -112,15 +114,16 @@ The chains above are the **path taken**, which is what P1 is about. What the app
 narrower and set by each screen's own markup, not by the chain: three screens render a
 breadcrumb and each emits exactly one separator, so each shows two segments. The match-setup
 screen shows `Roster / Match setup` (`src/session/MatchScreen.tsx:41-45`, separator `:43`); the
-split result shows `Match setup / Split result` (`src/session/SplitScreen.tsx:316-320`, separator
-`:318`); the tournament screen shows `Games / {name}` (`src/tournament/TournamentScreen.tsx:264-268`,
-separator `:266`). **A tournament split therefore shows `Match setup / Split result`** — the
-match-setup crumb is hardcoded whatever the source — not the four-segment chain listed here. Two
-leaves render no breadcrumb at all: Disciplines has only a `Back` button
+split result shows the source's own Back destination over `Split result`
+(`src/session/SplitScreen.tsx:316-320`, separator `:318`) — `Match setup` for ad-hoc and
+tournament, `History` for session, `Squad detail` for squad; the tournament screen shows
+`Games / {name}` (`src/tournament/TournamentScreen.tsx:264-268`, separator `:266`). A tournament
+split therefore shows `Match setup / Split result`, not the four-segment chain listed here.
+Two leaves render no breadcrumb at all: Disciplines has only a `Back` button
 (`src/domain/DisciplinesScreen.tsx:90-92`), and the Squads detail offers a `← Squads` control
-instead (`src/session/SquadsScreen.tsx:86-90`). Ticket 28 replaces the three hand-rolled crumb
-blocks with the shared `src/nav.tsx` `Breadcrumb`; no ticket asks for the crumbs to grow to the
-full chain, which would be a visible redesign.
+instead (`src/session/SquadsScreen.tsx:86-90`). The three hand-rolled crumb blocks are now the
+shared `src/nav.tsx` `Breadcrumb`; no ticket asks for the crumbs to grow to the full chain,
+which would be a visible redesign.
 
 ## 4. Edge table (complete)
 
