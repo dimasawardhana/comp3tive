@@ -217,8 +217,17 @@ describe("fairSplit: badminton court pairs (hard)", () => {
     };
     const pool = Array.from({ length: 8 }, (_, i) => p(`s${i}`, 4, ROLES, ROLES[i % 2]));
     const res = fairSplit(pool, singles, buildSettings(singles, 4));
+
+    // Measured: 4 teams of 2, nobody left out. Without these two lines the
+    // assertion below would pass on an empty result - the exact regression the
+    // case exists to catch.
+    expect(res.teams).toHaveLength(4);
+    expect(res.unassigned).toEqual([]);
     // Every team that survives has two members, because one cannot cover two roles.
-    for (const team of res.teams) expect(team.slots.length).toBeGreaterThanOrEqual(2);
+    for (const team of res.teams) {
+      expect(team.slots.length).toBe(2);
+      expect(new Set(team.slots.map((s) => s.roleId))).toEqual(new Set(ROLES));
+    }
   });
 });
 

@@ -2,46 +2,21 @@ import { describe, expect, it } from "vitest";
 import futsalRoster from "../../sample-data/futsal-roster.json";
 import mlbbRoster from "../../sample-data/mpl-id-roster.json";
 import badmintonRoster from "../../sample-data/badminton-roster.json";
-import { FUTSAL_DISCIPLINE, MLBB_DISCIPLINE } from "../domain/seed";
+import { BADMINTON_DISCIPLINE, FUTSAL_DISCIPLINE, MLBB_DISCIPLINE } from "../domain/seed";
 import { validatePlayer } from "../domain/validation";
 import { buildSettings, fairSplit, poolFromPlayers, suggestTeamCount } from "../solver/solver";
 import type { Discipline, Player } from "../domain/types";
 
 /**
- * Badminton's discipline definition does not exist until Task 5 writes
- * BADMINTON_DISCIPLINE into src/domain/seed.ts, so this test cannot import it: a
- * missing export fails `tsc -b` for every later task, which is worse than the
- * ordering it would avoid.
- *
- * The literal below is a test-owned stand-in and it is only as good as the copy.
- * If Task 5 defines badminton differently, every badminton assertion in this
- * file validates the data against a shape the app no longer has, and none of
- * them fail. That gap is deliberate and it is Task 5's to close: it owns
- * discipline-backed badminton coverage by adding the file to
- * `sample-roundtrip.test.ts`, where it runs through `parseBackup` against the
- * real catalog. Nothing can consume `sample-data/badminton-roster.json` in the
- * window before that — no discipline means no Sample button — so the data being
- * unreachable in the app is expected here, not an oversight.
+ * Badminton is validated against the shipped discipline, imported from
+ * `src/domain/seed.ts`. It used to be a literal copied into this file, because
+ * the discipline did not exist yet; a copy is only as good as the copy, and
+ * redefining badminton in the app would have left every badminton assertion
+ * here checking a shape the app no longer has, with nothing failing. The
+ * shipped roster is additionally held to the real catalog end to end in
+ * `sample-roundtrip.test.ts`, where it runs through `parseBackup`.
  */
-const BADMINTON: Discipline = {
-  id: "badminton",
-  name: "Badminton",
-  shortName: "Badminton",
-  builtIn: true,
-  roles: [
-    { id: "front-court", name: "Front court" },
-    { id: "rear-court", name: "Rear court" },
-  ],
-  attributes: [
-    { id: "technical", name: "Technical" },
-    { id: "fitness", name: "Fitness" },
-    { id: "game-iq", name: "Game IQ" },
-  ],
-  strengthModel: { kind: "mean" },
-  team: { minTeamSize: 2, maxTeamSize: 2, rolesRequired: true },
-};
-
-const CATALOG: Discipline[] = [FUTSAL_DISCIPLINE, MLBB_DISCIPLINE, BADMINTON];
+const CATALOG: Discipline[] = [FUTSAL_DISCIPLINE, MLBB_DISCIPLINE, BADMINTON_DISCIPLINE];
 
 /** The v1 backup shape `parseBackup` accepts (src/data/transfer.ts). */
 interface Backup {
@@ -109,7 +84,7 @@ const files: SampleFile[] = [
     fileName: "badminton-roster.json",
     data: badmintonRoster as unknown as Backup,
     raw: badmintonRoster as unknown as RawBackup,
-    discipline: BADMINTON,
+    discipline: BADMINTON_DISCIPLINE,
     playerCount: 10,
   },
 ];

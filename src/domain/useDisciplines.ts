@@ -4,7 +4,14 @@ import { hasSampleData, addSampleData, autoGenerateSampleData } from "../data/sa
 import { SEED_DISCIPLINES } from "../domain/seed";
 import type { DisciplineStore } from "../storage/types";
 
-/** Loads the discipline catalog (seeded on first open) and manages custom entries. */
+/**
+ * Loads the discipline catalog (seeded on first open) and manages custom entries.
+ *
+ * The store hands the catalog over in display order — seeds in the order
+ * `seed.ts` declares them, custom entries after — and this hook keeps that
+ * order when it adds or removes a row. It is load-bearing: `App.tsx` and
+ * `GamesScreen.tsx` both take `disciplines[0]` as the app's default discipline.
+ */
 export function useDisciplines(store: DisciplineStore) {
   const [disciplines, setDisciplines] = useState<Discipline[]>([]);
   const [loading, setLoading] = useState(true);

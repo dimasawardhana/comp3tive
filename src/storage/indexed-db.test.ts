@@ -7,8 +7,16 @@ import {
   createIndexedDbTournamentStore,
 } from "./indexed-db";
 import type { Discipline, Player, Session, Tournament } from "../domain/types";
+import { FUTSAL_DISCIPLINE, MLBB_DISCIPLINE } from "../domain/seed";
 
 const player = (id: string, name: string): Player => ({ id, communityId: "c1", name, capabilities: [] });
+
+/**
+ * The schema version that shipped without badminton. A profile written at this
+ * version already has a discipline store, so the first-open seed never runs for
+ * it again and only the upgrade path can add a discipline shipped later.
+ */
+const PRE_BADMINTON_VERSION = 6;
 
 describe("indexed-db roster store (smoke)", () => {
   it("persists players across adapter instances (simulated reload)", async () => {
@@ -79,10 +87,32 @@ describe("indexed-db discipline store (smoke)", () => {
     team: { minTeamSize: 2, maxTeamSize: null, rolesRequired: false },
   };
 
+  /**
+   * A pre-badminton profile: the discipline store exists with two seeds and one
+   * custom row. Opened directly rather than through a store, because a store
+   * opens at the current version and would perform the upgrade itself.
+   */
+  const seedPreBadmintonProfile = (dbName: string): Promise<void> => {
+    const { promise, resolve, reject } = Promise.withResolvers<void>();
+    const request = indexedDB.open(dbName, PRE_BADMINTON_VERSION);
+    request.onupgradeneeded = () => {
+      const store = request.result.createObjectStore("disciplines", { keyPath: "id" });
+      for (const d of [FUTSAL_DISCIPLINE, MLBB_DISCIPLINE, custom]) store.put(d);
+    };
+    request.onsuccess = () => {
+      request.result.close();
+      resolve();
+    };
+    request.onerror = () => reject(request.error ?? new Error("Could not seed the pre-badminton profile"));
+    return promise;
+  };
+
   it("seeds the built-in disciplines on first open", async () => {
     const store = createIndexedDbDisciplineStore("comp3tive-test-disc-1");
     const list = await store.listDisciplines();
-    expect(list.map((d) => d.id).sort()).toEqual(["badminton", "futsal", "mlbb"]);
+    // Order, not just membership: the store's key order is alphabetical, which
+    // would make badminton the app's default discipline.
+    expect(list.map((d) => d.id)).toEqual(["futsal", "mlbb", "badminton"]);
     expect(list.every((d) => d.builtIn)).toBe(true);
   });
 
@@ -94,7 +124,17 @@ describe("indexed-db discipline store (smoke)", () => {
     await store.deleteDiscipline(custom.id);
     const after = await store.listDisciplines();
     expect(after.some((d) => d.id === custom.id)).toBe(false);
-    expect(after.map((d) => d.id).sort()).toEqual(["badminton", "futsal", "mlbb"]);
+    expect(after.map((d) => d.id)).toEqual(["futsal", "mlbb", "badminton"]);
+  });
+
+  it("upgrades a profile that predates badminton: it gains the seed, keeps its own rows", async () => {
+    // Without the versioned backfill this profile is stuck on two disciplines
+    // forever, no matter how many times it is reopened.
+    await seedPreBadmintonProfile("comp3tive-test-disc-3");
+    const store = createIndexedDbDisciplineStore("comp3tive-test-disc-3");
+
+    const ids = (await store.listDisciplines()).map((d) => d.id);
+    expect(ids).toEqual(["futsal", "mlbb", "badminton", "padel-x"]);
   });
 });
 

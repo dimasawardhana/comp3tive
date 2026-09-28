@@ -22,7 +22,7 @@ export function DisciplinesScreen({ disciplines, loading, onSave, onDelete, onBa
       <PageHeader
         kicker="Catalog"
         title="Disciplines"
-        lede="The activities you build teams for. Futsal and MLBB ship built-in; add your own."
+        lede="The activities you build teams for. Futsal, MLBB and Badminton ship built-in; add your own."
       />
 
       {loading ? (

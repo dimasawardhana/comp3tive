@@ -74,3 +74,22 @@ export const BADMINTON_DISCIPLINE: Discipline = {
 };
 
 export const SEED_DISCIPLINES: Discipline[] = [FUTSAL_DISCIPLINE, MLBB_DISCIPLINE, BADMINTON_DISCIPLINE];
+
+/**
+ * The catalog in the order the app shows it: seeds in the order declared above,
+ * then any custom discipline in the order it arrived.
+ *
+ * A store reads its rows in ascending key order, which is alphabetical — so
+ * without this, badminton would lead, and the app takes `disciplines[0]` as both
+ * the new-tournament default and the fallback when no player pool is decisive
+ * (`GamesScreen.tsx`, `App.tsx`). Seed order is the app's deliberate order, so
+ * it is applied here rather than relied upon from a storage engine's sort.
+ * Custom disciplines have no declared position, so they keep theirs.
+ */
+export function orderDisciplines(disciplines: Discipline[]): Discipline[] {
+  const rank = (d: Discipline): number => {
+    const i = SEED_DISCIPLINES.findIndex((seed) => seed.id === d.id);
+    return i === -1 ? SEED_DISCIPLINES.length : i;
+  };
+  return [...disciplines].sort((a, b) => rank(a) - rank(b));
+}

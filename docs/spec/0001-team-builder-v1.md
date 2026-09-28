@@ -91,7 +91,7 @@ A local web app (deployable later) where the organizer maintains a roster of Pla
 - Deployment itself.
 - Import from external sources (contact lists, WhatsApp, CSV) — only JSON export/import of the app's own data.
 - Availability scheduling, contact info, or team history analytics (streaks, win rates).
-- Disciplines beyond the two seeded — the catalog is extensible, but only Futsal and MLBB ship in v1.
+- Disciplines beyond the three seeded — the catalog is extensible, but only Futsal, MLBB and Badminton ship in v1.
 - Mobile apps.
 
 ## Further Notes

@@ -50,7 +50,7 @@ export interface SeedWorld {
   activeCommunityId: string;
 }
 
-/** The mlbb discipline id is stable: futsal and mlbb are seeded in key order. */
+/** The mlbb discipline id is stable: the e2e seed writes no disciplines, so the app seeds its own catalog. */
 export const MLBB_ID = "mlbb";
 
 export const mlbbCap = {
