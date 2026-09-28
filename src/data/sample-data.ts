@@ -1,9 +1,11 @@
 import type { Discipline } from "../domain/types";
 import mplRoster from "../../sample-data/mpl-id-roster.json";
 import futsalRoster from "../../sample-data/futsal-roster.json";
+import badmintonRoster from "../../sample-data/badminton-roster.json";
 const SAMPLE_DATA: Record<string, string> = {
   mlbb: JSON.stringify(mplRoster),
   futsal: JSON.stringify(futsalRoster),
+  badminton: JSON.stringify(badmintonRoster),
 };
 
 const BLOB_URLS: Record<string, string> = {};

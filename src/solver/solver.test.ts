@@ -7,8 +7,8 @@ import {
   type PoolPlayer,
   type SolverSettings,
 } from "./solver";
-import { FUTSAL_DISCIPLINE, MLBB_DISCIPLINE } from "../domain/seed";
-import type { Player, SplitResult } from "../domain/types";
+import { BADMINTON_DISCIPLINE, FUTSAL_DISCIPLINE, MLBB_DISCIPLINE } from "../domain/seed";
+import type { Discipline, Player, SplitResult } from "../domain/types";
 
 const ALL_MLBB = ["tank", "assassin", "mage", "marksman", "fighter"];
 
@@ -22,6 +22,7 @@ const p = (id: string, strength: number, eligible: string[] = [], preferred: str
 
 const futsal = (teamCount: number): SolverSettings => buildSettings(FUTSAL_DISCIPLINE, teamCount);
 const mlbb = (teamCount: number): SolverSettings => buildSettings(MLBB_DISCIPLINE, teamCount);
+const badminton = (teamCount: number): SolverSettings => buildSettings(BADMINTON_DISCIPLINE, teamCount);
 
 /** Brute-force minimum gap for 2 teams (sized mode): min over subsets of size s of |avgA - avgB|. */
 function bruteGap2(pool: PoolPlayer[], s: number): number {
@@ -184,6 +185,40 @@ describe("fairSplit: eligibility", () => {
       const player = pool.find((q) => q.playerId === slot.playerId)!;
       expect(player.eligibleRoles).toContain(slot.roleId);
     }
+  });
+});
+
+describe("fairSplit: badminton court pairs (hard)", () => {
+  const ROLES = ["front-court", "rear-court"];
+
+  it("badminton: 10 players split into five pairs, each covering both courts", () => {
+    const pool = Array.from({ length: 10 }, (_, i) => p(`b${i}`, 3 + (i % 3), ROLES, ROLES[i % 2]));
+    // floor(10 / 2) = 5 pairs.
+    expect(suggestTeamCount(10, BADMINTON_DISCIPLINE)).toBe(5);
+    const res = fairSplit(pool, BADMINTON_DISCIPLINE, badminton(5));
+
+    expect(res.teams).toHaveLength(5);
+    expect(res.teams.map((t) => t.slots.length)).toEqual([2, 2, 2, 2, 2]);
+    expect(res.flags).toEqual([]);
+    expect(res.solver.optimal).toBe(true);
+    for (const team of res.teams) {
+      expect(new Set(team.slots.map((s) => s.roleId))).toEqual(new Set(ROLES));
+    }
+  });
+
+  it("badminton: 1v1 cannot be expressed by a two-role hard-coverage discipline", () => {
+    // `roleCoverPossible` requires `team.length >= roleIds.length`, so a
+    // one-player team can never cover two roles. This is why badminton ships as
+    // doubles: `suggestTeamCount` is floor(pool / minTeamSize), and minTeamSize 1
+    // would offer a 10-player club ten teams.
+    const singles: Discipline = {
+      ...BADMINTON_DISCIPLINE,
+      team: { minTeamSize: 1, maxTeamSize: 2, rolesRequired: true },
+    };
+    const pool = Array.from({ length: 8 }, (_, i) => p(`s${i}`, 4, ROLES, ROLES[i % 2]));
+    const res = fairSplit(pool, singles, buildSettings(singles, 4));
+    // Every team that survives has two members, because one cannot cover two roles.
+    for (const team of res.teams) expect(team.slots.length).toBeGreaterThanOrEqual(2);
   });
 });
 

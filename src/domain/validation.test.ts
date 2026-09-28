@@ -39,9 +39,9 @@ describe("validatePlayer", () => {
   });
 
   it("rejects a capability in an unknown discipline", () => {
-    const bad: Capability = { ...futsalCap, disciplineId: "badminton" };
+    const bad: Capability = { ...futsalCap, disciplineId: "padel" };
     const issues = validatePlayer(validPlayer({ capabilities: [bad] }), disciplines);
-    expect(issues.some((i) => i.message.includes('Unknown discipline "badminton"'))).toBe(true);
+    expect(issues.some((i) => i.message.includes('Unknown discipline "padel"'))).toBe(true);
   });
 
   it("rejects a missing attribute rating", () => {

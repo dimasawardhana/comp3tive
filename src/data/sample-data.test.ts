@@ -10,6 +10,16 @@ describe("sample-data registry", () => {
     expect(hasSampleData("futsal")).toBe(true);
   });
 
+  it("has sample data for badminton", () => {
+    expect(hasSampleData("badminton")).toBe(true);
+  });
+
+  it("the badminton sample is the roster the registry names", () => {
+    // The download feature writes this file name to the user's disk, so the
+    // registry key and the shipped file have to be the same name.
+    expect(getSampleDataInfo("badminton")).toEqual({ fileName: "badminton-roster.json", playerCount: 10 });
+  });
+
   it("has no sample data for unknown", () => {
     expect(hasSampleData("unknown")).toBe(false);
   });
@@ -18,7 +28,8 @@ describe("sample-data registry", () => {
     const list = listDisciplinesWithSampleData();
     expect(list).toContain("mlbb");
     expect(list).toContain("futsal");
-    expect(list).toHaveLength(2);
+    expect(list).toContain("badminton");
+    expect(list).toHaveLength(3);
   });
 
   it("returns sample data info", () => {

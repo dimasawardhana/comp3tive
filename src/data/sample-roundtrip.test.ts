@@ -4,10 +4,11 @@ import { validatePlayer } from "../domain/validation";
 import { SEED_DISCIPLINES } from "../domain/seed";
 import futsalRoster from "../../sample-data/futsal-roster.json";
 import mplRoster from "../../sample-data/mpl-id-roster.json";
+import badmintonRoster from "../../sample-data/badminton-roster.json";
 
 /**
  * The files the app hands the user itself: `DisciplinesScreen` renders a
- * "Sample" button per discipline and `sample-data.ts` serves these two, so the
+ * "Sample" button per discipline and `sample-data.ts` serves these, so the
  * import feature consumes the output of the download feature. A file that fails
  * `validatePlayer` is refused by `parseBackup` (App.tsx passes the catalog), and
  * the round trip the app advertises breaks with no test noticing — which is
@@ -17,12 +18,18 @@ import mplRoster from "../../sample-data/mpl-id-roster.json";
  * one with `Backup player "CW" is invalid: Preferred role "pivot" must be
  * inside the eligibility list.`
  *
- * Both files are imported the way `sample-data.ts` imports them, so this covers
+ * Badminton is here for the sharper reason: while the discipline was not in the
+ * catalog, `parseBackup` dropped the unknown-discipline rule for it, so its
+ * sample passed no matter what its roles were. Registering the discipline
+ * turns every badminton sample into a claim the app has to honour.
+ *
+ * Every file is imported the way `sample-data.ts` imports them, so this covers
  * the shipped bytes rather than a hand-copied fixture.
  */
 const samples = [
   { fileName: "futsal-roster.json", roster: futsalRoster, playerCount: 25 },
   { fileName: "mpl-id-roster.json", roster: mplRoster, playerCount: 25 },
+  { fileName: "badminton-roster.json", roster: badmintonRoster, playerCount: 10 },
 ] as const;
 
 describe("shipped sample data round-trips through the import it feeds", () => {

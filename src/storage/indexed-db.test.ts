@@ -70,10 +70,10 @@ describe("indexed-db session store (smoke)", () => {
 
 describe("indexed-db discipline store (smoke)", () => {
   const custom: Discipline = {
-    id: "badminton-x",
-    name: "Badminton",
-    shortName: "Badminton",
-    roles: [{ id: "singles", name: "Singles" }],
+    id: "padel-x",
+    name: "Padel",
+    shortName: "Padel",
+    roles: [{ id: "right", name: "Right" }],
     attributes: [{ id: "skill", name: "Skill" }],
     strengthModel: { kind: "mean" },
     team: { minTeamSize: 2, maxTeamSize: null, rolesRequired: false },
@@ -82,7 +82,7 @@ describe("indexed-db discipline store (smoke)", () => {
   it("seeds the built-in disciplines on first open", async () => {
     const store = createIndexedDbDisciplineStore("comp3tive-test-disc-1");
     const list = await store.listDisciplines();
-    expect(list.map((d) => d.id).sort()).toEqual(["futsal", "mlbb"]);
+    expect(list.map((d) => d.id).sort()).toEqual(["badminton", "futsal", "mlbb"]);
     expect(list.every((d) => d.builtIn)).toBe(true);
   });
 
@@ -94,7 +94,7 @@ describe("indexed-db discipline store (smoke)", () => {
     await store.deleteDiscipline(custom.id);
     const after = await store.listDisciplines();
     expect(after.some((d) => d.id === custom.id)).toBe(false);
-    expect(after.map((d) => d.id).sort()).toEqual(["futsal", "mlbb"]);
+    expect(after.map((d) => d.id).sort()).toEqual(["badminton", "futsal", "mlbb"]);
   });
 });
 
