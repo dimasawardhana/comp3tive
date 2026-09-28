@@ -4,6 +4,7 @@ type SplitSource = "ad-hoc" | "tournament" | "session" | "squad";
 import { describeFlags, teamName } from "./flow";
 import { freshSplit, swapPlayers } from "./edit";
 import { gapQualifier } from "./gapProvenance";
+import { rerollPool } from "../shell/useSplitFlow";
 import { BIB } from "../ui/constants";
 import { Modal } from "../ui/Modal";
 
@@ -263,7 +264,7 @@ export function SplitScreen({ session, discipline, roster, onPersistResult, onSu
   const reroll = () => {
     // The pool is the session's own pool, not the teams on screen: a player who
     // sat out (an MLBB leftover, a futsal sub past capacity) is eligible again.
-    const pool = session.poolPlayerIds.filter((id) => roster.some((p) => p.id === id));
+    const pool = rerollPool(source, session.poolPlayerIds, result.teams).filter((id) => roster.some((p) => p.id === id));
     const settings = { teamCount: session.settings.teamCount };
     const before = signature(result);
     let next = result;

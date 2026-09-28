@@ -9,3 +9,7 @@ export function relativeTime(ts: number): string {
   if (days < 7) return `${days}d ago`;
   return new Date(ts).toLocaleDateString();
 }
+
+/** A caught error as the sentence a toast can show. Eight call sites across
+ *  App and the split flow need this exact rule, so it has one home. */
+export const formatError = (err: unknown): string => (err instanceof Error ? err.message : String(err));
