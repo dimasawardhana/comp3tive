@@ -1,6 +1,7 @@
 import type { Discipline, Session } from "../domain/types";
 import { PageHeader } from "../ui/PageHeader";
 import { Screen } from "../ui/Screen";
+import { relativeTime } from "../ui/format";
 
 interface Props {
   sessions: Session[];
@@ -8,17 +9,6 @@ interface Props {
   disciplines: Discipline[];
   onReopen: (session: Session) => void;
   onDelete: (id: string) => void;
-}
-
-function relativeTime(ts: number): string {
-  const mins = Math.floor((Date.now() - ts) / 60000);
-  if (mins < 1) return "just now";
-  if (mins < 60) return `${mins}m ago`;
-  const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  if (days < 7) return `${days}d ago`;
-  return new Date(ts).toLocaleDateString();
 }
 
 function formatTime(ts: number): string {

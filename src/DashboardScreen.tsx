@@ -2,18 +2,7 @@ import type { Community, Discipline, Player, SavedSquad, Tournament } from "./do
 import { recentActiveTournaments, recentPlayers } from "./dashboardTeasers";
 import { PageHeader } from "./ui/PageHeader";
 import { Screen } from "./ui/Screen";
-
-const FORMAT_LABEL: Record<Tournament["format"], string> = {
-  series: "Series",
-  "single-elim": "Single elimination",
-  swiss: "Swiss",
-};
-
-const STATUS_LABEL: Record<Tournament["status"], string> = {
-  draft: "Draft",
-  active: "In progress",
-  complete: "Complete",
-};
+import { FORMAT_LABEL, STATUS_LABEL } from "./ui/constants";
 
 const BADGE_CLASS: Record<string, string> = {
   futsal: "badge--futsal",

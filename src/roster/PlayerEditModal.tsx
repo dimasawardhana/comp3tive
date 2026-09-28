@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import type { Capability, Discipline, Id, Player } from "../domain/types";
 import { validatePlayer, type ValidationIssue } from "../domain/validation";
+import { Modal } from "../ui/Modal";
 
 interface Props {
   player: Player | null; // null = new player
@@ -150,8 +151,7 @@ export function PlayerEditModal({ player, disciplines, communityId, onClose, onS
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-card" onClick={(e) => e.stopPropagation()}>
+    <Modal onClose={onClose}>
         <button type="button" className="modal-close" aria-label="Close" onClick={onClose}>
           &times;
         </button>
@@ -323,7 +323,6 @@ export function PlayerEditModal({ player, disciplines, communityId, onClose, onS
             {saving ? "Saving…" : isEdit ? "Save changes" : "Add player"}
           </button>
         </div>
-      </div>
-    </div>
+    </Modal>
   );
 }

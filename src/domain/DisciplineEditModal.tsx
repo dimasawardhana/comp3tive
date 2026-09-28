@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import type { Attribute, Discipline, Id, Role } from "../domain/types";
+import { Modal } from "../ui/Modal";
 
 interface Props {
   discipline: Discipline | null; // null = new
@@ -163,8 +164,7 @@ export function DisciplineEditModal({
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-card" onClick={(e) => e.stopPropagation()}>
+    <Modal onClose={onClose}>
         <button type="button" className="modal-close" aria-label="Close" onClick={onClose}>
           &times;
         </button>
@@ -337,7 +337,6 @@ export function DisciplineEditModal({
             </button>
           )}
         </div>
-      </div>
-    </div>
+    </Modal>
   );
 }

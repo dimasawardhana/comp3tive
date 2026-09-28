@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import type { Community, Discipline, Id, SeriesLength, Tournament, TournamentFormat } from "../domain/types";
 import { validateTournamentSpec, type TournamentValidationIssue } from "./tournament-validation";
 import { PageHeader } from "../ui/PageHeader";
+import { FORMAT_LABEL, STATUS_LABEL } from "../ui/constants";
+import { Modal } from "../ui/Modal";
 
 interface Props {
   tournaments: Tournament[]; // community-scoped, newest first
@@ -24,12 +26,6 @@ interface Props {
   activeCommunity?: Community | null;
 }
 
-const FORMAT_LABEL: Record<TournamentFormat, string> = {
-  series: "Series",
-  "single-elim": "Single elimination",
-  swiss: "Swiss",
-};
-
 const FORMATS: TournamentFormat[] = ["series", "single-elim", "swiss"];
 const BO: SeriesLength[] = [1, 3, 5];
 
@@ -37,12 +33,6 @@ const TEAM_COUNTS: Record<TournamentFormat, number[]> = {
   series: [2],
   "single-elim": [4, 2, 8],
   swiss: [4, 6, 8],
-};
-
-const STATUS_LABEL: Record<Tournament["status"], string> = {
-  draft: "Draft",
-  active: "In progress",
-  complete: "Complete",
 };
 
 export function GamesScreen({ tournaments, disciplines, onCreate, onOpen, onDelete, onManageDisciplines, prefill, onPrefillConsumed, activeCommunity }: Props) {
@@ -226,8 +216,7 @@ export function GamesScreen({ tournaments, disciplines, onCreate, onOpen, onDele
       </div>
 
       {creating && (
-        <div className="modal-overlay" onClick={() => setCreating(false)}>
-          <div className="modal-card" onClick={(e) => e.stopPropagation()}>
+        <Modal onClose={() => setCreating(false)}>
             <button type="button" className="modal-close" aria-label="Close" onClick={() => setCreating(false)}>
               &times;
             </button>
@@ -391,8 +380,7 @@ export function GamesScreen({ tournaments, disciplines, onCreate, onOpen, onDele
                 Create
               </button>
             </div>
-          </div>
-        </div>
+        </Modal>
       )}
     </>
   );

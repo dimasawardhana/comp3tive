@@ -3,6 +3,8 @@ import { PageHeader } from "../ui/PageHeader";
 import { Screen } from "../ui/Screen";
 import type { Discipline, Id, Player, SavedSquad } from "../domain/types";
 import { teamName } from "./flow";
+import { BIB } from "../ui/constants";
+import { relativeTime } from "../ui/format";
 
 interface Props {
   /** Active community's saved squads, newest first. */
@@ -16,19 +18,6 @@ interface Props {
   /** Jump to the Games tab with the new-tournament modal prefilled for this squad. */
   onNewTournament: (squad: SavedSquad) => void;
   onDelete: (id: Id) => Promise<void>;
-}
-
-const BIB = ["a", "b", "c", "d", "e"];
-
-function relativeTime(ts: number): string {
-  const mins = Math.floor((Date.now() - ts) / 60000);
-  if (mins < 1) return "just now";
-  if (mins < 60) return `${mins}m ago`;
-  const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  if (days < 7) return `${days}d ago`;
-  return new Date(ts).toLocaleDateString();
 }
 
 function squadBadges(squad: SavedSquad, disciplines: Discipline[]) {

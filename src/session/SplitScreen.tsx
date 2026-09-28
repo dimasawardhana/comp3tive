@@ -4,6 +4,8 @@ type SplitSource = "ad-hoc" | "tournament" | "session" | "squad";
 import { describeFlags, teamName } from "./flow";
 import { freshSplit, swapPlayers } from "./edit";
 import { gapQualifier } from "./gapProvenance";
+import { BIB } from "../ui/constants";
+import { Modal } from "../ui/Modal";
 
 interface Props {
   session: Session;
@@ -19,7 +21,6 @@ interface Props {
   onBack?: () => void;
 }
 
-const BIB = ["a", "b", "c", "d", "e"];
 /** Team-membership signature, order-independent: used to detect a real re-roll. */
 function signature(result: SplitResult): string {
   return result.teams
@@ -165,8 +166,7 @@ function SaveSquadModal({
 }) {
   const [name, setName] = useState(defaultName);
   return (
-    <div className="modal-overlay" onClick={onCancel}>
-      <div className="modal-card" onClick={(e) => e.stopPropagation()}>
+    <Modal onClose={onCancel}>
         <button type="button" className="modal-close" aria-label="Close" onClick={onCancel}>
           &times;
         </button>
@@ -200,8 +200,7 @@ function SaveSquadModal({
             {saving ? "Saving\u2026" : "Save squad"}
           </button>
         </div>
-      </div>
-    </div>
+    </Modal>
   );
 }
 

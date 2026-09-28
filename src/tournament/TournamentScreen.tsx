@@ -2,6 +2,8 @@ import { useState } from "react";
 import type { Discipline, GameResult, Id, Player, SavedSquad, Tournament, TournamentMatch, TournamentTeam } from "../domain/types";
 import { champion, standings } from "./bracket";
 import { PageHeader } from "../ui/PageHeader";
+import { BIB, FORMAT_LABEL } from "../ui/constants";
+import { Modal } from "../ui/Modal";
 
 interface Props {
   tournament: Tournament;
@@ -21,14 +23,6 @@ interface Props {
   /** Community roster: resolves player ids to names in review. */
   roster?: Player[];
 }
-
-const FORMAT_LABEL: Record<Tournament["format"], string> = {
-  series: "Series",
-  "single-elim": "Single elimination",
-  swiss: "Swiss",
-};
-
-const BIB = ["a", "b", "c", "d", "e"];
 
 function teamOf(t: Tournament, id: Id | null): TournamentTeam | null {
   return id ? t.teams.find((x) => x.id === id) ?? null : null;
@@ -103,8 +97,7 @@ function RecordMatchModal({
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-card" onClick={(e) => e.stopPropagation()}>
+    <Modal onClose={onClose}>
         <button type="button" className="modal-close" aria-label="Close" onClick={onClose}>
           &times;
         </button>
@@ -197,8 +190,7 @@ function RecordMatchModal({
             {saving ? "Saving\u2026" : "Save result"}
           </button>
         </div>
-      </div>
-    </div>
+    </Modal>
   );
 }
 
