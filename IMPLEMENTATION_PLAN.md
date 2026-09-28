@@ -160,6 +160,7 @@ Not scheduled anywhere. Recorded so they are not rediscovered as if they were ne
 | White-on-bib fails the 4.5:1 contrast floor in dark mode — `#ffffff` on the five `--bib-*` values measures 1.60-3.35:1, and the bib colours are theme-invariant so dark inherits the light ones | found at B17's Task 8; `src/index.css:1982`, `src/landing.css:478`, `src/tokens.css:19-23,51-55` | a CSS decision: darken the bibs or drop the white |
 | `docs/design.md` still exists and still competes with `DESIGN.md`; the deletion needs an explicit owner confirmation recorded in ticket 17's `## Comments` | Phase B, all three rounds | one owner decision |
 | `## Docs: reject a duplicate trust row` — the `landing-trust` list is pinned by an ordered-array `toContainText` plus `toHaveCount(3)` | verified by mutation at B14 round 2 | nothing to do; recorded so the belief survives |
+| **The e2e suite is not reliably green under repeated runs.** Two full-suite runs each failed a *different* pre-existing test — `landing.spec.ts:249` ("the deal repeats") and `:345` ("storage that throws shows the Landing Page rather than erroring") — both as `page.goto` timeouts against the 30 s limit at `e2e/playwright.config.ts:8`. Neither reproduced across two subsequent clean 50/50 runs, and the fix wave added no test block to that file, so neither failure came from it. CI has still never run on a GitHub runner, so nothing has ever watched this suite go twice | Phase B final review | unquantified; a flake rate needs a repeat-run history only CI can give |
 
 ## How this file was rewritten
 

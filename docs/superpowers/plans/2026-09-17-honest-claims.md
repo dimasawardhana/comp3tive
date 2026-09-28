@@ -17,7 +17,7 @@ Every task's requirements implicitly include this section. Values are copied ver
 - **Provenance rule.** `proven` **iff** `result.solver.optimal === true`. Read that field and nothing else — not the source, not a re-roll counter, not `nodesExplored`. The budget is **not** predictable from pool size, so no copy may encode a size rule.
 - **Exact copy, proven path (unchanged, must stay byte-identical):** balanced `Dead even. Fair game.` · otherwise `Gap {gap.toFixed(1)}. {Team} leads.`
 - **Exact copy, best-found path:** balanced `Dead even. Best gap found.` · otherwise `Gap {gap.toFixed(1)}. {Team} leads. Best gap found.`
-- **The qualifier is the five words `Best gap found.`** It rides inside the existing `<span className="fine">`. No new CSS, no new classes, no layout change.
+- **The qualifier is the three words `Best gap found.`** It rides inside the existing `<span className="fine">`. No new CSS, no new classes, no layout change.
 - **Banned from the qualifier's copy:** `aborted`, `node budget`, `heuristic`, `search`, `exhaustive`, and any em-dash (`docs/design.md:72`: "**No em-dashes in visible copy.**").
 - **The one noun is Community.** `CONTEXT.md` is authoritative: Community is the group; **Saved Squad** keeps its name. Six preserved strings that genuinely mean Saved Squad must not change.
 - **Landing trust list is exactly three rows, in this order, verbatim:**
@@ -153,7 +153,7 @@ describe("gapQualifier", () => {
     expect(gapQualifier(resultWith({ optimal: true, nodesExplored: 51, elapsedMs: 7 }))).toBeNull();
   });
 
-  it("returns the five-word qualifier when best-found", () => {
+  it("returns the three-word qualifier when best-found", () => {
     expect(gapQualifier(resultWith({ optimal: false, nodesExplored: 4_000_001, elapsedMs: 273 })))
       .toBe("Best gap found.");
   });

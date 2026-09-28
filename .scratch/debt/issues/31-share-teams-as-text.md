@@ -17,10 +17,11 @@ $ grep -rn "navigator.clipboard\|window.print\|navigator.share\|toDataURL\|canva
 ```
 
 `package.json` `dependencies` is `{"react": "^19.1.0", "react-dom": "^19.1.0"}` — nothing
-else at runtime. The split screen's action bar at `src/session/SplitScreen.tsx:372`
-(`<div className="bar split-bar">`) holds exactly four controls: Back (`:374`), Save squad
-(`:383`), submit-tournament (`:398`, `data-testid="submit-tournament-squad"`), else Re-roll
-(`:401`). The result that would be shared already exists in full: `TeamAssignment.slots`,
+else at runtime. The split screen's action bar at `src/session/SplitScreen.tsx:396`
+(`<div className="bar split-bar">`) holds exactly four controls: Back (`:398`), Save squad
+(`:403`), Save teams to tournament (`:417` — its `data-testid="submit-tournament-squad"` was
+removed as dead rather than renamed, so a spec reaches it by role and label, not by testid),
+else Re-roll (`:426`). The result that would be shared already exists in full: `TeamAssignment.slots`,
 `.avgStrength` and `.index`, `SplitResult.gap`, and `SplitResult.solver` are all on screen
 (`src/session/SplitScreen.tsx:42-107` `TeamCard`).
 

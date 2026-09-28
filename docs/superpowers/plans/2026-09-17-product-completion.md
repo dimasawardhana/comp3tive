@@ -1851,7 +1851,9 @@ test("a 3-team round robin is selectable, runs, and crowns a champion from the s
   await expect(page.locator(".match-setup")).toBeVisible({ timeout: 10000 });
   await page.getByTestId("split-button").click();
   await expect(page.locator(".split-screen")).toBeVisible({ timeout: 15000 });
-  await page.getByTestId("submit-tournament-squad").click();
+  // Reach it by role and label: the `submit-tournament-squad` testid was removed as dead,
+  // not renamed, so there is nothing to grep for. See .scratch/debt/issues/31.
+  await page.getByRole("button", { name: "Save teams to tournament →" }).click();
 
   // Standings render: round robin reuses the Swiss table, so `.standings` exists.
   await expect(page.locator(".standings")).toBeVisible({ timeout: 10000 });
