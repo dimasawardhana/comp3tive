@@ -56,7 +56,7 @@ test.describe("Landing Page", () => {
     const trust = page.locator(".landing-trust li");
     await expect(trust).toHaveCount(3);
     await expect(trust).toContainText([
-      "The first split is the proven minimum for a two-team pool",
+      "The screen says when the gap is the best it found, not proven",
       "stays on your device",
       "no account",
     ]);
@@ -64,10 +64,19 @@ test.describe("Landing Page", () => {
     // B14: the offline promise is deleted, not softened. D02 restores it with the
     // manifest and service worker; until then the page must not make it at all.
     await expect(page.locator(".landing-trust")).not.toContainText("no signal");
+    // B14 round 3: "for a two-team pool" was still a pool-size claim. Two-team
+    // futsal pools of 32+ abort at NODE_BUDGET, so the row now promises the one
+    // thing true at every size — the screen flags the best-found case.
+    await expect(page.locator(".landing-trust")).not.toContainText("proven minimum");
     // The lede claims only what the solver can prove for every pool size.
     await expect(page.locator(".landing-lede")).toContainText("it can prove");
     // And "exact, not estimated" — the phrase that overclaimed — is gone.
     await expect(page.locator(".landing-lede")).not.toContainText("exact, not estimated");
+    // B14 round 3: "honoring every role" promised the coverage the Roster row
+    // had just been corrected for promising. The split weighs roles and names
+    // the coverer; it does not guarantee the role.
+    await expect(page.locator(".landing-lede")).toContainText("who is covering");
+    await expect(page.locator(".landing-lede")).not.toContainText("honoring every role");
 
     await expect(page.locator(".landing-action-note")).toContainText("no account");
     await expect(page.locator(".landing-footer")).toContainText("fair teams for futsal nights");
