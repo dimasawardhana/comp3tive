@@ -324,7 +324,7 @@ export function SplitScreen({ session, discipline, roster, onPersistResult, onSu
         <div className="split-head-meta">
           <span className="badge badge--generic">{discipline.name}</span>
           <span className="badge badge--generic">{result.teams.length} teams</span>
-          {source === "tournament" && <span className="badge badge--generic badge--tournament">Tournament squad</span>}
+          {source === "tournament" && <span className="badge badge--generic badge--tournament">Tournament teams</span>}
           {rerollCount > 1 && <span className="badge badge--generic">Roll #{rerollCount}</span>}
         </div>
       </div>
@@ -421,7 +421,7 @@ export function SplitScreen({ session, discipline, roster, onPersistResult, onSu
             onClick={() => onSubmitTournament(result.teams)}
             data-testid="submit-tournament-squad"
           >
-            Save tournament squad →
+            Save teams to tournament →
           </button>
         ) : (
           <button type="button" className="btn btn-primary" onClick={() => void reroll()}>

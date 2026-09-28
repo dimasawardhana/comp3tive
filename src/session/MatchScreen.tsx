@@ -45,7 +45,7 @@ export function MatchScreen(props: Props) {
           </div>
         }
         title="Set the match"
-        lede="Pick the game first, then the squad. Teams are sized to the game."
+        lede="Pick the game first, then the roster. Teams are sized to the game."
       />
 
       <section className="match-section">

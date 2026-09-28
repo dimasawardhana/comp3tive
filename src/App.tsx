@@ -1087,7 +1087,7 @@ export default function App() {
               {communityPlayers.length === 0 ? (
                 <div className="empty">
                   <div className="kicker">Empty bench</div>
-                  <div className="big">No players in this squad</div>
+                  <div className="big">No players in this community</div>
                   <p>Add the first player manually, or import a JSON / CSV roster.</p>
                   <button
                     className="btn btn-primary"
@@ -1149,7 +1149,7 @@ export default function App() {
 
               <div className="cta-bar">
                 <div className="cta-label">
-                  Ready to play? <strong>Split the squad</strong> and check the balance.
+                  Ready to play? <strong>Split the roster</strong> and check the balance.
                 </div>
                 <button
                   type="button"
