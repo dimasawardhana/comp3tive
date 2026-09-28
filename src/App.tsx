@@ -46,7 +46,6 @@ import { buildBracket, applyResult, undoLastGame } from "./tournament/bracket";
 import { serializeBackup, parseBackup } from "./data/transfer";
 import { assertImportSize, csvRowsToPlayers, parsePlayerCsv } from "./data/player-import";
 import { validatePlayer } from "./domain/validation";
-import { validateTeamParticipation } from "./tournament/team-participation-validator";
 import { validateTournamentSpec } from "./tournament/tournament-validation";
 const communityStore = createIndexedDbCommunityStore();
 const rosterStore = createIndexedDbRosterStore();

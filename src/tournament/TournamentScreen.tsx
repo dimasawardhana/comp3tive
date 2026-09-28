@@ -247,7 +247,6 @@ export function TournamentScreen({ tournament, disciplines, matchingSquads, rost
   const discipline = disciplines.find((d) => d.id === tournament.disciplineId);
   const champ = champion(tournament);
   const hasAnyGames = tournament.matches.some((m) => m.games.length > 0);
-  const canResplit = tournament.teams.length > 0 && !hasAnyGames;
   const eligibleCount = discipline
     ? (totalPlayers ?? tournament.teams.reduce((s, t) => s + t.players.length, 0))
     : 0;
@@ -350,9 +349,6 @@ export function TournamentScreen({ tournament, disciplines, matchingSquads, rost
               <button type="button" className="btn btn-ghost" onClick={() => void onUndo()}>
                 ↶ Undo last game
               </button>
-              {canResplit && (
-                <span className="status-msg">Re-split is locked after the first result.</span>
-              )}
             </div>
           )}
 
