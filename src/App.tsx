@@ -117,6 +117,12 @@ export default function App() {
    *  dropping a half-finished match setup stays here. */
   const gotoHub = (mode: HubMode) => { resetTo({ mode }); setSetup(null); };
   const goDisciplines = () => pushView({ mode: "disciplines" });
+  /** Land on a tournament with the Games hub beneath it, so Back and the
+   *  breadcrumb return to Games (FLOW P2). Two calls, not one: the frozen hook
+   *  has no atomic replace, so they must stay adjacent — `resetTo` is an absolute
+   *  set and `pushView` a functional update, which is what keeps the pair correct
+   *  across an intervening render. Never `await` between them. */
+  const openTournamentOverGames = (id: Id) => { resetTo({ mode: "games" }); pushView({ mode: "tournament", id }); };
   /** The split view's session and source. Out of `View` so the stack carries
    *  destinations, not screen payloads. */
   const [activeSplit, setActiveSplit] = useState<{ session: Session; source: SplitSource } | null>(null);
@@ -311,10 +317,7 @@ export default function App() {
     try {
       const built = buildBracket(next);
       await tournaments.saveTournament(built);
-      // Land on the tournament detail with the Games hub beneath it, so Back
-      // and the breadcrumb return to Games (FLOW P2: back to where you came from).
-      resetTo({ mode: "games" });
-      pushView({ mode: "tournament", id: built.id });
+      openTournamentOverGames(built.id);
       setSetup(null);
     } catch (err) {
       notify(`Could not save the tournament teams: ${formatError(err)}`, "error");
@@ -712,8 +715,7 @@ export default function App() {
       matches: [],
     };
     await tournaments.saveTournament(tournament);
-    resetTo({ mode: "games" });
-    pushView({ mode: "tournament", id: tournament.id });
+    openTournamentOverGames(tournament.id);
     setSetup(null);
   };
 
