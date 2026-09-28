@@ -1,0 +1,207 @@
+{
+  "version": 1,
+  "exportedAt": "2026-09-17T00:00:00.000Z",
+  "players": [
+    {
+      "id": "badminton-01",
+      "name": "Rizky",
+      "notes": "Club night",
+      "capabilities": [
+        {
+          "disciplineId": "badminton",
+          "attributeRatings": {
+            "technical": 3,
+            "fitness": 4,
+            "game-iq": 5
+          },
+          "eligibleRoles": [
+            "front-court",
+            "rear-court"
+          ],
+          "preferredRole": "front-court"
+        }
+      ]
+    },
+    {
+      "id": "badminton-02",
+      "name": "Sari",
+      "notes": "Club night",
+      "capabilities": [
+        {
+          "disciplineId": "badminton",
+          "attributeRatings": {
+            "technical": 4,
+            "fitness": 5,
+            "game-iq": 3
+          },
+          "eligibleRoles": [
+            "front-court",
+            "rear-court"
+          ],
+          "preferredRole": "rear-court"
+        }
+      ]
+    },
+    {
+      "id": "badminton-03",
+      "name": "Dwi",
+      "notes": "Club night",
+      "capabilities": [
+        {
+          "disciplineId": "badminton",
+          "attributeRatings": {
+            "technical": 5,
+            "fitness": 3,
+            "game-iq": 4
+          },
+          "eligibleRoles": [
+            "front-court",
+            "rear-court"
+          ],
+          "preferredRole": "front-court"
+        }
+      ]
+    },
+    {
+      "id": "badminton-04",
+      "name": "Putri",
+      "notes": "Club night",
+      "capabilities": [
+        {
+          "disciplineId": "badminton",
+          "attributeRatings": {
+            "technical": 3,
+            "fitness": 4,
+            "game-iq": 5
+          },
+          "eligibleRoles": [
+            "front-court",
+            "rear-court"
+          ],
+          "preferredRole": "rear-court"
+        }
+      ]
+    },
+    {
+      "id": "badminton-05",
+      "name": "Galih",
+      "notes": "Club night",
+      "capabilities": [
+        {
+          "disciplineId": "badminton",
+          "attributeRatings": {
+            "technical": 4,
+            "fitness": 5,
+            "game-iq": 3
+          },
+          "eligibleRoles": [
+            "front-court",
+            "rear-court"
+          ],
+          "preferredRole": "front-court"
+        }
+      ]
+    },
+    {
+      "id": "badminton-06",
+      "name": "Ayu",
+      "notes": "Club night",
+      "capabilities": [
+        {
+          "disciplineId": "badminton",
+          "attributeRatings": {
+            "technical": 5,
+            "fitness": 3,
+            "game-iq": 4
+          },
+          "eligibleRoles": [
+            "front-court",
+            "rear-court"
+          ],
+          "preferredRole": "rear-court"
+        }
+      ]
+    },
+    {
+      "id": "badminton-07",
+      "name": "Arman",
+      "notes": "Club night",
+      "capabilities": [
+        {
+          "disciplineId": "badminton",
+          "attributeRatings": {
+            "technical": 3,
+            "fitness": 4,
+            "game-iq": 5
+          },
+          "eligibleRoles": [
+            "front-court",
+            "rear-court"
+          ],
+          "preferredRole": "front-court"
+        }
+      ]
+    },
+    {
+      "id": "badminton-08",
+      "name": "Nadia",
+      "notes": "Club night",
+      "capabilities": [
+        {
+          "disciplineId": "badminton",
+          "attributeRatings": {
+            "technical": 4,
+            "fitness": 5,
+            "game-iq": 3
+          },
+          "eligibleRoles": [
+            "front-court",
+            "rear-court"
+          ],
+          "preferredRole": "rear-court"
+        }
+      ]
+    },
+    {
+      "id": "badminton-09",
+      "name": "Wisnu",
+      "notes": "Club night",
+      "capabilities": [
+        {
+          "disciplineId": "badminton",
+          "attributeRatings": {
+            "technical": 5,
+            "fitness": 3,
+            "game-iq": 4
+          },
+          "eligibleRoles": [
+            "front-court",
+            "rear-court"
+          ],
+          "preferredRole": "front-court"
+        }
+      ]
+    },
+    {
+      "id": "badminton-10",
+      "name": "Intan",
+      "notes": "Club night",
+      "capabilities": [
+        {
+          "disciplineId": "badminton",
+          "attributeRatings": {
+            "technical": 3,
+            "fitness": 4,
+            "game-iq": 5
+          },
+          "eligibleRoles": [
+            "front-court",
+            "rear-court"
+          ],
+          "preferredRole": "rear-court"
+        }
+      ]
+    }
+  ],
+  "sessions": []
+}
