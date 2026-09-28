@@ -149,6 +149,7 @@ describe("scopeCommunities", () => {
       disciplines: [FUTSAL_DISCIPLINE, MLBB_DISCIPLINE],
     });
     expect(scope.disciplinesById.get("futsal")).toEqual(FUTSAL_DISCIPLINE);
+    expect(scope.disciplinesById.size).toBe(2);
     expect(scope.disciplinesById.get("mlbb")).toEqual(MLBB_DISCIPLINE);
     expect(scope.disciplinesById.get("badminton")).toBeUndefined();
   });

@@ -35,32 +35,51 @@ export interface CommunityScopeResult {
  * handed unfiltered lists and leaked records across communities.
  */
 export function scopeCommunities(input: CommunityScopeInput): CommunityScopeResult {
-  const { communities, activeCommunityId, disciplines = [] } = input;
+  const {
+    communities,
+    activeCommunityId,
+    players,
+    sessions,
+    tournaments,
+    squads,
+    disciplines = [],
+  } = input;
   const activeCommunity = communities.find((c) => c.id === activeCommunityId) ?? null;
   const id = activeCommunity?.id;
   const scoped = <T extends { communityId: Id }>(records: T[]): T[] =>
     id ? records.filter((r) => r.communityId === id) : [];
   return {
     activeCommunity,
-    players: scoped(input.players),
-    sessions: scoped(input.sessions),
-    tournaments: scoped(input.tournaments),
-    squads: scoped(input.squads),
+    players: scoped(players),
+    sessions: scoped(sessions),
+    tournaments: scoped(tournaments),
+    squads: scoped(squads),
     disciplinesById: new Map(disciplines.map((d) => [d.id, d])),
   };
 }
 
+/**
+ * The seven destructured names below are the memo's whole read set, and the
+ * dependency array repeats them verbatim. Nothing enforces that: there is no
+ * linter in this repo, and `tsc -b` cannot see a missing runtime dependency. A
+ * field read here and forgotten in the deps would make the memo silently
+ * ignore it — and every consumer is a scoped list, so the failure is a
+ * cross-community leak, the thing ADR-0005 records having already happened
+ * once. Keep the two lists the same seven identifiers; a new field in
+ * CommunityScopeInput must be added to both.
+ */
 export function useCommunityScope(input: CommunityScopeInput): CommunityScopeResult {
+  const {
+    communities,
+    activeCommunityId,
+    players,
+    sessions,
+    tournaments,
+    squads,
+    disciplines,
+  } = input;
   return useMemo(
-    () => scopeCommunities(input),
-    [
-      input.communities,
-      input.activeCommunityId,
-      input.players,
-      input.sessions,
-      input.tournaments,
-      input.squads,
-      input.disciplines,
-    ],
+    () => scopeCommunities({ communities, activeCommunityId, players, sessions, tournaments, squads, disciplines }),
+    [communities, activeCommunityId, players, sessions, tournaments, squads, disciplines],
   );
 }
