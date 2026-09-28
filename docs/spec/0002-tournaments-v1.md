@@ -64,7 +64,7 @@ Tournament {
 - Teams are **snapshots** owned by the tournament: deleting the source Session never affects a started tournament.
 - Seeding: teams ordered by split strength (strongest = seed 1); single elim pairs 1v8 / 4v5. No byes at 2/4/8.
 - After the **first recorded result**, re-roll and re-split lock. Player swaps remain allowed (the record stores match outcomes, not lineups).
-- Persistence: one document per tournament in IndexedDB (new `tournaments` store, DB v7), community-scoped. Backup v4 adds `tournaments[]` and `savedSquads[]`; v1–v3 imports migrate with empty lists.
+- Persistence: one document per tournament in IndexedDB (new `tournaments` store, DB v7), community-scoped. Backup v4 **carries** `tournaments[]` (added in v3) and `savedSquads[]` (added in v4); v1–v3 imports migrate with empty lists.
 - Storage behind the same interfaces as ADR-0001 (`TournamentStore`), so a backend can replace IndexedDB later.
 
 ## Interaction Rules

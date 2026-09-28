@@ -2974,8 +2974,8 @@ so a stale preview can serve old assets — run `npm run build` before trusting 
 | Path | What is there |
 |---|---|
 | `CONTEXT.md` | The glossary — authoritative |
-| `DOMAIN_MODEL.md` | The model behind the glossary |
-| `docs/adr/` | Six numbered decisions |
+| `docs/archive/DOMAIN_MODEL.md` | The shipped domain model, archived with a superseded banner (`CONTEXT.md` is the live glossary) |
+| `docs/adr/` | Eight numbered decisions |
 | `docs/FLOW.md` | The navigation contract: screens, breadcrumbs, back targets |
 | `docs/agents/` | The issue-tracker and triage conventions |
 | `.scratch/` | Tickets, committed on purpose |
@@ -2994,7 +2994,7 @@ jq -r '.engines.node' package.json
 jq -r '.name' package.json && jq -e '.engines.node' package.json >/dev/null && echo "engines ok"
 jq -r '.scripts | keys[]' package.json
 grep -oE '`npm (run )?[a-z:]+' README.md | sed -e 's/`npm run //' -e 's/`npm //' | sort -u
-for p in CONTEXT.md DOMAIN_MODEL.md docs/adr docs/FLOW.md docs/agents .scratch package.json .nvmrc wrangler.jsonc vite.config.ts e2e/playwright.config.ts; do test -e "$p" || echo "MISSING PATH: $p"; done
+for p in CONTEXT.md docs/archive/DOMAIN_MODEL.md docs/adr docs/FLOW.md docs/agents .scratch package.json .nvmrc wrangler.jsonc vite.config.ts e2e/playwright.config.ts; do test -e "$p" || echo "MISSING PATH: $p"; done
 grep -niE "service worker|offline|installable|manifest|account|server|sync" README.md
 npx tsc -b
 ```

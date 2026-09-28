@@ -204,3 +204,55 @@ left alone.
 
 **`docs/agents/*` verified unchanged**; `docs/agents/domain.md` points at `CONTEXT.md` and
 `docs/adr/`, both of which survive.
+
+### Review round 1 — prescribed sentences that were false of the shipped build
+
+The first pass followed the plan's wording wherever the wording was not itself wrong. It was
+wrong in four places, and holding "the brief said so" alongside "it is true of the code" is what
+found them. All four are corrected; the corrections are in the next commit.
+
+**1. `docs/FLOW.md` claimed a crumb string no screen renders.** The first pass wrote that "a
+tournament split shows `Games / Split result`". It does not. `SplitScreen`'s crumb block
+(`src/session/SplitScreen.tsx:316-320`) hardcodes `Match setup / Split result` whatever the
+source, so the sentence also contradicted its own rule one clause earlier — the last two
+segments of `Games / {name} / Match setup / Split result` *are* `Match setup / Split result`.
+Now: the three crumb sites and their exact separators are named (`:43`, `:318`, `:266`), the two
+leaves that render no breadcrumb are named, and the "Ticket 28 keeps the rendered depth at two"
+attribution is dropped, since ticket 28 says nothing about depth.
+
+**2. The Disciplines leaf was documented as a Roster child, and it is a Games one.** The file
+claimed Roster at five places (`:31`, `:50`, `:92`, `:106`, `:171`) while the previous commit's
+own new line in `docs/spec/0002:33` said Games — the file contradicted itself and one of the two
+contradicted the code. The only entry point is the Games hub's toolbar button
+(`src/tournament/GamesScreen.tsx:134-136` → `src/App.tsx:1175`); the Roster hub has no
+Disciplines control and `showDisciplines` (`src/App.tsx:695-697`) has no caller. `docs/FLOW.md`
+was the wrong one. All five sites corrected, and the Disciplines leaf's back target is now
+stated as the literal `Back` button it renders rather than a `Back / breadcrumb` row.
+
+**3. `COMP3TIVE_COMPREHENSIVE_ANALYSIS.md` gained one line and nothing else.** A dated
+snapshot note under the title, saying the findings are as-of 2026-09-11 and that several have
+since been fixed. This resolves the tension the previous pass recorded: the file is kept
+unchanged *as evidence*, and a reader can no longer mistake `:365`, `:1245` and `:1247` for
+live claims. Its body is untouched.
+
+**4. `docs/spec/0002:67` said backup v4 "adds" `tournaments[]`.** v3 added tournaments
+(`src/data/transfer.ts:6`); v4 carries both. Now "carries", with the v3 and v4 attributions
+stated.
+
+**Path drift this move created, in a later phase's plan.** `docs/superpowers/plans/2026-09-17-shell-and-structure.md`
+tests `-e DOMAIN_MODEL.md` in its smoke loop, which would have printed `MISSING PATH` during
+Phase C. Corrected to `docs/archive/DOMAIN_MODEL.md` in the loop (`:2997`) and in the knowledge
+table (`:2977`, which also said "Six numbered decisions" for `docs/adr/`; there are eight).
+Recorded here because the phase's own file list is otherwise silently wrong: `DOMAIN_MODEL.md`
+no longer exists at the root.
+
+**Also fixed, in documents this phase already touched.** `docs/FLOW.md` gained a `**Reconciled:**`
+date (`:4`); the §4 edge table gained the `### Home (hub)` table its heading's "complete" was
+promising, built from `DashboardScreen`'s real actions, so the two player-modal entries record
+the `gotoHub("roster")` hop the handlers actually make; the History and Squads empty states now
+quote their shipped copy, matching the standard the Games row was held to in the previous
+commit. And the dead-crumb note's reasoning was wrong: the first pass said the crumb is dead
+"because a `session` or `squad` split has no match-setup screen beneath it", which the code does
+not support — `SplitScreen` takes `onBack`, `src/App.tsx:1228` passes it, and a working `← Back`
+button renders at `:397-399`. The defect is the crumb, not a missing affordance, and the note now
+says that with the cites corrected (`:316-320` for the block; the old `:293-297` was stale).

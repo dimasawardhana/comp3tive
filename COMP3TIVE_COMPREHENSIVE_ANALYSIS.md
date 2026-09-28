@@ -1,5 +1,11 @@
 # Comprehensive Technical Analysis: comp3tive
 
+> **Snapshot dated 2026-09-11.** Every finding, measurement and recommendation below is as-of
+> that date and is kept unchanged as the provenance for the app-health tickets. Several have
+> since been fixed: the storage versions, the tournament data model, ADR-0002's status, the hub
+> count and label, and the stale root documents have all been reconciled. Do not read this file
+> as a description of the current code.
+
 > Generated: 2026-09-11 | Analyzed directory: `/home/dimasajiwardhana/Documents/code/team-builder`
 > Project name derived from `package.json` (`"name": "comp3tive"`); the directory name
 > (`team-builder`) is the app's pre-rename identity, preserved in the IndexedDB migration path

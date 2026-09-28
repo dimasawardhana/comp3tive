@@ -195,18 +195,20 @@ The Landing Page reads tokens from src/tokens.css — the same file the app read
 
 ## Copy voice
 
-Match-night, plain, active. People and what they do, never the system: "Split the teams," not "Run solver." Same name through a flow: the button that says "Split" produces "Tonight's teams." Referee-voice for flags: "No keeper on pink. Fitri is covering." Errors don't apologize and are never vague: "Not enough players for 2 teams. Add more or lower the team count." Empty screens are invitations to act.
+Match-night, plain, active. People and what they do, never the system: "Split the teams," not "Run solver." Same name through a flow: the button that says "Split" produces "Tonight's teams." Referee-voice for flags: "No keeper on pink. Fitri is covering." Errors don't apologize and are never vague — the shipped one is "Not enough eligible players for this game. Adjust the pool or change the discipline." (`src/session/SplitScreen.tsx:376`). Empty screens are invitations to act.
 
-**No em-dashes in visible copy.** Periods and commas carry the pauses. A zero-tolerance rule: the em-dash is the AI tell, so it is banned from UI strings entirely.
+**No em-dashes in new visible copy.** Periods and commas carry the pauses. The em-dash is the AI tell, so it is out of UI strings.
+
+**The shipped app does not meet this yet, and that is a known sweep rather than a claim.** Measured at HEAD, visible copy carries **17** em-dashes: 11 in the app and landing components (`src/App.tsx:599` and `:860`, `src/ErrorBoundary.tsx:37`, `src/landing.tsx:98,105,112`, `src/domain/DisciplineEditModal.tsx:178`, `src/roster/PlayerEditModal.tsx:263`, `src/session/MatchScreen.tsx:186`) and 6 in the landing page's own HTML (`index.html:6,73,101,122,144,200`). The Split button's tooltip is one of them (`src/session/MatchScreen.tsx:186`). This is the standard for new copy; removing the existing ones is a copy pass with its own review, and it has not been done.
 
 ## Accessibility & quality floor
 
-Mobile-first and thumb-friendly (bottom bar actions, 44px+ targets) · `min-height:100dvh` (no mobile viewport jumps) · visible `:focus-visible` rings in amber (`--accent`) · text contrast ≥ 4.5:1 on every surface in both themes (`ink` on `paper`, `ink` on bibs, `paper` on `ink-panel`, `slate` labels at full strength) · responsive to desktop (the app column centers on a subtle hairline frame).
+Mobile-first and thumb-friendly (bottom bar actions, 44px+ targets) · `min-height:100dvh` (no mobile viewport jumps) · visible `:focus-visible` rings in amber (`--accent`) · text contrast ≥ 4.5:1 on every surface in both themes (`--text` on `--surface`, `--text` on bibs, `--surface` on `--panel`, `--text-2` labels at full strength) · responsive to desktop (the app column centers on a subtle hairline frame).
 
 ## Things that don't change
 
 - IndexedDB-only persistence
 - JSON export/import (data portability is the migration path)
 - Existing data model (Community, Player, Discipline, Tournament, Session, Match)
-- Bottom nav: Roster, Games, History, Squads
+- Bottom nav: five hubs in `NAV_ITEMS` order — Home, Roster, Games, History, Squads (`src/App.tsx:63-69`)
 - Solver, bracket machine, validation rules
