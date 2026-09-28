@@ -164,3 +164,7 @@ Result: Phase A shipped; B, C, D and the backend plan had not started; three leg
 implemented; one was moot; and this file was fiction. The audit also found that `contracts.md` — cited
 twenty times as the authority for phase order, ownership and frozen names — had never been committed,
 which is why it was written alongside this rewrite rather than referenced from it.
+| The landing hero's re-roll goes inert after the first click — clicks 2-5 change nothing and the gap worsens 0.10 -> 0.80, because `rerollCount` only advances on a changed roll so the eight-counter window repeats | found at B14's Task 6; `src/session/SplitScreen.tsx:212,274-286` | a product bug; the "Re-rolls inf" claim stays until it is fixed |
+| White-on-bib fails the 4.5:1 contrast floor in dark mode — `#ffffff` on the five `--bib-*` values measures 1.60-3.35:1, and the bib colours are theme-invariant so dark inherits the light ones | found at B17's Task 8; `src/index.css:1982`, `src/landing.css:478`, `src/tokens.css:19-23,51-55` | a CSS decision: darken the bibs or drop the white |
+| `docs/design.md` still exists and still competes with `DESIGN.md`; the deletion needs an explicit owner confirmation recorded in ticket 17's `## Comments` | Phase B, all three rounds | one owner decision |
+| `## Docs: reject a duplicate trust row` — the `landing-trust` list is pinned by an ordered-array `toContainText` plus `toHaveCount(3)` | verified by mutation at B14 round 2 | nothing to do; recorded so the belief survives |
