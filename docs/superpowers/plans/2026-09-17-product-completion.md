@@ -2777,7 +2777,10 @@ test("the landing page opens with no network", async ({ page, context }) => {
   await context.setOffline(true);
   await page.reload({ waitUntil: "load" });
 
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Pick the players. Get the fairest teams.");
+  // The shipped h1, verbatim: B14 scoped it to "it can prove" (an unqualified
+  // optimality claim is false — the screen says "Best gap found."), so the
+  // pre-B14 string can never be produced by the app and would fail here.
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Pick the players. Get the fairest teams it can prove.");
   await context.setOffline(false);
 });
 

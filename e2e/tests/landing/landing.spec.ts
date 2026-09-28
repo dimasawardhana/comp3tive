@@ -16,10 +16,27 @@
  */
 import { test, expect } from "@playwright/test";
 import { SEED_DISCIPLINES } from "../../../src/domain/seed";
+import type { TournamentFormat } from "../../../src/domain/types";
 import type { Page } from "@playwright/test";
 
 /** The Landing Page's own h1; the app's is "Dashboard" (or another screen title). */
 const LANDING_H1 = "Pick the players. Get the fairest teams it can prove.";
+
+/**
+ * The formats a tournament can be run in, keyed by `TournamentFormat`
+ * (src/domain/types.ts:25). The map is exhaustive by construction — the same
+ * idiom the app's own label maps use (`Record<TournamentFormat, string>` in
+ * src/tournament/GamesScreen.tsx:27, src/tournament/TournamentScreen.tsx:26,
+ * src/DashboardScreen.tsx:6) — so it mirrors the code that owns the set instead
+ * of adding a second list of formats. Adding "round-robin" to the union makes
+ * this object literal a `tsc` error until the rail's number is rechecked, and
+ * the count assertion then fails while the page still reads 3.
+ */
+const FORMATS: Record<TournamentFormat, true> = {
+  series: true,
+  "single-elim": true,
+  swiss: true,
+};
 
 /** Navigate to the Landing Page by absolute path, independent of baseURL. */
 const gotoLanding = (page: Page) => page.goto("/", { waitUntil: "load" });
@@ -90,7 +107,22 @@ test.describe("Landing Page", () => {
     await expect(editClaim).toContainText("best it found");
 
     await expect(page.locator(".landing-action-note")).toContainText("no account");
-    await expect(page.locator(".landing-footer")).toContainText("fair teams for futsal nights");
+    // The footer was the last unqualified fairness claim left on the page: the
+    // h1, the meta and the lede were scoped to "it can prove" in B14, and the
+    // split screen says "Best gap found." (src/session/gapProvenance.ts:32),
+    // pinned by e2e/tests/split/gap-provenance.spec.ts:144. Pinned exactly, so
+    // neither a reword nor a dropped scope can pass here.
+    await expect(page.locator(".landing-footer")).toHaveText(
+      "comp3tive — the fairest teams it can prove, for futsal nights, MLBB sessions, and everything after.",
+    );
+    await expect(page.locator(".landing-footer")).not.toContainText("fair teams for futsal nights");
+
+    // The Formats rail counts the formats the app can run, so it is asserted
+    // against `TournamentFormat` — the union that owns the set — rather than a
+    // typed number: Phase D's round-robin must not leave a stale 3.
+    await expect(
+      page.locator(".landing-fact", { hasText: "Formats" }).locator("dd"),
+    ).toHaveText(String(Object.keys(FORMATS).length));
 
     // B14 round 2: the meta description repeated the unscoped claim the lede
     // had just dropped, and the offline promise is deleted rather than softened
