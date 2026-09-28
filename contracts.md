@@ -419,6 +419,22 @@ One definition, one owner, many consumers. A consumer that duplicates one of the
 two named regions C26 moves into `src/shell/RosterScreen.tsx`. **C must not rename independently — it
 reads B15's outcome**, and moves whatever B wrote rather than re-typing it.
 
+### A recorded hazard for Phase D, found at Phase B's Task 1
+
+**`gapKind` returns `"proven"` for a hand-edited team set, and D31's share text branches on it.**
+`swapPlayers` stamps `optimal: true` with `nodesExplored: 0` (`src/session/edit.ts:64`) — meaning "no
+search ran", not "this arrangement is minimal" — and the mandated rule reads that field and nothing
+else, so a result the organizer rearranged by hand is `"proven"`. It is harmless on the split screen,
+because `gapQualifier` returns `null` there and no provenance word is shown. It is **not** harmless
+in `src/share/**`: Phase D's D31 branches on `gapKind` to emit
+`Gap {gap} — the proven minimum for this pool.`, so a swapped result reaching the share text would
+print a proof claim for teams the user put together themselves. The B spec resolved this for the
+screen by declining to special-case the swap path (`:218-227`); **it was never resolved for the
+share text.** D31 must state the rule that fits its own surface, and that rule has to be recorded
+when D's plan is written — it is not a defect in `gapProvenance.ts`, which implements the contract
+B13 was given.
+
+
 ---
 
 ## 6. Files two phases touch, and the rule for each
