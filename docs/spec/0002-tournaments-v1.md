@@ -1,5 +1,7 @@
 # Tournaments v1 — Play the Split
 
+**Status**: shipped (DB v7, backup v4)
+
 ## Problem Statement
 
 comp3tive splits people into fair teams, but then what? The teams play — and nobody tracks it. A casual futsal night runs a mini-bracket by hand; an MLBB session runs a best-of series with someone keeping score on paper. This feature makes the competition part of the app: create a competition container (a Tournament) first, split your teams inside it, then record match results as they happen and keep the progress saved.
@@ -28,7 +30,7 @@ Games tab → New tournament (specs) → Split your teams (locked team count)
          → bracket/standings → record results → complete
 ```
 
-1. **Games tab** (bottom nav, between History and Disciplines): the community's tournaments, newest first, each row showing name, discipline, format, series length, team count, status (Draft / In progress / Complete). Empty state: "No games yet. Create a tournament and split your teams."
+1. **Games tab** (bottom nav, between Roster and History): the community's tournaments, newest first, each row showing name, discipline, format, series length, team count, status (Draft / In progress / Complete). Empty state: "No games yet" / "Run a competition" / "Create a tournament, set the format, and split your teams inside it." Disciplines are reached from this hub's own **Disciplines** button, not from the nav.
 2. **Create tournament modal**: Name, Discipline chips, Format chips (Series / Single elimination / Swiss; double elim grayed "soon"), Series length (BO1 / BO3 / BO5), Team count constrained by format (Series: 2; Single elim: 2/4/8; Swiss: 4/6/8). Creating lands on the tournament page in **draft** state.
 3. **Draft state**: specs summary + "Split your teams" CTA. Enters the existing match flow (pool selection, discipline preset) with the team stepper **locked** to the tournament's count. The Split screen gains a "Submit teams" action that returns to the tournament with a bracket. Before the first recorded result, re-roll and re-split are free.
 4. **Active state**:
@@ -43,15 +45,17 @@ Games tab → New tournament (specs) → Split your teams (locked team count)
 Tournament {
   id, communityId, disciplineId,
   name, format: "series" | "single-elim" | "swiss",
-  seriesLength: 1 | 3 | 5,
+  seriesLength: 1 | 3 | 5,          // tournament-level; a Match inherits it
   teamCount, createdAt, status: "draft" | "active" | "complete",
-  teams: [{ id, bibIndex, name, players: [{playerId, roleId}], strength }],  // snapshot from the split
+  thirdPlace: boolean,             // single elimination only; plays a 3rd-place match (default true)
+  teams: [{ id, bibIndex, name, players: Id[], strength }],  // snapshot from the split
   matches: [{
     id, round, position,
-    teamAId, teamBId,                 // null until assigned (byes / future rounds)
-    seriesLength, games: [{ index, winnerTeamId, scoreA?, scoreB? }],
-    winnerTeamId?,                   // decided once a majority exists
-    nextMatchId?,                    // winner slot (double elim later: loser slot)
+    teamAId, teamBId,              // null until assigned (byes / future rounds)
+    games: [{ index, winnerTeamId, scoreA?, scoreB? }],
+    winnerTeamId?,                 // decided once a majority exists
+    winnerNext: { matchId, slot: "A" | "B" } | null,  // winner slot: advances the bracket
+    loserNext: { matchId, slot: "A" | "B" } | null,   // loser slot: carries the 3rd-place match
     isThirdPlace?,
   }],
 }
@@ -60,7 +64,7 @@ Tournament {
 - Teams are **snapshots** owned by the tournament: deleting the source Session never affects a started tournament.
 - Seeding: teams ordered by split strength (strongest = seed 1); single elim pairs 1v8 / 4v5. No byes at 2/4/8.
 - After the **first recorded result**, re-roll and re-split lock. Player swaps remain allowed (the record stores match outcomes, not lineups).
-- Persistence: one document per tournament in IndexedDB (new `tournaments` store, DB v5), community-scoped. Backup v3 adds `tournaments[]`; v1/v2 imports migrate with an empty list.
+- Persistence: one document per tournament in IndexedDB (new `tournaments` store, DB v7), community-scoped. Backup v4 adds `tournaments[]` and `savedSquads[]`; v1–v3 imports migrate with empty lists.
 - Storage behind the same interfaces as ADR-0001 (`TournamentStore`), so a backend can replace IndexedDB later.
 
 ## Interaction Rules

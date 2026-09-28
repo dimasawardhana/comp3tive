@@ -193,6 +193,16 @@ The Landing Page reads tokens from src/tokens.css — the same file the app read
 
 **The Landing Page introduces no new tokens, no new fonts, and no new colors.** Every color in src/landing.css arrives through `var(...)`. The file's only literal values are alpha overlays of amber, ink, or white, plus the single darkening of the accent on CTA hover — all derived from the palette above, none of them a new color. Type is Outfit for display and Familjen Grotesk for body, exactly as the app uses them, loaded from the same two families.
 
+## Copy voice
+
+Match-night, plain, active. People and what they do, never the system: "Split the teams," not "Run solver." Same name through a flow: the button that says "Split" produces "Tonight's teams." Referee-voice for flags: "No keeper on pink. Fitri is covering." Errors don't apologize and are never vague: "Not enough players for 2 teams. Add more or lower the team count." Empty screens are invitations to act.
+
+**No em-dashes in visible copy.** Periods and commas carry the pauses. A zero-tolerance rule: the em-dash is the AI tell, so it is banned from UI strings entirely.
+
+## Accessibility & quality floor
+
+Mobile-first and thumb-friendly (bottom bar actions, 44px+ targets) · `min-height:100dvh` (no mobile viewport jumps) · visible `:focus-visible` rings in amber (`--accent`) · text contrast ≥ 4.5:1 on every surface in both themes (`ink` on `paper`, `ink` on bibs, `paper` on `ink-panel`, `slate` labels at full strength) · responsive to desktop (the app column centers on a subtle hairline frame).
+
 ## Things that don't change
 
 - IndexedDB-only persistence

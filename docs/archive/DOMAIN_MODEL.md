@@ -1,5 +1,8 @@
 # comp3tive Domain Model
 
+> **Superseded 2026-09-17.** This document describes work that has shipped. The live
+> vocabulary is `CONTEXT.md`; the current flow contract is `docs/FLOW.md`. Kept for history.
+
 ## Overview
 
 comp3tive is a comprehensive system for managing player rosters and creating competitive tournaments across multiple disciplines. This domain model documents the core concepts, relationships, and rules for tournament creation, format specification, and team participation.

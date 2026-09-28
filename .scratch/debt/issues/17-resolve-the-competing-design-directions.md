@@ -80,3 +80,36 @@ decision. `src/tokens.css` and `src/index.css` already implement the survivor.
 - [ ] `src/tokens.css` is unchanged and `npm run e2e`'s landing theme assertions still pass
 
 **Blocked by:** —
+
+## Comments
+
+Partially resolved; the deletion did not happen.
+
+**Done.** `DESIGN.md` absorbs both rules the loser carried, immediately before
+`## Things that don't change`: `## Copy voice` (em-dash ban) and
+`## Accessibility & quality floor` (44px targets, `min-height:100dvh`, focus ring restated in
+Paper & Pencil's `--accent` amber, 4.5:1 contrast). Section order verified. No token, CSS or
+component edit — `git diff --stat src/tokens.css src/index.css src/landing.css` is empty.
+`src/tokens.css:1` states Paper & Pencil, `--accent: #c2410c` (`:15`), `--surface: #faf8f5`
+(`:10`), `--text: #1c1917` (`:13`), and `grep -rn "2B6BFF\|Chakra\|cobalt" src/ index.html
+app/index.html public/` returns no matches.
+
+**Not done, and still open.** `docs/design.md` was not deleted and its body was not replaced
+with the one-line pointer. This file was authored by the repo owner, and this ticket's own
+instruction is "confirm the deletion before running it", recorded in `## Comments`. **No owner
+confirmation was recorded before this task ran** — the ticket had no `## Comments` section at
+all — so neither the deletion nor the fallback was applied. `docs/design.md` still carries the
+Scoreboard direction, its cobalt token and its Chakra Petch stack.
+
+**Consequence to be aware of.** `grep -rn "Scoreboard\|cobalt\|Chakra" DESIGN.md docs/ src/
+index.html app/index.html` therefore still matches `docs/design.md` (plus historical
+`docs/superpowers/` plan and spec files, which name the terms as the direction being replaced).
+The surviving direction is unambiguous in the build — no cobalt value or Chakra Petch reference
+exists in `src/`, `index.html` or `app/index.html` — but the second design document is still on
+disk. Either an owner confirms the deletion (or the pointer line) and this ticket closes, or the
+drift this ticket was written to end is still live.
+
+**One adjacent contradiction found, not fixed here.** `DESIGN.md`'s closing list
+"Things that don't change" still reads `Bottom nav: Roster, Games, History, Squads` — four tabs,
+no Home. The shipped nav is five (`NAV_ITEMS`, `src/App.tsx:63-69`) and this ticket's brief
+requires DESIGN.md's existing content to be otherwise unchanged, so the line was left as found.

@@ -5,6 +5,8 @@ site. This produced screens whose back button contradicted their breadcrumb (the
 breadcrumb said "Games" but went to Roster), a split screen whose destination was decided by
 hidden boolean flags, and a hazard where deleting the current tournament left a blank screen.
 
+**Status**: accepted
+
 We decided to keep the flat `View` union but add two small pieces of state to the app root:
 
 1. **`viewStack`** — a stack of `View`s pushed on every navigation. Back pops it, so the user

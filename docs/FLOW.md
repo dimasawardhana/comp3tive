@@ -1,4 +1,4 @@
-# comp3tive · Page Flow (as-to-be)
+# comp3tive · Page Flow
 
 **Date:** 2026-09-08
 **Status:** Accepted — this document is the contract. The app must conform to it.
@@ -23,14 +23,19 @@ the app is forwarded from `/` to `/app` before first paint (ADR-0006).
 
 ## 1. Hubs
 
-Four bottom-nav hubs. A hub is a top-level home with no back control and no breadcrumb.
+Five bottom-nav hubs. A hub is a top-level home with no back control and no breadcrumb.
 
 | # | Tab | Owns |
 |---|-----|------|
-| 1 | **Roster** | players + capabilities; add/import/export; **Disciplines** (catalog of the rules players are rated against); the only ad-hoc **"Split match"** entry |
-| 2 | **Tournaments** | tournament list, create, draft, bracket, results |
-| 3 | **History** | past ad-hoc splits (sessions): view result, re-roll, save-as-squad, delete |
-| 4 | **Squads** | saved squads: view result, re-split, delete, feed into a tournament |
+| 1 | **Home** | the Dashboard: active-community state and next actions (ADR-0005) |
+| 2 | **Roster** | players + capabilities; add/import/export; **Disciplines**; the ad-hoc **"Split match"** entry |
+| 3 | **Games** | tournaments: list, create, draft, bracket, results |
+| 4 | **History** | past ad-hoc splits (Sessions): view, re-roll, save as squad, delete |
+| 5 | **Squads** | saved squads: view, re-split, delete, feed a tournament |
+
+Source of truth: `NAV_ITEMS` at `src/App.tsx:63-69`, rendered in that order by both the desktop
+rail and the bottom bar. ADR-0005 recorded Home as the **centred** slot; the shipped nav puts it
+first, so the centring claim is superseded by the code.
 
 ## 2. Leaves
 
@@ -40,7 +45,7 @@ Every non-hub view is a **leaf**: one job, one breadcrumb, one back edge.
 |------|-----|-----------|------------|--------------|
 | **Match setup** | pick discipline, players, team count | ad-hoc (Roster), tournament (draft) | see §3 | the source hub/tournament |
 | **Split result** | adjust teams (swap/re-roll), save, submit | ad-hoc, tournament, session, squad | see §3 | Match setup (if source is ad-hoc/tournament) or the source list |
-| **Tournament detail** | draft → confirm teams → bracket → results | — (opened from Tournaments) | `Tournaments / {name}` | Tournaments |
+| **Tournament detail** | draft → confirm teams → bracket → results | — (opened from Games) | `Games / {name}` | Games |
 | **Squad detail** | read the saved teams; re-split; feed tournament | — (opened from Squads) | `Squads / {name}` | Squads |
 | **Disciplines** | create/edit/delete discipline rules | Roster | `Roster / Disciplines` | Roster |
 
@@ -73,17 +78,21 @@ Rules:
 
 Breadcrumbs are links — every crumb above the current screen navigates there.
 
+Not yet universally true: `src/session/SplitScreen.tsx:293-297`'s first crumb is a dead link (its handler only calls `preventDefault`), because a `session` or `squad` split has no match-setup screen beneath it. Ticket 28 replaces all three hand-rolled crumb blocks with the shared `src/nav.tsx` `Breadcrumb`, which renders a plain `<span>` when a crumb has no destination, and fixes this screen. Until then, treat this paragraph as the rule and the split screen as the exception.
+
 ```
 Roster / Match setup                                   (ad-hoc)
-Tournaments / {name} / Match setup                     (tournament)
+Games / {name} / Match setup                           (tournament)
 Roster / Match setup / Split result                    (ad-hoc)
-Tournaments / {name} / Match setup / Split result      (tournament)
+Games / {name} / Match setup / Split result            (tournament)
 History / {date} / Split result                        (session)
 Squads / {name} / Split result                         (squad)
-Tournaments / {name}
+Games / {name}
 Squads / {name}
 Roster / Disciplines
 ```
+
+The chains above are the **path taken**, which is what P1 is about. Every screen renders the last two segments of it and no more: measured, each of the three crumb sites emits exactly one separator (`src/session/MatchScreen.tsx:44`, `src/session/SplitScreen.tsx:295`, `src/tournament/TournamentScreen.tsx:265`), so a tournament split shows `Games / Split result`, not the four-segment chain listed here. Ticket 28 keeps the rendered depth at two; expanding the crumbs to match the full chain would be a visible redesign no ticket asks for.
 
 ## 4. Edge table (complete)
 
@@ -117,7 +126,7 @@ Roster / Disciplines
 | (tournament) "Submit to tournament" | the tournament (bracket seeded, review) | user + auto |
 | Back / breadcrumb | see §2 source table | user |
 
-### Tournaments (hub)
+### Games (hub)
 
 | Action | To | Kind |
 |--------|----|------|
@@ -134,8 +143,8 @@ Roster / Disciplines
 | (review) "Confirm teams" | bracket view (in-place state) | user |
 | (review) "Re-split" | Match setup (source: tournament) | user |
 | (bracket) match card click | record-result modal (in-place) | user |
-| "Undo last game" / "Delete tournament" | in-place / **Tournaments** (auto redirect) | user (+auto) |
-| Back / breadcrumb | Tournaments | user |
+| "Undo last game" / "Delete tournament" | in-place / **Games** (auto redirect) | user (+auto) |
+| Back / breadcrumb | Games | user |
 
 ### History (hub)
 
@@ -150,7 +159,7 @@ Roster / Disciplines
 |--------|----|------|
 | row click / Enter | Squad detail | user |
 | (detail) "Re-split" | Split result (source: squad) | user |
-| (detail) "New tournament with these teams" | **Tournaments** with the create modal open, prefilled (discipline + team count from the squad) | user, explicit cross-feature |
+| (detail) "New tournament with these teams" | **Games** with the create modal open, prefilled (discipline + team count from the squad) | user, explicit cross-feature |
 | "Delete" (confirm) | stays (row gone) | user + auto |
 | (detail) "← Squads" / breadcrumb | Squads | user |
 
@@ -164,16 +173,16 @@ Roster / Disciplines
 ## 5. Empty states
 
 - **Roster**, no players: "Add the first player" CTA; import hint.
-- **Tournaments**, none: "+ New tournament" CTA.
+- **Games**, none: "+ New tournament" CTA.
 - **History**, no sessions: "Splits you run from Roster land here."
 - **Squads**, none: "Save a split as a squad to reuse it."
 - **Tournament draft**, no matching saved squads: the "Or use a saved squad" section is hidden.
 
 ## 6. What this flow is NOT
 
-- No URL routing, no browser back/forward: a local-first single-user tool; in-app Back +
-  breadcrumbs cover navigation (ADR-0004).
+- No URL routing, no browser back/forward: a local-first single-user tool; in-app Back
+  covers navigation, and breadcrumbs name the path (ADR-0004).
 - No modal-based flows with more than one step: the only multi-step flow is Match setup →
   Split result, which is a leaf pair, not a modal.
 - No implicit cross-feature jumps: the single sanctioned cross-hub CTA is
-  Squads → Tournaments (prefilled create), and it is labeled and user-initiated.
+  Squads → Games (prefilled create), and it is labeled and user-initiated.
