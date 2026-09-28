@@ -155,6 +155,7 @@ Not scheduled anywhere. Recorded so they are not rediscovered as if they were ne
 | **A sign-in must not overwrite an account that has already synced.** The adoption guard is on the *account's* state, not the device's — and a bad overwrite now destroys the authoritative copy, where before it damaged only the local one | ADR-0007, backend spec Implementation Decisions | Phase E's plan must pin the guard and its test |
 | **A pending offline write blocks sign-out, or is discarded behind an explicit confirm.** Signing out empties the stores and a queued write then has nowhere to go | ADR-0007, backend spec | Phase E's plan |
 | **A cache served while the account is unreachable must say it is a cache.** Token expiry keeps data readable so a signed-in Organizer never finds an empty app; without a signal, someone enters tournament results into a stale copy believing they are saved | ADR-0007, backend spec | Phase E's plan, plus copy in E's UI |
+| `src/roster/PlayerEditModal.tsx:170,183` still shows `e.g. Kairi` and `e.g. ONIC · Jungle` as placeholder examples — the last user-visible surface teaching the vocabulary Phase B's ticket 20 removes from the sample rosters | found at B20's Task 4; out of that ticket's file ownership | two placeholder strings, plus whatever the reviewer finds in the same component |
 
 ## How this file was rewritten
 
