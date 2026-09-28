@@ -55,10 +55,18 @@ test.describe("Landing Page", () => {
     const trust = page.locator(".landing-trust li");
     await expect(trust).toHaveCount(3);
     await expect(trust).toContainText([
-      "proven minimum",
-      "no signal",
+      "proven minimum for a two-team split",
       "stays on your device",
+      "no account",
     ]);
+
+    // B14: the offline promise is deleted, not softened. D02 restores it with the
+    // manifest and service worker; until then the page must not make it at all.
+    await expect(page.locator(".landing-trust")).not.toContainText("no signal");
+    // The lede claims only what the solver can prove for every pool size.
+    await expect(page.locator(".landing-lede")).toContainText("it can prove");
+    // And "exact, not estimated" — the phrase that overclaimed — is gone.
+    await expect(page.locator(".landing-lede")).not.toContainText("exact, not estimated");
 
     await expect(page.locator(".landing-action-note")).toContainText("no account");
     await expect(page.locator(".landing-footer")).toContainText("fair teams for futsal nights");

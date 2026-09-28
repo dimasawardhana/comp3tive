@@ -109,10 +109,10 @@ const DISCIPLINES = [
   },
   {
     name: "Badminton",
-    desc: "1v1 or doubles — the split still balances, whether it's singles or a pair.",
-    roles: ["Singles", "Doubles"],
+    desc: "Doubles on a badminton court — pairs balanced by strength, one at the front and one at the back.",
+    roles: ["Front court", "Rear court"],
     attributes: ["Technical", "Fitness", "Game IQ"],
-    teamSize: "1v1 or 2v2",
+    teamSize: "2 v 2",
   },
 ];
 
