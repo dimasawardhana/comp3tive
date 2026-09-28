@@ -27,15 +27,17 @@
 
 ## Where the work stands
 
-**43 tickets. 12 shipped, 31 to go.**
+**43 tickets. 20 shipped, 23 to go.**
 
 ```
 Phase A · Truth and Trust          12 tickets   SHIPPED   edfd739
-Phase B · Honest Claims             8 tickets   not started
+Phase B · Honest Claims             8 tickets   SHIPPED   feature/revamp, unpushed
 Phase C · Shell and Structure      10 tickets   not started
 Phase D · Product Completion        7 tickets   not started
 Phase E · Account and Durability    6 tickets   not started
 ```
+
+**Not pushed.** `feature/revamp` is 26 commits ahead of `master` at `5b65d53` and the tree is clean.
 
 ### Phase A — Truth and Trust · shipped
 
@@ -52,18 +54,28 @@ one-line maintainer action.**
 Ledger: [`.superpowers/sdd/2026-09-17-truth-and-trust/progress.md`](.superpowers/sdd/2026-09-17-truth-and-trust/progress.md).
 Tickets `.scratch/debt/issues/01-*.md` … `12-*.md`, all now `resolved` with their delivering commits.
 
-### Phase B — Honest Claims · not started · 8 tickets
+### Phase B — Honest Claims · shipped
 
-**Goal:** every claim the product makes about itself is true. The split screen says whether a gap was
-*proven* minimal or is the *best found*; the landing page stops promising what the build does not do;
-"Community" is the only word for the group; the documents stop contradicting the code.
+Branch `feature/revamp`, 26 commits, unpushed. The product no longer claims things it does not do.
 
-**The first thing to check:** `src/session/gapProvenance.ts` does not exist. It is the phase's
-central module and the reason the rest is cheap. `src/session/SplitScreen.tsx:139,357` still
-hardcode `Fair game.` regardless of provenance; `src/App.tsx:1090,1152` still say "squad".
+- **The split screen says whether a gap was *proven* or is the *best found*.** New
+  `src/session/gapProvenance.ts` reads `result.solver.optimal` and nothing else; the qualifier
+  `Best gap found.` rides inside the existing markup, and the proven path is byte-identical.
+- **One noun for the group.** Five user-visible strings moved from "squad" to Community/roster; the
+  Saved Squad artifact keeps its name everywhere.
+- **Badminton ships as a real discipline**, with a sample roster the app can actually round-trip —
+  and a version-gated backfill, so existing installs gain it rather than only fresh ones.
+- **The landing page makes no claim the build outruns**, and the documents agree with the code.
 
-Spec · plan · tickets: `docs/superpowers/specs/2026-09-17-honest-claims-design.md` ·
-`docs/superpowers/plans/2026-09-17-honest-claims.md` (2,124 lines) · `.scratch/debt/issues/13-20`.
+Gate on this branch, cold: `npx tsc -b` exit 0 · **180 unit** · **50 e2e, 0 failed** ·
+`src/solver/solver.ts` byte-identical to the fork.
+
+Eleven tasks, each through its own implementer → review → fix → re-review loop; **no review in the
+phase ever returned "Approved, nothing to fix."** Three product defects surfaced that no ticket asked
+for — the inert landing re-roll, the dark-mode bib contrast, and the new-tournament modal silently
+defaulting to badminton. All three are in the known-open table below.
+
+Ledger: [`.superpowers/sdd/2026-09-17-honest-claims/progress.md`](.superpowers/sdd/2026-09-17-honest-claims/progress.md)
 
 ### Phase C — Shell and Structure · not started · 10 tickets
 
@@ -132,8 +144,17 @@ later phase creates or rewrites.
 different owners between them: `src/App.tsx` (B15's two strings sit inside the region C26 moves) and
 `src/session/SplitScreen.tsx` (B13's gap copy and B15's two strings, against C28's crumb block and
 C26's re-roll expression). Two agents in those files at once is the failure Phase A recorded as
-Ruling R16. So: **run B, then C.** C gains nothing by starting early, because D is hard-blocked on C
-either way — the parallelism buys no critical-path time and costs a merge.
+Ruling R16. **B is now shipped**, so that constraint is spent: the order is **C → D → E**. C still
+gains nothing by starting early, because D is hard-blocked on C either way — the parallelism buys no
+critical-path time and costs a merge. Run them one at a time.
+
+**Two new obligations arrived with Phase B, both recorded in `contracts.md`:**
+- **Adding a discipline needs a `SEEDS_ADDED_IN` entry and a `DB_VERSION` bump.** Without the bump
+  every existing install runs forever on the old catalog, with no path to the new one — which is
+  exactly the defect B19 had to find and fix.
+- **The catalog's order is a contract, not a byproduct.** `disciplines[0]` is the new-tournament
+  default and `startMatch`'s tie-break, and a store's natural order is alphabetical, not seed order.
+
 
 ## Known-open items
 
