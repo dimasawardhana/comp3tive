@@ -1,6 +1,6 @@
 # 01: Re-anchor the e2e suite to the shipped layout (rail)
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **What to build:** Every spec navigates by a hub's accessible name through one shared helper, so the browser suite passes at the shipped layout — the desktop rail at 1280×720 — and a future layout change can no longer break a spec by position.
 
@@ -40,3 +40,11 @@ Second stale-locator class, same defect: **`.tournament-header h1` no longer exi
 - [ ] `npx playwright test --config=e2e/playwright.config.ts` reports 0 failures from the rail root cause
 
 **Blocked by:** —
+
+## Comments
+
+Resolved by commits `bcf273e` ("test: re-anchor the e2e suite to the shipped layout via hubButton") and `6e682a7` ("test: restore the nav cardinality assertion and tidy the re-anchor"), which create `e2e/support/seed.ts` with the frozen `SeedWorld` / `seedScript` / `gotoSeeded` / `gotoHubSeeded` / `hubButton`, re-anchor every spec onto `hubButton` (no positional nav index survives: `grep` for `.nav-link").nth(` across `e2e/**` returns nothing), add `e2e/tests/shell/nav-layout.spec.ts` (one visible control per hub at 1280x720 and 390x844), and add `e2e/tsconfig.json` so `npx tsc -b` covers the specs. The frozen signatures are at `e2e/support/seed.ts:39,81,118,134,139`; the helper is the only seeding module in the tree.
+
+Fixing the navigation exposed a second, previously unreachable defect: `history.spec.ts` asserted the kicker `/Game Tape/` while the app ships `Game tape` (`src/session/HistoryScreen.tsx:32`). The assertion had never executed, because the spec died earlier on its stale `nth(3)` click. The spec was corrected; `src/` was not touched.
+
+Suite state at the branch's end is 43 passed / 0 failed / 0 skipped across 20 files, recorded in `.superpowers/sdd/2026-09-17-truth-and-trust/progress.md`. That run was not repeated for this closure; the two criteria that are execution-only (1.10 and ticket 02's 2.7) are therefore attested by the ledger, not re-observed.

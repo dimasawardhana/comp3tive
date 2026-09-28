@@ -1,6 +1,6 @@
 # 06: Import merge keeps each record's community
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **What to build:** Restoring a backup leaves every record attached to the community it came from, so nothing lands where no screen can show it.
 
@@ -33,3 +33,13 @@ For a **v4** backup — the current format (`src/data/transfer.ts:9`, `version: 
 **Blocked by:** 01 (shared seeded helper) and 05 — 05 also edits `src/data/transfer.test.ts`, so this one lands after it to avoid a same-file collision
 
 **Notes:** This is the only defect of its group whose symptom is silent — the import reports success, and the missing records are only noticed later, by their absence. `src/App.tsx`'s import path is Phase A's; C's decomposition lands after A and must preserve this behaviour exactly.
+
+## Comments
+
+Resolved by commit `115a135` ("fix: an import merge keeps each record's own community").
+
+The `importCommunityId` override and its two spreads are gone from the player and squad loops (`src/App.tsx:459-470`), and `communities.refresh()` runs before the record saves (`:466`) — without it the orphan-adoption effect at `:225-237` re-homes every imported record to the active community by a different mechanism, which deleting the override alone does not prevent. The five record lists an import can invalidate are exactly the five refreshed; `handleImport` never writes disciplines, because `BackupData` carries none. `e2e/tests/roster/import-community.spec.ts:70-116` imports a two-community v4 file, switches community, and asserts each roster shows only its own player and the active community absorbed nothing.
+
+One acceptance box (6.5) is misworded and was not met as written: it assumes `sample-data/futsal-roster.json` takes the players-only JSON branch, but the file is `version: 1` and therefore routes through `handleImport`'s version check at `src/App.tsx:555-557`. The behaviour is correct and deterministic — the file lands in `community-default`, which `useCommunities.refresh` creates and activates on a fresh profile — but the criterion's routing premise and its "into the active community" clause are both wrong. The Phase A ledger reaches the same conclusion and rules it "misworded, not the code".
+
+Consequence worth carrying: the v1 route through `handleImport` has no committed e2e coverage. `parseBackup`'s adoption is unit-tested (`src/data/transfer.test.ts:301-328`); the handler path is not. One `it` importing `{ version: 1, ... }` while a non-default community is active would pin it.

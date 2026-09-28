@@ -1,6 +1,6 @@
 # 08: Import survives a bad file
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **What to build:** The import path tells the truth about what it did. A quoted CSV field imports as one value, a discipline it does not recognise is reported by row rather than silently producing a player who cannot play anything, and a file too large to be sensible is refused before it is read into memory.
 
@@ -37,3 +37,13 @@
 **Design reference:** `.scratch/app-correctness/issues/03` establishes the message tone for rejected imports — specific and user-readable, naming the offending record. Match it.
 
 **Notes:** The size limit is a guard against a self-inflicted freeze, not a security control. Five megabytes is generous for a real roster. The interface above is frozen: Phase D36 consumes it verbatim and owns discovery (a CSV template, in-app column documentation) and bulk rating — not parsing, validation or messages.
+
+## Comments
+
+Resolved by commit `3a85f65` ("fix: import survives a bad file"), through three review rounds: `2a9e940`, `d8b1085`, `dc5ee52` ("fix: an unclosed quote costs its own line, not the rest of the file"), and `f38ed34` ("fix: stop refusing the shipped sample, and stop reporting an empty import").
+
+`src/data/player-import.ts` exports exactly the six contracted names (`MAX_IMPORT_BYTES:4`, `CsvRow:14`, `ImportSkip:22`, `assertImportSize:28`, `parsePlayerCsv:111`, `csvRowsToPlayers:184`). The size guard runs before the file is read (`src/App.tsx:536-537`), an unknown discipline lands in `skipped` rather than importing a capability-less player (`src/data/player-import.ts:196`), and no `alert(` survives in either import branch.
+
+The replacement code for a silent-data-loss defect twice introduced another silent-data-loss defect of the same class, and each was caught only because a test asserted the *absence* of a bad outcome. The shipped rule: a quote that opened at the start of a field means multi-line intent, so its continuation is consumed and never re-read as its own record; a quote opened mid-token is a typo on that line alone, so the next line is read afresh. `MAX_RECORD_LINES = 2` bounds it, and a 500-row roster with one stray quote at row 5 now imports 499 and reports one skip.
+
+Two deviations from this ticket's own acceptance boxes, both deliberate. (1) It asked for a single summary line naming the imported count and the first skipped line; the code emits two — the count on the success channel and the skip on the error channel (`src/App.tsx:620-632`). That is a review finding, not drift: the original pairing fired the success toast unconditionally, so an import that rejected every row reported "Imported 0 players" in success styling, and `f38ed34` guards the success toast on a non-zero count. (2) It asserted the existing imports still behave as before; `src/data/sample-roundtrip.test.ts` now pins that directly, parsing both shipped files through `parseBackup(..., SEED_DISCIPLINES)` at 25 players each with every player passing `validatePlayer` — the round trip `DisciplinesScreen`'s own "Sample" button advertises.

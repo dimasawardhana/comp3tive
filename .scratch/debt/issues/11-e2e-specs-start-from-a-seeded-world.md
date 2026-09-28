@@ -1,6 +1,6 @@
 # 11: e2e specs start from a seeded world
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **What to build:** Every spec begins from a known world — the community, players and records it needs already in place — instead of building that world by clicking through the UI before the test starts. The suite stops depending on the create-community flow and stops duplicating fixture setup in every file.
 
@@ -68,3 +68,15 @@ await gotoHubSeeded(page, tenFutsalPlayers(), "Roster");
 **Blocked by:** 01 (the helper, the re-anchor and the seed recovery), 02, 09 (the prune changes which specs exist to be swept), 10 (CI must be the thing that catches a regression introduced by the sweep)
 
 **Notes:** A hard-coded DB version in a shared helper is a new kind of staleness — better to derive it from the source than to repeat the number. The dashboard seeding pattern's own doc comment (`e2e/tests/dashboard/dashboard.spec.ts:1-19`) documents the store-key ordering and the `tb-community` key, and that knowledge moves into the helper with the code.
+
+## Comments
+
+Resolved by commit `88d45e8` ("test: seed every spec deterministically").
+
+`e2e/support/seed.ts` is the only seeding module. `DB_VERSION` is imported from `src/storage/indexed-db.ts:19` and re-exported (`:31,34,96`) rather than copied, so the harness and the app cannot drift; a row's own `capabilities` pass through and the uniform `mlbbCap` is applied only when absent (`:86`); `localStorage["tb-community"]` pins the active community (`:105`). The `addInitScript` `Disposable` is held and `seed.dispose()` called once the world is on disk (`:19-27,119-123`), which closes the reload hazard at the helper rather than at each call site — a spec that seeded and then reloaded would otherwise have had its seed replayed, resurrecting deleted records. Only `community/community.spec.ts` and `community/cancel-dropdown.spec.ts` still click `New community`, because the create-community form is those two specs' subject, not a precondition.
+
+The two records this ticket asked for, which Phase A wrote into its ledger instead of here:
+
+*Wall clock.* Baseline at the audit was 7.1 min, 16 of 42 specs timing out at 30 s each. After the re-anchor: 39 passed / 1 skipped / 0 failed across 40 tests in 58.7 s. At the branch's end: 43 passed / 0 failed / 0 skipped across 20 files.
+
+*`workers`.* The acceptance allowed raising it or recording a blocking shared record; neither is true, and the honest answer is a third one. `workers: 2` was measured green twice (29.3 s and 31.0 s by the implementer, 29.9 s re-measured by the controller) against roughly 60 s at `workers: 1` — a genuine 2x — and nothing shared blocks it, because every swept spec seeds its own community and pins it. It was deliberately left at 1: the change is behaviour-neutral for correctness but alters the suite's execution model, and Phase A's exit criterion was a green suite rather than a faster one. This is the first post-merge candidate for whoever owns CI tuning.

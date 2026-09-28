@@ -1,6 +1,6 @@
 # 05: Validate players where data enters; add an error boundary
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **What to build:** Every path that accepts player data runs the model rules that already exist and are already tested, and any render-time throw shows a message with a way to recover instead of a blank page.
 
@@ -34,3 +34,11 @@
 **Blocked by:** 01 — the E2E uses the shared seeded helper (`.scratch/debt/issues/01`)
 
 **Notes:** This is the highest-value of the import fixes — the others are annoyances, this one loses the screen. No schema library is needed; the validation function exists. `src/data/transfer.test.ts` is also edited by ticket 06, which is blocked by this one for exactly that reason.
+
+## Comments
+
+Resolved by commit `d00b683` ("fix: validate players at the import boundary and survive a render throw"), narrowed by `51ab51d` ("fix: let the import boundary restore dangling capabilities").
+
+`parseBackup(text: string, disciplines?: string[] -> Discipline[])` keeps its one-argument form, and the whole validation block is guarded by `if (disciplines)` (`src/data/transfer.ts:126`), so the eleven pre-existing cases are untouched and the players-only path stays shape-only. The first problem throws in the module's own voice naming the record (`src/data/transfer.ts:143`). `src/ErrorBoundary.tsx` carries the frozen class shape and is mounted outside `<App />` (`src/main.tsx:8-12`).
+
+Two review findings changed the first attempt, and the second commit is the narrowing: `validatePlayer` was refusing a whole backup because a capability named a discipline the local catalog did not have, which is a state the product itself produces (deleting a discipline leaves dangling capabilities by design, per `src/domain/DisciplineEditModal.tsx:156`). The rule now applies only to disciplines the supplied catalog knows, and a `null` or partial capability element yields the module's own message rather than a raw `TypeError`.

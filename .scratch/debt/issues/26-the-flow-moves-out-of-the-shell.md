@@ -63,7 +63,9 @@ and builds no bracket. **Phase D's D35 edits this guard** (in this hook), togeth
 `getValidTeamCounts` in `src/tournament/tournament-validation.ts`.
 
 **2–5. Four more files.** The flow alone does not get `App.tsx` under 400 — the roster hub is
-162 lines of JSX (`:976-1137`) and the chrome is another 147 (`:777-922`) plus nav and toasts
+162 lines of JSX (the empty state at `:1090` and the "Split match" CTA at `:1152` are inside it, but
+the CTA sits past `:1137`, so **take both anchors, not one range**) and the chrome is another 147
+(`:777-922`) plus nav and toasts
 (`:1257-1279`). So:
 
 - **`src/shell/RosterScreen.tsx`** — the roster hub's markup, moved verbatim: filter chips, the

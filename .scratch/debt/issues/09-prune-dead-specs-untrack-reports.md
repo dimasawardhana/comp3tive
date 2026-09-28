@@ -1,6 +1,6 @@
 # 09: Prune the specs that assert nothing; untrack the reports
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **What to build:** Remove the committed debugging leftovers from the browser suite so a green run means something, and stop tracking build output in git.
 
@@ -33,3 +33,11 @@ One more trivially-passing assertion, same family: `e2e/tests/landing/landing.sp
 **Blocked by:** 01 and 02 — deleting files before the re-anchor would leave the suite red with no way to tell whether the deletion or the anchor caused it
 
 **Notes:** Deliberately separate from the docs reconciliation (Phase B16) and from the Landing Page work. The `dashboard.spec.ts` seeding pattern is the model worth keeping, and it is generalised by ticket 11 rather than removed here.
+
+## Comments
+
+Resolved by commits `f7986c4` ("test: prune the specs that assert nothing and untrack the reports") and `d057c89` ("chore: ignore tool scratch, secrets and deploy state, and untrack what leaked in").
+
+`f7986c4` deletes `e2e/pages/`, `review.spec.ts` (a `test.skip` that asserted only `.app` visible) and the trivially-passing `.tabbar` assertion from `landing.spec.ts`. The three `inspect` specs and `journey.spec.ts` were deleted earlier, by `bcf273e` — an assertion that could not fail, because `.tabbar` is emitted nowhere; the real bar is `<nav className="bottom-nav">` (`src/App.tsx:1299`). The landing spec's `expect(` count went 56 -> 55, exactly the one vacuous assertion removed, and nothing else in that file changed.
+
+`d057c89` is the commit that actually untracks `playwright-report/` and `test-results/`. The `.gitignore` entries landed in `f7986c4`, and a gitignore entry alone does not untrack a file that is already tracked. It is the twentieth commit of the branch, after `f38ed34` — so an audit scoped to `c05c58f..f38ed34` will wrongly conclude this ticket is half-delivered. The branch range is `c05c58f..d057c89`.
