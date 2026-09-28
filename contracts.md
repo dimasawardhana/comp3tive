@@ -435,6 +435,27 @@ One definition, one owner, many consumers. A consumer that duplicates one of the
 | `DB_VERSION` | `src/storage/indexed-db.ts:19` | `e2e/support/seed.ts` imports it rather than copying it |
 | The storage seam (`src/storage/types.ts`) | existing | E's sync caller is the only thing that talks to the network, and the only writer; the stores become its cache |
 
+### Amended by Phase C, Task 6 — Phase D's plan must be re-derived before it runs
+
+`src/shell/useSplitFlow.ts` now carries all three frozen exports plus a hook, and the hook's surface
+grew by three members the Phase C plan did not specify, because `setup` moved into it:
+
+- **`SplitFlowResult` gained `gotoHub` and `createTournament`.** `setup` used to call App's
+  `gotoHub` — which cleared the setup — and the tournament branch called `openTournamentOverGames`
+  plus `setSetup(null)`. Both had to travel with it.
+- **`SplitFlowDeps` gained `view: View`,** because `split()` reads the live view to decide where a
+  flow is going.
+- **`SplitFlowDeps.tournaments` is the UNSCOPED list, not the community-scoped one.** The Phase C
+  plan's Step 5 and Step 11 contradicted each other on this. Scoping it would mean a mid-flow
+  community switch turned a valid bracket save into "the tournament is no longer in this community's
+  list". The call site carries a comment saying so.
+
+**Consequence: code written against the Phase C plan's stated interface will not compile.** Phase D's
+plan is written against the pre-amendment shape. Writing Phase D's plan must be re-derived against
+the landed file — the same discipline every Phase C task used, because the spec did not anticipate
+`setup` moving into the hook.
+
+
 **B's five renamed strings — carried, never re-derived.** `No players in this squad` →
 `No players in this community`; `Split the squad` → `Split the roster`; `then the squad` →
 `then the roster`; `Tournament squad` → `Tournament teams`; `Save tournament squad →` →
