@@ -3,6 +3,7 @@ import { scopeCommunities } from "./useCommunityScope";
 import { FUTSAL_DISCIPLINE, MLBB_DISCIPLINE } from "../domain/seed";
 import type {
   Community,
+  Discipline,
   Player,
   SavedSquad,
   Session,
@@ -141,16 +142,27 @@ describe("scopeCommunities", () => {
     expect(scope.players).toEqual([]);
   });
 
-  // Mutation it defends: keying the map by name — `d.name` — so
-  // `get("futsal")` misses while `get("Futsal")` hits.
+  // Mutations it defends: keying the map by name — `d.name` — so `get("futsal")`
+  // misses while `get("Futsal")` hits; and a map hardcoded to the catalog's own
+  // disciplines rather than built from this input. The third entry is not from
+  // the seed module on purpose: a substituted map has no answer for an id it
+  // was never handed, so it cannot pass here by listing what it already knew.
   it("builds disciplinesById from the optional input", () => {
+    const custom: Discipline = {
+      ...FUTSAL_DISCIPLINE,
+      id: "custom-x",
+      name: "Custom X",
+      shortName: "CX",
+    };
     const scope = scopeCommunities({
       ...input("c-a"),
-      disciplines: [FUTSAL_DISCIPLINE, MLBB_DISCIPLINE],
+      disciplines: [FUTSAL_DISCIPLINE, MLBB_DISCIPLINE, custom],
     });
+    expect(scope.disciplinesById.size).toBe(3);
     expect(scope.disciplinesById.get("futsal")).toEqual(FUTSAL_DISCIPLINE);
-    expect(scope.disciplinesById.size).toBe(2);
     expect(scope.disciplinesById.get("mlbb")).toEqual(MLBB_DISCIPLINE);
+    expect(scope.disciplinesById.get("custom-x")).toEqual(custom);
+    // Nothing the input did not mention: the seed catalog is not the default.
     expect(scope.disciplinesById.get("badminton")).toBeUndefined();
   });
 
