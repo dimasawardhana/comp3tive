@@ -13,6 +13,15 @@
  *   PROVEN-B    15 uniform MLBB, teamCount 3 -> optimal=true, nodes=2, gap=0     "Dead even. Fair game."
  *   BESTFOUND-A 25 futsal, teamCount 3 -> optimal=false, nodes=4,000,001, gap=0.1323 "Gap 0.1. Team C leads. Best gap found."
  *   BESTFOUND-B 25 futsal, teamCount 5 -> optimal=false, nodes=4,000,001, gap=0     "Dead even. Best gap found."
+ *
+ * Both readouts are pinned in both states, four cells in all: the 2-team
+ * GapMeter site in a proven split and in a re-rolled one, and the 3+ stack
+ * site in an exhausted split and in a proven one. The 2-team best-found cell is
+ * reached by re-rolling rather than by exhausting the budget — a two-team
+ * futsal pool of 32+ is what aborts at NODE_BUDGET
+ * (`e2e/tests/landing/landing.spec.ts:67-70`), and no pool that size is run
+ * here. The state under test is `optimal: false`, which `varietySplit` stamps
+ * on the same field the readout reads.
  */
 import { test, expect } from "@playwright/test";
 import type { Page } from "@playwright/test";

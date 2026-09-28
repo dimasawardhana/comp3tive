@@ -187,7 +187,7 @@ becomes:
 ```
 
 **Voice.** `DESIGN.md` sets the register: "Plain verbs." `PRODUCT.md`: "No marketing-speak, no
-friendly chatter." The qualifier is five words of plain English. It contains no jargon — not
+friendly chatter." The qualifier is three words of plain English. It contains no jargon — not
 "aborted", not "node budget", not "search", not "heuristic", not "exhaustive". "Best gap found"
 states what happened (the search ended and this was the best it found) without accusing the
 engine of failure. `docs/design.md:72` bans em-dashes in visible copy; the qualifier uses none.
@@ -272,7 +272,7 @@ every role along the way. Futsal, MLBB, badminton, then the tournament on those 
 (`landing.spec.ts:47` asserts "smallest strength gap" — preserved). The new sentence keeps
 "smallest strength gap" and attaches "it can prove", which is true for every pool size and does
 not read as a hedge on the 2-team case: a small pool still gets the exact minimum, and the split
-screen says so in five words.
+screen says so in three words.
 
 **3. The badminton card (`src/landing.tsx:110-116`).** Removed by B19 (see below), which is the
 ticket that owns the discipline decision. B14's edit to the card is the `DISCIPLINES` array

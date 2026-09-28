@@ -1,9 +1,14 @@
 /**
- * B15: the group is a Community in every string a user reads.
+ * B15: the group is a Community in the strings this file pins.
+ *
+ * B15 replaced five user-visible strings. Two of them render on a seeded,
+ * empty-roster screen, and these two are what this file asserts: the
+ * empty-roster copy and the CTA under it. The other three — "then the roster",
+ * "Tournament teams", "Save teams to tournament →" — are not asserted here, so
+ * this header does not claim them.
  *
  * "Squad" survives only where it names the curated, named split (Saved Squad),
- * which CONTEXT.md deliberately calls a squad. These two assertions cover the
- * two replaced strings that render on a seeded, empty-roster screen.
+ * which CONTEXT.md deliberately calls a squad.
  */
 import { test, expect } from "@playwright/test";
 import { gotoHubSeeded } from "../../support/seed";

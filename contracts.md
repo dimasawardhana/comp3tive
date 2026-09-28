@@ -74,6 +74,12 @@ Copied from the specs. Values are exact.
   shared blocks it) and is deliberately deferred to whoever owns CI tuning.
 - **Playwright serves `dist/`.** `e2e/playwright.config.ts:17-22` runs `npm run preview` with
   `reuseExistingServer: true`, so **rebuild before trusting any e2e run**: `npx vite build` first.
+- **Playwright spawns `npm run preview` from the repo root, not from `e2e/`.**
+  `e2e/playwright.config.ts:23` sets `webServer.cwd: ".."` because Playwright resolves the
+  command against the config file's own directory and `e2e/` has no `package.json` — without
+  it the command fails ENOENT and **the suite cannot start at all**. The `reuseExistingServer`
+  in the block above hid the defect: every recorded local run already had a preview server
+  up, so the broken command was never exercised. CI runs it cold, on a fresh runner.
 - **Playwright paths are relative to `e2e/`.** `testDir` is `./tests`, so a single-spec run is
   `npx playwright test --config=e2e/playwright.config.ts tests/<group>/<file>.spec.ts`. A bare
   `e2e/tests/...` path finds no tests.
@@ -83,6 +89,23 @@ Copied from the specs. Values are exact.
 - **A green suite gates every phase.** No phase ends with a failing test.
 - **The solver is not touched by B, C, D or E.** No ticket changes `NODE_BUDGET`
   (`src/solver/solver.ts:21`), the pruning bound, the search order, or any file under `src/solver/`.
+- **The catalog is returned in `SEED_DISCIPLINES` order, custom disciplines last.**
+  `orderDisciplines` (`src/domain/seed.ts:89`) is applied by both stores —
+  `src/storage/memory.ts:68` and `src/storage/indexed-db.ts:358` — because a store reads its
+  rows in ascending key order, which is alphabetical, so badminton would lead. The seed's own
+  order is load-bearing, not cosmetic: `disciplines[0]` is the new-tournament default
+  (`src/tournament/GamesScreen.tsx:51`) and the seed of `startMatch`'s tie-break
+  (`src/App.tsx:247`, whose strict `>` keeps the earlier discipline when two are equally
+  playable). Reordering `SEED_DISCIPLINES` changes what the app defaults to, so the array and
+  every sentence that names the catalog in order are edited together.
+- **Adding a discipline means a `DB_VERSION` bump and a `SEEDS_ADDED_IN` entry.**
+  Phase B raised `DB_VERSION` 6 → 7 (`src/storage/indexed-db.ts:19`) and added
+  `7: [BADMINTON_DISCIPLINE]` (`:28-30`) with the upgrade branch that writes exactly those
+  seeds (`:71-80`). **No ticket asked for it**, and without it every existing install would
+  have run forever on two disciplines with no path to gain badminton: the whole catalog is
+  only written on a first open (`:66-70`). An upgrade deliberately writes only the seeds its
+  version introduced, never the whole catalog — the catalog is the user's to edit, and
+  re-seeding it would resurrect a discipline they deleted.
 - **Authority is the server's; the read path is IndexedDB.** From Phase E, a signed-in Organizer's
   Account is the source of truth, and this device holds a write-through cache of it. Two rules follow
   for every phase, including the ones that run before E: **no screen may await a `fetch` to render**
@@ -257,7 +280,7 @@ export const BADMINTON_DISCIPLINE: Discipline;
 
 `proven` **iff** `result.solver.optimal === true`. Read that field and nothing else — not the source,
 not the re-roll counter, not `nodesExplored`. The budget is not predictable from pool size, so no
-copy may encode a size rule. The qualifier is exactly the five words `Best gap found.`, riding
+copy may encode a size rule. The qualifier is exactly the three words `Best gap found.`, riding
 inside the existing `<span className="fine">`. No new CSS, no new classes, no layout change.
 Banned tokens in that copy: `aborted`, `node budget`, `heuristic`, `search`, `exhaustive`, em-dashes.
 

@@ -43,7 +43,7 @@ describe("gapQualifier", () => {
     expect(gapQualifier(resultWith({ optimal: true, nodesExplored: 51, elapsedMs: 7 }))).toBeNull();
   });
 
-  it("returns the five-word qualifier when best-found", () => {
+  it("returns the three-word qualifier when best-found", () => {
     expect(gapQualifier(resultWith({ optimal: false, nodesExplored: 4_000_001, elapsedMs: 273 })))
       .toBe("Best gap found.");
   });

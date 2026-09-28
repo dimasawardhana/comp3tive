@@ -419,7 +419,6 @@ export function SplitScreen({ session, discipline, roster, onPersistResult, onSu
             className="btn btn-primary"
             disabled={result.teams.length < 2}
             onClick={() => onSubmitTournament(result.teams)}
-            data-testid="submit-tournament-squad"
           >
             Save teams to tournament →
           </button>

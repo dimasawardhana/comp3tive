@@ -19,7 +19,7 @@ import { SEED_DISCIPLINES } from "../../../src/domain/seed";
 import type { Page } from "@playwright/test";
 
 /** The Landing Page's own h1; the app's is "Dashboard" (or another screen title). */
-const LANDING_H1 = "Pick the players. Get the fairest teams.";
+const LANDING_H1 = "Pick the players. Get the fairest teams it can prove.";
 
 /** Navigate to the Landing Page by absolute path, independent of baseURL. */
 const gotoLanding = (page: Page) => page.goto("/", { waitUntil: "load" });
@@ -77,6 +77,17 @@ test.describe("Landing Page", () => {
     // the coverer; it does not guarantee the role.
     await expect(page.locator(".landing-lede")).toContainText("who is covering");
     await expect(page.locator(".landing-lede")).not.toContainText("honoring every role");
+
+    // The Edit row is the fourth hand-written mirror of what the app says, and
+    // this one was false: it read "You are never told the teams are fair", while
+    // the split screen does tell you — "Dead even. Fair game."
+    // (src/session/SplitScreen.tsx:140) and "All roles covered. Fair game."
+    // (:234), the first of which e2e/tests/split/gap-provenance.spec.ts:174 pins
+    // exactly. The claim that survives is the number, not the silence, so the
+    // denial is asserted gone and what replaced it is asserted present.
+    const editClaim = page.locator('section[aria-labelledby="landing-row-edit"] .landing-claim');
+    await expect(editClaim).not.toContainText("never told the teams are fair");
+    await expect(editClaim).toContainText("best it found");
 
     await expect(page.locator(".landing-action-note")).toContainText("no account");
     await expect(page.locator(".landing-footer")).toContainText("fair teams for futsal nights");

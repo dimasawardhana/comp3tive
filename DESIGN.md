@@ -199,7 +199,7 @@ Match-night, plain, active. People and what they do, never the system: "Split th
 
 **No em-dashes in new visible copy.** Periods and commas carry the pauses. The em-dash is the AI tell, so it is out of UI strings.
 
-**The shipped app does not meet this yet, and that is a known sweep rather than a claim.** Measured at HEAD, visible copy carries **17** em-dashes: 11 in the app and landing components (`src/App.tsx:599` and `:860`, `src/ErrorBoundary.tsx:37`, `src/landing.tsx:98,105,112`, `src/domain/DisciplineEditModal.tsx:178`, `src/roster/PlayerEditModal.tsx:263`, `src/session/MatchScreen.tsx:186`) and 6 in the landing page's own HTML (`index.html:6,73,101,122,144,200`). The Split button's tooltip is one of them (`src/session/MatchScreen.tsx:186`). This is the standard for new copy; removing the existing ones is a copy pass with its own review, and it has not been done.
+**The shipped app does not meet this yet, and that is a known sweep rather than a claim.** Measured at HEAD, visible copy carries **16** em-dashes: 11 in the app and landing components (`src/App.tsx:599` and `:860`, `src/ErrorBoundary.tsx:37`, `src/landing.tsx:98,105,112`, `src/domain/DisciplineEditModal.tsx:178`, `src/roster/PlayerEditModal.tsx:263`, `src/session/MatchScreen.tsx:186`) and 5 in the landing page's own HTML (`index.html:6,101,123,145,201`). The landing lede's was the seventeenth, and Phase B's rewrite dropped it (`index.html:72`); the 16 above are untouched pre-existing copy. The Split button's tooltip is one of them (`src/session/MatchScreen.tsx:186`). This is the standard for new copy; removing the remaining ones is a copy pass with its own review, and it has not been done.
 
 ## Accessibility & quality floor
 

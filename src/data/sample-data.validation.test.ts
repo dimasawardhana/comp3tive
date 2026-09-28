@@ -146,9 +146,7 @@ describe("shipped sample data", () => {
    * backup player has (no `communityId`, no org tag smuggled in beside `notes`),
    * ids keyed to their discipline, every attribute rated on the discipline's own
    * scale, and every eligible role a role the discipline actually has. These
-   * are the invariants a hand-edited roster breaks first, and they hold for
-   * badminton against the inline discipline for the reason its doc comment
-   * gives: the shape is test-owned until Task 5 owns it.
+   * are the invariants a hand-edited roster breaks first.
    */
   it("stores every player as a v1 record with ids, ratings and roles it can use", () => {
     const playerKeys = ["capabilities", "id", "name", "notes"];
