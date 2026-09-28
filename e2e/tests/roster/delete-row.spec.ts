@@ -61,12 +61,12 @@ test("deleting a player, a tournament and a session removes the row without a re
   await expect(page.locator(".screen h1")).toBeVisible();
   await expect(page.locator(".roster .row")).toHaveCount(3);
 
-  // Playwright dismisses native dialogs by default; the audit found the confirm
-  // blocking automation until a handler accepted it.
-  page.once("dialog", (dialog) => void dialog.accept());
+  // The delete is a two-step inline confirm, not a native dialog: this click
+  // arms it, the next one says yes.
   await page.locator(".roster .row").first().click();
   await expect(page.locator(".modal-title")).toHaveText("Edit player");
   await page.getByRole("button", { name: "Delete", exact: true }).click();
+  await page.getByRole("button", { name: "Delete player", exact: true }).click();
 
   // The row must go WITHOUT a reload: the store and the list currently diverge.
   await expect(page.locator(".roster .row")).toHaveCount(2, { timeout: 5000 });
@@ -89,7 +89,7 @@ test("deleting a player, a tournament and a session removes the row without a re
   // The History row's onDelete was the third handler writing past its hook.
   await hubButton(page, "History").click();
   await expect(page.locator(".history-row")).toHaveCount(2);
-  page.once("dialog", (dialog) => void dialog.accept());
+  await page.locator(".history-row").first().getByRole("button", { name: "Delete session", exact: true }).click();
   await page.locator(".history-row").first().getByRole("button", { name: "Delete session", exact: true }).click();
   await expect(page.locator(".history-row")).toHaveCount(1, { timeout: 5000 });
 

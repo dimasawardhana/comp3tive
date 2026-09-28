@@ -71,12 +71,14 @@ test("a merged backup leaves each record in its own community", async ({ page })
   await gotoHubSeeded(page, activeOnly(), "Roster");
   await expect(page.locator(".roster .row")).toHaveCount(0);
 
-  page.once("dialog", (dialog) => void dialog.accept());
   await page.setInputFiles('input[type="file"]', {
     name: "two-communities.json",
     mimeType: "application/json",
     buffer: Buffer.from(twoCommunityBackup(), "utf8"),
   });
+  // The merge is an inline two-step, not a native dialog: picking the file only
+  // names what is new, and this click is the yes.
+  await page.locator(".status-banner").getByRole("button", { name: "Import", exact: true }).click();
 
   // The merge writes land in IndexedDB asynchronously. With the override both
   // players were persisted into the active community, so this was

@@ -2,6 +2,7 @@ import type { Community, Discipline, Id, Player } from "../domain/types";
 import { PageHeader } from "../ui/PageHeader";
 import { Screen } from "../ui/Screen";
 import { PlayerEditModal } from "../roster/PlayerEditModal";
+import type { PendingMerge } from "./usePlayerImport";
 
 export interface RosterScreenProps {
   activeCommunity: Community | null;
@@ -16,7 +17,11 @@ export interface RosterScreenProps {
   onClearFilters: () => void;
   onAddPlayer: () => void;
   onOpenPlayer: (player: Player) => void;
-  onImportFile: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  /** The backup merge's two-step. Null until a backup names something new. */
+  pendingMerge: PendingMerge | null;
+  onConfirmMerge: () => void;
+  onCancelMerge: () => void;
+  importFile: (file: File) => Promise<void>;
   onExport: () => void;
   onSplitMatch: () => void;
   onSavePlayer: (player: Player) => Promise<void>;
@@ -27,8 +32,8 @@ export interface RosterScreenProps {
 /**
  * The roster hub's screen. Its markup moved out of App verbatim; what changed
  * is only which handler each binding names — every `setEditingPlayer`,
- * `filtersByDiscipline`, `clearFilters`, `handleExport`, `handlePlayerImport`
- * and `randomPlayers` reference became the prop App passes in, and
+ * `filtersByDiscipline`, `clearFilters`, `handleExport` and
+ * `randomPlayers` reference became the prop App passes in, and
  * `communityPlayers` became the `players` prop.
  *
  * `onDelete` is A04's already-catching `deletePlayer` passed straight through:
@@ -74,6 +79,20 @@ export function RosterScreen(props: RosterScreenProps) {
           {filterIds.length > 0 && (
             <button className="btn btn-ghost" onClick={props.onClearFilters}>Clear filters</button>
           )}
+          {props.pendingMerge && (
+            <div className="status-banner">
+              <span className="status-msg">
+                Import {props.pendingMerge.counts.communities} new communit{props.pendingMerge.counts.communities === 1 ? "y" : "ies"},{" "}
+                {props.pendingMerge.counts.players} new player{props.pendingMerge.counts.players === 1 ? "" : "s"},{" "}
+                {props.pendingMerge.counts.sessions} session{props.pendingMerge.counts.sessions === 1 ? "" : "s"},{" "}
+                {props.pendingMerge.counts.tournaments} tournament{props.pendingMerge.counts.tournaments === 1 ? "" : "s"} and{" "}
+                {props.pendingMerge.counts.squads} saved squad{props.pendingMerge.counts.squads === 1 ? "" : "s"}? (Existing records with the
+                same id are kept.)
+              </span>
+              <button type="button" className="btn btn-ghost" onClick={props.onCancelMerge}>Cancel</button>
+              <button type="button" className="btn btn-primary" onClick={props.onConfirmMerge}>Import</button>
+            </div>
+          )}
               
           {/* Player actions */}
           <div className="roster-toolbar">
@@ -93,7 +112,10 @@ export function RosterScreen(props: RosterScreenProps) {
               ref={fileInputRef}
               type="file"
               accept=".json,.csv,.txt"
-              onChange={props.onImportFile}
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) void props.importFile(f);
+              }}
               style={{ display: "none" }}
             />
             <div className="roster-toolbar-spacer" />

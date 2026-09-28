@@ -3,6 +3,7 @@ import type { Community, Id } from "../domain/types";
 import type { HubMode, View } from "./useNavigation";
 import { NAV_ITEMS } from "./nav-items";
 import { Toasts } from "../ui/Toasts";
+import { ConfirmButton } from "../ui/ConfirmButton";
 import type { ToastType } from "./useToasts";
 
 export interface AppChromeProps {
@@ -129,19 +130,16 @@ export function AppChrome(props: AppChromeProps) {
                       </ul>
                       {activeCommunity && props.communities.length > 1 && (
                         <div className="squad-menu-footer">
-                          <button
-                            type="button"
+                          <ConfirmButton
                             className="squad-menu-danger"
-                            onClick={() => {
-                              const warning = communityDeleteWarning(activeCommunity.id);
+                            label={`Delete ${activeCommunity.name}`}
+                            confirmLabel="Delete community"
+                            message={`Delete "${activeCommunity.name}"?${communityDeleteWarning(activeCommunity.id)}`}
+                            onConfirm={() => {
                               setShowCommunityMenu(false);
-                              if (window.confirm(`Delete "${activeCommunity.name}"?${warning}`)) {
-                                void props.onDeleteCommunity(activeCommunity.id);
-                              }
+                              void props.onDeleteCommunity(activeCommunity.id);
                             }}
-                          >
-                            Delete {activeCommunity.name}
-                          </button>
+                          />
                         </div>
                       )}
                     </div>

@@ -5,6 +5,7 @@ import type { Discipline, Id, Player, SavedSquad } from "../domain/types";
 import { teamName } from "./flow";
 import { BIB } from "../ui/constants";
 import { relativeTime } from "../ui/format";
+import { ConfirmButton } from "../ui/ConfirmButton";
 
 interface Props {
   /** Active community's saved squads, newest first. */
@@ -82,17 +83,13 @@ export function SquadsScreen({ squads, loading, disciplines, roster, onBack, onR
           <button type="button" className="btn btn-primary" onClick={() => onNewTournament(open)}>
             New tournament with these teams
           </button>
-          <button
-            type="button"
+          <ConfirmButton
             className="btn btn-danger-ghost"
-            onClick={() => {
-              if (window.confirm(`Delete "${open.name}"? Tournaments that used it keep their teams.`)) {
-                void onDelete(open.id);
-              }
-            }}
-          >
-            Delete
-          </button>
+            label="Delete"
+            confirmLabel="Delete squad"
+            message={`Delete "${open.name}"? Tournaments that used it keep their teams.`}
+            onConfirm={() => void onDelete(open.id)}
+          />
         </div>
       </Screen>
     );
@@ -154,19 +151,16 @@ export function SquadsScreen({ squads, loading, disciplines, roster, onBack, onR
                 </div>
                 <span className="row-actions">
                   <span className="row-edit" aria-hidden="true">›</span>
-                  <button
-                    type="button"
-                    className="link danger"
-                    aria-label={`Delete ${squad.name}`}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (window.confirm(`Delete "${squad.name}"? Tournaments that used it keep their teams.`)) {
-                        void onDelete(squad.id);
-                      }
-                    }}
-                  >
-                    Delete
-                  </button>
+                  <span onClick={(e) => e.stopPropagation()}>
+                    <ConfirmButton
+                      className="link danger"
+                      label="Delete"
+                      ariaLabel={`Delete ${squad.name}`}
+                      confirmLabel={`Delete ${squad.name}`}
+                      message={`Delete "${squad.name}"? Tournaments that used it keep their teams.`}
+                      onConfirm={() => void onDelete(squad.id)}
+                    />
+                  </span>
                 </span>
               </li>
             );

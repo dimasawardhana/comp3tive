@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import type { Attribute, Discipline, Id, Role } from "../domain/types";
+import { ConfirmButton } from "../ui/ConfirmButton";
 import { Modal } from "../ui/Modal";
 
 interface Props {
@@ -153,7 +154,6 @@ export function DisciplineEditModal({
 
   const remove = async () => {
     if (!discipline || !onDelete || isBuiltIn) return;
-    if (!window.confirm(`Delete discipline "${discipline.name}"? Players with capabilities in it will still have those ratings, but the discipline won't be available for splitting.`)) return;
     setSaving(true);
     try {
       await onDelete(discipline.id);
@@ -308,14 +308,12 @@ export function DisciplineEditModal({
 
         <div className="bar">
           {isEdit && onDelete && !isBuiltIn ? (
-            <button
-              type="button"
-              className="btn btn-ghost"
-              onClick={() => void remove()}
-              disabled={saving}
-            >
-              Delete
-            </button>
+            <ConfirmButton
+              label="Delete"
+              confirmLabel="Delete discipline"
+              message={`Delete discipline "${discipline.name}"? Players with capabilities in it will still have those ratings, but the discipline won't be available for splitting.`}
+              onConfirm={() => void remove()}
+            />
           ) : (
             <button
               type="button"

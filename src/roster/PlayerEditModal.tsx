@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import type { Capability, Discipline, Id, Player } from "../domain/types";
+import { ConfirmButton } from "../ui/ConfirmButton";
 import { validatePlayer, type ValidationIssue } from "../domain/validation";
 import { Modal } from "../ui/Modal";
 
@@ -140,7 +141,6 @@ export function PlayerEditModal({ player, disciplines, communityId, onClose, onS
 
   const remove = async () => {
     if (!player || !onDelete) return;
-    if (!window.confirm(`Delete player "${player.name}"?`)) return;
     setSaving(true);
     try {
       await onDelete(player.id);
@@ -301,14 +301,12 @@ export function PlayerEditModal({ player, disciplines, communityId, onClose, onS
 
         <div className="bar">
           {isEdit && onDelete ? (
-            <button
-              type="button"
-              className="btn btn-ghost"
-              onClick={() => void remove()}
-              disabled={saving}
-            >
-              Delete
-            </button>
+            <ConfirmButton
+              label="Delete"
+              confirmLabel="Delete player"
+              message={`Delete player "${player.name}"?`}
+              onConfirm={() => void remove()}
+            />
           ) : (
             <button type="button" className="btn btn-ghost" onClick={onClose} disabled={saving}>
               Cancel

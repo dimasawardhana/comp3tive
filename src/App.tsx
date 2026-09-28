@@ -23,13 +23,12 @@ import { Screen } from "./ui/Screen";
 import { useTournaments } from "./tournament/useTournaments";
 import { GamesScreen } from "./tournament/GamesScreen";
 import { TournamentScreen } from "./tournament/TournamentScreen";
-import { serializeBackup, parseBackup } from "./data/transfer";
-import { assertImportSize, csvRowsToPlayers, parsePlayerCsv } from "./data/player-import";
-import { validatePlayer } from "./domain/validation";
+import { serializeBackup } from "./data/transfer";
 import { useNavigation } from "./shell/useNavigation";
 import { useSplitFlow, splitFlowRule } from "./shell/useSplitFlow";
 import { useCommunityScope } from "./shell/useCommunityScope";
 import { RosterScreen } from "./shell/RosterScreen";
+import { usePlayerImport } from "./shell/usePlayerImport";
 import { AppChrome } from "./shell/AppChrome";
 import { useStoredPref, useMediaQuery } from "./shell/usePreferences";
 import { useToasts } from "./shell/useToasts";
@@ -64,6 +63,9 @@ export default function App() {
   const [showAddCommunity, setShowAddCommunity] = useState(false);
   const [editingPlayer, setEditingPlayer] = useState<Player | null | "new">(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  /** One toast per record type, however many renders the failing write retries. */
+  const playerAdoptionWarned = useRef(false);
+  const sessionAdoptionWarned = useRef(false);
   const [themePref, setThemePref] = useStoredPref("tb-theme", "auto");
   const [layoutPref, setLayoutPref] = useStoredPref("tb-layout", "auto");
   /** Desktop rail shows labels, or collapses to icons only. */
@@ -123,12 +125,22 @@ export default function App() {
     if (!activeCommunity) return;
     for (const p of roster.players) {
       if (!p.communityId || !communities.communities.some((c) => c.id === p.communityId)) {
-        void roster.savePlayer({ ...p, communityId: activeCommunity.id });
+        void roster.savePlayer({ ...p, communityId: activeCommunity.id }).catch(() => {
+          if (!playerAdoptionWarned.current) {
+            playerAdoptionWarned.current = true;
+            notify("Some saved players could not be moved into this community.", "error");
+          }
+        });
       }
     }
     for (const s of sessions.sessions) {
       if (!s.communityId || !communities.communities.some((c) => c.id === s.communityId)) {
-        void sessionStore.saveSession({ ...s, communityId: activeCommunity.id });
+        void sessionStore.saveSession({ ...s, communityId: activeCommunity.id }).catch(() => {
+          if (!sessionAdoptionWarned.current) {
+            sessionAdoptionWarned.current = true;
+            notify("Some saved sessions could not be moved into this community.", "error");
+          }
+        });
       }
     }
   }, [activeCommunity, communities.communities, roster.players, sessions.sessions, roster, sessionStore]);
@@ -171,6 +183,31 @@ export default function App() {
     useSquadInTournament,
     newTournamentFromSquad,
   } = flow;
+  const importer = usePlayerImport({
+    activeCommunity,
+    disciplines,
+    communities: communities.communities,
+    players: roster.players,
+    sessions: sessions.sessions,
+    tournaments: tournaments.tournaments,
+    squads: savedSquads.squads,
+    savePlayer: roster.savePlayer,
+    saveCommunity: communityStore.saveCommunity,
+    saveSession: sessionStore.saveSession,
+    saveTournament: tournamentStore.saveTournament,
+    saveSquad: squadStore.saveSavedSquad,
+    // Communities before their own records, the rest after: the same order the
+    // merge has always written in, kept in one place so the hook can call it.
+    refreshImported: async () => {
+      await communities.refresh();
+      await roster.refresh();
+      await sessions.refresh();
+      await tournaments.refresh();
+      await savedSquads.refresh();
+    },
+    notify,
+    fileInputRef,
+  });
 
   const handleExport = async () => {
     const allSessions = await sessionStore.listSessions();
@@ -184,56 +221,6 @@ export default function App() {
     a.download = `comp3tive-backup-${new Date().toISOString().slice(0, 10)}.json`;
     a.click();
     URL.revokeObjectURL(url);
-  };
-
-  const handleImport = async (file: File) => {
-    let data;
-    try {
-      data = parseBackup(await file.text(), disciplines);
-    } catch (err) {
-      notify(`Import failed: ${formatError(err)}`, "error");
-      return;
-    }
-    // Merge with existing data: add only new ids, never overwrite.
-    const existingCommunityIds = new Set(communities.communities.map((c) => c.id));
-    const existingPlayerIds = new Set(roster.players.map((p) => p.id));
-    const existingSessionIds = new Set(sessions.sessions.map((s) => s.id));
-    const existingTournamentIds = new Set(tournaments.tournaments.map((t) => t.id));
-    const existingSquadIds = new Set(savedSquads.squads.map((q) => q.id));
-    const newCommunities = data.communities.filter((c) => !existingCommunityIds.has(c.id));
-    const newPlayers = data.players.filter((p) => !existingPlayerIds.has(p.id));
-    const newSessions = data.sessions.filter((s) => !existingSessionIds.has(s.id));
-    const newTournaments = (data.tournaments ?? []).filter((t) => !existingTournamentIds.has(t.id));
-    const newSquads = (data.savedSquads ?? []).filter((q) => !existingSquadIds.has(q.id));
-    const totalNew =
-      newCommunities.length + newPlayers.length + newSessions.length + newTournaments.length + newSquads.length;
-    if (
-      totalNew === 0 ||
-      !window.confirm(
-        `Import ${newCommunities.length} new communit${newCommunities.length === 1 ? "y" : "ies"}, ${newPlayers.length} new player${newPlayers.length === 1 ? "" : "s"}, ${newSessions.length} session${newSessions.length === 1 ? "" : "s"}, ${newTournaments.length} tournament${newTournaments.length === 1 ? "" : "s"} and ${newSquads.length} saved squad${newSquads.length === 1 ? "" : "s"}? (Existing records with the same id are kept.)`,
-      )
-    ) {
-      return;
-    }
-    // parseBackup has already resolved every communityId — including adopting a
-    // record whose id is missing or unknown (the v1 case) into the first
-    // community — so each imported record keeps its own.
-    for (const c of newCommunities) await communityStore.saveCommunity(c);
-    // The hooks hold their own copies of the store's lists, and handleImport
-    // writes through the stores, so nothing below is on screen until re-read:
-    // an imported community would be absent from the dropdown and its records
-    // invisible. Communities come first, before the records whose communityId
-    // they explain — a player whose community is not yet in hook state is
-    // re-homed by the orphan-adoption effect above.
-    await communities.refresh();
-    for (const p of newPlayers) await roster.savePlayer(p);
-    for (const s of newSessions) await sessionStore.saveSession(s);
-    for (const t of newTournaments) await tournamentStore.saveTournament(t);
-    for (const q of newSquads) await squadStore.saveSavedSquad(q);
-    await roster.refresh();
-    await sessions.refresh();
-    await tournaments.refresh();
-    await savedSquads.refresh();
   };
 
   const createCommunity = async () => {
@@ -289,115 +276,6 @@ export default function App() {
       setDownloadingId(null);
     }
   };
-  const handlePlayerImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    try {
-      assertImportSize(file.size);
-      const text = await file.text();
-      const trimmed = text.trim();
-
-      // JSON branch
-      if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
-        let parsed: unknown;
-        try {
-          parsed = JSON.parse(trimmed);
-        } catch {
-          notify("That file is not valid JSON.", "error");
-          return;
-        }
-        if (!parsed || typeof parsed !== "object") {
-          notify("That JSON file does not contain a recognizable roster.", "error");
-          return;
-        }
-        const obj = parsed as Record<string, unknown>;
-        // Full backup file → route to the merge importer.
-        if (obj.version !== undefined) {
-          await handleImport(file);
-          return;
-        }
-        // Players-only JSON
-        if (Array.isArray(obj.players)) {
-          if (!activeCommunity) {
-            notify("Pick or create a community before importing a player file.", "error");
-            return;
-          }
-          let imported = 0;
-          const rejected: { name: string; reason: string }[] = [];
-          for (const raw of obj.players) {
-            if (!raw || typeof raw !== "object") continue;
-            const p = raw as Partial<Player> & { id?: string; name?: string };
-            if (!p.name) continue;
-            const player: Player = {
-              id: p.id ?? crypto.randomUUID(),
-              communityId: activeCommunity.id,
-              name: p.name,
-              notes: p.notes,
-              capabilities: Array.isArray(p.capabilities) ? p.capabilities : [],
-            };
-            const problems = validatePlayer(player, disciplines);
-            if (problems.length > 0) {
-              rejected.push({ name: player.name, reason: problems[0].message });
-              continue;
-            }
-            await roster.savePlayer(player);
-            imported++;
-          }
-          // A file that yielded no player must not report one: an all-rejected
-          // file, or one whose rows carry no name at all, would otherwise
-          // announce "Imported 0 players" in success styling.
-          if (imported > 0) {
-            notify(
-              `Imported ${imported} player${imported === 1 ? "" : "s"} into ${activeCommunity.name}.`,
-              "success",
-            );
-          } else {
-            notify(`No players imported into ${activeCommunity.name}.`, "error");
-          }
-          if (rejected.length > 0) {
-            notify(
-              `Skipped ${rejected.length} player${rejected.length === 1 ? "" : "s"}. First: "${rejected[0].name}" — ${rejected[0].reason}`,
-              "error",
-            );
-          }
-          return;
-        }
-        notify("That JSON file is not a recognized roster or backup.", "error");
-        return;
-      }
-
-      // CSV branch
-      if (!activeCommunity) {
-        notify("Pick or create a community before importing a CSV.", "error");
-        return;
-      }
-      const { rows, skipped: unparsed } = parsePlayerCsv(text);
-      const { players: imported, skipped: unresolved } = csvRowsToPlayers(rows, disciplines, activeCommunity.id);
-      for (const player of imported) await roster.savePlayer(player);
-      const skipped = [...unparsed, ...unresolved].sort((a, b) => a.line - b.line);
-      // Same rule as the JSON branch: a CSV of blank lines imports nothing and
-      // must not claim a success.
-      if (imported.length > 0) {
-        notify(
-          `Imported ${imported.length} player${imported.length === 1 ? "" : "s"} into ${activeCommunity.name}.`,
-          "success",
-        );
-      } else {
-        notify(`No players imported into ${activeCommunity.name}.`, "error");
-      }
-      if (skipped.length > 0) {
-        notify(
-          `Skipped ${skipped.length} row${skipped.length === 1 ? "" : "s"}. Line ${skipped[0].line}: ${skipped[0].reason}`,
-          "error",
-        );
-      }
-    } catch (err) {
-      notify(`Import failed: ${formatError(err)}`, "error");
-    } finally {
-      if (fileInputRef.current) fileInputRef.current.value = "";
-    }
-  };
-
   const deleteCommunity = async (id: Id) => {
     if (communities.communities.length <= 1) {
       notify("You need at least one community.", "error");
@@ -581,7 +459,10 @@ export default function App() {
             onClearFilters={clearFilters}
             onAddPlayer={() => setEditingPlayer("new")}
             onOpenPlayer={(player) => setEditingPlayer(player)}
-            onImportFile={handlePlayerImport}
+            pendingMerge={importer.pendingMerge}
+            onConfirmMerge={importer.confirmMerge}
+            onCancelMerge={importer.cancelMerge}
+            importFile={importer.importFile}
             onExport={handleExport}
             onSplitMatch={randomPlayers}
             onSavePlayer={savePlayer}

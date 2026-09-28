@@ -2,6 +2,7 @@ import type { Discipline, Session } from "../domain/types";
 import { PageHeader } from "../ui/PageHeader";
 import { Screen } from "../ui/Screen";
 import { relativeTime } from "../ui/format";
+import { ConfirmButton } from "../ui/ConfirmButton";
 
 interface Props {
   sessions: Session[];
@@ -78,17 +79,16 @@ export function HistoryScreen({ sessions, loading, disciplines, onReopen, onDele
                 </div>
                 <span className="row-actions">
                   <span className="row-edit" aria-hidden="true">›</span>
-                  <button
-                    type="button"
-                    className="link danger"
-                    aria-label="Delete session"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (window.confirm("Delete this session?")) onDelete(s.id);
-                    }}
-                  >
-                    Delete
-                  </button>
+                  <span onClick={(e) => e.stopPropagation()}>
+                    <ConfirmButton
+                      className="link danger"
+                      label="Delete"
+                      ariaLabel="Delete session"
+                      confirmLabel="Delete session"
+                      message="Delete this session?"
+                      onConfirm={() => onDelete(s.id)}
+                    />
+                  </span>
                 </span>
               </li>
             );

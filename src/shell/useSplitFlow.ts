@@ -235,6 +235,7 @@ export function useSplitFlow(deps: SplitFlowDeps): SplitFlowResult {
         await sessionStore.saveSession(session);
       } catch {
         // Non-fatal: still show the split if persistence failed.
+        notify("Your split wasn't saved to History.", "error");
       }
     }
     const source = view.mode === "match" ? view.source : "ad-hoc" as SplitSource;
@@ -281,16 +282,26 @@ export function useSplitFlow(deps: SplitFlowDeps): SplitFlowResult {
     }
   };
 
+  // `applyResult`/`undoLastGame` throw by design, and a tournament can be
+  // recorded from two tabs: the frontier guard is reachable, so an unwrapped
+  // rejection would be an unhandled promise rather than anything a user sees.
+  // The thrown error already carries the sentence to show.
   const recordResult = async (matchId: Id, games: GameResult[]) => {
     if (!viewTournament) return;
-    const next = applyResult(viewTournament, matchId, games);
-    await saveTournament(next);
+    try {
+      await saveTournament(applyResult(viewTournament, matchId, games));
+    } catch (err) {
+      notify(formatError(err), "error");
+    }
   };
 
   const undoLastResult = async () => {
     if (!viewTournament) return;
-    const next = undoLastGame(viewTournament);
-    await saveTournament(next);
+    try {
+      await saveTournament(undoLastGame(viewTournament));
+    } catch (err) {
+      notify(formatError(err), "error");
+    }
   };
 
   const createTournament = async (spec: {
@@ -308,7 +319,7 @@ export function useSplitFlow(deps: SplitFlowDeps): SplitFlowResult {
     const validation = validateTournamentSpec(spec, discipline);
     if (validation.length > 0) {
       console.error("Tournament validation failed:", validation);
-      alert(`Validation failed: ${validation.map(v => v.message).join('\n')}`);
+      notify(`Validation failed: ${validation.map(v => v.message).join("; ")}`, "error");
       return;
     }
 
