@@ -1,7 +1,6 @@
 import { useState } from "react";
 import type { Discipline, GameResult, Id, Player, SavedSquad, Tournament, TournamentMatch, TournamentTeam } from "../domain/types";
 import { champion, standings } from "./bracket";
-import { teamName } from "../session/flow";
 import { PageHeader } from "../ui/PageHeader";
 
 interface Props {

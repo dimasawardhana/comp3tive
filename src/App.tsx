@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from "react";
 import {
-  computeStrength,
   type Community,
   type Discipline,
   type GameResult,
@@ -26,7 +25,6 @@ import { useRoster } from "./roster/useRoster";
 import { useDisciplines } from "./domain/useDisciplines";
 import { useCommunities } from "./domain/useCommunities";
 import { DisciplinesScreen } from "./domain/DisciplinesScreen";
-import { DisciplineEditModal } from "./domain/DisciplineEditModal";
 import { PlayerEditModal } from "./roster/PlayerEditModal";
 import { fairSplit, buildSettings, suggestTeamCount, poolFromPlayers } from "./solver/solver";
 import { MatchScreen } from "./session/MatchScreen";
@@ -120,16 +118,6 @@ function useMediaQuery(query: string): boolean {
   return matches;
 }
 
-function strengthsFor(player: Player, disciplines: Discipline[]) {
-  return disciplines.flatMap((d) => {
-    const cap = player.capabilities.find((c) => c.disciplineId === d.id);
-    return cap ? [{ id: d.id, shortName: d.shortName, strength: computeStrength(d, cap) }] : [];
-  });
-}
-
-const badgeClass = (disciplineId: string) =>
-  disciplineId === "futsal" || disciplineId === "mlbb" ? `badge--${disciplineId}` : "badge--generic";
-
 export default function App() {
   const roster = useRoster(rosterStore);
   const sessions = useSessions(sessionStore);
@@ -174,10 +162,7 @@ export default function App() {
   const [layoutPref, setLayoutPref] = useStoredPref("tb-layout", "auto");
   /** Desktop rail shows labels, or collapses to icons only. */
   const [railPref, setRailPref] = useStoredPref("tb-rail", "expanded");
-  const systemDark = useMediaQuery("(prefers-color-scheme: dark)");
   const isWide = useMediaQuery("(min-width: 1024px)");
-  const effectiveTheme: "light" | "dark" =
-    themePref === "auto" ? (systemDark ? "dark" : "light") : (themePref as "light" | "dark");
   const effectiveLayout: "mobile" | "desktop" =
     layoutPref === "auto" ? (isWide ? "desktop" : "mobile") : (layoutPref as "mobile" | "desktop");
 
@@ -687,14 +672,6 @@ export default function App() {
     setFilterIds([]);
   };
 
-  const showHistory = () => {
-    gotoHub("history");
-  };
-
-  const showDisciplines = () => {
-    goDisciplines();
-  };
-
   // Dashboard actions (ticket 04): every exit reuses an existing App flow —
   // the roster "Split match" handler, the Games create flow, hub navigation,
   // and the roster "+ Add Player" modal. Only the entry points differ.
@@ -763,10 +740,6 @@ export default function App() {
     pushView({ mode: "tournament", id });
   };
 
-  const enterMatchFlow = (tournamentId?: Id) => {
-    startMatch("tournament", tournamentId);
-  };
-
   const startSplit = () => {
     if (view.mode === "tournament" && viewTournament) {
       startMatch("tournament", viewTournament.id);
@@ -775,14 +748,6 @@ export default function App() {
     startMatch("ad-hoc");
   };
 
-  const finishSplit = (teams: TeamAssignment[]) => {
-    if (!setup?.tournamentId) return;
-    consumeTeams(setup.tournamentId, teams);
-  };
-
-  const recordTournamentResult = async (matchId: Id, games: GameResult[]) => {
-    await recordResult(matchId, games);
-  };
   const deleteTournament = async (id: Id) => {
     try {
       await tournaments.deleteTournament(id);
@@ -796,9 +761,6 @@ export default function App() {
     if (view.mode === "tournament" && view.id === id) {
       gotoHub("games");
     }
-  };
-  const showTournamentView = (tournament: Tournament) => {
-    pushView({ mode: "tournament", id: tournament.id });
   };
 
   return (

@@ -27,9 +27,8 @@ const emptyCap = (disciplineId: Id, discipline: Discipline | undefined): CapDraf
   preferredRole: null,
 });
 
-const draftFromPlayer = (player: Player, disciplines: Discipline[]): CapDraft[] =>
+const draftFromPlayer = (player: Player): CapDraft[] =>
   player.capabilities.map((c) => {
-    const d = disciplines.find((x) => x.id === c.disciplineId);
     return {
       disciplineId: c.disciplineId,
       ratings: { ...c.attributeRatings },
@@ -43,7 +42,7 @@ export function PlayerEditModal({ player, disciplines, communityId, onClose, onS
   const [name, setName] = useState(player?.name ?? "");
   const [notes, setNotes] = useState(player?.notes ?? "");
   const [caps, setCaps] = useState<CapDraft[]>(
-    player ? draftFromPlayer(player, disciplines) : []
+    player ? draftFromPlayer(player) : []
   );
   const [issues, setIssues] = useState<ValidationIssue[]>([]);
   const [saving, setSaving] = useState(false);
@@ -52,9 +51,9 @@ export function PlayerEditModal({ player, disciplines, communityId, onClose, onS
     if (player) {
       setName(player.name);
       setNotes(player.notes ?? "");
-      setCaps(draftFromPlayer(player, disciplines));
+      setCaps(draftFromPlayer(player));
     }
-  }, [player, disciplines]);
+  }, [player]);
 
   const usedDisciplineIds = new Set(caps.map((c) => c.disciplineId));
   const availableDisciplines = disciplines.filter((d) => !usedDisciplineIds.has(d.id));

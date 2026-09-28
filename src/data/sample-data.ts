@@ -73,10 +73,6 @@ export function detectDisciplineFromSampleData(text: string): string | null {
   return disciplineId;
 }
 
-const ROLE_NAMES = [
-  "Tank", "Assassin", "Mage", "Marksman", "Fighter", "Support",
-  "Guardian", "Controller", "Eraser", "Durable",
-];
 const PLAYER_NAMES = [
   "Dragon", "Shadow", "Blaze", "Frost", "Storm", "Ember",
   "Void", "Nova", "Apex", "Pulse", "Iron", "Crimson",

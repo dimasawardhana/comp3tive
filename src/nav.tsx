@@ -1,5 +1,3 @@
-import type { Id } from "./domain/types";
-
 export type CrumbGo = () => void;
 
 export interface Crumb {

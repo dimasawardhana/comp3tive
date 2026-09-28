@@ -29,7 +29,6 @@ export function DisciplineEditModal({
 }: Props) {
   const isEdit = discipline !== null;
   const isBuiltIn = discipline?.builtIn === true;
-  const isNew = discipline === null;
 
   const [name, setName] = useState(discipline?.name ?? "");
   const [shortName, setShortName] = useState(discipline?.shortName ?? "");
