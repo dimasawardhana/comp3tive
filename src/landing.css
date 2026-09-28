@@ -41,16 +41,17 @@ body {
 }
 
 /* Focus: one visible ring, from the palette.
-   Scoped and specific because src/split.css (imported above, for the split
-   screen the landing island mounts) carries a bare `:focus-visible` rule at
-   specificity (0,1,0) that sets its own outline and a 6px radius — a
-   `:where()` selector here would lose to it. */
+   Scoped to .landing on purpose. The app's bare `:focus-visible` rule (its
+   `border-radius: 6px` is (0,1,0) and has to keep out-ranking two dozen
+   single-class radius rules) stays in src/index.css, which this page does not
+   load, so there is nothing here to out-specify — a `:where()` would be
+   equal, and equal is fine only by accident. Keep the scope. */
 .landing :is(a, button, [tabindex]):focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 3px;
 }
 
-/* The bare rule's 6px radius must not flatten the CTA pill or the wordmark. */
+/* The CTA keeps its pill radius on focus. */
 .landing .cta:focus-visible {
   border-radius: 999px;
 }

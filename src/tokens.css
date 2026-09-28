@@ -92,3 +92,16 @@
     --shadow: 0 1px 2px rgba(0, 0, 0, 0.2), 0 4px 12px rgba(0, 0, 0, 0.35);
   }
 }
+
+/* Motion, suppressed for a reader who asked for it. This lives in the token
+   sheet, not in either surface's stylesheet, because it is the one rule both
+   documents need and neither owns: the Landing Page used to get it by
+   accident, through the app's sheet, and the app needs it from its own. It
+   arrives first in the cascade, which is safe — `!important` on a universal
+   selector loses to nothing but another `!important`. */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+    animation: none !important;
+  }
+}
