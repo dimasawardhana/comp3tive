@@ -167,7 +167,7 @@ Keep the existing `<head>` (charset, viewport, fonts) and add `<link rel="styles
 - Trust list: `The gap is the proven minimum for your pool, not a heuristic.` · `Works with no signal. The court has no wifi.` · `Your data stays on your device. No account, no server.`
 - Primary action: `<a class="cta" href="/app/">Open comp3tive</a>`
 - Under it: `Free, no account. Runs in your browser.`
-- Footer: `comp3tive — the fairest teams it can prove, for futsal nights, MLBB sessions, and everything after.`
+- Footer: `comp3tive: the fairest teams it can prove, for futsal nights, MLBB sessions, and everything after.`
 
 > **Corrected 2026-09-28 — the footer line above was specified as an unqualified
 > "fair teams", which the app does not keep.** The split screen prints "Best gap
@@ -175,7 +175,8 @@ Keep the existing `<head>` (charset, viewport, fonts) and add `<link rel="styles
 > (`src/session/gapProvenance.ts:32`), so the shipped footer is scoped to "it can
 > prove" — the same scope the h1, the meta and the lede carry. The rest of this
 > step's copy predates the ledger rewrite and no longer ships; the footer is the
-> one line of it that did, in this form.
+> one line of it that did, in this form. Repunctuated the same day: the brand and the
+> claim are separated by a colon, per "No em-dashes in new visible copy" (DESIGN.md:200).
 
 Hero, placed between the lede and the three items:
 

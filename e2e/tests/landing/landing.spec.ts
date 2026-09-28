@@ -46,6 +46,13 @@ test.describe("Landing Page", () => {
     await gotoLanding(page);
 
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(LANDING_H1);
+    // The document's own name, and the only statement the Landing Page makes to
+    // someone who never sees it (a tab, a SERP line). Pinned exactly, so a
+    // re-punctuated title cannot drop "it can prove" unnoticed: that scope word
+    // is the difference between a claim the app keeps and one it does not.
+    await expect(page).toHaveTitle(
+      "comp3tive: pick the players, get the fairest teams it can prove",
+    );
     await expect(page.locator("#root")).toHaveCount(0);
     await expect(page.locator(".app")).toHaveCount(0);
     // The landing hero is a React island (src/landing.tsx), which is how the
@@ -105,6 +112,12 @@ test.describe("Landing Page", () => {
     const editClaim = page.locator('section[aria-labelledby="landing-row-edit"] .landing-claim');
     await expect(editClaim).not.toContainText("never told the teams are fair");
     await expect(editClaim).toContainText("best it found");
+    // Pinned exactly, not only the phrase: the punctuation between the two
+    // thoughts is part of the copy, so a reword that drops a clause or puts an
+    // em-dash back must not pass on the strength of "best it found" alone.
+    await expect(editClaim).toHaveText(
+      "Swap two players and the meter moves with you. The screen names the balance and the gap, and says when that gap is the best it found rather than a proven minimum. You read the number, and re-roll until it says what you want.",
+    );
 
     // The bracket preview's head was the last unqualified fairness claim on the
     // page. The split it sits above is not always a proof: the screen prints
@@ -129,7 +142,7 @@ test.describe("Landing Page", () => {
     // pinned by e2e/tests/split/gap-provenance.spec.ts:144. Pinned exactly, so
     // neither a reword nor a dropped scope can pass here.
     await expect(page.locator(".landing-footer")).toHaveText(
-      "comp3tive — the fairest teams it can prove, for futsal nights, MLBB sessions, and everything after.",
+      "comp3tive: the fairest teams it can prove, for futsal nights, MLBB sessions, and everything after.",
     );
     await expect(page.locator(".landing-footer")).not.toContainText("fair teams for futsal nights");
 
