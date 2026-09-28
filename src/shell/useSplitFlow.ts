@@ -63,7 +63,9 @@ export function rerollPool(
 const toggleId = (ids: Id[], id: Id): Id[] =>
   ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id];
 
-interface MatchSetup {
+/** The match-setup screen's draft. `SplitFlowResult` puts it in its public
+ *  surface, so a consumer has to be able to name the type. */
+export interface MatchSetup {
   disciplineId: Id;
   selectedIds: Id[];
   teamCount: number;

@@ -1,10 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import type { Capability, Discipline, Id, Player, Session, SplitResult, TeamAssignment } from "../domain/types";
-type SplitSource = "ad-hoc" | "tournament" | "session" | "squad";
 import { describeFlags, teamName } from "./flow";
 import { freshSplit, swapPlayers } from "./edit";
 import { gapQualifier } from "./gapProvenance";
-import { rerollPool } from "../shell/useSplitFlow";
+import { rerollPool, type SplitSource } from "../shell/useSplitFlow";
 import { BIB } from "../ui/constants";
 import { Modal } from "../ui/Modal";
 
