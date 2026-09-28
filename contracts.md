@@ -463,6 +463,14 @@ the landed file — the same discipline every Phase C task used, because the spe
 two named regions C26 moves into `src/shell/RosterScreen.tsx`. **C must not rename independently — it
 reads B15's outcome**, and moves whatever B wrote rather than re-typing it.
 
+**Those two line numbers are historical and are kept deliberately.** They record where the strings
+sat when Phase B renamed them, before Phase C's C26 moved them into `src/shell/RosterScreen.tsx`;
+`src/App.tsx` no longer has 1,152 lines. That draws the rule this contract follows throughout:
+**a citation describing a past state may name a line that has since moved; a citation asserting a
+current fact may not.** Repointing a historical citation would erase the only record of what C was
+told to move — and the mistake C11's fix round actually made was repointing *current* citations for
+the same reason, so the two are now told apart explicitly.
+
 ### A recorded hazard for Phase D, found at Phase B's Task 1
 
 **`gapKind` returns `"proven"` for a hand-edited team set, and D31's share text branches on it.**
@@ -505,6 +513,7 @@ Resolved here so no executor has to re-derive them. Where the plan is the later 
 the plan wins and the spec's narrower form is noted.
 
 - **D1 — `docs/spec/0001-team-builder-v1.md` is double-assigned.** The B spec's Files table gives
+
   it to B16 (`:890`) *and* B19 (`:894`); ticket 16's own text says "B19 owns this line".
   **B19 owns it; B16 does not edit it.**
 - **D2 — "gap copy only" binds ticket 13, not the phase.** The phase-level claim conflicts with
