@@ -1,6 +1,7 @@
 import "fake-indexeddb/auto";
 import { describe, expect, it } from "vitest";
 import {
+  DB_VERSION,
   createIndexedDbRosterStore,
   createIndexedDbSessionStore,
   createIndexedDbDisciplineStore,
@@ -88,22 +89,45 @@ describe("indexed-db discipline store (smoke)", () => {
   };
 
   /**
-   * A pre-badminton profile: the discipline store exists with two seeds and one
-   * custom row. Opened directly rather than through a store, because a store
-   * opens at the current version and would perform the upgrade itself.
+   * A database holding exactly these disciplines, written at `version`.
+   * Opened directly rather than through a store, because a store opens at the
+   * current version and would perform the upgrade itself - which is the thing
+   * under test.
    */
-  const seedPreBadmintonProfile = (dbName: string): Promise<void> => {
+  const seedDisciplinesAt = (dbName: string, version: number, disciplines: Discipline[]): Promise<void> => {
     const { promise, resolve, reject } = Promise.withResolvers<void>();
-    const request = indexedDB.open(dbName, PRE_BADMINTON_VERSION);
+    const request = indexedDB.open(dbName, version);
     request.onupgradeneeded = () => {
       const store = request.result.createObjectStore("disciplines", { keyPath: "id" });
-      for (const d of [FUTSAL_DISCIPLINE, MLBB_DISCIPLINE, custom]) store.put(d);
+      for (const d of disciplines) store.put(d);
     };
     request.onsuccess = () => {
       request.result.close();
       resolve();
     };
-    request.onerror = () => reject(request.error ?? new Error("Could not seed the pre-badminton profile"));
+    request.onerror = () => reject(request.error ?? new Error(`Could not seed ${dbName} at version ${version}`));
+    return promise;
+  };
+
+  /** A profile as it was before badminton shipped: two seeds and one custom row. */
+  const seedPreBadmintonProfile = (dbName: string): Promise<void> =>
+    seedDisciplinesAt(dbName, PRE_BADMINTON_VERSION, [FUTSAL_DISCIPLINE, MLBB_DISCIPLINE, custom]);
+
+  /** The stored discipline ids, read the way a page load reads them. */
+  const readStoredIds = (dbName: string): Promise<string[]> => {
+    const { promise, resolve, reject } = Promise.withResolvers<string[]>();
+    const request = indexedDB.open(dbName, DB_VERSION);
+    request.onsuccess = () => {
+      const db = request.result;
+      const all = db.transaction("disciplines", "readonly").objectStore("disciplines").getAll();
+      all.onsuccess = () => {
+        db.close();
+        // Key order, deliberately: this asserts the rows on disk, not display order.
+        resolve(all.result.map((d: Discipline) => d.id));
+      };
+      all.onerror = () => reject(all.error ?? new Error(`Could not read the disciplines in ${dbName}`));
+    };
+    request.onerror = () => reject(request.error ?? new Error(`Could not open ${dbName}`));
     return promise;
   };
 
@@ -135,6 +159,31 @@ describe("indexed-db discipline store (smoke)", () => {
 
     const ids = (await store.listDisciplines()).map((d) => d.id);
     expect(ids).toEqual(["futsal", "mlbb", "badminton", "padel-x"]);
+  });
+
+  it("a current-version profile that lacks a seed is not given it back on the next launch", async () => {
+    // A v7 profile that deleted badminton. Nothing may put it back: the catalog
+    // is the user's to edit, and "ensure every seed exists" - the naive form of
+    // the backfill - would undo their deletion on every launch, forever.
+    await seedDisciplinesAt("comp3tive-test-disc-4", DB_VERSION, [FUTSAL_DISCIPLINE, MLBB_DISCIPLINE, custom]);
+
+    // The rows on disk, read the way a page load reads them: no upgrade fires.
+    expect(await readStoredIds("comp3tive-test-disc-4")).toEqual(["futsal", "mlbb", "padel-x"]);
+    // And through the app's own path, which is where a naive ensure-seeds would
+    // live if someone put it there instead of in the upgrade.
+    const store = createIndexedDbDisciplineStore("comp3tive-test-disc-4");
+    expect((await store.listDisciplines()).map((d) => d.id)).toEqual(["futsal", "mlbb", "padel-x"]);
+  });
+
+  it("upgrading adds the new seed without restoring one the user deleted", async () => {
+    // The same pre-badminton profile, except this one deleted futsal. The
+    // backfill is for seeds this version introduced, not for every seed the code
+    // knows: re-seeding everything here would resurrect futsal.
+    await seedDisciplinesAt("comp3tive-test-disc-5", PRE_BADMINTON_VERSION, [MLBB_DISCIPLINE, custom]);
+    const store = createIndexedDbDisciplineStore("comp3tive-test-disc-5");
+
+    const ids = (await store.listDisciplines()).map((d) => d.id);
+    expect(ids).toEqual(["mlbb", "badminton", "padel-x"]);
   });
 });
 

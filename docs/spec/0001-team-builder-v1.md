@@ -22,8 +22,8 @@ A local web app (deployable later) where the organizer maintains a roster of Pla
 
 ### Disciplines
 
-8. As an organizer, I want the app pre-seeded with Futsal and MLBB, each with its own roles and attributes, so that I can start immediately.
-9. As an organizer, I want each discipline to define its own roles, attributes, and strength model, so that the catalog can grow (badminton, volleyball, …) without code changes.
+8. As an organizer, I want the app pre-seeded with Futsal, MLBB and Badminton, each with its own roles and attributes, so that I can start immediately.
+9. As an organizer, I want each discipline to define its own roles, attributes, and strength model, so that the catalog can grow (volleyball, padel, …) without code changes.
 10. As an organizer, I want to create new disciplines with their roles and attributes, so that the tool covers whatever we play next.
 
 ### Sessions & balancing
