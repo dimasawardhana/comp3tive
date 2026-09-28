@@ -95,8 +95,12 @@ block went nowhere. The screen was not missing a back affordance: `onBack` is pa
 `src/session/SplitScreen.tsx:397-399`. The defect was the crumb, not the screen. All three
 hand-rolled crumb blocks are now the shared `src/nav.tsx` `Breadcrumb`, which renders a plain
 `<span>` when a crumb has no destination (`src/nav.tsx:24-26`), and the split screen's first
-crumb names the source's own Back destination and calls the same `onBack`. Every crumb above
-the current screen now navigates there.
+crumb carries the same label as the screen's own Back control and calls the same `onBack`.
+One label is not one destination: `Squad detail` returns to the Squads list with the detail
+collapsed, because the detail is `openId` state inside a component that unmounts while the
+split is on screen — the Leaf table above already records Back as going to "or the source
+list", and the label names the screen the flow came from. Every crumb above the current
+screen now navigates there.
 
 ```
 Roster / Match setup                                   (ad-hoc)
@@ -114,9 +118,10 @@ The chains above are the **path taken**, which is what P1 is about. What the app
 narrower and set by each screen's own markup, not by the chain: three screens render a
 breadcrumb and each emits exactly one separator, so each shows two segments. The match-setup
 screen shows `Roster / Match setup` (`src/session/MatchScreen.tsx:41-45`, separator `:43`); the
-split result shows the source's own Back destination over `Split result`
+split result shows the label its Back control carries over `Split result`
 (`src/session/SplitScreen.tsx:316-320`, separator `:318`) — `Match setup` for ad-hoc and
-tournament, `History` for session, `Squad detail` for squad; the tournament screen shows
+tournament, `History` for session, `Squad detail` for squad, which returns to the Squads list
+rather than reopening the detail; the tournament screen shows
 `Games / {name}` (`src/tournament/TournamentScreen.tsx:264-268`, separator `:266`). A tournament
 split therefore shows `Match setup / Split result`, not the four-segment chain listed here.
 Two leaves render no breadcrumb at all: Disciplines has only a `Back` button
