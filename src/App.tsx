@@ -45,36 +45,15 @@ import { serializeBackup, parseBackup } from "./data/transfer";
 import { assertImportSize, csvRowsToPlayers, parsePlayerCsv } from "./data/player-import";
 import { validatePlayer } from "./domain/validation";
 import { validateTournamentSpec } from "./tournament/tournament-validation";
+import { useNavigation, type HubMode } from "./shell/useNavigation";
+import { NAV_ITEMS } from "./shell/nav-items";
+import type { SplitSource } from "./shell/useSplitFlow";
 const communityStore = createIndexedDbCommunityStore();
 const rosterStore = createIndexedDbRosterStore();
 const sessionStore = createIndexedDbSessionStore();
 const disciplineStore = createIndexedDbDisciplineStore();
 const tournamentStore = createIndexedDbTournamentStore();
 const squadStore = createIndexedDbSavedSquadStore();
-
-type SplitSource = "ad-hoc" | "tournament" | "session" | "squad";
-
-type HubMode = "dashboard" | "roster" | "games" | "history" | "squads";
-
-/** The five hub destinations. Rendered twice: rail (desktop) and bottom nav (handheld). */
-const NAV_ITEMS = [
-  { mode: "dashboard", label: "Home", icon: "⌂" },
-  { mode: "roster", label: "Roster", icon: "◉" },
-  { mode: "games", label: "Games", icon: "▣" },
-  { mode: "history", label: "History", icon: "≡" },
-  { mode: "squads", label: "Squads", icon: "◇" },
-] as const satisfies ReadonlyArray<{ mode: HubMode; label: string; icon: string }>;
-
-type View =
-  | { mode: "roster" }
-  | { mode: "dashboard" }
-  | { mode: "games" }
-  | { mode: "tournament"; id: Id }
-  | { mode: "match"; source: SplitSource }
-  | { mode: "split"; session: Session; source: SplitSource }
-  | { mode: "history" }
-  | { mode: "disciplines" }
-  | { mode: "squads"; openId?: Id };
 
 interface MatchSetup {
   disciplineId: Id;
@@ -125,8 +104,7 @@ export default function App() {
   const communities = useCommunities(communityStore, rosterStore, sessionStore, squadStore, tournamentStore);
   const tournaments = useTournaments(tournamentStore);
   const savedSquads = useSavedSquads(squadStore);
-  const [viewStack, setViewStack] = useState<View[]>([{ mode: "dashboard" }]);
-  const view = viewStack[viewStack.length - 1];
+  const { view, viewStack, pushView, goBack, resetTo } = useNavigation({ mode: "dashboard" });
   /** First load failure from any store. These were previously swallowed, which
    *  left a failed read looking identical to an empty app. */
   const loadError = communities.error ?? roster.error ?? sessions.error ?? catalog.error ?? tournaments.error ?? savedSquads.error;
@@ -135,13 +113,13 @@ export default function App() {
   const [tournamentPrefill, setTournamentPrefill] = useState<{ disciplineId: Id; teamCount: number } | null>(null);
   const [filterIds, setFilterIds] = useState<string[]>([]);
 
-  const pushView = (v: View) => setViewStack((s) => [...s, v]);
-  const goBack = () => setViewStack((s) => (s.length > 1 ? s.slice(0, -1) : s));
-  const gotoHub = (hub: HubMode) => {
-    setViewStack([{ mode: hub }]);
-    setSetup(null);
-  };
+  /** A hub replaces the whole stack; the frozen hook owns the stack alone, so
+   *  dropping a half-finished match setup stays here. */
+  const gotoHub = (mode: HubMode) => { resetTo({ mode }); setSetup(null); };
   const goDisciplines = () => pushView({ mode: "disciplines" });
+  /** The split view's session and source. Out of `View` so the stack carries
+   *  destinations, not screen payloads. */
+  const [activeSplit, setActiveSplit] = useState<{ session: Session; source: SplitSource } | null>(null);
 
   const [communityName, setCommunityName] = useState("");
   const [showAddCommunity, setShowAddCommunity] = useState(false);
@@ -297,7 +275,8 @@ export default function App() {
       }
     }
     const source = view.mode === "match" ? view.source : "ad-hoc" as SplitSource;
-    pushView({ mode: "split", session, source });
+    setActiveSplit({ session, source });
+    pushView({ mode: "split", source });
   };
 
   const consumeTeams = async (tournamentId: Id, teams: TeamAssignment[]) => {
@@ -334,7 +313,8 @@ export default function App() {
       await tournaments.saveTournament(built);
       // Land on the tournament detail with the Games hub beneath it, so Back
       // and the breadcrumb return to Games (FLOW P2: back to where you came from).
-      setViewStack([{ mode: "games" }, { mode: "tournament", id: built.id }]);
+      resetTo({ mode: "games" });
+      pushView({ mode: "tournament", id: built.id });
       setSetup(null);
     } catch (err) {
       notify(`Could not save the tournament teams: ${formatError(err)}`, "error");
@@ -374,7 +354,8 @@ export default function App() {
       result: squad.result,
     };
     setSetup(null);
-    pushView({ mode: "split", session: synthetic, source: "squad" });
+    setActiveSplit({ session: synthetic, source: "squad" });
+    pushView({ mode: "split", source: "squad" });
   };
 
   const useSquadInTournament = async (squad: SavedSquad, tournamentId: Id) => {
@@ -731,7 +712,8 @@ export default function App() {
       matches: [],
     };
     await tournaments.saveTournament(tournament);
-    setViewStack([{ mode: "games" }, { mode: "tournament", id: tournament.id }]);
+    resetTo({ mode: "games" });
+    pushView({ mode: "tournament", id: tournament.id });
     setSetup(null);
   };
 
@@ -1164,10 +1146,10 @@ export default function App() {
         </Screen>
       )}
 
-      {view.mode === "split" && view.session && (
+      {view.mode === "split" && activeSplit && (
         <SplitScreen
-          session={view.session}
-          discipline={disciplines.find(d => d.id === view.session!.disciplineId) ?? disciplines[0]}
+          session={activeSplit.session}
+          discipline={disciplines.find(d => d.id === activeSplit.session.disciplineId) ?? disciplines[0]}
           roster={communityPlayers}
           onPersistResult={async (result) => {
             // FLOW rule 3: only ad-hoc splits persist re-rolls/swaps to the
@@ -1175,18 +1157,18 @@ export default function App() {
             // reopened History session must not mutate the archived raw log, and
             // a squad re-split only persists when saved as a new squad.
             // Tournament splits persist via the bracket (no Session pollution).
-            if (view.source === "ad-hoc") {
-              const updatedSession = { ...view.session!, result };
+            if (activeSplit.source === "ad-hoc") {
+              const updatedSession = { ...activeSplit.session, result };
               await sessionStore.saveSession(updatedSession);
             }
           }}
-          source={view.source}
+          source={activeSplit.source}
           onSubmitTournament={
-            view.source === "tournament" && setup?.tournamentId
+            activeSplit.source === "tournament" && setup?.tournamentId
               ? (teams) => consumeTeams(setup.tournamentId!, teams)
               : undefined
           }
-          onSaveSquad={(name, result) => saveSquadFromSplit(name, result, view.session!.disciplineId)}
+          onSaveSquad={(name, result) => saveSquadFromSplit(name, result, activeSplit.session.disciplineId)}
           onBack={() => goBack()}
         />
       )}
@@ -1195,7 +1177,7 @@ export default function App() {
           sessions={communitySessions}
           loading={sessions.loading}
           disciplines={disciplines}
-          onReopen={(session) => pushView({ mode: "split", session, source: "session" })}
+          onReopen={(session) => { setActiveSplit({ session, source: "session" }); pushView({ mode: "split", source: "session" }); }}
           onDelete={async (id) => {
             try {
               await sessions.deleteSession(id);
