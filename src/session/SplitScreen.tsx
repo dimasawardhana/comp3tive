@@ -3,6 +3,7 @@ import type { Capability, Discipline, Id, Player, Session, SplitResult, TeamAssi
 type SplitSource = "ad-hoc" | "tournament" | "session" | "squad";
 import { describeFlags, teamName } from "./flow";
 import { freshSplit, swapPlayers } from "./edit";
+import { gapQualifier } from "./gapProvenance";
 
 interface Props {
   session: Session;
@@ -136,12 +137,13 @@ function GapMeter({ result, balanced }: { result: SplitResult; balanced: boolean
       </div>
       <div className="readout">
         {balanced ? (
-          <>Dead even. <span className="fine">Fair game.</span></>
+          <>Dead even. <span className="fine">{gapQualifier(result) ?? "Fair game."}</span></>
         ) : (
           <>
             Gap {gap.toFixed(1)}.{" "}
             <span className="fine">
               {leader ? teamName(leader.index) : "?"} leads.
+              {gapQualifier(result) ? ` ${gapQualifier(result)}` : ""}
             </span>
           </>
         )}
@@ -354,12 +356,13 @@ export function SplitScreen({ session, discipline, roster, onPersistResult, onSu
         <div ref={pitchRef} className="pitch">
           <div className="readout">
             {balanced ? (
-              <>Dead even. <span className="fine">Fair game.</span></>
+              <>Dead even. <span className="fine">{gapQualifier(result) ?? "Fair game."}</span></>
             ) : (
               <>
                 Gap {result.gap.toFixed(1)}.{" "}
                 <span className="fine">
                   {teamName(result.teams.reduce((a, b) => (a.avgStrength > b.avgStrength ? a : b)).index)} leads.
+                  {gapQualifier(result) ? ` ${gapQualifier(result)}` : ""}
                 </span>
               </>
             )}
