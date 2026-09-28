@@ -73,7 +73,11 @@ export function SquadsScreen({ squads, loading, disciplines, roster, onBack, onR
           ))}
         </div>
 
-        <div className="bar">
+        {/* Four long controls in one line already overflowed a 390px screen
+            (632px of content in a 390px bar), and the armed confirm adds two
+            more. `.bar` is a non-wrapping flex row, so the wrap is set here
+            rather than in index.css, which this task does not touch. */}
+        <div className="bar" style={{ flexWrap: "wrap" }}>
           <button type="button" className="btn btn-ghost" onClick={() => setOpenId(null)}>
             ← Squads
           </button>
@@ -151,7 +155,13 @@ export function SquadsScreen({ squads, loading, disciplines, roster, onBack, onR
                 </div>
                 <span className="row-actions">
                   <span className="row-edit" aria-hidden="true">›</span>
-                  <span onClick={(e) => e.stopPropagation()}>
+                  {/* Bounded and wrapping for the same reason as the History row:
+                    `.row-actions` cannot shrink, so the armed confirm would push
+                    the row off a narrow screen. */}
+                  <span
+                    onClick={(e) => e.stopPropagation()}
+                    style={{ display: "flex", flexWrap: "wrap", maxWidth: "14rem", justifyContent: "flex-end" }}
+                  >
                     <ConfirmButton
                       className="link danger"
                       label="Delete"

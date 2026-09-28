@@ -9,7 +9,12 @@ import type { ToastType } from "./useToasts";
 /** A08's per-row skip, re-exported so a consumer imports it from one place. */
 export type { ImportSkip } from "../data/player-import";
 
-/** The outcome of the last import, for the roster screen's report panel. */
+/**
+ * Phase D's report shape, kept here because that is where an import's outcome is
+ * decided. Nothing in the app constructs one today: an import reports itself
+ * through toasts, and no report panel was ever specified. A producer must set
+ * it, not just re-export it.
+ */
 export interface ImportReport {
   imported: number;
   skipped: ImportSkip[];
@@ -39,11 +44,15 @@ export interface PlayerImportDeps {
   saveTournament: (t: Tournament) => Promise<void>;
   saveSquad: (s: SavedSquad) => Promise<void>;
   /**
-   * Re-read every list the merge writes, communities before their records and
-   * the rest after. The hooks hold their own copies of the store's lists, so
-   * nothing an import writes is on screen until this runs.
+   * Re-read the communities, before their own records are written: the hooks
+   * hold their own copies of the store's lists, so an imported community would
+   * otherwise be absent from the dropdown while the players that name it
+   * arrive. `refreshRecords` then re-reads the four lists the rest of the merge
+   * writes. Two calls, not one, because the merge needs the communities in
+   * between — one combined call would read every list twice.
    */
-  refreshImported: () => Promise<void>;
+  refreshCommunities: () => Promise<void>;
+  refreshRecords: () => Promise<void>;
   notify: (text: string, type?: ToastType) => void;
   fileInputRef: RefObject<HTMLInputElement | null>;
 }
@@ -52,7 +61,6 @@ export interface PlayerImportResult {
   pendingMerge: PendingMerge | null;
   confirmMerge: () => void;
   cancelMerge: () => void;
-  lastReport: ImportReport | null;
   importFile: (file: File) => Promise<void>;
 }
 
@@ -76,12 +84,12 @@ export function usePlayerImport(deps: PlayerImportDeps): PlayerImportResult {
     saveSession,
     saveTournament,
     saveSquad,
-    refreshImported,
+    refreshCommunities,
+    refreshRecords,
     notify,
     fileInputRef,
   } = deps;
   const [pendingMerge, setPendingMerge] = useState<PendingMerge | null>(null);
-  const [lastReport, setLastReport] = useState<ImportReport | null>(null);
 
   const confirmMerge = useCallback(() => {
     void pendingMerge?.apply();
@@ -137,16 +145,16 @@ export function usePlayerImport(deps: PlayerImportDeps): PlayerImportResult {
           // come first, before the records whose communityId they explain — a
           // player whose community is not yet in hook state is re-homed by the
           // orphan-adoption effect above.
-          await refreshImported();
+          await refreshCommunities();
           for (const p of newPlayers) await savePlayer(p);
           for (const s of newSessions) await saveSession(s);
           for (const t of newTournaments) await saveTournament(t);
           for (const q of newSquads) await saveSquad(q);
-          await refreshImported();
+          await refreshRecords();
         },
       });
     },
-    [communities, players, sessions, tournaments, squads, disciplines, saveCommunity, savePlayer, saveSession, saveTournament, saveSquad, refreshImported, notify],
+    [communities, players, sessions, tournaments, squads, disciplines, saveCommunity, savePlayer, saveSession, saveTournament, saveSquad, refreshCommunities, refreshRecords, notify],
   );
 
   const importFile = useCallback(
@@ -202,10 +210,6 @@ export function usePlayerImport(deps: PlayerImportDeps): PlayerImportResult {
               await savePlayer(player);
               imported++;
             }
-            // A08's `ImportSkip` is a line/reason pair, and this branch has
-            // neither: an entry that is not an object is not a row, so nothing
-            // is skipped. The rejected names travel in the toast below.
-            setLastReport({ imported, skipped: [] });
             // A file that yielded no player must not report one: an all-rejected
             // file, or one whose rows carry no name at all, would otherwise
             // announce "Imported 0 players" in success styling.
@@ -238,7 +242,6 @@ export function usePlayerImport(deps: PlayerImportDeps): PlayerImportResult {
         const { players: imported, skipped: unresolved } = csvRowsToPlayers(rows, disciplines, activeCommunity.id);
         for (const player of imported) await savePlayer(player);
         const skipped = [...unparsed, ...unresolved].sort((a, b) => a.line - b.line);
-        setLastReport({ imported: imported.length, skipped });
         // Same rule as the JSON branch: a CSV of blank lines imports nothing and
         // must not claim a success.
         if (imported.length > 0) {
@@ -264,5 +267,5 @@ export function usePlayerImport(deps: PlayerImportDeps): PlayerImportResult {
     [activeCommunity, disciplines, savePlayer, notify, fileInputRef, importBackup],
   );
 
-  return { pendingMerge, confirmMerge, cancelMerge, lastReport, importFile };
+  return { pendingMerge, confirmMerge, cancelMerge, importFile };
 }

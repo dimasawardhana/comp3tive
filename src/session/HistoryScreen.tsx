@@ -79,7 +79,15 @@ export function HistoryScreen({ sessions, loading, disciplines, onReopen, onDele
                 </div>
                 <span className="row-actions">
                   <span className="row-edit" aria-hidden="true">›</span>
-                  <span onClick={(e) => e.stopPropagation()}>
+                  {/* `.row-actions` is `flex: 0 0 auto` inside a row with no wrap,
+                    so an armed confirm — message, Cancel, and the danger button on
+                    one line — would push the row off a 390px screen. The cluster
+                    wraps inside a bounded box instead, and the message carries
+                    `.status-msg`, whose only rule is `.status-banner .status-msg`. */}
+                  <span
+                    onClick={(e) => e.stopPropagation()}
+                    style={{ display: "flex", flexWrap: "wrap", maxWidth: "14rem", justifyContent: "flex-end" }}
+                  >
                     <ConfirmButton
                       className="link danger"
                       label="Delete"

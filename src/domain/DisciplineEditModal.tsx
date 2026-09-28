@@ -158,6 +158,11 @@ export function DisciplineEditModal({
     try {
       await onDelete(discipline.id);
       onClose();
+    } catch {
+      // App's `deleteDiscipline` has already notified and rethrown, so the toast
+      // is the message. Swallowing it here is what keeps the rethrow from
+      // escaping `void remove()` as an unhandled rejection; `onClose()` sits
+      // after the await, so a failed delete leaves the modal open.
     } finally {
       setSaving(false);
     }

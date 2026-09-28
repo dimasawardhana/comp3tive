@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { type Discipline, type Id, type Player } from "./domain";
 import {
   createIndexedDbCommunityStore,
@@ -196,15 +196,18 @@ export default function App() {
     saveSession: sessionStore.saveSession,
     saveTournament: tournamentStore.saveTournament,
     saveSquad: squadStore.saveSavedSquad,
-    // Communities before their own records, the rest after: the same order the
-    // merge has always written in, kept in one place so the hook can call it.
-    refreshImported: async () => {
+    // Communities before their own records, the rest after: the order the merge
+    // has always written in. Two handles, not one, so the merge reads each list
+    // once; both are memoised because the hook memoises on them.
+    refreshCommunities: useCallback(async () => {
       await communities.refresh();
+    }, [communities]),
+    refreshRecords: useCallback(async () => {
       await roster.refresh();
       await sessions.refresh();
       await tournaments.refresh();
       await savedSquads.refresh();
-    },
+    }, [roster, sessions, tournaments, savedSquads]),
     notify,
     fileInputRef,
   });

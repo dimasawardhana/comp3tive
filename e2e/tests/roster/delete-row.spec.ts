@@ -90,6 +90,8 @@ test("deleting a player, a tournament and a session removes the row without a re
   await hubButton(page, "History").click();
   await expect(page.locator(".history-row")).toHaveCount(2);
   await page.locator(".history-row").first().getByRole("button", { name: "Delete session", exact: true }).click();
+  // Same two clicks as the player above: the row's aria-label and the armed
+  // button's text are both "Delete session", so the line looks repeated.
   await page.locator(".history-row").first().getByRole("button", { name: "Delete session", exact: true }).click();
   await expect(page.locator(".history-row")).toHaveCount(1, { timeout: 5000 });
 
