@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { roundRobinSchedule, type RoundRobinPairing } from "./round-robin";
+import { roundRobinRounds, roundRobinSchedule, type RoundRobinPairing } from "./round-robin";
 
 /**
  * Every `n` the schedule has to be right for, past the 8-team cap the app
@@ -211,5 +211,65 @@ describe("roundRobinSchedule", () => {
       const holed = real.filter((p) => p.round !== 3);
       expect(violations(n, holed).join("; ")).toMatch(/round 3 is missing/);
     });
+  });
+});
+
+describe("roundRobinRounds", () => {
+  /**
+   * The count an organizer reads before committing an evening to the format, so
+   * it is the number that must be right, and the one that was wrong: it came
+   * from `roundRobinSchedule(n).length`, which counts *rows* — one per pairing
+   * and one per bye — and so came out at 6 rounds for a 3-team night.
+   *
+   * Both parities are pinned because neither alone catches it. On an even
+   * field the row count is `n / 2` times the rounds; on an odd one the bye adds
+   * a row as well, so a round is `ceil(n / 2)` rows. A test at 3 teams sees
+   * "twice the rounds" and cannot tell that apart from "rows plus byes", and a
+   * test at 4 teams sees the same doubling from a different cause.
+   */
+  it.each([2, 4, 6, 8])("counts the rounds, not the rows, on an even field of %i", (n) => {
+    expect(roundRobinRounds(n)).toBe(roundsFor(n));
+    // The specific trap: at 4 teams the schedule is 3 rounds of 2 pairings, so
+    // `.length` is 6 and the rounds are 3. Two teams is the one even field where
+    // the two agree — one pairing in one round — and the app does not offer a
+    // 2-team round robin anyway, since a single pairing is the Series format.
+    if (n > 2) expect(roundRobinRounds(n)).not.toBe(roundRobinSchedule(n).length);
+  });
+
+  it.each([3, 5, 7])("counts the rounds, not the rows plus the byes, on an odd field of %i", (n) => {
+    expect(roundRobinRounds(n)).toBe(roundsFor(n));
+    // At 5 teams the schedule is 5 rounds of a pairing and a bye: 15 rows, 5
+    // rounds, and the bye must not be counted as a game.
+    expect(roundRobinRounds(n)).not.toBe(roundRobinSchedule(n).length);
+  });
+
+  it.each(RANGE)("is the games a team plays, plus its one bye when it has one, for n=%i", (n) => {
+    // The property that decides which of the two numbers is right, stated
+    // without reference to either: a team plays every round except the one it
+    // rests, and rests once. It holds only if the count is rounds.
+    //
+    // This is the assertion that catches the bug on its own. `.length` gives
+    // `2 * rounds` on an even field, so a team would be credited with twice the
+    // games it can play, and the double counting grows with `n`.
+    const gamesPerTeam = new Map<number, number>();
+    for (const p of roundRobinSchedule(n)) {
+      if (p.teamB === null) continue;
+      gamesPerTeam.set(p.teamA, (gamesPerTeam.get(p.teamA) ?? 0) + 1);
+      gamesPerTeam.set(p.teamB, (gamesPerTeam.get(p.teamB) ?? 0) + 1);
+    }
+    const expected = roundsFor(n) - (n % 2);
+    for (const team of gamesPerTeam.keys()) expect(gamesPerTeam.get(team), `team ${team} at n=${n}`).toBe(expected);
+  });
+
+  it("has no round to count below two teams, where there is no schedule", () => {
+    expect(roundRobinRounds(0)).toBe(0);
+    expect(roundRobinRounds(1)).toBe(0);
+  });
+
+  it.each([-1, 1.5, Number.NaN])("refuses a count that is not a count, like the scheduler does", (n) => {
+    // Inheriting the scheduler's refusal rather than answering a nonsense input
+    // quietly: `roundRobinRounds` is the scheduler read the other way, so the
+    // two must not disagree about what is a team count.
+    expect(() => roundRobinRounds(n)).toThrow("is not a count of teams");
   });
 });

@@ -99,3 +99,26 @@ export function roundRobinSchedule(n: number): RoundRobinPairing[] {
   }
   return out;
 }
+
+/**
+ * How many rounds a round robin at `n` teams runs.
+ *
+ * **This is not `roundRobinSchedule(n).length`, and the difference is the
+ * whole point of this function.** The schedule is one row per pairing *and* one
+ * row per bye, so a round is `m / 2` rows, not one: at 4 teams it is 3 rounds
+ * of 2 pairings and the schedule has 6 entries, and at 5 teams it is 5 rounds
+ * of a pairing and a bye and the schedule has 15 entries. Rows and rounds
+ * coincide only where a round is a single row: `n = 2`, which the app does not
+ * offer as a round robin, and `n = 1`, which has no schedule at all. A caller
+ * that wants to tell an organizer how long the evening is has to ask here, and
+ * one that reaches for `.length` is quoting a number roughly double the truth
+ * for every count from 3 up.
+ *
+ * Counted off the schedule rather than restated as `n - 1` or `n`, so the round
+ * count is a consequence of the ring in the same way the bye order is: change
+ * how the ring turns and this follows it, instead of the two disagreeing about
+ * a schedule neither of them built.
+ */
+export function roundRobinRounds(n: number): number {
+  return new Set(roundRobinSchedule(n).map((pairing) => pairing.round)).size;
+}

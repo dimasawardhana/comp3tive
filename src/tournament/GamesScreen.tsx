@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import type { Community, Discipline, Id, SeriesLength, Tournament, TournamentFormat } from "../domain/types";
 import { validateTournamentSpec, type TournamentValidationIssue } from "./tournament-validation";
-import { roundRobinSchedule } from "../data/round-robin";
+import { roundRobinRounds } from "../data/round-robin";
 import { PageHeader } from "../ui/PageHeader";
 import { FORMAT_LABEL, SELECTABLE_FORMATS, STATUS_LABEL } from "../ui/constants";
 import { Modal } from "../ui/Modal";
@@ -418,7 +418,7 @@ export function GamesScreen({ tournaments, disciplines, onCreate, onOpen, onDele
               {format === "series" && ` · BO${seriesLength} = first to ${Math.ceil(seriesLength / 2)} wins`}
               {format === "single-elim" && ` · ${teamCount === 2 ? 1 : teamCount === 4 ? 2 : 3} round${teamCount === 8 ? "s" : ""}${thirdPlace ? " · 3rd-place match" : ""}`}
               {format === "swiss" && ` · ${teamCount === 4 ? 2 : teamCount === 6 ? 3 : 3} rounds · standings`}
-              {format === "round-robin" && ` · ${roundRobinSchedule(teamCount).length} rounds · every team plays every other`}
+              {format === "round-robin" && ` · ${roundRobinRounds(teamCount)} rounds · every team plays every other`}
             </div>
 
             <div className="bar">
