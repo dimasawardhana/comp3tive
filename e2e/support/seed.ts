@@ -148,3 +148,34 @@ export const statCard = (page: Page, label: string) =>
 
 export const statValue = async (page: Page, label: string): Promise<string> =>
   (await statCard(page, label).locator(".tournament-meta-card-value").innerText()).trim();
+
+/**
+ * The tournament's own metadata strip, read by its label rather than its index,
+ * so a strip that gains or loses an item does not shift every assertion onto
+ * its neighbour.
+ */
+export const tournamentMeta = (page: Page, label: string) =>
+  page
+    .locator(".tournament-meta-strip .tms-item", { has: page.locator(".tms-label", { hasText: new RegExp(label, "i") }) })
+    .locator(".tms-value");
+
+/**
+ * Record one match of a bracket, giving it to the team listed first, over the
+ * tournament's BO3.
+ *
+ * A BO3 is decided at two games, so one picked game is not a result: saving one
+ * game leaves the match, and the tournament, undecided. That step is the one a
+ * plan got wrong, and it is here rather than in each tournament spec because a
+ * second copy is a second thing to keep right.
+ */
+export async function recordMatch(page: Page, nth: number): Promise<void> {
+  await page.locator(".bracket-match").nth(nth).click();
+  const modal = page.locator(".modal-card");
+  await expect(modal).toBeVisible();
+  for (let game = 0; game < 2; game++) {
+    await modal.locator(".record-game").nth(game).locator(".chip").first().click();
+  }
+  await expect(modal.locator(".status")).toContainText(/series decided/i);
+  await modal.locator(".btn-primary", { hasText: "Save result" }).click();
+  await expect(modal).not.toBeVisible({ timeout: 5000 });
+}

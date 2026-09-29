@@ -23,7 +23,7 @@
  * test that crosses them has to normalise, or it is testing the stylesheet.
  */
 import { test, expect, type Page } from "@playwright/test";
-import { gotoHubSeeded, type SeedWorld } from "../../support/seed";
+import { gotoHubSeeded, recordMatch, tournamentMeta as meta, type SeedWorld } from "../../support/seed";
 
 const ROLES = ["tank", "assassin", "mage", "marksman", "fighter"];
 
@@ -50,25 +50,6 @@ const world = (): SeedWorld => ({
 /** The count chip for exactly `n` teams, which the discipline and BO chips never are. */
 const countChip = (page: Page, n: number) => page.locator(".modal-card .chip", { hasText: new RegExp(`^${n}$`) });
 
-/** Record one match, giving it to the team listed first, over the tournament's BO3. */
-const recordMatch = async (page: Page, nth: number) => {
-  await page.locator(".bracket-match").nth(nth).click();
-  const modal = page.locator(".modal-card");
-  await expect(modal).toBeVisible();
-  // A BO3 is decided at two games, so one picked game is not a result. This is
-  // the step a plan of Task 8's got wrong: saving one game leaves the match,
-  // and the tournament, undecided.
-  for (let game = 0; game < 2; game++) {
-    await modal.locator(".record-game").nth(game).locator(".chip").first().click();
-  }
-  await expect(modal.locator(".status")).toContainText(/series decided/i);
-  await modal.locator(".btn-primary", { hasText: "Save result" }).click();
-  await expect(modal).not.toBeVisible({ timeout: 5000 });
-};
-
-/** The tournament's own metadata strip, read by its label rather than its index. */
-const meta = (page: Page, label: string) =>
-  page.locator(".tournament-meta-strip .tms-item", { has: page.locator(".tms-label", { hasText: new RegExp(label, "i") }) }).locator(".tms-value");
 
 test("a 3-team round robin is selectable, runs, and crowns a champion from the standings", async ({ page }) => {
   await gotoHubSeeded(page, world(), "Games");

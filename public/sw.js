@@ -149,10 +149,30 @@ function reportStaleBuild() {
  * has spent the most comment on avoiding, and the global lookup reintroduces it
  * through the back door. Scoped, that request is a miss, and a miss is a 404 the
  * page can be told about.
+ *
+ * The read also passes `ignoreVary`, and that is not a nicety: it is the
+ * difference between an offline app and a blank page. Every lookup here is in
+ * THIS worker's own cache, keyed by an exact URL that is either a content-hashed
+ * asset name or a document this file chose to precache. `Vary` is a shared-HTTP-
+ * cache concept — it asks "would a proxy hand this same object to a request
+ * with different headers", which is a question about revalidating somebody
+ * else's bytes. Here the answer is always yes, because the bytes are named by
+ * their own hash. Honouring `Vary` instead makes the store lie about what it
+ * holds: `vite preview` sends `Vary: Origin` on everything it serves, Chromium
+ * sends `Origin` on a document's subresources, so the precached entry stored
+ * from a request with no `Origin` header stopped matching the very page it was
+ * precached for. Offline, that is `net::ERR_FAILED` on the app's own CSS, its
+ * entry chunk, its lazy chunks and its fonts — the document loads from the
+ * precache and renders nothing at all. Found by `e2e/tests/pwa/offline.spec.ts`
+ * against a real browser, which is the only place this class of failure is
+ * visible: a `caches` stub keyed by URL alone cannot miss that it is keyed by
+ * URL alone.
  */
+const MATCH = { ignoreVary: true };
+
 async function cacheFirst(request) {
   const cache = await caches.open(CACHE);
-  const cached = await cache.match(request);
+  const cached = await cache.match(request, MATCH);
   if (cached) return cached;
   const response = await fetch(request);
   store(request, response);
@@ -186,7 +206,7 @@ async function networkFirst(request) {
     // is better served the document it came with than the one it cannot run.
     const cache = await caches.open(CACHE);
     for (const key of [request, new URL(request.url).pathname, "/404.html"]) {
-      const cached = await cache.match(key);
+      const cached = await cache.match(key, MATCH);
       if (cached) return cached;
     }
     throw err;
