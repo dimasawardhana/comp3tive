@@ -473,18 +473,20 @@ the same reason, so the two are now told apart explicitly.
 
 ### A recorded hazard for Phase D, found at Phase B's Task 1
 
-**`gapKind` returns `"proven"` for a hand-edited team set, and D31's share text branches on it.**
-`swapPlayers` stamps `optimal: true` with `nodesExplored: 0` (`src/session/edit.ts:64`) — meaning "no
-search ran", not "this arrangement is minimal" — and the mandated rule reads that field and nothing
-else, so a result the organizer rearranged by hand is `"proven"`. It is harmless on the split screen,
-because `gapQualifier` returns `null` there and no provenance word is shown. It is **not** harmless
-in `src/share/**`: Phase D's D31 branches on `gapKind` to emit
-`Gap {gap} — the proven minimum for this pool.`, so a swapped result reaching the share text would
-print a proof claim for teams the user put together themselves. The B spec resolved this for the
-screen by declining to special-case the swap path (`:218-227`); **it was never resolved for the
-share text.** D31 must state the rule that fits its own surface, and that rule has to be recorded
-when D's plan is written — it is not a defect in `gapProvenance.ts`, which implements the contract
-B13 was given.
+**`gapKind` returned `"proven"` for a hand-edited team set. Phase C closed the cause on 2026-09-28.**
+`swapPlayers` routes through `recomputeResult`, which used to stamp `optimal: true, nodesExplored: 0`
+(`src/session/edit.ts:64`) — "no search ran", not "this arrangement is minimal" — so the mandated rule,
+reading that field and nothing else, returned `"proven"` and suppressed the qualifier, leaving the
+readout's own `Gap 0.3. <Team> leads.` / `Dead even. Fair game.` standing as an affirmative fairness
+claim. The stamp now defaults to `optimal: false` (`src/session/edit.ts:72`), so a hand-edited result
+is correctly `"best-found"` and the screen says **"Best gap found."** `gapKind` and `gapQualifier` are
+unchanged and remain the single source of truth; D's share text imports them rather than re-deriving.
+
+**What is still open, and is not fixed by that:** the *best-found* copy narrates a search that did not
+run. For a hand-edited result `nodesExplored` is 0, so "the smallest gap found" and "the search
+ended before proving it minimal" are both untrue — a different false claim than the one just removed.
+Correcting it honestly needs a string that describes the *result* rather than the search, or a third
+verdict. Recorded in `IMPLEMENTATION_PLAN.md`'s known-open table; it is a copy decision for D31's owner.
 
 
 ---
