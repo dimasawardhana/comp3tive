@@ -7,7 +7,7 @@ interface Props {
 }
 
 /**
- * The overlay + card skeleton five modals hand-rolled identically. It owns the
+ * The overlay + card skeleton six modals hand-rolled identically. It owns the
  * wrapper and the two handlers only: each call site keeps its own close button,
  * title and content, because they differ (TournamentScreen renders an inline-styled
  * <h1> rather than .modal-title; SplitScreen titles itself "Save squad").

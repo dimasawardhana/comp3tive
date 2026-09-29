@@ -103,6 +103,14 @@ test.describe("the share sheet", () => {
     // clipboard are one string: a sheet that re-rendered the text on copy would
     // send something nobody saw.
     expect(copied).toBe(await preview.inputValue());
+
+    // Dismissal through the overlay. `Modal` owns that handler and four other
+    // modals are built on it, and nothing in the repo exercised it — this is
+    // the one place the share sheet pays for it. The click is at the overlay's
+    // own corner so it lands outside `.modal-card`, whose `stopPropagation` is
+    // what keeps a click inside the sheet from closing it.
+    await page.locator(".modal-overlay").click({ position: { x: 5, y: 5 } });
+    await expect(sheet).toBeHidden();
   });
 
   test("keeps the text and says so when the clipboard API is unavailable", async ({ page }) => {

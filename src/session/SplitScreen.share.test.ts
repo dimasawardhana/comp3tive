@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { SplitScreen } from "./SplitScreen";
-import { freshSplit } from "./edit";
+import { freshSplit, recomputeResult } from "./edit";
 import { FUTSAL_DISCIPLINE } from "../domain/seed";
 import type { Player, Session, SplitResult } from "../domain/types";
 import type { SplitSource } from "../shell/useSplitFlow";
@@ -35,6 +35,22 @@ const NO_TEAMS: SplitResult = {
   unassigned: [],
   solver: { optimal: true, nodesExplored: 0, elapsedMs: 0 },
 };
+
+/**
+ * One team, proven, with five roster players left off — the shape a partial
+ * role cover produces. `recomputeResult` is what stamps it, so the totals,
+ * the `leftover` flags and the unassigned ids come from the module that owns
+ * them rather than from this file. The screen renders this as "Solver failed"
+ * (the ternary is `=== 2`, then `> 2`, else empty), so the bar above it must
+ * not offer to share it.
+ */
+const ONE_TEAM: SplitResult = recomputeResult(
+  [{ index: 0, slots: ROSTER.slice(0, 5).map((p) => ({ playerId: p.id, roleId: null })), totalStrength: 0, avgStrength: 0 }],
+  FUTSAL_DISCIPLINE,
+  ROSTER.slice(5).map((p) => p.id),
+  ROSTER,
+  { optimal: true, nodesExplored: 2, elapsedMs: 1 },
+);
 
 const session = (result: SplitResult): Session => ({
   id: "s1",
@@ -78,14 +94,17 @@ describe("the Share control on the split screen", () => {
     expect(screen(undefined)).not.toContain("share-teams");
   });
 
-  it("offers no Share control when the solver produced no teams", () => {
+  it("offers no Share control when the solver produced fewer than two teams", () => {
     // The empty state ("Solver failed") and `.split-bar` coexist: the bar
-    // renders outside the teams ternary at `SplitScreen.tsx:346-390`. Sharing
-    // there would emit "— 0 teams" and a gap verdict for an arrangement that
-    // does not exist, under the app's own fairness claim, in a group chat.
-    // Fails if the gate is dropped back to `share && !swapMode`, or if someone
-    // reorders the ternary so the bar moves inside the empty branch.
+    // renders outside the teams ternary. Sharing there would emit a team count
+    // and a gap verdict for an arrangement the screen itself is calling a
+    // failure, under the app's own fairness claim, in a group chat.
+    // Fails if the gate is dropped back to `share && !swapMode`, or loosened to
+    // `> 0` — a one-team result renders this same empty state, and would send
+    // "1 teams" with a "proven minimum" verdict for one team plus five
+    // benched players.
     expect(screen({ communityName: "Thursday Crew" }, NO_TEAMS)).not.toContain("share-teams");
+    expect(screen({ communityName: "Thursday Crew" }, ONE_TEAM)).not.toContain("share-teams");
   });
 
   it("keeps the sheet closed until Share is pressed", () => {

@@ -421,15 +421,19 @@ export function SplitScreen({ session, discipline, roster, onPersistResult, onSu
           </button>
         )}
         {/*
-          Gated on a non-empty result, not just on the prop. The bar renders
-          outside the teams ternary, so with no teams the empty state ("Solver
-          failed") sits directly above a live action bar. Sharing there would
-          emit "Futsal · Thursday Crew — 0 teams" and a gap verdict for a
-          pool the app never actually split — a fairness claim, quoted in a
-          group chat, about an arrangement that does not exist. Re-roll is the
-          only honest action on that screen, and it is already there.
+          Gated on two or more teams, which is this screen's own definition of
+          "there is a split" — the teams ternary above is `=== 2`, then `> 2`,
+          else the "Solver failed" empty state, and the tournament button beside
+          this one is already `disabled={result.teams.length < 2}`. Anything
+          below that threshold renders the empty state, and `.split-bar` sits
+          outside that ternary, so the bar would otherwise offer to share a
+          screen the app is calling a failure. The text would say "0 teams" or
+          "1 teams", quote a gap verdict, and for a one-team result append a
+          "Not playing" line — a proven-minimum fairness claim about players
+          the app benched, pasted into a group chat. Re-roll is the only honest
+          action on that screen, and it is already here.
         */}
-        {share && !swapMode && result.teams.length > 0 && (
+        {share && !swapMode && result.teams.length > 1 && (
           <button
             type="button"
             className="btn btn-ghost"

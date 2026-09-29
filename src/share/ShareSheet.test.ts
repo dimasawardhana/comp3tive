@@ -91,13 +91,18 @@ describe("the share sheet", () => {
     expect(html).toMatch(/<p class="share-status" role="status"><\/p>/);
   });
 
-  it("gives the sheet a named close control, so it is dismissible from the keyboard", () => {
-    // Narrower than it looks: `Modal` owns the overlay's click-to-dismiss and
-    // the card's stopPropagation, and neither handler survives static rendering,
-    // so this cannot claim to test them — the e2e dismisses through the
-    // overlay. What SSR can see is that a focusable, named close control exists
-    // at all. Fails if it is dropped or left unlabelled, which would leave a
-    // keyboard user inside the sheet with no way out.
+  it("gives the sheet a named close control, the keyboard's only way out", () => {
+    // Narrower than it looks, and deliberately so. `Modal` owns the overlay's
+    // click-to-dismiss and the card's stopPropagation; neither handler survives
+    // static rendering, so this cannot claim to test them. The e2e
+    // (`e2e/tests/share/share.spec.ts`) dismisses through the overlay, which
+    // covers that path for every other modal built on `Modal`.
+    //
+    // What is left here, and genuinely uncovered anywhere else, is the exit a
+    // pointer user never takes: clicking the backdrop is not something a
+    // keyboard can do, and `Modal` has no Escape handler. If this button were
+    // dropped or left unlabelled, a keyboard user would be stuck inside the
+    // sheet with no way out at all.
     expect(sheet()).toMatch(/<button type="button" class="modal-close" aria-label="Close">/);
   });
 });
