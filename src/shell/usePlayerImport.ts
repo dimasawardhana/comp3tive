@@ -38,9 +38,15 @@ export interface ImportReport {
  *
  * The prefix is written out here rather than derived from `CSV_TEMPLATE`
  * because that file is Phase D's and read-only to this phase, and because the
- * two can be tied in a test instead: `usePlayerImport.test.ts` parses the
+ * two can be tied in a test instead: `RosterScreen.import-report.test.ts` —
+ * case "catches every example row the shipped template contains" — parses the
  * shipped template through the shipped parser and asserts every example row in
- * it is caught, which fails the moment either end moves.
+ * it is caught, which fails the moment either end moves. (It is that file and
+ * not a `usePlayerImport` one: there is no test module for this hook, because
+ * `usePlayerImport` needs React effects to be observable and the unit
+ * environment has none — everything the hook decides is proved in the browser
+ * in `e2e/tests/roster/fast-entry.spec.ts`, and everything this rule decides is
+ * proved here.)
  */
 const TEMPLATE_EXAMPLE_PREFIX = "example player";
 
@@ -57,19 +63,27 @@ export const isTemplateExampleRow = (name: string): boolean =>
   name.trim().toLowerCase().startsWith(TEMPLATE_EXAMPLE_PREFIX);
 
 /**
- * The phrase every template-example skip carries in its reason.
+ * The phrase every row this app held back for a template-like name carries in
+ * its reason, exported so the report's grouping keys off one string rather
+ * than a second copy of it. The report groups rows by the cause their reason
+ * names, and a duplicated literal in a screen is a duplicated literal that can
+ * be reworded on one side only — at which point the example rows fall out of
+ * their group and into the ungrouped floor, silently, on a file that was
+ * otherwise fine.
  *
- * Exported so the report's grouping keys off one string rather than a second
- * copy of it. The report groups rows by the cause their reason names, and a
- * duplicated literal in a screen is a duplicated literal that can be reworded
- * on one side only — at which point the example rows fall out of their group
- * and into the ungrouped floor, silently, on a file that was otherwise fine.
+ * It says "the template's example marker" and not "one of the example rows the
+ * template ships", because the app cannot know which. It ran a name prefix.
+ * A sentence reading *"is one of the example rows the CSV template ships"* is a
+ * claim about **this user's file**, and for any name that merely begins the
+ * same way it is false — so the sentence now states the rule that was applied
+ * and lets the report's group note offer the user the decision.
  */
-export const TEMPLATE_EXAMPLE_MARKER = "one of the example rows the CSV template ships";
+export const TEMPLATE_EXAMPLE_REASON_MARKER = "the template's example marker";
 
 /**
- * Why an example row is not in the report's roster of imported players, said
- * as a fact about this import and not as a rule.
+ * Why a row this app took for a template example is not in the roster of
+ * imported players, said as a fact about **this import** and about **the app's
+ * own rule** — never as a verdict on the row.
  *
  * Past tense, and it names no future behaviour: the row is not on the roster
  * *now*, and nothing here claims what the app would do with the same file
@@ -77,7 +91,19 @@ export const TEMPLATE_EXAMPLE_MARKER = "one of the example rows the CSV template
  * about code — `parsePlayerCsv` and this predicate — that no test in the repo
  * holds open, and a report is the last place a claim like that belongs.
  */
-const exampleRowReason = (name: string): string => `"${name}" is ${TEMPLATE_EXAMPLE_MARKER}, so it was not imported.`;
+const exampleRowReason = (name: string): string =>
+  `"${name}" — this app did not import it: the name starts with ${TEMPLATE_EXAMPLE_REASON_MARKER}.`;
+
+/**
+ * Why a row whose player the app failed to save is on the report.
+ *
+ * Past tense, cause not claimed, and it is the reason this report has to carry
+ * for a row that **the parser read perfectly well**: the file was fine and the
+ * app's own write failed. Nothing here blames the file, and nothing here
+ * promises a retry. It lands in the ungrouped floor, which is where a row the
+ * app cannot classify belongs — see `RosterScreen`'s floor.
+ */
+const unsavedRowReason = "This app did not save this player, so the row was not imported.";
 
 /**
  * Split parsed rows into the ones that are real entries and the ones that are
@@ -368,24 +394,77 @@ export function usePlayerImport(deps: PlayerImportDeps): PlayerImportResult {
         // catalog is consulted: they are valid rows that this app chooses not
         // to write, and a choice the report has to be able to show.
         const { rows: entries, examples } = takeTemplateExamples(rows);
-        const { players: imported, skipped: unresolved } = csvRowsToPlayers(entries, disciplines, activeCommunity.id);
-        for (const player of imported) await savePlayer(player);
-        // Sorted by line, and the two parser skip lists are merged rather than
+        // **One call per row rather than one call for the file.**
+        // `csvRowsToPlayers` is a pure per-row loop, so the players and the
+        // skips are byte-for-byte the same either way. The per-row call is what
+        // keeps each player's **line** attached to it, and the write path below
+        // needs that line in order to name the rows whose save failed.
+        // `Player` carries no line of its own, so the alternative was to infer
+        // one from a position in an array — and on a file where an earlier row
+        // was skipped, that position is the wrong row's. A report that points
+        // at the wrong line is the one lie this surface may not tell.
+        const resolved = entries.map((row) => ({ line: row.line, ...csvRowsToPlayers([row], disciplines, activeCommunity.id) }));
+        const toWrite = resolved.flatMap((r) => r.players.map((player) => ({ line: r.line, player })));
+        const unresolved = resolved.flatMap((r) => r.skipped);
+
+        // **A save that throws must still leave a report.** `savePlayer` can
+        // refuse — the browser said no, the store is closed, the quota is gone —
+        // and the loop used to abort with the report still unset. The user was
+        // then left with a roster their file had partly changed, a red toast,
+        // and **no verdict at all**: not a lie, since the report had been
+        // cleared at the top of this function, but an *absence*, and on this
+        // surface an absence is the failure nobody looks for. So the count of
+        // what really landed is kept, the rows that never got written become
+        // skips with their own lines, and `imported + skipped` still equals the
+        // file's row count — so the headline a user can count is still a count
+        // they can check.
+        let saved = 0;
+        let writeError: unknown = null;
+        for (const entry of toWrite) {
+          try {
+            await savePlayer(entry.player);
+            saved++;
+          } catch (err) {
+            writeError = err;
+            break;
+          }
+        }
+        const unsaved = toWrite.slice(saved).map((entry) => ({ line: entry.line, reason: unsavedRowReason }));
+        // Sorted by line, and every skip list is merged rather than
         // concatenated: a user reading top to bottom down a spreadsheet reads
         // one sequence, and two sequences that each happen to be sorted tell
-        // them to read the file twice. The grouping into causes is the
-        // panel's job, and it re-sorts nothing.
-        const skipped = [...unparsed, ...unresolved, ...examples].sort((a, b) => a.line - b.line);
-        setLastReport({ imported: imported.length, skipped });
+        // them to read the file twice. The grouping into causes is the panel's
+        // job, and it re-sorts nothing.
+        const skipped = [...unparsed, ...unresolved, ...examples, ...unsaved].sort((a, b) => a.line - b.line);
+        setLastReport({ imported: saved, skipped });
+        // Rethrown, and only now: the report is on the page, and the one
+        // sentence a user needs for a storage failure is the one that says what
+        // the browser said. Announcing it here instead would be a second
+        // announcement path, and this one is already written.
+        if (writeError !== null) throw writeError;
+
+        // The skips that are not the template's own rows. Everything below
+        // branches on this rather than on `skipped`, because the template's rows
+        // are not failures and must not be dressed as ones.
+        const unreadable = skipped.filter((s) => !s.reason.includes(TEMPLATE_EXAMPLE_REASON_MARKER));
         // Same rule as the JSON branch: a CSV of blank lines imports nothing and
         // must not claim a success.
-        if (imported.length > 0) {
-          notify(
-            `Imported ${imported.length} player${imported.length === 1 ? "" : "s"} into ${activeCommunity.name}.`,
-            "success",
-          );
-        } else {
+        if (saved > 0) {
+          notify(`Imported ${saved} player${saved === 1 ? "" : "s"} into ${activeCommunity.name}.`, "success");
+        } else if (unreadable.length > 0 || skipped.length === 0) {
+          // Either the app could not read a row, or the file held no player rows
+          // at all. Both are things the user did not know and can act on.
           notify(`No players imported into ${activeCommunity.name}.`, "error");
+        } else {
+          // **The untouched template, and the app's first words to a new user.**
+          // Nothing was written because every row was one this app recognised
+          // as a template example, which is not a failure and must not be
+          // announced in error styling at someone who has done nothing wrong.
+          // The first thing a new organizer does with a template is import it
+          // back to see what happens, so this is the first sentence this
+          // surface ever speaks to anyone. It is stated, not styled as a
+          // problem, and the panel underneath says exactly which rows and why.
+          notify(`No players imported into ${activeCommunity.name}.`, "info");
         }
         // **A skip toast only when nothing was imported.** With the report up,
         // a skip toast is a second, worse copy of the same fact: it lasts three
@@ -396,9 +475,9 @@ export function usePlayerImport(deps: PlayerImportDeps): PlayerImportResult {
         // honest version of it. When nothing was imported the toast is not a
         // second copy: it is the one place the failure is announced, because a
         // report the user has to go and find is not a failure notice.
-        if (imported.length === 0 && skipped.length > 0) {
+        if (saved === 0 && unreadable.length > 0) {
           notify(
-            `Skipped ${skipped.length} row${skipped.length === 1 ? "" : "s"}. Line ${skipped[0].line}: ${skipped[0].reason}`,
+            `Skipped ${unreadable.length} row${unreadable.length === 1 ? "" : "s"}. Line ${unreadable[0].line}: ${unreadable[0].reason}`,
             "error",
           );
         }

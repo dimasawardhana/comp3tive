@@ -4,7 +4,7 @@ import { SEED_DISCIPLINES } from "../domain/seed";
 import type { Discipline, Player } from "../domain/types";
 import { renderRoster } from "../test-support/renderRoster";
 import { CSV_TEMPLATE } from "../data/csv-template";
-import { isTemplateExampleRow, TEMPLATE_EXAMPLE_MARKER, type ImportReport } from "./usePlayerImport";
+import { isTemplateExampleRow, TEMPLATE_EXAMPLE_REASON_MARKER, type ImportReport } from "./usePlayerImport";
 
 /**
  * The import report, checked against the parser and against the copy.
@@ -70,7 +70,7 @@ const headline = (html: string): string => {
 
 /** Every group title in reading order, with its row count. */
 const groupTitles = (html: string): string[] =>
-  [...html.matchAll(/<h4 class="import-report-group-title">([\s\S]*?)<\/h4>/g)].map((m) => text(m[1]));
+  [...html.matchAll(/<h3 class="import-report-group-title">([\s\S]*?)<\/h3>/g)].map((m) => text(m[1]));
 
 /** The group a row landed in, by its title; "" when it landed in none. */
 const groupOf = (html: string, needle: string): string =>
@@ -116,7 +116,10 @@ const throughTheParsers = (csv: string, catalog: Discipline[] = CATALOG): Import
   const kept = rows.filter((r) => !isTemplateExampleRow(r.name));
   const examples: ImportSkip[] = rows
     .filter((r) => isTemplateExampleRow(r.name))
-    .map((r) => ({ line: r.line, reason: `"${r.name}" is ${TEMPLATE_EXAMPLE_MARKER}, so it was not imported.` }));
+    .map((r) => ({
+      line: r.line,
+      reason: `"${r.name}" — this app did not import it: the name starts with ${TEMPLATE_EXAMPLE_REASON_MARKER}.`,
+    }));
   const { players, skipped: unresolved } = csvRowsToPlayers(kept, catalog, "c1");
   const skipped = [...unparsed, ...unresolved, ...examples].sort((a, b) => a.line - b.line);
   return report(players.length, skipped);
@@ -217,10 +220,10 @@ describe("the import report's groups", () => {
     ].join("\n");
     const html = panelFor(csv);
     expect(groupTitles(html)).toEqual([
-      "Fix the shape of these rows 1",
-      "Correct what one cell says in these rows 2",
-      "Spell the discipline as one this community has 1",
-      "These are the template's own example rows 1",
+      "Fix the shape of these rows · 1 row",
+      "Correct what one cell says in these rows · 2 rows",
+      "Spell the discipline as one this community has · 1 row",
+      "Check these example-looking rows · 1 row",
     ]);
     // Nothing fell through, and nothing was invented: every row the parsers
     // skipped is on the page. The two four-field rows import, which is why the
@@ -252,8 +255,8 @@ describe("the import report's groups", () => {
     // Line order would lead with the vocabulary group and alphabetical would
     // lead with "Correct what one cell says", so both are excluded.
     expect(groupTitles(panelFor(csv))).toEqual([
-      "Correct what one cell says in these rows 1",
-      "Spell the discipline as one this community has 2",
+      "Correct what one cell says in these rows · 1 row",
+      "Spell the discipline as one this community has · 2 rows",
     ]);
   });
 
@@ -316,7 +319,6 @@ describe("the import report's groups", () => {
       'John",futsal,4', //              line 3, and closes on the next line
       "Budi,quidditch,3", //            line 4
     ].join("\n");
-    expect(csv.split("\n")).toHaveLength(4);
     expect(skippedRows(panelFor(csv))).toEqual(['Line 4: Unknown discipline "quidditch".']);
     // Four physical lines, three logical records, and the answer is 4 — the
     // number in the row gutter, not the record's ordinal. And the record that
@@ -357,11 +359,80 @@ describe("the import report's groups", () => {
       ]),
     });
     expect(groupTitles(html)).toEqual([
-      "Correct what one cell says in these rows 1",
-      "Rows this app did not import 1",
+      "Correct what one cell says in these rows · 1 row",
+      "Rows this app did not import · 1 row",
     ]);
     expect(skippedRows(html)).toContain("Line 2: The column separator is not a comma.");
     expect(text(html)).toContain("This app does not group this reason yet");
+  });
+
+  it("gives every reason in a group the fix that reason actually needs", () => {
+    // **Two notes that were wrong, found by reading them against their own
+    // reasons.** The shape group's note explained the column count and then
+    // told every reader in it to put a comma inside quotes — which is advice
+    // for a row with too many columns and *the opposite* of the advice for a
+    // row whose quote is never closed: that user already quoted it. The value
+    // group's note said one cell "holds something this app cannot read", which
+    // is false for `The name column is empty.` — the cell holds nothing, and the
+    // user is sent hunting for content in a cell they deliberately left blank.
+    // And the headline promises rows are "grouped below by what to change", so a
+    // group whose note changes nothing is a broken promise. Each pair below is
+    // asserted on its own two reasons.
+    const unclosed = text(panelFor('name,discipline,strength\n"Andi,futsal,4'));
+    expect(unclosed).toContain("A row whose quote is opened and never closed is read together with the line after it");
+    const shortRow = text(panelFor("name,discipline,strength\nAndi,futsal"));
+    expect(shortRow).toContain("a comma inside any value has to be inside quotes");
+    // The fix for an unclosed quote is to close or remove it, not to add quotes
+    // the row already has.
+    expect(unclosed).toContain("closed or taken out");
+
+    const emptyName = text(panelFor("name,discipline,strength\n,futsal,4"));
+    expect(emptyName).toContain("a row with an empty one has no player in it");
+    expect(emptyName).toContain("Put a name in the name column");
+    const badStrength = text(panelFor("name,discipline,strength\nAndi,futsal,strong"));
+    expect(badStrength).toContain("a number from 1 to 5 in the strength column");
+    // The two value reasons get two different halves of one sentence, so neither
+    // is sent after the other's fix. Fails if either half is dropped: a note
+    // that only mentions the name leaves the mistyped strength with no
+    // instruction at all, and the other way round.
+    expect(emptyName).toContain("or leave that blank and it is read as 3");
+    expect(badStrength).toContain("or leave that blank and it is read as 3");
+  });
+
+  it("shows a row the app failed to save, in the floor, with its own line", () => {
+    // **The half-failed write.** `savePlayer` can refuse, and when it did the
+    // loop aborted with the report still unset: a roster the file had partly
+    // changed, a red toast, and no verdict. The hook now counts what really
+    // landed and pushes one skip per row it never wrote, carrying that row's
+    // line. The screen's half of the job is to show it, in the floor, because a
+    // row the app could not *store* is not any of the four causes above and has
+    // no file-side fix to offer.
+    const html = renderRoster({
+      disciplines: CATALOG,
+      lastReport: report(2, [
+        { line: 2, reason: "This app did not save this player, so the row was not imported." },
+        { line: 5, reason: "This app did not save this player, so the row was not imported." },
+        { line: 7, reason: 'Strength "x" is not a number.' },
+      ]),
+    });
+    expect(groupTitles(html)).toEqual([
+      "Correct what one cell says in these rows · 1 row",
+      "Rows this app did not import · 2 rows",
+    ]);
+    expect(skippedRows(html)).toEqual([
+      'Line 7: Strength "x" is not a number.',
+      "Line 2: This app did not save this player, so the row was not imported.",
+      "Line 5: This app did not save this player, so the row was not imported.",
+    ]);
+    // The floor's note must not claim the parser wrote it. A row the app failed
+    // to store was written by the app, and "as the parser wrote it" would be a
+    // false attribution on the one row that had nothing wrong with the file.
+    expect(text(html)).toContain("so the rows are shown as they were recorded");
+    expect(text(html)).not.toContain("as the parser wrote it");
+    // And the arithmetic still holds: two landed, three did not, five rows.
+    expect(headline(html)).toBe(
+      "This app imported 2 of the 5 player rows in the file. The other 3 were not imported, and are grouped below by what to change.",
+    );
   });
 
   it("gives the vocabulary group the list that is actually on the page", () => {
@@ -516,19 +587,27 @@ describe("the template's example rows", () => {
     }
   });
 
-  it("shows an example row in its own group, last, and not as a mistake", () => {
+  it("shows an example-looking row in its own group, last, and not as a mistake", () => {
     // The report's treatment of H1. These rows are not a failure and the panel
-    // must not make them look like one: the group says what they are, the note
-    // offers both readings (delete it, or rename it if you meant it), and the
-    // reason says the row *was not imported* — past tense, this import, no
-    // promise about the next one. Fails if the row is merged into the shape or
-    // value groups, which are both about mistakes.
+    // must not make them look like one: the note offers both readings (delete
+    // it, or rename it if you meant it), and the reason says the row *was not
+    // imported* — past tense, this import, no promise about the next one. Fails
+    // if the row is merged into the shape or value groups, which are both about
+    // mistakes.
+    //
+    // **Neither the reason nor the title claims the row IS a template row.**
+    // The app ran a name prefix; it cannot know which rows the template ships.
+    // So the reason states the rule that was applied and the title says
+    // "example-*looking*", and the note hands the decision back. A report that
+    // says "is one of the example rows the CSV template ships" about a row that
+    // is not one is a false claim about somebody's file.
     const html = panelFor(["name,discipline,strength", "Andi,futsal,4", "Example Player 1,mlbb,4", ""].join("\n"));
-    expect(groupTitles(html)).toEqual(["These are the template's own example rows 1"]);
+    expect(groupTitles(html)).toEqual(["Check these example-looking rows · 1 row"]);
     expect(skippedRows(html)).toEqual([
-      'Line 3: "Example Player 1" is one of the example rows the CSV template ships, so it was not imported.',
+      'Line 3: "Example Player 1" — this app did not import it: the name starts with the template\'s example marker.',
     ]);
     expect(text(html)).toContain("Delete them from the file, or rename them if you meant them as real players.");
+    expect(text(html)).not.toContain("is one of the example rows the CSV template ships");
     expect(headline(html)).toBe(
       "This app imported 1 of the 2 player rows in the file. The other 1 was not imported, and is grouped below by what to change.",
     );
@@ -542,8 +621,8 @@ describe("the template's example rows", () => {
     expect(untouched.imported).toBe(0);
     expect(untouched.skipped).toHaveLength(2);
     expect(skippedRows(renderRoster({ disciplines: CATALOG, lastReport: untouched }))).toEqual([
-      'Line 2: "Example Player 1" is one of the example rows the CSV template ships, so it was not imported.',
-      'Line 3: "Example Player 2, delete me" is one of the example rows the CSV template ships, so it was not imported.',
+      'Line 2: "Example Player 1" — this app did not import it: the name starts with the template\'s example marker.',
+      'Line 3: "Example Player 2, delete me" — this app did not import it: the name starts with the template\'s example marker.',
     ]);
     expect(headline(renderRoster({ disciplines: CATALOG, lastReport: untouched }))).toBe(
       "This app imported no players. All 2 player rows in the file were not imported, and are grouped below by what to change.",
@@ -565,7 +644,7 @@ describe("every reason the parsers can produce has a group", () => {
       { csv: "name,discipline,strength\n,futsal,4", group: "Correct what one cell says" },
       { csv: "name,discipline,strength\nAndi,futsal,strong", group: "Correct what one cell says" },
       { csv: "name,discipline,strength\nAndi,quidditch,4", group: "Spell the discipline" },
-      { csv: "name,discipline,strength\nExample Player 1,futsal,4", group: "These are the template's own example rows" },
+      { csv: "name,discipline,strength\nExample Player 1,futsal,4", group: "Check these example-looking rows" },
     ];
     for (const { csv, group } of cases) {
       const html = panelFor(csv);
@@ -573,7 +652,7 @@ describe("every reason the parsers can produce has a group", () => {
       expect(skippedRows(html), `no row was rendered for ${label}`).toHaveLength(1);
       expect(groupOf(html, group), `${group} did not claim the row in ${label}`).not.toBe("");
       expect(groupTitles(html), `a row fell through to the floor in ${label}`).not.toContain(
-        "Rows this app did not import 1",
+        "Rows this app did not import · 1 row",
       );
     }
   });

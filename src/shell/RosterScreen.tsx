@@ -3,7 +3,7 @@ import { PageHeader } from "../ui/PageHeader";
 import { Screen } from "../ui/Screen";
 import { PlayerEditModal } from "../roster/PlayerEditModal";
 import type { ImportReport, ImportSkip, PendingMerge } from "./usePlayerImport";
-import { TEMPLATE_EXAMPLE_MARKER } from "./usePlayerImport";
+import { TEMPLATE_EXAMPLE_REASON_MARKER } from "./usePlayerImport";
 import { CSV_TEMPLATE, CSV_TEMPLATE_FILE_NAME } from "../data/csv-template";
 
 export interface RosterScreenProps {
@@ -121,17 +121,20 @@ interface SkipGroup {
  * when a string is reworded is not an order a user can navigate by.
  *
  * The last group is a floor, not a design. Every reason this app can produce
- * has a home above, and `usePlayerImport.test.ts` fails if the parser grows a
- * sixth — but a reason that arrives unclassified must still be shown, in full
- * and in the file's order, because a report that silently drops the one row it
- * does not recognise is the defect this whole surface exists to end.
+ * has a home above, and `RosterScreen.import-report.test.ts` fails if the
+ * parser grows a sixth — but a reason that arrives unclassified must still be
+ * shown, in full and in the file's order, because a report that silently drops
+ * the one row it does not recognise is the defect this whole surface exists to
+ * end. Two kinds of row land there, and neither can be given a fix here: a
+ * reason this app has never seen, and a row the parser read perfectly well
+ * whose player this app then **failed to save**.
  */
 const CAUSE_GROUPS: readonly SkipGroup[] = [
   {
     id: "shape",
     title: "Fix the shape of these rows",
     note: () =>
-      "A row has to be name, discipline, strength, in that order. A comma inside any value has to be inside quotes, or the row is read as more columns than it has.",
+      "A row has to be name, discipline, strength, in that order, and a comma inside any value has to be inside quotes. A row whose quote is opened and never closed is read together with the line after it, so that quote has to be closed or taken out.",
     matches: (reason) =>
       /^Expected 3 columns \(name, discipline, strength\), found \d+\.$/.test(reason) ||
       reason === "Unclosed quoted field; this record was not imported.",
@@ -140,7 +143,7 @@ const CAUSE_GROUPS: readonly SkipGroup[] = [
     id: "value",
     title: "Correct what one cell says in these rows",
     note: () =>
-      "The row has its three columns. One of them holds something this app cannot read as that column.",
+      "The row has its three columns; one of them is not a value this app can read as that column. Put a name in the name column — a row with an empty one has no player in it — and a number from 1 to 5 in the strength column, or leave that blank and it is read as 3.",
     matches: (reason) =>
       reason === "The name column is empty." || /^Strength ".*" is not a number\.$/.test(reason),
   },
@@ -155,10 +158,10 @@ const CAUSE_GROUPS: readonly SkipGroup[] = [
   },
   {
     id: "example",
-    title: "These are the template's own example rows",
+    title: "Check these example-looking rows",
     note: () =>
-      "They ship in the downloaded template and were not imported. Delete them from the file, or rename them if you meant them as real players.",
-    matches: (reason) => reason.includes(TEMPLATE_EXAMPLE_MARKER),
+      "The template marks its own example rows by name, and this app left out any row whose name starts the same way. Delete them from the file, or rename them if you meant them as real players.",
+    matches: (reason) => reason.includes(TEMPLATE_EXAMPLE_REASON_MARKER),
   },
 ];
 
@@ -178,10 +181,13 @@ const SKIP_GROUPS: readonly SkipGroup[] = [
   {
     id: "other",
     title: "Rows this app did not import",
-    note: () => "This app does not group this reason yet, so it is shown as the parser wrote it.",
+    note: () => "This app does not group this reason yet, so the rows are shown as they were recorded.",
     matches: (reason) => !CAUSE_GROUPS.some((group) => group.matches(reason)),
   },
 ];
+
+/** `1 row` / `3 rows`. */
+const rowNoun = (n: number): string => `${n} row${n === 1 ? "" : "s"}`;
 
 /** `1 player row` / `3 player rows`, so no sentence in the panel miscounts. */
 const rowWord = (n: number): string => `${n} player row${n === 1 ? "" : "s"}`;
@@ -266,7 +272,8 @@ const groupSkips = (skipped: ImportSkip[]): Array<SkipGroup & { rows: ImportSkip
  * spreadsheet shows in its own row gutter. A quoted newline does not break
  * this: a record that spans two lines is reported against the line it starts
  * on, and the lines it swallowed are counted, so the next record's number is
- * still the row the user's sheet is displaying. `usePlayerImport.test.ts`
+ * still the row the user's sheet is displaying. `RosterScreen.import-report.test.ts`
+ * — case "reports a row that spans two lines against the line it starts on" —
  * pins that against the parser rather than against this sentence.
  *
  * The sentence is here because the one thing that genuinely can differ is the
@@ -545,19 +552,25 @@ export function RosterScreen(props: RosterScreenProps) {
            * **Both notes live under the groups, not above them.** The line-count
            * note is a reading instruction and the fourth-column note is a
            * possible further loss, so both belong after the thing they qualify.
+           *
+           * **`h2` and `h3`, not `h3` and `h4`.** `PageHeader` renders the
+           * page's only `h1`, and this panel is a section *inside* that page: a
+           * heading level that skips one is a broken outline for anyone
+           * navigating by heading, and the group's heading is a level under
+           * this one.
            */}
           {props.lastReport && (
             <section className="import-report" aria-label="Most recent CSV import">
-              <h3 className="import-report-title">Most recent CSV import</h3>
+              <h2 className="import-report-title">Most recent CSV import</h2>
               <p className="import-report-headline">{importHeadline(props.lastReport)}</p>
               {props.lastReport.skipped.length > 0 && (
                 <>
                   <p className="import-report-note">{LINE_COUNT_NOTE}</p>
                   {groupSkips(props.lastReport.skipped).map((group) => (
                     <div className="import-report-group" key={group.id}>
-                      <h4 className="import-report-group-title">
-                        {group.title} <span className="import-report-group-count">{group.rows.length}</span>
-                      </h4>
+                      <h3 className="import-report-group-title">
+                        {group.title} <span className="import-report-group-count">· {rowNoun(group.rows.length)}</span>
+                      </h3>
                       <p className="import-report-group-note">{group.note(disciplines.length > 0)}</p>
                       <ul className="import-skipped">
                         {group.rows.map((skip, index) => (

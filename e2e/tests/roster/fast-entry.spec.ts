@@ -121,7 +121,7 @@ const importCsv = async (page: Page, csv: string, name = "players.csv"): Promise
   });
 };
 
-test("a partial import reports the count, names the row that failed, and keeps the good rows", async ({ page }) => {
+test("a partial import reports the count, names the row it did not import, and keeps the good rows", async ({ page }) => {
   await gotoHubSeeded(page, world(), "Roster");
 
   // Line 2 imports; line 3 names a discipline the catalog does not have.
@@ -131,7 +131,9 @@ test("a partial import reports the count, names the row that failed, and keeps t
   await expect(report).toBeVisible({ timeout: 5000 });
   // The one line says what happened and who decided it, and names the shortfall
   // in the same breath. "Imported 1 players." — the plan's draft sentence — would
-  // have credited nobody and left the skipped row to be discovered.
+  // have credited nobody and left the skipped row to be discovered. And the row
+  // is named as one this app did not import, not as one that *failed*: the
+  // report is not entitled to a verdict on the user's file.
   await expect(report).toContainText(
     "This app imported 1 of the 2 player rows in the file. The other 1 was not imported, and is grouped below by what to change.",
   );
@@ -141,7 +143,7 @@ test("a partial import reports the count, names the row that failed, and keeps t
   await expect(skipped.first()).toContainText("Line 3:");
   await expect(skipped.first()).toContainText('Unknown discipline "quidditch".');
   await expect(page.locator(".import-report-group-title")).toHaveText([
-    "Spell the discipline as one this community has 1",
+    "Spell the discipline as one this community has · 1 row",
   ]);
   // And the panel is a block beside the roster, not a dialog over it: the rows
   // it is talking about are still on the page, which is how a user checks it.
@@ -206,15 +208,30 @@ test("the untouched template imports no ghost and says which rows it held back",
   await importCsv(page, CSV_TEMPLATE_BODY, "comp3tive-players-template.csv");
 
   // H1, decided as surfacing rather than dropping. A user who left the example
- // rows in gets a roster with no ghosts **and** a sentence saying which rows were
-  // held back — the alternative, dropping them silently, would have had the app
-  // edit the user's file with no way to see that it had.
+  // rows in gets a roster with no ghosts **and** a sentence saying which rows
+  // were held back — the alternative, dropping them silently, would have had
+  // the app edit the user's file with no way to see that it had. Neither the
+  // title nor the reason claims the rows *are* template rows: the app ran a
+  // name prefix and says so, and the note hands the decision back.
   await expect(page.locator(".roster .row")).toHaveCount(0);
   await expect(page.locator(".import-skipped-row")).toHaveCount(2);
   await expect(page.locator(".import-report-group-title")).toHaveText([
-    "These are the template's own example rows 2",
+    "Check these example-looking rows · 2 rows",
   ]);
   await expect(page.locator(".import-report")).toContainText("Most recent CSV import");
+  await expect(page.locator(".import-skipped-row").first()).toContainText(
+    '"Example Player 1" — this app did not import it: the name starts with',
+  );
+
+  // **And nothing is announced as a failure.** Importing the template back
+  // unchanged is the first thing a new organizer does, so this is the first
+  // sentence the report surface ever speaks to anyone — and the app was
+  // declining *its own* example rows, which is not something the user did wrong.
+  // A red "No players imported." on top of a panel that explains itself is the
+  // app scolding its own first step. The toast is still there, in the neutral
+  // style, and it says the true thing: nothing was imported.
+  await expect(page.locator(".toast--error")).toHaveCount(0);
+  await expect(page.locator(".toast--info")).toHaveText(["No players imported into Fast Entry."]);
 });
 
 test("switching community takes the report down with the roster it described", async ({ page }) => {
