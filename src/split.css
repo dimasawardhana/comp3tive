@@ -509,6 +509,21 @@
   font-size: 13px;
   opacity: 0.8;
 }
+/* D37: the split explains itself under the readout that measures it, in the
+   readout's own quiet face. `.fine` is that face only as a descendant of
+   `.readout`, so the line carries the type itself rather than nesting a class
+   that reads nowhere else. No margin: `.pitch` is a flex column with its own
+   `gap`, and every other child of it (`.scale`, `.readout`, `.team-stack`)
+   takes its spacing from that gap alone. */
+.fairness {
+  text-align: center;
+  font-family: "Familjen Grotesk", sans-serif;
+  font-weight: 500;
+  font-size: 13px;
+  line-height: 1.5;
+  opacity: 0.8;
+  text-wrap: pretty;
+}
 
 .flags {
   display: flex;

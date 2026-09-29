@@ -8,6 +8,7 @@ import { BIB } from "../ui/constants";
 import { Breadcrumb } from "../nav";
 import { Modal } from "../ui/Modal";
 import { ShareSheet } from "../share/ShareSheet";
+import { explainFairness } from "../share/fairness";
 
 interface Props {
   session: Session;
@@ -123,7 +124,27 @@ function TeamCard({ team, discipline, roster, swapMode, pick, onPick }: TeamCard
   );
 }
 
-function GapMeter({ result, balanced }: { result: SplitResult; balanced: boolean }) {
+/**
+ * Why the teams came out even, under the readout that measures how far apart
+ * they are. `explainFairness` is a measurement, not a verdict, so this line is
+ * the same whichever gap provenance the result carries.
+ */
+function FairnessLine({ result, discipline, roster }: { result: SplitResult; discipline: Discipline; roster: Player[] }) {
+  const { averages, trade } = explainFairness({ result, discipline, roster });
+  // `trade` is empty on an even split, and empty is the module's way of saying
+  // there is no sentence: one number for the band already said it, and a
+  // sentence written to fill the space would name a higher and a lower side
+  // that an even split does not have. Nothing is rendered, not a placeholder.
+  if (!averages) return null;
+  return (
+    <p className="fairness">
+      {averages}
+      {trade && ` ${trade}`}
+    </p>
+  );
+}
+
+function GapMeter({ result, balanced, discipline, roster }: { result: SplitResult; balanced: boolean; discipline: Discipline; roster: Player[] }) {
   const gap = result.gap;
   const deg =
     balanced || result.teams.length < 2
@@ -157,6 +178,7 @@ function GapMeter({ result, balanced }: { result: SplitResult; balanced: boolean
           </>
         )}
       </div>
+      <FairnessLine result={result} discipline={discipline} roster={roster} />
     </>
   );
 }
@@ -361,7 +383,7 @@ export function SplitScreen({ session, discipline, roster, onPersistResult, onSu
             </div>
             <TeamCard {...teamCardProps(result.teams[1])} />
           </div>
-          <GapMeter result={result} balanced={balanced} />
+          <GapMeter result={result} balanced={balanced} discipline={discipline} roster={roster} />
         </div>
       ) : result.teams.length > 2 ? (
         <div ref={pitchRef} className="pitch">
@@ -378,6 +400,7 @@ export function SplitScreen({ session, discipline, roster, onPersistResult, onSu
               </>
             )}
           </div>
+          <FairnessLine result={result} discipline={discipline} roster={roster} />
           <div className="team-stack">{result.teams.map((t) => <TeamCard key={t.index} {...teamCardProps(t)} />)}</div>
         </div>
       ) : (

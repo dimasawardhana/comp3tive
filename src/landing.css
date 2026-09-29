@@ -547,6 +547,12 @@ body {
 .landing-hero .readout {
   color: var(--text);
 }
+/* The hero mounts the real split screen, so it inherits `.pitch`'s
+   `--panel-text`; the readout above is already corrected to ink on the hero's
+   warm paper, and this line sits directly under it. */
+.landing-hero .fairness {
+  color: var(--text);
+}
 
 @media (prefers-reduced-motion: reduce) {
   .landing-hero .team {
