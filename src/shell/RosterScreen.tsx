@@ -33,12 +33,20 @@ export interface RosterScreenProps {
    * different policies:
    *
    *  - `true` — the only basis for saying anything reassuring, and only in the
-   *    present tense and attributed to the browser. It is one reading from one
-   *    page load; nothing re-checks it, and the user can still clear site data.
+   *    past tense and attributed to the browser, because the whole claim is one
+   *    reading that happened on this visit. "Reported … on this visit" is not
+   *    decoration: `persisted` is a measurement taken once, nothing re-checks
+   *    it, and the user can still clear site data. The tense is the hedge.
    *  - `false` — the only basis for saying the data is not stored persistently,
-   *    and the only thing that raises the export nudge.
-   *  - `null` — nobody has answered yet, or there was no API to ask. An
-   *    unknown is not a refusal, so it is never rendered as bad news.
+   *    and the only thing that raises the export nudge. Present tense, because
+   *    the condition is the state of the world and not an event that has
+   *    happened to it.
+   *  - `null` — nobody has answered, which is this app's fact and not the
+   *    browser's: the probe has not settled, or there is no API to ask. An
+   *    unknown is not a refusal, so it is never rendered as bad news — and the
+   *    sentence never names the browser as the cause, because it is the app
+   *    that has no answer. `null` is the state of the very first render of
+   *    every load, so this is the most-read branch in the app.
    *
    * The note is written as three explicit comparisons rather than a truthiness
    * test, on purpose: `!persisted` folds `null` into the refusal branch, and
@@ -139,9 +147,9 @@ export function RosterScreen(props: RosterScreenProps) {
             />
             <div className="roster-toolbar-spacer" />
             <span className="durability-note">
-              {props.persisted === true && "This browser reports persistent storage for this app. Keep a backup anyway."}
+              {props.persisted === true && "This browser reported persistent storage for this app on this visit. Keep a backup anyway."}
               {props.persisted === false && "This browser reports this app's data is not stored persistently. Keep a backup."}
-              {props.persisted === null && "Storage protection unknown in this browser. Keep a backup."}
+              {props.persisted === null && "This app could not confirm persistent storage here. Keep a backup."}
             </span>
             <button className="btn btn-ghost" onClick={props.onExport}>
               Export

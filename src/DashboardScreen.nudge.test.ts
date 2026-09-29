@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { DashboardScreen } from "./DashboardScreen";
+import { SAFETY_BAN } from "./test-support/safetyCopy";
 import type { Community, Player } from "./domain/types";
 
 /**
@@ -63,7 +64,8 @@ describe("the dashboard's export nudge", () => {
 
   it("says one thing, and it is not a promise", () => {
     expect(nudgeText(screen({ onDismiss: () => {} }))).toBe(NUDGE_COPY);
-    expect(NUDGE_COPY).not.toMatch(/safe|protect|guarantee|secure/i);
+    // The shared ban, so this file and the note's cannot drift apart.
+    expect(NUDGE_COPY).not.toMatch(SAFETY_BAN);
   });
 
   it("asks for a backup the app can actually produce, and says where", () => {
@@ -75,13 +77,26 @@ describe("the dashboard's export nudge", () => {
 
   it("offers the caller's dismissal, and nothing else", () => {
     const html = screen({ onDismiss: () => {} });
-    expect(html).toContain('role="status"');
     expect(html).toMatch(/<button type="button" class="link">Dismiss<\/button>/);
     // One button. A nudge that also offered "Remind me later" would be a
     // second policy wearing the first one's clothes.
     expect(html.match(/<button/g) ?? []).toHaveLength(
       (screen(null).match(/<button/g) ?? []).length + 1,
     );
+  });
+
+  it("is not a live region, and should not become one without a change here", () => {
+    // Recorded because the attribute is a plausible-looking "accessibility
+    // improvement" to add back. It is not one. A live region announces its
+    // *changes*: the nudge is inserted into the DOM with its sentence already
+    // inside it, in the same commit, so `role="status"` would announce nothing
+    // — and to make it announce, the row would have to first be rendered empty
+    // and filled in afterwards, which costs every session a permanently present
+    // wrapper to serve a case this markup does not currently meet. The nudge is
+    // in reading order with a real 44px button, which is what a screen reader
+    // needs to reach it.
+    // Scoped to the nudge: the Dashboard's other rows legitimately carry roles.
+    expect(screen({ onDismiss: () => {} })).toMatch(/<div class="nudge">/);
   });
 
   it("sits between the stat cards and the first teaser, leaving both in place", () => {

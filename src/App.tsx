@@ -245,6 +245,13 @@ export default function App() {
     // cancelled a save dialog, so what is recorded is "an export was
     // triggered" — the distinction the hook already draws about this key when
     // it says a file on disk is the backup.
+    //
+    // That is only survivable because `lastExportAt` is destructured out of the
+    // hook and never rendered: nothing in `src/` claims a backup exists, so a
+    // cancelled download costs the user a file and a warning, and never a
+    // sentence saying they are covered. This call also retires any live
+    // dismissal in the same beat, which is why a snooze is not left standing
+    // over a user who did the one thing it was asking for.
     recordExport();
   };
 

@@ -1004,10 +1004,10 @@ h1 {
 }
 
 /* The export nudge. A banner, not a card: it states one sentence and offers one
-   way out, and the "anyway" in the reassuring case is the whole design. Sized
-   with `.status-banner`'s tokens because it is that shape — a quiet strip of
-   surface, hairline edge, muted text — and nothing louder, so it reads as
-   information the app owes the user rather than an alarm it is raising. */
+   way out. Sized with `.status-banner`'s tokens because it is that shape — a
+   quiet strip of surface, hairline edge, muted text — and nothing louder, so it
+   reads as information the app owes the user rather than an alarm it is
+   raising. */
 .nudge {
   display: flex;
   flex-wrap: wrap;

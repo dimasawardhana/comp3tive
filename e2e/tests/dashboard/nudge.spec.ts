@@ -8,6 +8,7 @@
  */
 import { test, expect } from "@playwright/test";
 import { gotoSeeded, hubButton, type SeedWorld } from "../../support/seed";
+import type { Page } from "@playwright/test";
 
 /**
  * A world with `n` players, no export record, and no dismissal recorded. The
@@ -28,6 +29,20 @@ const world = (n: number): SeedWorld => ({
 });
 
 const NUDGE_COPY = "This browser does not promise to keep this app's data. Export a backup from Roster.";
+
+/**
+ * Force a persistence verdict, so a spec asserts the app's behaviour and not
+ * Chromium's default for an unseeded origin. Spec 1 deliberately does *not* use
+ * this — it is the one place the real browser's own refusal is the thing under
+ * test, and stubbing it there would delete that evidence.
+ */
+const stubPersistence = (page: Page, persisted: boolean) =>
+  page.addInitScript((answer: boolean) => {
+    Object.defineProperty(Navigator.prototype, "storage", {
+      get: () => ({ persisted: () => Promise.resolve(answer), persist: () => Promise.resolve(answer) }),
+      configurable: true,
+    });
+  }, persisted);
 
 test("a roster worth losing, with no export and no persistence, gets one nudge", async ({ page }) => {
   await gotoSeeded(page, world(6));
@@ -92,6 +107,7 @@ test("the stat cards are untouched by the nudge", async ({ page }) => {
 });
 
 test("exporting the roster is what records the export and lifts the nudge", async ({ page }) => {
+  await stubPersistence(page, false);
   await gotoSeeded(page, world(6));
   await expect(page.locator(".nudge")).toBeVisible({ timeout: 10000 });
   await expect
@@ -125,27 +141,24 @@ test("a browser with no storage API shows an unknown note and never errors", asy
   });
   await gotoSeeded(page, world(6));
   await hubButton(page, "Roster").click();
-  // Nobody answered, which is not a refusal: the note says so and stops there.
+  // Nobody answered, which is the app's own state and not the browser's: it has
+  // not finished asking. The sentence says so, and stops there.
   await expect(page.locator(".durability-note")).toHaveText(
-    "Storage protection unknown in this browser. Keep a backup.",
+    "This app could not confirm persistent storage here. Keep a backup.",
   );
   await expect(page.locator(".nudge")).toHaveCount(0);
   expect(errors).toEqual([]);
 });
 
 test("a browser that granted persistence is reported, never called safe", async ({ page }) => {
-  await page.addInitScript(() => {
-    Object.defineProperty(Navigator.prototype, "storage", {
-      get: () => ({ persisted: () => Promise.resolve(true), persist: () => Promise.resolve(true) }),
-      configurable: true,
-    });
-  });
+  await stubPersistence(page, true);
   await gotoSeeded(page, world(6));
   await hubButton(page, "Roster").click();
-  // A grant is the state of the world, not a guarantee: the line is attributed
-  // to the browser, and it still ends in an instruction.
+  // A grant is the state of the world, not a guarantee. The line is in the past
+  // tense for the same reason: the reading happened on this visit and nothing
+  // re-checks it, so it still ends in an instruction.
   await expect(page.locator(".durability-note")).toHaveText(
-    "This browser reports persistent storage for this app. Keep a backup anyway.",
+    "This browser reported persistent storage for this app on this visit. Keep a backup anyway.",
   );
   // A browser that keeps its data has nothing to nudge about.
   await hubButton(page, "Home").click();
@@ -154,12 +167,7 @@ test("a browser that granted persistence is reported, never called safe", async 
 });
 
 test("a browser that refused persistence says so, beside the Export button", async ({ page }) => {
-  await page.addInitScript(() => {
-    Object.defineProperty(Navigator.prototype, "storage", {
-      get: () => ({ persisted: () => Promise.resolve(false), persist: () => Promise.resolve(false) }),
-      configurable: true,
-    });
-  });
+  await stubPersistence(page, false);
   await gotoSeeded(page, world(6));
   await hubButton(page, "Roster").click();
   await expect(page.locator(".durability-note")).toHaveText(
@@ -172,6 +180,7 @@ test("a browser that refused persistence says so, beside the Export button", asy
 });
 
 test("the note is a status line, not an event: it is still there after the export", async ({ page }) => {
+  await stubPersistence(page, false);
   await gotoSeeded(page, world(6));
   await hubButton(page, "Roster").click();
   const note = page.locator(".durability-note");

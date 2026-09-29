@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { RosterScreen, type RosterScreenProps } from "./RosterScreen";
+import { PREDICTS_LOSS, SAFETY_BAN } from "../test-support/safetyCopy";
 import type { Community } from "../domain/types";
 
 /**
@@ -20,10 +21,10 @@ import type { Community } from "../domain/types";
 const COMMUNITY: Community = { id: "c1", name: "Thursday Crew", createdAt: 0 };
 
 const PERSISTED_COPY =
-  "This browser reports persistent storage for this app. Keep a backup anyway.";
+  "This browser reported persistent storage for this app on this visit. Keep a backup anyway.";
 const REFUSED_COPY =
   "This browser reports this app's data is not stored persistently. Keep a backup.";
-const UNKNOWN_COPY = "Storage protection unknown in this browser. Keep a backup.";
+const UNKNOWN_COPY = "This app could not confirm persistent storage here. Keep a backup.";
 
 /** RosterScreen renders nothing of the toolbar without a community. */
 const screen = (persisted: boolean | null): string =>
@@ -62,22 +63,36 @@ const noteText = (html: string): string => {
 };
 
 describe("the roster's storage note", () => {
-  it("reports a granted verdict without ever calling the data safe", () => {
+  it("reports a granted verdict in the past tense, because that is all it is", () => {
     expect(noteText(screen(true))).toBe(PERSISTED_COPY);
-    // The whole failure this task exists to prevent: a reader who installs a PWA
-    // to store a roster, reads a reassuring line, and stops backing up.
-    expect(PERSISTED_COPY).not.toMatch(/safe|protect|guarantee|secure|never lose/i);
+    // "reported … on this visit" is the hedge: the reading happened, and
+    // nothing re-checks it. The present-tense version of this same line reads
+    // as a standing property of the browser, which is the defect.
+    expect(PERSISTED_COPY).toMatch(/^This browser reported /);
+  });
+
+  it("promises nothing in any of the three verdicts", () => {
+    for (const persisted of [true, false, null]) {
+      // The whole failure this task exists to prevent: a reader who installs a
+      // PWA to store a roster, reads a reassuring line, and stops backing up.
+      expect(noteText(screen(persisted))).not.toMatch(SAFETY_BAN);
+    }
   });
 
   it("reports a refused verdict as a statement about the browser, not a prediction of loss", () => {
     expect(noteText(screen(false))).toBe(REFUSED_COPY);
     // "not stored persistently" is what the browser answered. It does not say
     // the data is gone, and it does not say when it will be.
-    expect(REFUSED_COPY).not.toMatch(/\bwill\b|lose|lost|delete/i);
+    expect(REFUSED_COPY).not.toMatch(PREDICTS_LOSS);
   });
 
-  it("reports an unanswered verdict as unanswered, never as a refusal", () => {
+  it("blames the app and not the browser for the unknown, because `null` is the first paint of every load", () => {
     expect(noteText(screen(null))).toBe(UNKNOWN_COPY);
+    // `persisted` is null on the very first render of every load, so this is
+    // the most-read branch in the app — and the app has not finished asking.
+    // "This browser could not confirm…" would be false for the whole of that
+    // window and false again for an origin with no Storage API at all.
+    expect(UNKNOWN_COPY).toMatch(/^This app could not confirm /);
   });
 
   it("gives each of the three verdicts its own sentence", () => {

@@ -27,12 +27,14 @@ Split a roster of rated players into balanced teams, then run a tournament on te
   theme/layout preferences (`src/shell/usePreferences.ts`), and the two durability keys —
   when a backup was last exported and when the export nudge was last dismissed
   (`src/shell/useDurability.ts`). None of it leaves the device.
-- **Nothing promises your data is safe.** The roster screen says what the browser reported about
-  persistent storage, this page load, and ends every version of the sentence with the same
-  instruction: keep a backup. A non-persistent bucket is evicted under storage pressure, and
-  anyone can clear site data with one tap, so a reassurance would be a promise the app cannot
-  keep. Export is the durability story, because a file the organizer owns is the only copy
-  nothing else can reach.
+- **Nothing promises your data is safe.** The roster screen says what the browser *reported*
+  about persistent storage, *this page load* — never that the data is safe, and never that it is
+  at risk — and every version of the sentence ends in the same instruction: keep a backup. A
+  non-persistent bucket is evicted under storage pressure, and anyone can clear site data with
+  one tap, so a reassurance would be a promise the app cannot keep. Once the roster is worth
+  losing, the Dashboard also asks for a backup outright, and closing that prompt snoozes it
+  rather than silencing it. Export is the durability story: a file the organizer owns is the one
+  copy the browser cannot reach. It is not the only copy the organizer can lose.
 - **No account, no server** in this build, and the Landing Page's trust row says the same. The
   optional backend and Accounts are decided in `docs/adr/0007-optional-backend.md` and
   `docs/adr/0008-account-identity.md` and tracked in `.scratch/backend/` — none of it is built.

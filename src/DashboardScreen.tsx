@@ -127,7 +127,7 @@ export function DashboardScreen({
             </div>
           </div>
           {nudge && (
-            <div className="nudge" role="status">
+            <div className="nudge">
               <span className="nudge-msg">{"This browser does not promise to keep this app's data. Export a backup from Roster."}</span>
               <button type="button" className="link" onClick={nudge.onDismiss}>
                 Dismiss
