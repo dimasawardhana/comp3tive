@@ -2092,10 +2092,14 @@ git commit -m "feat(tournament): offer round robin for 3 to 8 teams, byes explai
 
 ---
 
-### Task 9: Self-hosted fonts
-
 **Files:**
-- Create: `public/fonts/outfit-latin.woff2`, `public/fonts/outfit-latin-ext.woff2`, `public/fonts/familjen-grotesk-latin.woff2`, `public/fonts/familjen-grotesk-latin-ext.woff2`, `public/fonts/OFL.txt`
+- Create: `public/fonts/<family>-<subset>-<hash>.woff2` — **content-hashed, five files, not four:**
+  `outfit-latin`, `outfit-latin-ext`, `familjen-grotesk-latin`, `familjen-grotesk-latin-ext`, and
+  `familjen-grotesk-vietnamese`. Each is named after the first 8 hex of its own sha256, which
+  survives a re-download and is what makes `1yr immutable` safe.
+- Create: `public/fonts/outfit-OFL.txt` and `public/fonts/familjen-grotesk-OFL.txt` — **two verbatim
+  per-family licences, not one blank SIL template.** Neither family declares a Reserved Font Name,
+  so the modification clause never engages and the files are unmodified upstream subsets.
 - Create: `src/fonts.css`
 - Modify: `src/tokens.css:1-7` (one added `@import`)
 - Modify: `index.html:25-30`, `app/index.html:7-12`, `public/404.html:7-12`
@@ -2130,7 +2134,8 @@ Expected output, in this order (`ls` orders them alphabetically, so compare by n
 c53f18ec…  public/fonts/familjen-grotesk-latin-ext.woff2
 414d5dfe…  public/fonts/familjen-grotesk-latin.woff2
 0f53d1c0…  public/fonts/outfit-latin-ext.woff2
-6c18d579…  public/fonts/outfit-latin.woff2
+6c18d579…  public/fonts/outfit-latin-6c18d579.woff2   # the download writes the plain
+                                          # name; the committed file is hashed
 ```
 
 Sizes: `familjen-grotesk-latin-ext.woff2` 15,468 B; `familjen-grotesk-latin.woff2` 18,916 B; `outfit-latin-ext.woff2` 14,808 B; `outfit-latin.woff2` 32,292 B. Total ≈ 81 kB. Verify with `wc -c public/fonts/*.woff2`.
@@ -2280,7 +2285,8 @@ git commit -m "feat(pwa): self-host Outfit and Familjen Grotesk, no third party 
 - Modify: `index.html`, `app/index.html` (manifest link, `theme-color`, icon links)
 
 **Interfaces:**
-- Consumes: `public/fonts/outfit-latin.woff2` from Task 9.
+- Consumes: `public/fonts/outfit-latin-*.woff2` from Task 9 — **glob, not a fixed name**: Task 9
+  content-hashes every subset, and the hash changes whenever the file is re-downloaded.
 - Produces: `/manifest.webmanifest` and `/icons/*.png`, both of which Task 11's worker precaches.
 
 - [ ] **Step 1: Write the icon generator**
@@ -2298,7 +2304,7 @@ Create `scripts/make-icons.mjs`:
  * real Outfit "3" and not a system fallback. It refuses to write a file whose face
  * failed to load, because a fallback glyph is the one failure a screenshot would hide.
  *
- * Usage: node scripts/make-icons.mjs   (requires public/fonts/outfit-latin.woff2)
+ * Usage: node scripts/make-icons.mjs   (resolves public/fonts/outfit-latin-*.woff2 at run time)
  */
 import { readFile, mkdir, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
@@ -2310,7 +2316,12 @@ const PAPER = "#FAF8F5";
 /** The squared icon variant, with the remote @font-face replaced by the shipped file. */
 async function iconMarkup() {
   const svg = await readFile(resolve(ROOT, "../brand/3-icon.svg"), "utf8");
-  const font = await readFile(resolve(ROOT, "../public/fonts/outfit-latin.woff2"));
+  // NOT a glob: readFile takes a literal path. Resolve the hashed name at run time,
+  // because the hash changes whenever the subset is re-downloaded.
+  const [font] = (await readdir(resolve(ROOT, "../public/fonts")))
+    .filter((f) => f.startsWith("outfit-latin-") && f.endsWith(".woff2"))
+    .map((f) => resolve(ROOT, "../public/fonts", f));
+  if (!font) throw new Error("outfit-latin subset missing — run the Task 9 downloads");
   return svg.replace(
     /@font-face\{[^}]*\}/,
     `@font-face{font-family:'Outfit';src:url(data:font/woff2;base64,${font.toString("base64")}) format('woff2');font-weight:100 900;font-display:block}`,
@@ -2365,7 +2376,7 @@ maskable-512.png  512x512  <about 6,100> bytes
 Verify the brand colours are actually painted, not an empty sheet. `scripts/analyze-png.mjs` renders each PNG as a histogram:
 
 Run: `node scripts/analyze-png.mjs public/icons/icon-512.png 40`
-Expected: the exact-colour list leads with `#faf8f5` at roughly 95% and includes `#c2410c` (the amber top half of the "3") and `#57534e` (the stone bottom half). If either brand colour is absent, the glyph did not render — re-check that `public/fonts/outfit-latin.woff2` exists and that the script's `document.fonts.check` guard did not throw.
+Expected: the exact-colour list leads with `#faf8f5` at roughly 95% and includes `#c2410c` (the amber top half of the "3") and `#57534e` (the stone bottom half). If either brand colour is absent, the glyph did not render — re-check that `public/fonts/outfit-latin-*.woff2` exists and that the script's `document.fonts.check` guard did not throw.
 
 - [ ] **Step 3: Write the manifest**
 
