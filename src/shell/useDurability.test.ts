@@ -3,11 +3,13 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import {
   decideDurability,
+  mergePersistence,
   probePersistence,
   readDurabilityPrefs,
   useDurability,
   type Durability,
   type DurabilityFacts,
+  type PersistenceVerdict,
   type StorageProbe,
 } from "./useDurability";
 
@@ -17,6 +19,8 @@ const NOW = Date.UTC(2026, 8, 29);
 
 const STORED_EXPORT = "tb-last-export";
 const STORED_DISMISSAL = "tb-export-nudge-dismissed";
+
+const UNKNOWN_PERSISTENCE: PersistenceVerdict = { persisted: null, granted: null };
 
 /**
  * The node test environment has no DOM and no jsdom, so the hook's shape is
@@ -165,9 +169,23 @@ describe("what is stored", () => {
 
   it("a dismissal it cannot read is not a dismissal — it must never mean 'never again'", () => {
     // The plan's shape, a hand-edited value and a truncated write all land here.
+    // Every one of these is *unparseable*, which is the limit of what this test
+    // proves: it shows the parse rejects garbage, and says nothing at all about a
+    // value that parses cleanly and is still wrong. That second shape lives in
+    // `decideDurability`, which has a clock; see the far-future cases there.
     for (const raw of ["1", "{}", '{"at":"now","playerCount":7}', "null", '{"at":1e999,"playerCount":7}']) {
       seedStorage({ [STORED_DISMISSAL]: raw });
       expect(readDurabilityPrefs().dismissed).toBeNull();
+    }
+  });
+
+  it("a stored export that is blank is not an export in 1970", () => {
+    // `Number("")` and `Number("  ")` are both 0, and 0 is finite. The only
+    // thing between that and "last backed up in 1970" — a date Task 14 would
+    // render to a user — is the trim.
+    for (const raw of ["", "   "]) {
+      seedStorage({ [STORED_EXPORT]: raw });
+      expect(readDurabilityPrefs().lastExportAt).toBeNull();
     }
   });
 
@@ -185,34 +203,27 @@ describe("what is stored", () => {
   });
 });
 
-describe("probePersistence — what the browser does, and when the app asks", () => {
-  it("does not ask a browser to persist before there is a roster worth keeping", async () => {
-    // Firefox puts a permission popup in front of the user the first time a site asks.
-    // At two players there is nothing to keep, so there is nothing to interrupt them for.
-    const persist = vi.fn(async () => true);
-    const storage: StorageProbe = { persisted: async () => false, persist };
-    const verdict = await probePersistence(storage, false);
-    expect(persist).not.toHaveBeenCalled();
-    expect(verdict).toEqual({ persisted: false, granted: null });
-  });
-
+describe("probePersistence — what the browser says", () => {
   it("never asks an origin that is already persistent", async () => {
     const persist = vi.fn(async () => true);
     const storage: StorageProbe = { persisted: async () => true, persist };
-    const verdict = await probePersistence(storage, true);
+    const verdict = await probePersistence(storage);
     expect(persist).not.toHaveBeenCalled();
     // Installed apps are granted this without anyone asking, so `granted` is null, not true.
     expect(verdict).toEqual({ persisted: true, granted: null });
   });
 
-  it("asks once there is a roster, and reports the grant and the bucket behind it", async () => {
+  it("asks, and reports the grant and the bucket behind it", async () => {
+    // There is no roster floor on this call, and that is the point: what a
+    // browser is likely to grant is a function of engagement, not of how much
+    // data exists, so asking late spends the request on the least-engaged user.
     let bucketIsPersistent = false;
     const persist = vi.fn(async () => {
       bucketIsPersistent = true;
       return true;
     });
     const storage: StorageProbe = { persisted: async () => bucketIsPersistent, persist };
-    const verdict = await probePersistence(storage, true);
+    const verdict = await probePersistence(storage);
     expect(persist).toHaveBeenCalledTimes(1);
     expect(verdict).toEqual({ persisted: true, granted: true });
   });
@@ -222,17 +233,17 @@ describe("probePersistence — what the browser does, and when the app asks", ()
     // clears site data, so the bucket is still best-effort. Copy that reads the
     // grant here is the Phase B defect, one level down.
     const storage: StorageProbe = { persisted: async () => false, persist: async () => true };
-    await expect(probePersistence(storage, true)).resolves.toEqual({ persisted: false, granted: true });
+    await expect(probePersistence(storage)).resolves.toEqual({ persisted: false, granted: true });
   });
 
   it("falls back to the grant when the browser has no read API at all", async () => {
     const storage: StorageProbe = { persist: async () => true };
-    await expect(probePersistence(storage, true)).resolves.toEqual({ persisted: true, granted: true });
+    await expect(probePersistence(storage)).resolves.toEqual({ persisted: true, granted: true });
   });
 
   it("a refusal is a definite no on both counts, and that is what allows the nudge", async () => {
     const storage: StorageProbe = { persisted: async () => false, persist: async () => false };
-    const verdict = await probePersistence(storage, true);
+    const verdict = await probePersistence(storage);
     expect(verdict).toEqual({ persisted: false, granted: false });
     expect(decideDurability(facts(verdict)).shouldNudge).toBe(true);
   });
@@ -243,17 +254,22 @@ describe("probePersistence — what the browser does, and when the app asks", ()
       persisted: async () => false,
       persist: () => Promise.reject(new Error("no shelf")),
     };
-    await expect(probePersistence(storage, true)).resolves.toEqual({ persisted: false, granted: false });
+    await expect(probePersistence(storage)).resolves.toEqual({ persisted: false, granted: false });
+  });
+
+  it("a browser that can read but not be asked reports the refusal it did give", async () => {
+    const storage: StorageProbe = { persisted: async () => false };
+    const verdict = await probePersistence(storage);
+    expect(verdict).toEqual({ persisted: false, granted: null });
+    expect(decideDurability(facts(verdict)).shouldNudge).toBe(true);
   });
 
   it("a rejected read is unknown, and an unknown never raises the nudge", async () => {
-    const persist = vi.fn(async () => true);
-    const storage: StorageProbe = { persisted: () => Promise.reject(new Error("no answer")), persist };
-    const verdict = await probePersistence(storage, false);
-    // A throw is not an answer. Nothing was read, nothing was asked, so both
+    // Nowhere to ask and nothing to read back: a throw is not an answer, so both
     // fields stay unknown — and unknown must not read as "at risk".
+    const storage: StorageProbe = { persisted: () => Promise.reject(new Error("no answer")) };
+    const verdict = await probePersistence(storage);
     expect(verdict).toEqual({ persisted: null, granted: null });
-    expect(persist).not.toHaveBeenCalled();
     expect(decideDurability(facts(verdict)).shouldNudge).toBe(false);
   });
 
@@ -262,16 +278,35 @@ describe("probePersistence — what the browser does, and when the app asks", ()
     // the bucket is persistent, so a grant is not a second opinion being trusted
     // over the first — it is the same fact, spelled with fewer words.
     const storage: StorageProbe = { persisted: () => Promise.reject(new Error("no answer")), persist: async () => true };
-    await expect(probePersistence(storage, true)).resolves.toEqual({ persisted: true, granted: true });
-  });
-
-  it("a browser that can read but not be asked reports the refusal it did give", async () => {
-    const storage: StorageProbe = { persisted: async () => false };
-    const verdict = await probePersistence(storage, true);
-    expect(verdict).toEqual({ persisted: false, granted: null });
-    expect(decideDurability(facts(verdict)).shouldNudge).toBe(true);
+    await expect(probePersistence(storage)).resolves.toEqual({ persisted: true, granted: true });
   });
 });
+
+describe("mergePersistence — the probe is monotonic within a page load", () => {
+  it("never un-learns a permission the browser already gave", () => {
+    // The regression: a roster change re-running the effect handed the state a
+    // `granted: null` it had never had, demoting a real grant and silently
+    // un-nudging a user who was correctly being asked to back up.
+    expect(mergePersistence({ persisted: true, granted: true }, { persisted: null, granted: null })).toEqual({
+      persisted: true,
+      granted: true,
+    });
+  });
+
+  it("applies a real answer, in either direction", () => {
+    expect(mergePersistence(UNKNOWN_PERSISTENCE, { persisted: false, granted: true })).toEqual({
+      persisted: false,
+      granted: true,
+    });
+    // The user cleared site data under a live grant: that is a real measurement
+    // and it must land.
+    expect(mergePersistence({ persisted: true, granted: true }, { persisted: false, granted: true })).toEqual({
+      persisted: false,
+      granted: true,
+    });
+  });
+});
+
 
 describe("decideDurability — the truth table behind shouldNudge", () => {
   it("nudges only when all four hold: refused, big enough, stale, and not dismissed", () => {
@@ -322,5 +357,26 @@ describe("decideDurability — the truth table behind shouldNudge", () => {
       granted: true,
       shouldNudge: false,
     });
+  });
+
+  it("a dismissal dated in the future is not a dismissal, and mutes nothing", () => {
+    // A restored profile, a hand-edited key, or a machine whose clock was ahead
+    // when it was written. It parses, it is finite, it is a number — and it would
+    // otherwise sit inside the month for years.
+    expect(decideDurability(facts({ dismissed: { at: NOW + DAY, playerCount: 6 } })).shouldNudge).toBe(true);
+    // One second past now is still the future; the boundary is not a loophole.
+    expect(decideDurability(facts({ dismissed: { at: NOW + 1, playerCount: 6 } })).shouldNudge).toBe(true);
+  });
+
+  it("an export dated in the future is not a fresh export", () => {
+    // Same shape, opposite consumer: the export would read as recent until the
+    // year 2100, and the nudge would never come back.
+    expect(decideDurability(facts({ lastExportAt: NOW + DAY })).shouldNudge).toBe(true);
+    expect(decideDurability(facts({ lastExportAt: NOW + 1 })).shouldNudge).toBe(true);
+  });
+
+  it("a dismissal and an export dated exactly now still count — the boundary is not a loophole", () => {
+    expect(decideDurability(facts({ dismissed: { at: NOW, playerCount: 6 } })).shouldNudge).toBe(false);
+    expect(decideDurability(facts({ lastExportAt: NOW })).shouldNudge).toBe(false);
   });
 });

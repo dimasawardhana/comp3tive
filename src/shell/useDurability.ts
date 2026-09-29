@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 /**
  * The two fields this hook returns are separate claims, and the difference is
@@ -9,8 +9,8 @@ import { useCallback, useEffect, useState } from "react";
  *    `null` is "nobody answered" — the read has not settled, or the browser has
  *    no Storage API, or it refused to answer. Only a resolved boolean is a fact.
  *  - `granted` is a *permission*: the answer to the request this app made.
- *    `null` means the app has not asked — there is no API, or the roster was not
- *    yet worth asking about. It does not mean the answer would be no.
+ *    `null` means the app has not asked, or that there is no API to ask. It
+ *    does not mean the answer would be no.
  *
  * They are not the same value. An installed app is already persistent and was
  * granted it by the browser without anyone asking (`persisted: true, granted:
@@ -28,13 +28,15 @@ const LAST_EXPORT_KEY = "tb-last-export";
 const UNKNOWN: PersistenceVerdict = { persisted: null, granted: null };
 
 /**
- * The roster size below which the app stays quiet.
+ * The roster size below which the app does not *ask the user* to back up.
  *
- * A product choice, and the same quantum is used three times: the nudge is not
- * raised below it, the browser is not *asked* to persist below it (see
- * `probePersistence`), and a dismissal is scoped to it. The reasoning the plan
- * gives is sound and is kept — under five records there is nothing in the app
- * worth losing, so both a prompt and a permission popup are noise.
+ * A product choice, and it is one gate out of two. It governs whether this app
+ * *asks the user* to back the data up: the nudge is not raised below it, and a
+ * dismissal is scoped to it. It governs **nothing** about what this app asks the
+ * *browser* for, which is ungated and happens on mount — see
+ * {@link probePersistence} for why those two used to coincide and should not.
+ * The reasoning the plan gives is sound and is kept: under five records there is
+ * nothing in the app worth losing, so a prompt is noise.
  *
  * What would make a different number right: five is a guess made with no data.
  * If organizers turn out to build named, dated rosters they share with a league
@@ -144,18 +146,28 @@ export interface DurabilityFacts extends PersistenceVerdict {
   now: number;
 }
 
-/** Epoch ms, or `null` for anything that is not a number. A stored string is not a date. */
+/**
+ * Epoch ms, or `null` for anything that is not one. A stored string is not a
+ * date, and neither is an empty one: `Number("")` and `Number("  ")` are both
+ * `0`, which would render as "last export in 1970" — a value this app wrote no
+ * user into believing.
+ */
 function readEpoch(raw: string | null): number | null {
-  if (raw === null) return null;
+  if (raw === null || raw.trim() === "") return null;
   const value = Number(raw);
   return Number.isFinite(value) ? value : null;
 }
-
 /**
  * The stored facts, read once. `localStorage` is the one place a user can hand
  * this app an arbitrary string — from devtools, from a restored profile, from a
  * future version that wrote a different shape — so the parse rejects anything
  * it does not recognise instead of letting it mean "dismissed forever".
+ *
+ * What it cannot do is reject a value that *parses* and is still wrong: a
+ * hand-edited, restored-from-another-machine or clock-skewed timestamp is a
+ * perfectly good number in the wrong place. That case is not this function's
+ * to catch — it has no clock — so {@link decideDurability} takes `now` and
+ * refuses a timestamp that lies about when it happened.
  */
 export function readDurabilityPrefs(): { lastExportAt: number | null; dismissed: NudgeDismissal | null } {
   let dismissed: NudgeDismissal | null = null;
@@ -187,37 +199,51 @@ async function readPersisted(storage: StorageProbe): Promise<boolean | null> {
 }
 
 /**
- * What the browser says, and — the product decision — when the app is willing to
- * ask.
+ * What the browser says, and — the product decision — when the app asks.
  *
- * `navigator.storage.persisted()` only reads, so it is safe to call whenever.
- * `navigator.storage.persist()` is a request, and the browsers disagree about
- * what a request costs:
+ * Two gates live in this file and they answer different questions, and they are
+ * deliberately **not** the same gate:
+ *
+  - *Does this app ask the browser to keep the data?* — this function, and the
+ *    answer is **yes, on mount, unconditionally**. The gate is the Storage API
+ *    existing, nothing else.
+ *  - *Does this app ask the user to back the data up?* — `MIN_PLAYERS_TO_NUDGE`
+ *    in {@link decideDurability}. That one is about data volume and nobody's
+ *    attention.
+ *
+ * They used to coincide, and that was wrong. The browsers disagree about what
+ * asking costs:
  *
  *  - **Firefox** puts a permission popup in front of the user the first time a
  *    site asks.
- *  - **Chrome, Edge and Safari** answer silently, from heuristics about the
- *    user's history with the site. No prompt.
+ *  - **Chrome, Edge and Safari** answer silently, "based on the user's history
+ *    of interaction with the site".
  *
- * So the difference between the two browsers is that one of them interrupts the
- * user, and the app cannot know which it is running in before it asks. That
- * makes *when* to ask a product decision rather than an implementation detail:
- * calling it on mount, as the plan does, means a first-time visitor with an
- * empty roster is interrupted by a permissions dialog about data that does not
- * exist yet. It is therefore asked only once there is a roster worth keeping —
- * `ask` is `playerCount >= MIN_PLAYERS_TO_NUDGE`, the same floor the nudge uses —
- * and never for an origin that is already persistent, because requesting again
- * buys nothing and still costs the Firefox popup.
+ * Read the second line again: what a browser is likely to *grant* is a function
+ * of engagement, not of how much data there is. Gating the request on roster
+ * size therefore does not protect a brand-new visitor — it spends the request
+ * on whichever user happens to cross the floor, which for a one-shot game is
+ * their first and only visit, the least-engaged moment there is. Asking on mount
+ * is where the free-grant window is open.
+ *
+ * **The cost, owned rather than inherited:** on Firefox a user may get a
+ * permission dialog they did not ask for, part-way through getting teams onto a
+ * court, prompted by nothing they did. Once per origin. The product accepts that
+ * rather than inheriting a floor that buys less protection than it appears to.
+ *
+ * `navigator.storage.persisted()` only reads and never prompts, so it runs
+ * first and unconditionally; an origin that is already persistent is never asked
+ * again, because a request that buys nothing still costs the popup.
  */
-export async function probePersistence(storage: StorageProbe, ask: boolean): Promise<PersistenceVerdict> {
+export async function probePersistence(storage: StorageProbe): Promise<PersistenceVerdict> {
   const known = await readPersisted(storage);
   if (known === true) {
     // Already persistent — an installed app gets this without being asked.
     // `granted` stays null: the app did not ask, so it has no answer to report.
     return { persisted: true, granted: null };
   }
-  if (!ask || !storage.persist) {
-    // Nothing worth interrupting for, or nowhere to ask. Again: not a refusal.
+  if (!storage.persist) {
+    // Nowhere to ask. Still not a refusal: nobody refused anything.
     return { persisted: known, granted: null };
   }
   let granted: boolean;
@@ -238,9 +264,17 @@ export async function probePersistence(storage: StorageProbe, ask: boolean): Pro
   return { persisted: (await readPersisted(storage)) ?? granted, granted };
 }
 
-/** Whether a dismissal still covers the roster as it stands now. Two ways to stop covering it. */
+/**
+ * Whether a dismissal still covers the roster as it stands now. Three ways to
+ * stop covering it, and the first is that it was never a real dismissal.
+ */
 function covers(dismissal: NudgeDismissal | null, playerCount: number, now: number): boolean {
   if (dismissal === null) return false;
+  // A dismissal stamped in the future did not happen here: a restored profile, a
+  // hand-edited key, a machine whose clock was ahead when it was written. Trusting
+  // it would mute the nudge for good over a value that parses cleanly and is
+  // still wrong — the exact shape of value a parse cannot catch.
+  if (dismissal.at > now) return false;
   // Time: a snooze, not a silence.
   if (now - dismissal.at > DISMISSAL_TTL_MS) return false;
   // Size: the user closed a prompt about the roster they had. It says nothing
@@ -259,10 +293,21 @@ function covers(dismissal: NudgeDismissal | null, playerCount: number, now: numb
  * a refusal, so a browser that never answers is never nagged about a risk
  * nobody reported — and a browser that granted persistence, or was granted it
  * before this app asked, is never nagged either.
+ *
+ * `now` is a parameter rather than a call to the clock, for the same reason the
+ * stored timestamps are checked here and not at parse time: a fact about *when*
+ * something happened is only meaningful against a clock, and a clock in a test is
+ * a lie waiting to happen.
  */
 export function decideDurability(facts: DurabilityFacts): DurabilityVerdict {
   const { persisted, granted } = facts;
-  const exportIsStale = facts.lastExportAt === null || facts.now - facts.lastExportAt > NUDGE_AFTER_MS;
+  // A future-dated export is not a recent export. It is a hand-edited key, a
+  // restored profile or a clock that was ahead when it was written, and treating
+  // it as fresh mutes the nudge for years over a number that parses perfectly.
+  // Clock skew of a few seconds costs one extra prompt, which is the cheap way
+  // to be wrong.
+  const exportIsStale =
+    facts.lastExportAt === null || facts.lastExportAt > facts.now || facts.now - facts.lastExportAt > NUDGE_AFTER_MS;
   const shouldNudge =
     facts.persisted === false &&
     facts.playerCount >= MIN_PLAYERS_TO_NUDGE &&
@@ -275,13 +320,15 @@ export function decideDurability(facts: DurabilityFacts): DurabilityVerdict {
  * Whether this app's data can be evicted by the browser without the user asking,
  * and what to do about it.
  *
- * Two of the six returned values are tri-state on purpose. `persisted` is
- * `null` until a browser has answered, and `granted` is `null` until this app has
- * asked — and a consumer that renders either `null` as `false` has turned an
- * unknown into a bad news story. What a consumer owes the user:
+ * Two of the returned values are tri-state on purpose. `persisted` is `null`
+ * until a browser has answered, and `granted` is `null` until this app has asked
+ * — and a consumer that renders either `null` as `false` has turned an unknown
+ * into a bad news story. What a consumer owes the user:
  *
  *  - `persisted === true` — the only basis for saying the data is safe from
- *    eviction. Note it is not a promise it is never lost; the user can clear it.
+ *    eviction. It is one reading from one page load, nothing re-checks it, and
+ *    the user can still clear it, so say it in the present tense and never as a
+ *    guarantee.
  *  - `persisted === false` — the only basis for saying the data is at risk, and
  *    the only thing that raises `shouldNudge`.
  *  - `persisted === null` — say nothing about durability, or say that the browser
@@ -292,43 +339,63 @@ export function decideDurability(facts: DurabilityFacts): DurabilityVerdict {
  * `shouldNudge` is a permission to ask, not a warning: it is true only when the
  * data is measurably best-effort, is worth losing, has not just been backed up,
  * and has not just been dismissed.
+ *
+ * Two handoff notes, because both are invisible until they bite:
+ *
+ *  - **This object is fresh every render.** Putting `d` in a dependency array
+ *    re-runs the effect that produced it. Depend on `d.shouldNudge` or on the
+ *    callbacks, which are stable, never on `d`.
+ *  - **`shouldNudge` is computed against the clock at render time**, so it does
+ *    not flip on its own: a tab left open across the cadence boundary keeps the
+ *    answer it rendered with. Re-evaluating on a timer is a consumer's call.
  */
-export interface Durability {
-  persisted: boolean | null;
-  granted: boolean | null;
+export interface Durability extends DurabilityVerdict {
   lastExportAt: number | null;
-  shouldNudge: boolean;
   dismissNudge: () => void;
   recordExport: () => void;
+}
+
+/**
+ * A later answer never un-learns an earlier one.
+ *
+ * `null` means "no news", not "no". Without this, a probe that returns less than
+ * the last one — the read unavailable on the second pass, the API gone — would
+ * overwrite a permission the browser had already granted with a `null` it never
+ * had, and quietly un-nudge a user who was correctly being asked to back up.
+ */
+export function mergePersistence(previous: PersistenceVerdict, next: PersistenceVerdict): PersistenceVerdict {
+  return { persisted: next.persisted ?? previous.persisted, granted: next.granted ?? previous.granted };
 }
 
 export function useDurability({ playerCount }: { playerCount: number }): Durability {
   const [prefs, setPrefs] = useState(readDurabilityPrefs);
   const [known, setKnown] = useState<PersistenceVerdict>(UNKNOWN);
+  const asked = useRef(false);
 
-  const ask = playerCount >= MIN_PLAYERS_TO_NUDGE;
   useEffect(() => {
     const storage = typeof navigator === "undefined" ? undefined : navigator.storage;
     // No Storage API at all: stay unknown. There is nothing to ask and nothing
     // was answered, so there is nothing to report.
-    if (!storage) return;
+    if (!storage || asked.current) return;
+    // Once per page load, and the effect never re-runs. A second request would
+    // be a second chance to spend a Firefox permission dialog on a user who has
+    // already answered it, and a roster that grows must not re-prompt.
+    asked.current = true;
     let live = true;
-    void probePersistence(storage, ask).then(
+    void probePersistence(storage).then(
       (verdict) => {
-        if (live) setKnown(verdict);
+        if (live) setKnown((previous) => mergePersistence(previous, verdict));
       },
       () => {
         // Unreachable by construction — every await inside is guarded — but a
         // rejected probe is not an answer either, and this runs in the app shell.
-        if (live) setKnown(UNKNOWN);
+        // `UNKNOWN` merges to a no-op, so there is nothing to write.
       },
     );
     return () => {
       live = false;
     };
-    // `ask`, not `playerCount`: crossing the floor is the only roster change
-    // that changes what this does, so a roster growing 5 → 50 asks once.
-  }, [ask]);
+  }, []);
 
   const dismissNudge = useCallback(() => {
     const dismissal: NudgeDismissal = { at: Date.now(), playerCount };
