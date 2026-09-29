@@ -67,7 +67,25 @@ const shareTextFor = (result_: SplitResult, roster_: Player[] = roster) =>
   teamsAsText({ communityName: "Thursday Crew", disciplineName: "Futsal", discipline: FUTSAL_DISCIPLINE, result: result_, roster: roster_ });
 
 /** The gap sentence, read back out of the copy that leaves the app. */
-const closingOf = (result_: SplitResult) => shareTextFor(result_).split("\n").find((line) => line.startsWith("Gap ")) as string;
+const closingOf = (result_: SplitResult) => {
+  const closing = shareTextFor(result_).split("\n").find((line) => line.startsWith("Gap "));
+  // A rename upstream would otherwise leave a silent `undefined` and a test
+  // failure that reads as a poster bug.
+  expect(closing, "teamsAsText no longer starts its gap line this way").toBeTruthy();
+  return closing as string;
+};
+
+/**
+ * The footer as its own lines: everything the layout emits after the last
+ * player row. The gap sentence lives here, so a copy assertion that scans the
+ * whole poster would be reading a roster it does not own.
+ */
+const footerOf = (result_: SplitResult) => {
+  const lines = layoutShareImage(input(2, 5, result_)).ops
+    .filter((op) => op.kind === "text")
+    .map((op) => (op.kind === "text" ? op.text : ""));
+  return lines.slice(lines.findLastIndex((line) => line.startsWith("• ")) + 1);
+};
 
 describe("blockHeight", () => {
   it("grows by exactly one row per player", () => {
@@ -129,9 +147,9 @@ describe("layoutShareImage", () => {
   it("is the light theme, and the dark accent is a different colour", () => {
     // The reason the choice is pinned rather than assumed: a poster is a file,
     // not a view, so it cannot answer a media query, and the two themes do not
-    // agree — `tokens.css` re-declares `--accent` as the brighter amber in dark.
-    // Fails if the poster is repainted in the dark palette (the fills stop
-    // being light tokens) or if the sheet's two accents are merged into one.
+    // agree — `tokens.css` re-declares `--accent` as the brighter amber at
+    // `:47`. Fails if the sheet's two accents are ever merged into one, which
+    // would leave the choice unpinnable rather than merely wrong.
     expect(LIGHT["--accent"]).toBe("#c2410c");
     expect(DARK["--accent"]).toBe("#ea580c");
   });
@@ -168,10 +186,12 @@ describe("layoutShareImage", () => {
   });
 
   it("is deterministic, and keeps no state between calls", () => {
-    // The same split must draw the same bytes, or two organizers who made the
-    // same split cannot compare posters. Fails if a `Date`, a random, or a
-    // module-level `ops` array reaches the layout — the array case is what the
-    // second half catches, and it is the one a reuse refactor would introduce.
+    // The same split must lay out the same, or two organizers who made the same
+    // split cannot compare posters. What is compared is the op list, not the
+    // rasterised bytes: the last hop is the canvas and whatever font state the
+    // machine was in. Fails if a `Date`, a random, or a module-level `ops`
+    // array reaches the layout — the array case is what the second half
+    // catches, and it is the one a reuse refactor would introduce.
     expect(layoutShareImage(input(2, 5))).toEqual(layoutShareImage(input(2, 5)));
     const three = layoutShareImage(input(3, 5));
     layoutShareImage(input(4, 5));
@@ -197,6 +217,37 @@ describe("layoutShareImage", () => {
       expect(op.y - size).toBeGreaterThanOrEqual(0);
     }
     expect(ops.some((op) => op.kind === "text" && op.text.includes("…"))).toBe(true);
+
+    /**
+     * The gutter is the edge the poster-width check above cannot see. A row
+     * label widened to its whole block would end at the second column's left
+     * edge — still inside 1080, so every assertion above would pass and the two
+     * columns would print on top of each other. This is the only assertion that
+     * fails if the row budget drops the stripe inset or the block's own gutter.
+     */
+    const MARGIN = 64;
+    const COLUMN_GAP = 32;
+    const columnEdge = MARGIN + (width - MARGIN * 2 - COLUMN_GAP) / 2;
+    for (const op of ops) {
+      if (op.kind !== "text" || !op.text.startsWith("• ")) continue;
+      const w = op.text.length * Number(op.font.match(/(\d+)px/)?.[1]) * 0.52;
+      const left = op.align === "right" ? op.x - w : op.x;
+      expect(left + w <= columnEdge || left >= columnEdge + COLUMN_GAP).toBe(true);
+    }
+  });
+
+  it("gives an ordinary name its whole line in a column, and clips only an extraordinary one", () => {
+    // Two teams is the only split `ae0b3e1` leaves shareable, and it is the
+    // narrow one: a row budget that subtracts the poster's outer 64px margin
+    // inside a 460px column clips a 13-character name at 18 characters, with
+    // the rating — the number the poster exists to show — cut off with it.
+    // Fails if the budget takes `MARGIN` instead of the block's gutter, or if
+    // the rating is appended after `fit` rather than before it.
+    const named: Player[] = roster.map((p, i) => (i === 0 ? { ...p, name: "Rangga Saputra" } : p));
+    const rows = layoutShareImage({ ...input(2, 5), roster: named }).ops
+      .filter((op) => op.kind === "text" && op.text.startsWith("• "))
+      .map((op) => (op.kind === "text" ? op.text : ""));
+    expect(rows).toContain("• Rangga Saputra (4.0)");
   });
 
   it("lists unassigned players only when there are any", () => {
@@ -229,6 +280,14 @@ describe("layoutShareImage", () => {
     for (const line of text.filter((l) => l.startsWith("• "))) {
       expect(posterText).toContain(line);
     }
+    // The average is the one figure the two surfaces share without sharing a
+    // string: the text folds it into the heading, the poster sets it at the
+    // block's right edge, so the heading itself is not a string the poster
+    // paints and asserting it would be asserting a layout nobody ships.
+    const AVG = " · avg ";
+    for (const [, value] of text.filter((l) => l.includes(AVG)).map((l) => l.split(AVG))) {
+      expect(posterText).toContain(`avg ${value}`);
+    }
     expect(posterText).not.toContain("Dewi (");
   });
 
@@ -239,10 +298,7 @@ describe("layoutShareImage", () => {
     // typed here, so a third hand-written version cannot pass this test, and the
     // join over wrapped lines is what makes the assertion survive wrapping.
     const bestFound = result(2, 5, BEST_FOUND);
-    const painted = layoutShareImage({ ...input(2, 5, bestFound) }).ops
-      .filter((op) => op.kind === "text")
-      .map((op) => (op.kind === "text" ? op.text : ""))
-      .join(" ");
+    const painted = footerOf(bestFound).join(" ");
     expect(painted).toContain(closingOf(bestFound));
     expect(painted).toContain("A smaller one may exist.");
     for (const banned of ["proven", "minimum", "optimal", "solver"]) expect(painted).not.toContain(banned);
@@ -254,10 +310,7 @@ describe("layoutShareImage", () => {
     // cannot be corrected. Fails if the poster branches on anything but the same
     // rule `teamsAsText` branches on.
     const proven = result(2, 5, PROVEN);
-    const painted = layoutShareImage({ ...input(2, 5, proven) }).ops
-      .filter((op) => op.kind === "text")
-      .map((op) => (op.kind === "text" ? op.text : ""))
-      .join(" ");
+    const painted = footerOf(proven).join(" ");
     expect(painted).toContain(closingOf(proven));
     expect(painted).not.toContain("A smaller one may exist.");
   });

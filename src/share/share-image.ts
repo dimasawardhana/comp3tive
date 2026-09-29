@@ -6,7 +6,7 @@ import { closingLine, orderedSlots } from "./share-text";
 /**
  * The poster's geometry as pure data, so the layout is testable in node and the
  * canvas replay is a thin loop. No canvas import here on purpose: the unit suite
- * runs with `environment: "node"` (`vite.config.ts:22`) and no jsdom, so
+ * runs with `environment: "node"` (`vite.config.ts:21`) and no jsdom, so
  * `layoutShareImage` is the half that can be proved, and `renderShareImage` —
  * which needs a real 2D context and a real font — is the half that is not.
  */
@@ -66,6 +66,12 @@ const BLOCK_BASE = 96;
 const BLOCK_PADDING = 32;
 const BLOCK_GAP = 24;
 const COLUMN_GAP = 32;
+/**
+ * The space a label leaves before its block's right edge. Half the column gap,
+ * so a two-column poster keeps the same breathing room between a name and the
+ * edge that a stacked one does.
+ */
+const BLOCK_GUTTER = COLUMN_GAP / 2;
 const INSET = 36;
 const FOOTER_PAD = 24;
 /** Where a baseline sits inside its row: the row box, less half the descender. */
@@ -191,8 +197,8 @@ export function layoutShareImage(input: LayoutShareImageInput): { width: number;
   ops.push({ kind: "rect", x: MARGIN, y: HEADER_HEIGHT - 24, w: column, h: 1, fill: HAIRLINE });
 
   const blockWidth = columns ? (column - COLUMN_GAP) / 2 : column;
-  /** What a name may use: the block, less the stripe, less the gutter to the average. */
-  const labelRoom = blockWidth - INSET - MARGIN;
+  /** What a name may use: the block, less the stripe, less the gutter at its right edge. */
+  const labelRoom = blockWidth - INSET - BLOCK_GUTTER;
   let y = HEADER_HEIGHT;
   teams.forEach((team, index) => {
     const x = columns ? MARGIN + index * (blockWidth + COLUMN_GAP) : MARGIN;
@@ -203,7 +209,7 @@ export function layoutShareImage(input: LayoutShareImageInput): { width: number;
       kind: "text",
       x: x + INSET,
       y: y + 64,
-      text: fit(teamName(team.index), DISPLAY, blockWidth - INSET - textWidth(average, BODY) - COLUMN_GAP / 2),
+      text: fit(teamName(team.index), DISPLAY, blockWidth - INSET - textWidth(average, BODY) - BLOCK_GUTTER),
       font: DISPLAY,
       fill: INK,
       align: "left",
@@ -244,21 +250,32 @@ export function layoutShareImage(input: LayoutShareImageInput): { width: number;
  *
  * Not unit-tested, and deliberately so: it needs a real 2D context, a real font
  * and a real encoder, none of which exist in the `node` environment the suite
- * runs in (`vite.config.ts:22`). Faking them would assert the fake. The half
+ * runs in (`vite.config.ts:21`). Faking them would assert the fake. The half
  * that carries the decisions — every coordinate, colour and string — is
  * `layoutShareImage`, and that is what the tests pin.
  *
- * The fonts are awaited because both faces are variable woff2 that the app
- * fetches from a CDN today (`index.html:28`, `app/index.html:10`; self-hosting
- * is Task 9), and a `fillText` issued before they land draws the fallback stack
- * instead — a poster that looks like a different product. The wait is
- * best-effort by design: a poster is worth sharing in the fallback face, and an
- * offline CDN must not stop the organizer from sharing at all. The same shape
- * `src/landingDeal.tsx:139` uses for its re-measure.
+ * The fonts are loaded, not merely waited on. `document.fonts.ready` resolves as
+ * soon as nothing is *pending*, and nothing requests these two faces on the
+ * poster's behalf: a canvas `fillText` triggers no load, so on a page that had
+ * not yet set type in them — or one where the CDN is slow — `ready` would
+ * resolve instantly and the first `fillText` would silently draw the fallback.
+ * The two explicit `load` calls are what put the faces in the set; `ready` then
+ * waits for them. `src/landingDeal.tsx:139` is not the precedent: it re-measures
+ * DOM text that already requested them.
+ *
+ * Both faces are variable woff2 the app fetches from a CDN today
+ * (`index.html:28`, `app/index.html:10`; self-hosting is Task 9), and a
+ * `fillText` issued before they land draws the fallback stack instead — a
+ * poster that looks like a different product. The wait is best-effort by
+ * design: a poster is worth sharing in the fallback face, and an offline CDN
+ * must not stop the organizer from sharing at all.
  */
 export async function renderShareImage(input: LayoutShareImageInput): Promise<Blob> {
   const { width, height, ops } = layoutShareImage(input);
-  if (typeof document !== "undefined") await document.fonts?.ready.catch(() => {});
+  if (typeof document !== "undefined") {
+    await Promise.all([document.fonts?.load(DISPLAY), document.fonts?.load(BODY)]).catch(() => {});
+    await document.fonts?.ready.catch(() => {});
+  }
 
   const canvas: OffscreenCanvas | HTMLCanvasElement =
     typeof OffscreenCanvas !== "undefined"
