@@ -246,6 +246,7 @@ export function ScreenSwitch(props: ScreenSwitchProps) {
           onAddPlayer={() => setEditingPlayer("new")}
           onOpenPlayer={(player) => setEditingPlayer(player)}
           pendingMerge={pendingMerge}
+          notify={notify}
           lastReport={lastReport}
           onConfirmMerge={confirmMerge}
           onCancelMerge={cancelMerge}

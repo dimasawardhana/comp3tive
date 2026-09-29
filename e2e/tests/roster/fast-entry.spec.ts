@@ -278,3 +278,193 @@ test("a JSON roster leaves no CSV report behind", async ({ page }) => {
   await expect(page.locator(".import-report")).toHaveCount(0);
   await expect(page.locator(".roster .row", { hasText: "Citra" })).toBeVisible();
 });
+
+/* ------------------------------------------------------------------ *
+ * Bulk rating. Task 17's browser half.
+ *
+ * The roster had no way to say what a player is good at: every rating in it
+ * arrived by CSV, where one number became every attribute of one discipline.
+ * These cases are the clicking, which the node suite cannot do — a write, a
+ * toast, a derived number moving as a consequence of a click, and a selection
+ * that does not outlive the thing that started it.
+ * ------------------------------------------------------------------ */
+
+/** The four-player world: three futsal players from one file, one MLBB. */
+const RATED_CSV = ["name,discipline,strength", "Andi,futsal,2", "Budi,futsal,2", "Citra,mlbb,3", ""].join("\n");
+
+const ratingWorld = async (page: Page): Promise<void> => {
+  await gotoHubSeeded(page, world(), "Roster");
+  await importCsv(page, RATED_CSV);
+  await expect(page.locator(".roster .row")).toHaveCount(3, { timeout: 5000 });
+};
+
+test("the roster offers a way to rate people, and a tick does not open the player", async ({ page }) => {
+  await ratingWorld(page);
+
+  // The mode is on the page from the start, and it says what it is at rest.
+  await expect(page.locator(".roster-select-note")).toHaveText(
+    "0 of 3 selected. Choose players here, or press Select all, to rate them together in one discipline.",
+  );
+  await expect(page.getByRole("button", { name: "Rate selected" })).toBeDisabled();
+
+  // A checkbox beside each row. It is a sibling of the row's button rather than
+  // a child of it, because a role=button's contents are presentational and a
+  // nested checkbox would be a tick a mouse can do and a keyboard cannot.
+  await page.getByRole("checkbox", { name: "Select Andi" }).check();
+  await expect(page.locator(".modal-card")).toHaveCount(0);
+
+  // And the count answers the question the button's two-word name does not:
+  // what happens to the rows that are not ticked.
+  await expect(page.locator(".roster-select-note")).toHaveText(
+    "1 of 3 selected. Rating writes to that one player; the other 2 keep the ratings they have.",
+  );
+  await expect(page.getByRole("button", { name: "Rate selected" })).toBeEnabled();
+});
+
+test("a rating is written for the ticked players, the strength moves with it, and the rest are untouched", async ({ page }) => {
+  await ratingWorld(page);
+  await page.getByRole("checkbox", { name: "Select Andi" }).check();
+  await page.getByRole("checkbox", { name: "Select Budi" }).check();
+  await expect(page.locator(".roster-select-note")).toContainText(
+    "2 of 3 selected. Rating writes to those 2; the other 1 keep the ratings they have.",
+  );
+
+  await page.getByRole("button", { name: "Rate selected" }).click();
+  const modal = page.locator(".modal-card");
+  await expect(modal).toBeVisible();
+  await expect(modal.locator(".modal-title")).toHaveText("Rate 2 players");
+
+  // The dialog states the consequence before it is asked for: one set of
+  // numbers for the whole set, and what happens to a player who has no
+  // capability in this discipline yet.
+  await expect(modal.locator(".modal-banner")).toContainText(
+    "Every player you selected is set to the same number in each row",
+  );
+
+  // The strength is the app's answer, and there is nothing in the dialog that
+  // asks for one: no field, and no control inside the readout.
+  await expect(modal).toContainText("Strength is worked out by this app from the ratings above");
+  await expect(modal.locator("input")).toHaveCount(0);
+  await expect(modal.locator(".derived-readout input, .derived-readout button")).toHaveCount(0);
+  // The import gave every attribute a 2, so the derived value starts there.
+  await expect(modal.locator(".derived-value")).toHaveText("2.0");
+
+  // Cancel writes nothing and keeps the ticks: the user has not changed their
+  // mind about *which* players, only about the numbers.
+  await modal.getByRole("button", { name: "Cancel" }).click();
+  await expect(modal).toHaveCount(0);
+  await expect(page.getByRole("checkbox", { name: "Select Andi" })).toBeChecked();
+  await expect(page.locator(".roster-select-note")).toContainText("2 of 3 selected");
+
+  // Now do it. Futsal is the discipline the dialog opened on, and each of its
+  // three attributes is a row of buttons off the discipline's own 1-5 scale.
+  await page.getByRole("button", { name: "Rate selected" }).click();
+  await expect(modal).toBeVisible();
+  for (const attribute of ["Technical", "Fitness", "Game IQ"]) {
+    await modal.getByRole("button", { name: `${attribute} 5`, exact: true }).click();
+  }
+  // The derived number moved because the ratings moved, and nothing else could
+  // have moved it.
+  await expect(modal.locator(".derived-value")).toHaveText("5.0");
+  await modal.getByRole("button", { name: "Rate 2 players" }).click();
+  await expect(modal).toHaveCount(0);
+
+  // The confirmation names the count, the discipline and what changed, and it
+  // says the consequence rather than letting "Rated 2 players" read as two
+  // separate judgements. It is one, written twice.
+  await expect(page.locator(".toast-container")).toContainText(
+    "This app set Technical 5, Fitness 5, Game IQ 5 on the 2 selected players in Futsal, so their strength there is now the same.",
+  );
+  // And the mode is over: a rate is a finished piece of work, and a selection
+  // left standing would be a second rate waiting to be pressed by accident.
+  await expect(page.locator(".roster-select-note")).toContainText("0 of 3 selected");
+  await expect(page.getByRole("button", { name: "Rate selected" })).toBeDisabled();
+
+  // The write landed on the two ticked players and on nobody else.
+  await page.locator(".roster .row", { hasText: "Andi" }).click();
+  await expect(page.locator("#player-name")).toHaveValue("Andi");
+  await expect(page.getByRole("button", { name: "Technical 5", exact: true })).toHaveAttribute("aria-pressed", "true");
+  await page.locator(".modal-close").click();
+
+  await page.locator(".roster .row", { hasText: "Citra" }).click();
+  await expect(page.locator("#player-name")).toHaveValue("Citra");
+  // Her MLBB rating is the one the file gave her; she was not in the selection
+  // and her record was not touched.
+  await expect(page.getByRole("button", { name: "Mechanics 3", exact: true })).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByRole("button", { name: "Technical 5", exact: true })).toHaveCount(0);
+});
+
+test("a player who does not play the discipline gains it, with every role open and no preference", async ({ page }) => {
+  await ratingWorld(page);
+
+  // Citi is an MLBB player, and the dialog opens on Futsal. Rating her writes a
+  // capability where there was none — the same one csvRowsToPlayers writes for
+  // a row naming futsal, so the two paths cannot disagree about what it means.
+  await page.getByRole("checkbox", { name: "Select Citra" }).check();
+  await page.getByRole("button", { name: "Rate selected" }).click();
+  const modal = page.locator(".modal-card");
+  await expect(modal.locator(".modal-title")).toHaveText("Rate 1 player");
+  await expect(modal.locator(".modal-banner")).toContainText("Players who do not play it yet are added to it");
+  await modal.getByRole("button", { name: "Rate 1 player" }).click();
+  await expect(modal).toHaveCount(0);
+  await expect(page.locator(".toast-container")).toContainText(
+    "This app set Technical 3, Fitness 3, Game IQ 3 on the 1 selected player in Futsal.",
+  );
+
+  // Her record now says she can play futsal and nothing more: every role open,
+  // because the app has no evidence for one, and no preferred role.
+  await page.locator(".roster .row", { hasText: "Citra" }).click();
+  const card = page.locator(".cap-card", { has: page.locator(".chip--tag", { hasText: "Futsal" }) });
+  await expect(card).toBeVisible();
+  await expect(card.locator(".chip[aria-pressed='true']")).toHaveCount(4);
+  await expect(page.locator("#pref-futsal")).toHaveValue("");
+  // And her own MLBB card is still there, untouched.
+  await expect(page.locator(".cap-card", { has: page.locator(".chip--tag", { hasText: "MLBB" }) })).toBeVisible();
+});
+
+test("a selection does not survive a filter, a screen or a reload", async ({ page }) => {
+  await ratingWorld(page);
+  await page.getByRole("checkbox", { name: "Select Andi" }).check();
+  await page.getByRole("checkbox", { name: "Select Budi" }).check();
+  await expect(page.locator(".roster-select-note")).toContainText("2 of 3 selected");
+
+  // A filter change takes the ticks with it: the rows they named are no longer
+  // the rows on screen, and a count that describes them would be describing
+  // something the user cannot see.
+  await page.locator(".chips .chip", { hasText: "Futsal" }).click();
+  await expect(page.locator(".roster .row")).toHaveCount(2);
+  await expect(page.locator(".roster-select-note")).toContainText("0 of 2 selected");
+
+  // Back to all three, ticked again, and out to another screen and back.
+  await page.locator(".chips .chip", { hasText: "Futsal" }).click();
+  await page.getByRole("checkbox", { name: "Select Andi" }).check();
+  await page.getByRole("button", { name: "Games", exact: true }).click();
+  await page.getByRole("button", { name: "Roster", exact: true }).click();
+  await expect(page.locator(".roster-select-note")).toContainText("0 of 3 selected");
+
+  // And a reload, which is the same claim from the other direction: this is a
+  // mode, not a record.
+  await page.getByRole("checkbox", { name: "Select Andi" }).check();
+  await expect(page.locator(".roster-select-note")).toContainText("1 of 3 selected");
+  await page.reload();
+  await expect(page.locator(".screen h1")).toBeVisible({ timeout: 15000 });
+  await page.getByRole("button", { name: "Roster", exact: true }).click();
+  await expect(page.locator(".roster-select-note")).toContainText("0 of 3 selected");
+  await expect(page.locator(".roster .row")).toHaveCount(3);
+});
+
+test("Select all takes every row the filter shows, and then offers to clear it", async ({ page }) => {
+  await ratingWorld(page);
+  await page.getByTestId("select-all-players").click();
+  await expect(page.locator(".roster-select-note")).toHaveText(
+    "3 of 3 selected. Rating writes to all 3 of them.",
+  );
+  for (const name of ["Andi", "Budi", "Citra"]) {
+    await expect(page.getByRole("checkbox", { name: `Select ${name}` })).toBeChecked();
+  }
+  // The toggle names what it will do next, which is the only way a header-level
+  // control can be honest about being two controls.
+  await page.getByTestId("select-all-players").click();
+  await expect(page.locator(".roster-select-note")).toContainText("0 of 3 selected");
+  await expect(page.getByRole("checkbox", { name: "Select Andi" })).not.toBeChecked();
+});

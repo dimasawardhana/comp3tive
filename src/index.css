@@ -1393,6 +1393,103 @@ h1 {
   color: var(--text-2);
 }
 
+/* ---------- bulk rating: the selection, and the value the app derives ------
+   The bar sits between the import report and the roster: it is a property of
+   the rows below it, and it holds the control whose enabled state is the count
+   it prints. Muted like the import hint, because it is standing reference, not
+   an event — the confirmation after a rate is a toast, not this line. */
+.roster-select-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 10px;
+  margin: 12px 0 10px;
+}
+.roster-select-note {
+  margin: 0;
+  flex: 1 1 18rem;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--text-2);
+}
+
+/* A row that carries a checkbox. The stripe, the padding and the hover stay on
+   the row; the inner region is only the part that opens the editor, so the two
+   controls sit in one row without one swallowing the other's clicks. */
+.row-has-select {
+  gap: 12px;
+  padding-left: 14px;
+}
+.row-select {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+.row-open {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex: 1 1 auto;
+  min-width: 0;
+  text-align: left;
+  color: inherit;
+  font: inherit;
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+}
+.row-open:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 4px;
+  border-radius: var(--r-sm);
+}
+
+/* The bulk rate's own ratings column, and the derived value under it. The
+   readout is deliberately not a control: it is two spans, so there is nothing
+   in it to type into, and the sentence under it says where the number came
+   from. */
+.rate-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 10px;
+}
+.rating-number {
+  width: 88px;
+  flex: 0 0 auto;
+}
+.derived-readout {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--hairline);
+}
+.derived-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-2);
+}
+.derived-value {
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+.derived-note {
+  margin: 4px 0 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--text-2);
+}
+
 .field-error {
   font-size: 13px;
   color: var(--danger);

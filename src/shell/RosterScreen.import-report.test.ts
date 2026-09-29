@@ -342,7 +342,12 @@ describe("the import report's groups", () => {
       lastReport: report(0, [{ line: 2, reason: 'Strength "strong" is not a number.' }]),
     });
     expect(skippedRows(html)).toEqual(['Line 2: Strength "strong" is not a number.']);
-    expect([...html.matchAll(/Andi/g)]).toHaveLength(2); // the row's aria-label and name
+    // The report panel itself, which is where a name would have to be invented.
+    // Read from the panel rather than the whole page: the roster's own row may
+    // name the player as often as its markup needs to — its button, its
+    // checkbox and its name are three, and only the first two are about editing.
+    const panel = html.match(/<section class="import-report"[\s\S]*?<\/section>/)?.[0] ?? "";
+    expect(panel).not.toMatch(/Andi/);
   });
 
   it("groups a reason it has never seen under a floor, in full, rather than dropping it", () => {

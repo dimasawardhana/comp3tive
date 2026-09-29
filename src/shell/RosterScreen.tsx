@@ -1,9 +1,13 @@
+import { useState } from "react";
 import type { Community, Discipline, Id, Player } from "../domain/types";
 import { PageHeader } from "../ui/PageHeader";
 import { Screen } from "../ui/Screen";
 import { PlayerEditModal } from "../roster/PlayerEditModal";
+import { BulkRateModal, rateConfirmation } from "../roster/BulkRateModal";
 import type { ImportReport, ImportSkip, PendingMerge } from "./usePlayerImport";
 import { TEMPLATE_EXAMPLE_REASON_MARKER } from "./usePlayerImport";
+import type { ToastType } from "./useToasts";
+import { formatError } from "../ui/format";
 import { CSV_TEMPLATE, CSV_TEMPLATE_FILE_NAME } from "../data/csv-template";
 
 export interface RosterScreenProps {
@@ -67,6 +71,14 @@ export interface RosterScreenProps {
    * no way to group.
    */
   lastReport: ImportReport | null;
+  /**
+   * The toast seam. `useToasts()` is called once, in `App.tsx`, and threaded
+   * down: a second call here would build a list of messages nothing renders
+   * (`src/shell/useToasts.ts:14-22`). The bulk rate is the second write on this
+   * screen that reports itself through a toast rather than a panel, and
+   * `lastReport` is deliberately typed to CSV verdicts, so it cannot carry it.
+   */
+  notify: (text: string, type?: ToastType) => void;
 }
 
 /* ------------------------------------------------------------------ *
@@ -316,6 +328,83 @@ const EXTRA_COLUMN_NOTE =
   "Only a row's first three columns are read. If your file has a fourth column, that column was not imported.";
 
 /**
+ * What the selection is, and what the button beside it is about to do to it.
+ * Two sentences in the app's house shape: a count, then a fact about scope.
+ *
+ * **The second sentence is the whole reason this line exists.** A user who ticks
+ * 40 of 60 and presses the button is really asking what happens to the other
+ * 20, and the answer — they are not touched — is invisible from a button whose
+ * name is two words. It is true by construction rather than by promise: the
+ * dialog is handed the ticked rows, so "the other 20 keep the ratings they
+ * have" is what the code does and not what the copy wishes it did.
+ *
+ * At zero there is no set to describe, so the second sentence is a way in
+ * instead, and when every row is ticked there is no "other" to account for, so
+ * the sentence says that rather than announcing "the other 0 keep the ratings
+ * they have". Nothing here is dressed up: the count agrees with the button's
+ * disabled state, which is the same number.
+ *
+ * Exported for the same reason as `selectedIn`: the sentences it writes are
+ * claims about a write, and this is the only way a test can reach them.
+ */
+export const selectionNote = (selected: number, total: number): string => {
+  if (total === 0) return "";
+  if (selected === 0)
+    return `0 of ${total} selected. Choose players here, or press Select all, to rate them together in one discipline.`;
+  if (selected === 1)
+    return `1 of ${total} selected. Rating writes to that one player; the other ${total - 1} keep the ratings they have.`;
+  if (selected === total)
+    return `${selected} of ${total} selected. Rating writes to all ${total} of them.`;
+  return `${selected} of ${total} selected. Rating writes to those ${selected}; the other ${total - selected} keep the ratings they have.`;
+};
+
+/**
+ * A selection, kept against the community that made it.
+ *
+ * **It is a mode, and a mode that outlives the thing that started it is a bug.**
+ * The community id is part of the state for exactly that reason: switching
+ * community re-renders this screen with a different `activeCommunity` and a
+ * selection of ids the new community's roster may not even contain, which would
+ * otherwise read as "3 selected" over rows that are not there. The ids are
+ * intersected with `visiblePlayers` on every render as well, so a filter change
+ * cannot leave a ticked row hiding in a filtered-out set. Nothing is persisted:
+ * a reload, a navigation and a community switch all start from nothing.
+ */
+interface Selection {
+  communityId: Id;
+  ids: Id[];
+}
+
+/**
+ * Nothing is selected, and the same object every time, so clearing a selection
+ * that is already empty re-renders nothing.
+ */
+const NO_SELECTION: Selection = { communityId: "", ids: [] };
+
+/** Ids that belong to `communityId` at all, and the empty list when none do. */
+const EMPTY_IDS: Id[] = [];
+const idsIn = (selection: Selection, communityId: Id | null | undefined): Id[] =>
+  selection.communityId === (communityId ?? "") ? selection.ids : EMPTY_IDS;
+
+/**
+ * The rows a selection actually means, on the screen as it stands: ticked, in
+ * this community, and visible under the current filter.
+ *
+ * Exported because it is the rule the whole mode rests on and no prop reaches
+ * it — the copy beside the button claims the other rows are untouched, and
+ * this is where that claim is either true or not. A node test can drive it with
+ * a selection, a community and a list; it cannot drive a click.
+ */
+export function selectedIn(
+  selection: Selection,
+  communityId: Id | null | undefined,
+  visible: Player[],
+): Player[] {
+  const ids = idsIn(selection, communityId);
+  return visible.filter((p) => ids.includes(p.id));
+}
+
+/**
  * The roster hub's screen. Its markup moved out of App verbatim; what changed
  * is only which handler each binding names — every `setEditingPlayer`,
  * `filtersByDiscipline`, `clearFilters` and `handleExport` reference became the
@@ -363,8 +452,9 @@ export function RosterScreen(props: RosterScreenProps) {
    * a sandboxed frame — throws into a click handler where it lands in the
    * console. That is the better outcome: a catch with nowhere to report would
    * make a failed download indistinguishable from a browser that quietly
-   * blocked one, and this screen has no channel to say so (the roster's report
-   * surface is Task 16's, and a `notify` prop belongs with it).
+   * blocked one, and nothing on this screen reports downloads: the report
+   * panel is typed to CSV verdicts, and a browser's own refusal already goes
+   * to the console.
    */
   const downloadCsvTemplate = () => {
     const blob = new Blob([CSV_TEMPLATE], { type: "text/csv" });
@@ -376,6 +466,87 @@ export function RosterScreen(props: RosterScreenProps) {
     a.click();
     document.body.removeChild(a);
     setTimeout(() => URL.revokeObjectURL(url), 0);
+  };
+
+  /**
+   * The bulk-rating mode: which rows are ticked, and the dialog it opens.
+   *
+   * `selectedIds` is derived on every render rather than stored, so it can only
+   * ever be ids the current community's current filter actually shows. A row
+   * that is filtered out, or belongs to another community, is not selected no
+   * matter what is in the state — which is what makes "Rating writes to those
+   * 3; the other 9 keep the ratings they have" a fact about the write instead of
+   * a claim about the interface.
+   */
+  const [selection, setSelection] = useState<Selection>(NO_SELECTION);
+  const [rateOpen, setRateOpen] = useState(false);
+  const selectedIds = idsIn(selection, activeCommunity?.id);
+  const selectedPlayers = selectedIn(selection, activeCommunity?.id, visiblePlayers);
+  const allSelected = visiblePlayers.length > 0 && selectedPlayers.length === visiblePlayers.length;
+
+  const remember = (ids: Id[]): void =>
+    setSelection({ communityId: activeCommunity?.id ?? "", ids });
+
+  const toggleSelected = (id: Id): void =>
+    remember(
+      selectedIds.includes(id) ? selectedIds.filter((x) => x !== id) : [...selectedIds, id],
+    );
+
+  /** The header-level toggle: all the rows the filter shows, or none of them. */
+  const toggleSelectAll = (): void =>
+    remember(allSelected ? [] : visiblePlayers.map((p) => p.id));
+
+  /**
+   * Changing the filter takes the selection with it. A ticked row that is no
+   * longer on screen is not offered to the dialog anyway, and clearing here
+   * means the count beside the button never describes rows the user cannot see.
+   */
+  const toggleFilter = (id: Id): void => {
+    setSelection(NO_SELECTION);
+    props.onToggleFilter(id);
+  };
+  const clearFilters = (): void => {
+    setSelection(NO_SELECTION);
+    props.onClearFilters();
+  };
+
+  /**
+   * Write the rated set, then say what was written.
+   *
+   * Every player goes through `onSavePlayer`, so the in-memory list, the store
+   * and the single-player editor all see the write the same way; this screen
+   * holds no roster of its own to fall out of step. The writes are one at a
+   * time and can stop half way, so a failure counts what landed and says so —
+   * a toast claiming all 12 were written when 7 were would be the worst thing
+   * this screen could do.
+   *
+   * The selection is cleared only here, on the success path. Cancelling the
+   * dialog writes nothing and keeps the ticks, because a user who pressed
+   * Cancel has not changed their mind about *which* players, only about the
+   * numbers they were about to give them.
+   */
+  const applyBulkRatings = async (
+    updated: Player[],
+    discipline: Discipline,
+    ratings: Record<Id, number>,
+  ): Promise<void> => {
+    let saved = 0;
+    try {
+      for (const player of updated) {
+        await props.onSavePlayer(player);
+        saved += 1;
+      }
+    } catch (err) {
+      props.notify(
+        saved === 0
+          ? `Could not rate any of the ${updated.length} selected players: ${formatError(err)}`
+          : `Could not rate all ${updated.length} selected players: ${formatError(err)}. ${saved} of them are saved.`,
+        "error",
+      );
+      throw err;
+    }
+    setSelection(NO_SELECTION);
+    props.notify(rateConfirmation(discipline, ratings, updated.length), "success");
   };
 
   return (
@@ -404,7 +575,7 @@ export function RosterScreen(props: RosterScreenProps) {
                   type="button"
                   className="chip"
                   aria-pressed={filterIds.includes(d.id)}
-                  onClick={() => props.onToggleFilter(d.id)}
+                  onClick={() => toggleFilter(d.id)}
                 >
                   {d.shortName}
                 </button>
@@ -412,7 +583,7 @@ export function RosterScreen(props: RosterScreenProps) {
             </div>
           )}
           {filterIds.length > 0 && (
-            <button className="btn btn-ghost" onClick={props.onClearFilters}>Clear filters</button>
+            <button className="btn btn-ghost" onClick={clearFilters}>Clear filters</button>
           )}
           {props.pendingMerge && (
             <div className="status-banner">
@@ -598,6 +769,46 @@ export function RosterScreen(props: RosterScreenProps) {
               onDelete={props.onDeletePlayer}
             />
           )}
+
+          {rateOpen && (
+            <BulkRateModal
+              disciplines={disciplines}
+              players={selectedPlayers}
+              defaultDisciplineId={filterIds.length === 1 ? filterIds[0] : null}
+              onApply={applyBulkRatings}
+              onClose={() => setRateOpen(false)}
+            />
+          )}
+
+          {/*
+           * The selection bar sits directly above the rows it is about, and
+           * holds the rate button rather than the toolbar holding it: a button
+           * that is disabled until rows are ticked belongs with the rows and
+           * with the count that disables it, not four blocks higher up beside
+           * controls that add a player. `Select all` is the header-level
+           * toggle and changes its own name to match what it will do.
+           */}
+          {visiblePlayers.length > 0 && (
+            <div className="roster-select-bar">
+              <p className="roster-select-note">{selectionNote(selectedPlayers.length, visiblePlayers.length)}</p>
+              <button
+                type="button"
+                className="btn btn-ghost small"
+                onClick={toggleSelectAll}
+                data-testid="select-all-players"
+              >
+                {allSelected ? "Clear selection" : "Select all"}
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary"
+                disabled={selectedPlayers.length === 0}
+                onClick={() => setRateOpen(true)}
+              >
+                Rate selected
+              </button>
+            </div>
+          )}
               
           {/* Player list */}
           {players.length === 0 ? (
@@ -621,42 +832,63 @@ export function RosterScreen(props: RosterScreenProps) {
                 const bibVar = primaryDiscipline?.shortName
                   ? `var(--bib-${primaryDiscipline.shortName.toLowerCase().charAt(0)})`
                   : "var(--text-2)";
+                const selected = selectedIds.includes(player.id);
                 return (
                   <div
                     key={player.id}
-                    className="row row-clickable"
+                    className="row row-clickable row-has-select"
                     style={{ "--stripe": bibVar } as React.CSSProperties}
-                    onClick={() => props.onOpenPlayer(player)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") {
-                        e.preventDefault();
-                        props.onOpenPlayer(player);
-                      }
-                    }}
-                    role="button"
-                    tabIndex={0}
-                    aria-label={`Edit ${player.name}`}
                   >
-                    <span className="lineup-no">{String(i + 1).padStart(2, "0")}</span>
-                    <div className="who">
-                      <div className="name">{player.name}</div>
-                      {player.notes && (
-                        <div className="note">{player.notes}</div>
-                      )}
-                      <div className="badges">
-                        {player.capabilities.map(cap => {
-                          const discipline = disciplinesById.get(cap.disciplineId);
-                          if (!discipline) return null;
-                          const bibClass = `badge--${discipline.shortName.toLowerCase().charAt(0)}`;
-                          return (
-                            <span key={cap.disciplineId} className={`badge ${bibClass}`}>
-                              {discipline.shortName}
-                            </span>
-                          );
-                        })}
+                    {/*
+                     * The checkbox is a *sibling* of the row's button, not a
+                     * child of it. A `role="button"` element's contents are
+                     * presentational, so a checkbox nested inside this row
+                     * would be flattened out of the accessibility tree and
+                     * become a tick a sighted mouse user can do and a keyboard
+                     * user cannot. The stripe, the padding and the hover all
+                     * stay on the outer row, so it still looks like one row.
+                     */}
+                    <input
+                      type="checkbox"
+                      className="row-select"
+                      checked={selected}
+                      onChange={() => toggleSelected(player.id)}
+                      aria-label={`Select ${player.name}`}
+                    />
+                    <div
+                      className="row-open"
+                      role="button"
+                      tabIndex={0}
+                      aria-label={`Edit ${player.name}`}
+                      onClick={() => props.onOpenPlayer(player)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          props.onOpenPlayer(player);
+                        }
+                      }}
+                    >
+                      <span className="lineup-no">{String(i + 1).padStart(2, "0")}</span>
+                      <div className="who">
+                        <div className="name">{player.name}</div>
+                        {player.notes && (
+                          <div className="note">{player.notes}</div>
+                        )}
+                        <div className="badges">
+                          {player.capabilities.map(cap => {
+                            const discipline = disciplinesById.get(cap.disciplineId);
+                            if (!discipline) return null;
+                            const bibClass = `badge--${discipline.shortName.toLowerCase().charAt(0)}`;
+                            return (
+                              <span key={cap.disciplineId} className={`badge ${bibClass}`}>
+                                {discipline.shortName}
+                              </span>
+                            );
+                          })}
+                        </div>
                       </div>
+                      <span className="row-edit" aria-hidden="true">›</span>
                     </div>
-                    <span className="row-edit" aria-hidden="true">›</span>
                   </div>
                 );
               })}

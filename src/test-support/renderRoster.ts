@@ -52,6 +52,7 @@ const NOOP_PROPS: Omit<RosterScreenProps, "activeCommunity"> = {
   onDeletePlayer: async () => {},
   onCloseEditor: () => {},
   persisted: null,
+  notify: () => {},
 };
 
 /** The roster's HTML, with only the props a test names. */
