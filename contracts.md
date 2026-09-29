@@ -371,9 +371,12 @@ export type DrawOp =
   | { kind: "rect"; x: number; y: number; w: number; h: number; fill: string }
   | { kind: "roundRect"; x: number; y: number; w: number; h: number; r: number; fill: string }
   | { kind: "text"; x: number; y: number; text: string; font: string; fill: string; align: "left" | "right" };
-export function layoutShareImage(input: { disciplineName: string; discipline: Discipline; result: SplitResult; roster: Player[] }): { width: number; height: number; ops: DrawOp[] };
-export async function renderShareImage(input: /* same */): Promise<Blob>;
-
+export interface LayoutShareImageInput {
+  disciplineName: string; discipline: Discipline; result: SplitResult; roster: Player[];
+}
+export function layoutShareImage(input: LayoutShareImageInput): { width: number; height: number; ops: DrawOp[] };
+export function renderShareImage(ops: DrawOp[], width: number, height: number): Promise<Blob>;
+//
 // src/share/fairness.ts
 export interface FairnessInput { result: SplitResult; discipline: Discipline; roster: Player[] }
 export function explainFairness(input: FairnessInput): { averages: string; trade: string };
@@ -391,6 +394,22 @@ export function useDurability({ playerCount }: { playerCount: number }): {
 
 The poster reads literal token hexes and never `prefers-color-scheme` or `data-theme`, and awaits
 `document.fonts.ready` before the first `fillText`.
+
+**Amended by D's Tasks 1 and 3, 2026-09-28 — the spec's three-field freeze was its own error.**
+Both `teamsAsText` and `layoutShareImage` take a **four**-field input and both need `discipline`,
+because the slot ordering calls `strengthOf(player, discipline)`; the D spec froze a form at
+`:186-190` that its own body cannot use. Three further rules are now load-bearing:
+
+- **The poster is the light theme**, read from `src/tokens.css:9-40`. The dark block re-declares
+  `--accent` as `#ea580c` at `:47`, so reading the wrong block ships the wrong brand colour silently.
+- **The poster imports the same `closingLine` from `share-text.ts` rather than retyping it.** That
+  string now has two consumers — a text box and a painted image — and the painted one is the harder
+  to correct, because the text is no longer selectable. A hand-written third sentence fails both
+  provenance cases under mutation, which the tests assert.
+- **Both take `BIB` from `src/ui/constants.ts`** rather than re-declaring `["a","b","c","d","e"]`.
+  The hexes are keyed by BIB's own keys, so a sixth bib fails to compile rather than rendering an
+  uncoloured stripe. This phase has already removed four duplicate definitions of exactly this kind
+  of constant; a fifth is not added.
 
 **D37 does not import `gapProvenance.ts` at all.** Its copy must not restate or contradict a
 provenance word: a unit test asserts neither returned string contains `proven`, `best gap`,
