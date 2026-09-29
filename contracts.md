@@ -375,7 +375,7 @@ export interface LayoutShareImageInput {
   disciplineName: string; discipline: Discipline; result: SplitResult; roster: Player[];
 }
 export function layoutShareImage(input: LayoutShareImageInput): { width: number; height: number; ops: DrawOp[] };
-export function renderShareImage(ops: DrawOp[], width: number, height: number): Promise<Blob>;
+export function renderShareImage(input: LayoutShareImageInput): Promise<Blob>;
 //
 // src/share/fairness.ts
 export interface FairnessInput { result: SplitResult; discipline: Discipline; roster: Player[] }
