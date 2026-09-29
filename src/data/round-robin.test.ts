@@ -134,11 +134,10 @@ describe("roundRobinSchedule", () => {
   });
 
   it("pairs the two ends of the field first, so seeding reads strongest against weakest", () => {
-    // The mirror convention is a contract with buildBracket, which turns these
-    // rows into matches in the order it gets them, and with the spec's seeding
-    // rule. The rotation direction is not pinned here; a schedule that turned
-    // the other way would still be fair, and this is where the two would first
-    // disagree.
+    // The Berger table, in full, because it is the convention buildBracket and
+    // the spec's seeding rule both inherit, and a literal is where a reader
+    // sees it. Deleting it would not unpick the rotation direction anyway: the
+    // bye order above pins that independently at odd parity.
     expect(roundRobinSchedule(4)).toEqual([
       { round: 1, teamA: 0, teamB: 3 },
       { round: 1, teamA: 1, teamB: 2 },

@@ -10,23 +10,26 @@
  *
  * **The algorithm.** On an even field of `m` slots, slot 0 never moves, slots
  * 1..m-1 turn one position per round, and each round pairs slot `i` with slot
- * `m - 1 - i`. Two teams meet twice before the ring returns to where it
- * started, so the schedule runs `m - 1` rounds and the first pairing of the
- * first round is always the two ends of the field.
+ * `m - 1 - i`. Two teams meet once before the ring returns to where it
+ * started, so the schedule runs `m - 1` rounds. An even field therefore opens
+ * with its two ends against each other, slot 0 against slot `m - 1`; an odd
+ * field opens with slot 0 against the empty slot instead, which is where the
+ * first bye comes from.
  *
  * **The bye rule, for an odd count.** The field is padded with one empty slot
- * to make it even, and the empty slot *rotates with everybody else*: it is
- * never parked next to the fixed team, and no team is ever chosen to rest.
- * That is what makes it fair rather than arbitrary. Over the `m - 1` rounds the
- * empty slot visits every position in the ring exactly once, and a rotation
- * puts every team in every ring position exactly once, so the empty slot meets
- * every team exactly once — each team rests on exactly one round and no more.
- * A scheduler that benched team 0 five times running would look the same in
- * the type and be plainly unfair on the floor, where the organizer can read it
- * off the screen; here the byes are a consequence of the ring, and the
- * property "each team rests exactly once" is asserted for every `n` rather
- * than hoped for. The ring turns one way, not both, so a team never plays
- * home and away: that is a single-schedule tournament, not a home/away one.
+ * to make it even, and the padding sits opposite the fixed team and then turns
+ * with the ring like every other slot. So nothing here decides who rests: the
+ * ring hands the fixed team the first bye and a different team every round
+ * after. Over the `m - 1` rounds the empty slot visits every position in the
+ * ring exactly once, and a rotation puts every team in every ring position
+ * exactly once, so the empty slot meets every team exactly once — every team
+ * rests on exactly one round, no more, and the ring picked the order. A
+ * scheduler that benched team 0 five times running would look the same in the
+ * type and be plainly unfair on the floor, where the organizer can read it off
+ * the screen; here the byes are a consequence of the ring, and the property
+ * "each team rests exactly once" is asserted for every `n` rather than hoped
+ * for. The ring turns one way, not both, so a team never plays home and away:
+ * that is a single-schedule tournament, not a home/away one.
  *
  * **What a bye is not.** `teamB: null` is a pairing that does not exist. It is
  * not a win, not a walkover, and it carries no score and no winner. This module
@@ -54,7 +57,11 @@ export interface RoundRobinPairing {
   round: number;
   /** The team that plays, or the team taking the bye when `teamB` is null. */
   teamA: number;
-  /** The opponent, or null for a bye. */
+  /**
+   * The opponent, or null for a bye. Null is a pairing that does not exist: not
+   * a win, not a walkover, no score and no winner. Turning it into a result is
+   * the caller's decision to make and record, never this module's verdict.
+   */
   teamB: number | null;
 }
 
