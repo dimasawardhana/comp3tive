@@ -459,6 +459,7 @@ export default function App() {
           tournamentPrefill={tournamentPrefill}
           downloadingId={downloadingId}
           pendingMerge={importer.pendingMerge}
+          lastReport={importer.lastReport}
           sessionsLoading={sessions.loading}
           nudge={exportNudge}
           persisted={persisted}

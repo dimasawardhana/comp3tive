@@ -1,7 +1,7 @@
-import { useCallback, useState, type RefObject } from "react";
+import { useCallback, useEffect, useState, type RefObject } from "react";
 import type { Community, Discipline, Player, SavedSquad, Session, Tournament } from "../domain/types";
 import { parseBackup } from "../data/transfer";
-import { assertImportSize, csvRowsToPlayers, parsePlayerCsv, type ImportSkip } from "../data/player-import";
+import { assertImportSize, csvRowsToPlayers, parsePlayerCsv, type CsvRow, type ImportSkip } from "../data/player-import";
 import { validatePlayer } from "../domain/validation";
 import { formatError } from "../ui/format";
 import type { ToastType } from "./useToasts";
@@ -19,6 +19,87 @@ export interface ImportReport {
   imported: number;
   skipped: ImportSkip[];
 }
+
+/**
+ * The prefix that marks a row as one of the template's own examples, and the
+ * only way this app can tell an example from a real player.
+ *
+ * The template ships `Example Player 1` and `Example Player 2, delete me`
+ * because a name is the only marker a CSV row can carry, and `CSV_TEMPLATE`
+ * chooses names no organizer would give a teammate so a leftover one says on
+ * its face that the file was not finished. That is a **name** rule, not a
+ * structure rule, and the difference is the whole decision: a name rule cannot
+ * be trusted to *refuse* a row, because a rule that says "a player called
+ * Example Player is not a player" is a rule about a word. It can be trusted to
+ * *tell* the user, which is what the report does with it. The alternative —
+ * dropping these rows silently — would have been a refusal decided by a
+ * prefix, and it would have been invisible, so nobody could tell the app had
+ * edited their file.
+ *
+ * The prefix is written out here rather than derived from `CSV_TEMPLATE`
+ * because that file is Phase D's and read-only to this phase, and because the
+ * two can be tied in a test instead: `usePlayerImport.test.ts` parses the
+ * shipped template through the shipped parser and asserts every example row in
+ * it is caught, which fails the moment either end moves.
+ */
+const TEMPLATE_EXAMPLE_PREFIX = "example player";
+
+/**
+ * Whether a parsed row's name marks it as one of the template's examples.
+ *
+ * `trim` first because a spreadsheet cell can carry the space, and
+ * `toLowerCase` because the marker is a capitalised sentence rather than a
+ * fixed token. The cost of a false positive is one sentence in a report; the
+ * cost of a false negative is a ghost on the roster, so the test is the loose
+ * one and the failure it risks is the reversible one.
+ */
+export const isTemplateExampleRow = (name: string): boolean =>
+  name.trim().toLowerCase().startsWith(TEMPLATE_EXAMPLE_PREFIX);
+
+/**
+ * The phrase every template-example skip carries in its reason.
+ *
+ * Exported so the report's grouping keys off one string rather than a second
+ * copy of it. The report groups rows by the cause their reason names, and a
+ * duplicated literal in a screen is a duplicated literal that can be reworded
+ * on one side only — at which point the example rows fall out of their group
+ * and into the ungrouped floor, silently, on a file that was otherwise fine.
+ */
+export const TEMPLATE_EXAMPLE_MARKER = "one of the example rows the CSV template ships";
+
+/**
+ * Why an example row is not in the report's roster of imported players, said
+ * as a fact about this import and not as a rule.
+ *
+ * Past tense, and it names no future behaviour: the row is not on the roster
+ * *now*, and nothing here claims what the app would do with the same file
+ * tomorrow. A wording like "this app ignores example rows" would be a claim
+ * about code — `parsePlayerCsv` and this predicate — that no test in the repo
+ * holds open, and a report is the last place a claim like that belongs.
+ */
+const exampleRowReason = (name: string): string => `"${name}" is ${TEMPLATE_EXAMPLE_MARKER}, so it was not imported.`;
+
+/**
+ * Split parsed rows into the ones that are real entries and the ones that are
+ * the template's own examples, as `ImportSkip`s carrying the row's line.
+ *
+ * This runs on `rows` — which is why it can see a name at all. `parsePlayerCsv`
+ * and `csvRowsToPlayers` never see these rows as anything but valid data, which
+ * is the shape of the problem: the app has to *choose* not to import them, and
+ * the report is where that choice becomes visible. The line comes from the
+ * parsed row rather than from the array index, so it is the line the user's
+ * spreadsheet shows.
+ */
+const takeTemplateExamples = (rows: CsvRow[]): { rows: CsvRow[]; examples: ImportSkip[] } => {
+  const kept: CsvRow[] = [];
+  const examples: ImportSkip[] = [];
+  for (const row of rows) {
+    if (isTemplateExampleRow(row.name)) examples.push({ line: row.line, reason: exampleRowReason(row.name) });
+    else kept.push(row);
+  }
+
+  return { rows: kept, examples };
+};
 
 /**
  * A backup merge waiting for a yes. `counts` is what the banner names, `apply`
@@ -61,6 +142,7 @@ export interface PlayerImportResult {
   pendingMerge: PendingMerge | null;
   confirmMerge: () => void;
   cancelMerge: () => void;
+  lastReport: ImportReport | null;
   importFile: (file: File) => Promise<void>;
 }
 
@@ -90,6 +172,39 @@ export function usePlayerImport(deps: PlayerImportDeps): PlayerImportResult {
     fileInputRef,
   } = deps;
   const [pendingMerge, setPendingMerge] = useState<PendingMerge | null>(null);
+
+  /**
+   * The last CSV import's outcome, and nothing else. `ImportReport` is C27's
+   * shape and is not widened here: a report is a count and a list of rows, and
+   * the things a report panel needs beyond that — which community, which file,
+   * what time — are all recoverable from where it renders, or are not worth
+   * persisting. What the shape *cannot* carry is a name, which is why the
+   * panel identifies a row by its line and not by the player in it; see
+   * `RosterScreen`'s own note on that.
+   */
+  const [lastReport, setLastReport] = useState<ImportReport | null>(null);
+
+  /**
+   * A report is a verdict about one file imported into one community, and the
+   * roster directly beneath it holds a different set of people the moment the
+   * user switches community. Left up, it is the stale report the rest of this
+   * screen refuses to show: a list of line numbers about rows in a file the
+   * user is no longer looking at, sitting above an unrelated set of players.
+   *
+   * Clearing is the honest half of that choice and the lossy half. What is lost
+   * is the enumeration, not the verdict — the toast named the first skip, and
+   * the file is still on the user's disk, so re-importing it is one click and
+   * the report comes back saying the same thing. Switching back to the community
+   * does not bring it back, and that is deliberate: a report that outlives the
+   * scope it describes is the same lie as one that outlives the file.
+   *
+   * Navigation within the community does *not* clear it, and that is the
+   * asymmetry the rule rests on: History and Roster show the same people, so a
+   * report read on one of them is still true on the other.
+   */
+  useEffect(() => {
+    setLastReport(null);
+  }, [activeCommunity?.id]);
 
   const confirmMerge = useCallback(() => {
     void pendingMerge?.apply();
@@ -159,6 +274,16 @@ export function usePlayerImport(deps: PlayerImportDeps): PlayerImportResult {
 
   const importFile = useCallback(
     async (file: File) => {
+      // Before anything can fail. An import that never reaches the CSV branch —
+      // a file too large, a JSON backup, a roster with no players array — must
+      // still take the last report down with it. What is left up otherwise is
+      // the previous import's verdict sitting above a roster the new file has
+      // already changed, which is a report about a file the user is no longer
+      // looking at. Set here rather than in the CSV branch's own success path,
+      // because a *failed* import is exactly when a stale report is most
+      // misleading: the user reads the panel and concludes the failure was
+      // partial.
+      setLastReport(null);
       try {
         assertImportSize(file.size);
         const text = await file.text();
@@ -239,9 +364,19 @@ export function usePlayerImport(deps: PlayerImportDeps): PlayerImportResult {
           return;
         }
         const { rows, skipped: unparsed } = parsePlayerCsv(text);
-        const { players: imported, skipped: unresolved } = csvRowsToPlayers(rows, disciplines, activeCommunity.id);
+        // The template's own example rows are separated here, before the
+        // catalog is consulted: they are valid rows that this app chooses not
+        // to write, and a choice the report has to be able to show.
+        const { rows: entries, examples } = takeTemplateExamples(rows);
+        const { players: imported, skipped: unresolved } = csvRowsToPlayers(entries, disciplines, activeCommunity.id);
         for (const player of imported) await savePlayer(player);
-        const skipped = [...unparsed, ...unresolved].sort((a, b) => a.line - b.line);
+        // Sorted by line, and the two parser skip lists are merged rather than
+        // concatenated: a user reading top to bottom down a spreadsheet reads
+        // one sequence, and two sequences that each happen to be sorted tell
+        // them to read the file twice. The grouping into causes is the
+        // panel's job, and it re-sorts nothing.
+        const skipped = [...unparsed, ...unresolved, ...examples].sort((a, b) => a.line - b.line);
+        setLastReport({ imported: imported.length, skipped });
         // Same rule as the JSON branch: a CSV of blank lines imports nothing and
         // must not claim a success.
         if (imported.length > 0) {
@@ -252,7 +387,16 @@ export function usePlayerImport(deps: PlayerImportDeps): PlayerImportResult {
         } else {
           notify(`No players imported into ${activeCommunity.name}.`, "error");
         }
-        if (skipped.length > 0) {
+        // **A skip toast only when nothing was imported.** With the report up,
+        // a skip toast is a second, worse copy of the same fact: it lasts three
+        // seconds, it names one line out of all of them, and it is styled as an
+        // error — so 40 players landing with 3 rows unread would raise a red
+        // toast over a roster that is in good order. That is the overstatement
+        // this app's copy has been fought over for, and the report is the
+        // honest version of it. When nothing was imported the toast is not a
+        // second copy: it is the one place the failure is announced, because a
+        // report the user has to go and find is not a failure notice.
+        if (imported.length === 0 && skipped.length > 0) {
           notify(
             `Skipped ${skipped.length} row${skipped.length === 1 ? "" : "s"}. Line ${skipped[0].line}: ${skipped[0].reason}`,
             "error",
@@ -267,5 +411,5 @@ export function usePlayerImport(deps: PlayerImportDeps): PlayerImportResult {
     [activeCommunity, disciplines, savePlayer, notify, fileInputRef, importBackup],
   );
 
-  return { pendingMerge, confirmMerge, cancelMerge, importFile };
+  return { pendingMerge, confirmMerge, cancelMerge, lastReport, importFile };
 }

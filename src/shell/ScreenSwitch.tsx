@@ -16,7 +16,7 @@ import {
   type SplitFlowResult,
   type SplitSource,
 } from "./useSplitFlow";
-import type { PendingMerge } from "./usePlayerImport";
+import type { PendingMerge, PlayerImportResult } from "./usePlayerImport";
 import type { ToastType } from "./useToasts";
 import { formatError } from "../ui/format";
 import { Screen } from "../ui/Screen";
@@ -111,6 +111,8 @@ export interface ScreenSwitchProps {
 
   // ---- the import and split flow's own handlers ----
   confirmMerge: () => void;
+  /** C27's report shape, read by the roster panel. Declared once, here. */
+  lastReport: PlayerImportResult["lastReport"];
   cancelMerge: () => void;
   importFile: (file: File) => Promise<void>;
   createTournament: SplitFlowResult["createTournament"];
@@ -192,6 +194,7 @@ export function ScreenSwitch(props: ScreenSwitchProps) {
     confirmMerge,
     cancelMerge,
     importFile,
+    lastReport,
     createTournament,
     startMatch,
     togglePlayer,
@@ -243,6 +246,7 @@ export function ScreenSwitch(props: ScreenSwitchProps) {
           onAddPlayer={() => setEditingPlayer("new")}
           onOpenPlayer={(player) => setEditingPlayer(player)}
           pendingMerge={pendingMerge}
+          lastReport={lastReport}
           onConfirmMerge={confirmMerge}
           onCancelMerge={cancelMerge}
           importFile={importFile}

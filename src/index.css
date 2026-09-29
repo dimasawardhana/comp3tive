@@ -1306,6 +1306,93 @@ h1 {
   color: var(--text-2);
 }
 
+/* The import report. Below the hint rather than beside the roster toolbar: it
+   is the outcome of the control in that toolbar, and it is the longest thing on
+   the screen when a big file has many skips, so it wants the full width and a
+   column of its own. Boxed rather than floating, because it is a record and a
+   record is something a user scrolls back to — the same surface treatment
+   `.status-banner` gives the merge question, one step heavier because this one
+   can be long. */
+.import-report {
+  margin: 16px 0 0;
+  padding: 12px 14px;
+  background: var(--surface-2);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-md);
+}
+.import-report-title {
+  margin: 0;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-2);
+  font-weight: 600;
+}
+/* The one line that says what happened. Full body size and full contrast,
+   unlike the hint above it: the hint is standing reference copy and this is the
+   sentence a user came to read, so it is the largest text in the panel. */
+.import-report-headline {
+  margin: 4px 0 0;
+  font-size: 14px;
+  line-height: 1.4;
+  color: var(--text);
+}
+/* The two notes that qualify the list — how to read a line number, and the
+   column that was not read. Muted and small, like the hint: they are asides to
+   the headline, not findings of their own. */
+.import-report-note {
+  margin: 8px 0 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--text-2);
+  max-width: 80ch;
+}
+.import-report-group {
+  margin-top: 12px;
+}
+.import-report-group-title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+/* The count of rows in this group, beside the action. It is the one number that
+   tells a user whether a group is one typo or thirty, which is the difference
+   between opening the file and ignoring it. */
+.import-report-group-count {
+  font-weight: 400;
+  color: var(--text-2);
+}
+.import-report-group-note {
+  margin: 2px 0 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--text-2);
+  max-width: 80ch;
+}
+/* The rows themselves. Indented and unruled: a hundred skips under one group
+   are one thing to do, and a border between each of them would read as a
+   hundred things. The line number is a separate element so it can be held
+   apart from the reason, which is the one part of the row a user cannot
+   infer. */
+.import-skipped {
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.import-skipped-row {
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+.import-skipped-line {
+  color: var(--text-2);
+}
+
 .field-error {
   font-size: 13px;
   color: var(--danger);

@@ -42,6 +42,7 @@ const NOOP_PROPS: Omit<RosterScreenProps, "activeCommunity"> = {
   onAddPlayer: () => {},
   onOpenPlayer: () => {},
   pendingMerge: null,
+  lastReport: null,
   onConfirmMerge: () => {},
   onCancelMerge: () => {},
   importFile: async () => {},
