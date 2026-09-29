@@ -65,7 +65,7 @@ Copied verbatim from the spec. Every task's requirements implicitly include this
 | Modify | `src/domain/types.ts` | `TournamentFormat` gains `"round-robin"` |
 | Modify | `src/ui/constants.ts` | `FORMAT_LABEL` gains the `"round-robin"` key |
 | Modify | `src/tournament/tournament-validation.ts` | `getValidTeamCounts` gains the round-robin arm |
-| Modify | `src/tournament/bracket.ts` | Round-robin arms in `buildBracket` and `roundsFor`; `champion()` accepts round robin |
+| Modify | `src/tournament/bracket.ts` | Round-robin arms in `buildBracket` and `requiredMatches`; `champion()` accepts round robin |
 | Modify | `src/tournament/bracket.test.ts` | New round-robin `describe` blocks; no existing assertion changed |
 | Modify | `src/tournament/GamesScreen.tsx` | Counts, chips, hint, preview, prefill |
 | Modify | `src/tournament/TournamentScreen.tsx` | The standings branch at `:359` |
@@ -1521,7 +1521,7 @@ git commit -m "feat(tournament): a pure round-robin schedule by the circle metho
 
 **Two things stated up front, because they are the load-bearing decisions.**
 
-1. **`roundsFor` is extended, not bypassed.** `bracket.ts:53` is shared by `buildBracket` (`:91`), `requiredMatches` (`:194`) and `champion` (`:323`). Round robin needs a different round count (`n - 1` / `n`), so it gains an arm. The `single-elim` and Swiss arms are untouched.
+1. **`roundsFor` is left alone, not bypassed and not extended.** `bracket.ts:53` is shared by `buildBracket` (`:91`), `requiredMatches` (`:194`) and `champion` (`:323`). This plan previously said round robin "needs a different round count (`n - 1` / `n`), so it gains an arm" — that arm was unreachable at all four call sites and has been deleted; the parameter is typed `("single-elim" | "swiss")` so `tsc` refuses the question. Round robin's round count is `roundRobinSchedule(n).length`.
 2. **`champion()` is a required change, and it fails silently in two distinct ways.** Today only `"swiss"` takes the standings branch (`:319`); everything else falls to the single-elim final lookup at `:323`, which computes `finalRound = 1` for a non-single-elim format and then reads `matches.find(m => m.round === 1 && !m.isThirdPlace)`. For round robin that is the **first round's first match**. Measured against this exact source: with a completed 4-team schedule whose standings leader finished on 2 wins, `champion()` returned `t4` — a team with 1 win that happened to win round 1's first match — and with a 3-team schedule whose last round was decided but whose round 1 was blank, it returned `null`. Both are wrong results, not crashes.
 
 - [ ] **Step 1: Write the failing tests**
@@ -1689,15 +1689,22 @@ In `src/tournament/bracket.ts`, add the import at the top:
 import { roundRobinSchedule } from "../data/round-robin";
 ```
 
-Extend `roundsFor` at `:53`:
+**CORRECTION (2026-09-28, after Task 7 landed): do not extend `roundsFor` for round robin.** This
+section used to say it "needs a different round count (`n - 1` / `n`), so it gains an arm". The arm
+was added and it is **unreachable** — all four call sites pass single-elim or Swiss — so it was
+deleted again, and the parameter is now typed `("single-elim" | "swiss")`. `tsc` passes at every call
+site because each already sits in a narrowing branch, so the wrong question is unaskable rather
+than merely unused. Round robin's round count is the schedule's own: `roundRobinSchedule(n).length`.
+
+<details><summary>The arm this section used to prescribe, kept only so the change is legible</summary>
 
 ```ts
-/** Round count for a format: single elim = log2(N); swiss = ceil(log2 N); round robin = n-1 even, n odd. */
-const roundsFor = (format: Tournament["format"], n: number): number =>
-  format === "single-elim" ? Math.log2(n)
-  : format === "round-robin" ? (n % 2 === 0 ? n - 1 : n)
-  : Math.ceil(Math.log2(n));
+/** Round count for a format: single elim = log2(N); swiss = ceil(log2 N). */
+const roundsFor = (format: "single-elim" | "swiss", n: number): number =>
+  format === "single-elim" ? Math.log2(n) : Math.ceil(Math.log2(n));
 ```
+
+</details>
 
 Add the round-robin arm in `buildBracket` immediately **before** the Swiss fallthrough comment at `:122`, so the Swiss block is reached only by Swiss:
 
@@ -1895,15 +1902,21 @@ Run:
 ```bash
 npx vite build && npx playwright test --config=e2e/playwright.config.ts tests/tournament/round-robin.spec.ts
 ```
-Expected: FAIL — `getByText("Round robin")` resolves to 0 chips, because `FORMATS` at `GamesScreen.tsx:31` still lists three formats.
+Expected: FAIL — `getByText("Round robin")` resolves to 0 chips, because `SELECTABLE_FORMATS` in
+`src/ui/constants.ts` still lists three formats.
 
-- [ ] **Step 3: Add the format to the create modal**
-
-In `src/tournament/GamesScreen.tsx:31`:
-
-```ts
-const FORMATS: TournamentFormat[] = ["series", "single-elim", "swiss", "round-robin"];
-```
+> **CORRECTION (2026-09-28, after Task 7 landed).** This step used to say the chips come from
+> `const FORMATS: TournamentFormat[]` at `GamesScreen.tsx:31`, and to tell you to add
+> `"round-robin"` to that literal. **That symbol no longer exists.** Task 7 deleted it and moved
+> the list to `SELECTABLE_FORMATS` in `src/ui/constants.ts`, because two things were deriving their
+> format list from the `TournamentFormat` **union** and disagreeing: the modal offered three while
+> the landing page's Formats rail, whose e2e guard was `Record<TournamentFormat, true>`, was
+> type-forced to say four the moment the union grew. The rail is now guarded against
+> `SELECTABLE_FORMATS` and the union's size is asserted nowhere.
+>
+> **Add `"round-robin"` to `SELECTABLE_FORMATS`, and to nothing else.** The rail and the claim
+> sentence on the landing page will then become true and must be rechecked in the same change —
+> the guard is written to fail on exactly that, in both directions.
 
 Extend `TEAM_COUNTS` at `:36-40`:
 
