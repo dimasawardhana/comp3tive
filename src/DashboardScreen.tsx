@@ -32,6 +32,18 @@ interface Props {
   onOpenPlayer: (player: Player) => void;
   /** Open a tournament (Games' row-click flow). */
   onOpenTournament: (tournament: Tournament) => void;
+  /**
+   * The export nudge: a *request* to back the data up, not a status line.
+   * `null` renders no row at all, and the hook has already decided everything
+   * else — this prop only carries the one button.
+   *
+   * `onDismiss` is `useDurability`'s own `dismissNudge`, which snoozes under a
+   * written policy (a month, and only for a roster no bigger than the one the
+   * prompt was about). A local `useState(false)` here would replace that with
+   * "hidden until this tab closes", which is a different and worse promise:
+   * it would forget the answer the moment the user navigated away.
+   */
+  nudge: { onDismiss: () => void } | null;
 }
 
 /**
@@ -63,6 +75,7 @@ export function DashboardScreen({
   onAddPlayer,
   onOpenPlayer,
   onOpenTournament,
+  nudge,
 }: Props) {
   if (!community) return null;
   const tournamentCount = tournaments.filter(
@@ -113,6 +126,14 @@ export function DashboardScreen({
               <span className="tournament-meta-card-value">{tournamentCount}</span>
             </div>
           </div>
+          {nudge && (
+            <div className="nudge" role="status">
+              <span className="nudge-msg">{"This browser does not promise to keep this app's data. Export a backup from Roster."}</span>
+              <button type="button" className="link" onClick={nudge.onDismiss}>
+                Dismiss
+              </button>
+            </div>
+          )}
 
           <section className="dashboard-teasers" aria-label="Recent players">
             <div className="dashboard-teasers-head">

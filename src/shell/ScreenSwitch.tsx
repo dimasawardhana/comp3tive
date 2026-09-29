@@ -68,6 +68,14 @@ export interface ScreenSwitchProps {
   sessionsLoading: boolean;
   squadsLoading: boolean;
   disciplinesLoading: boolean;
+  /**
+   * The export nudge, already decided by `useDurability`. `onDismiss` is that
+   * hook's own `dismissNudge`; the switch forwards it unchanged so the snooze
+   * policy stays the one that was written down, and not a per-screen one.
+   */
+  nudge: { onDismiss: () => void } | null;
+  /** Tri-state persistence verdict, forwarded to the roster's storage note. */
+  persisted: boolean | null;
 
   // ---- stores and services the screens call into directly ----
   sessionStore: SessionStore;
@@ -153,6 +161,8 @@ export function ScreenSwitch(props: ScreenSwitchProps) {
     sessionsLoading,
     squadsLoading,
     disciplinesLoading,
+    nudge,
+    persisted,
     sessionStore,
     notify,
     goBack,
@@ -214,6 +224,7 @@ export function ScreenSwitch(props: ScreenSwitchProps) {
             setEditingPlayer(player);
           }}
           onOpenTournament={(tournament) => openTournament(tournament.id)}
+          nudge={nudge}
         />
       )}
       {view.mode === "roster" && (
@@ -222,6 +233,7 @@ export function ScreenSwitch(props: ScreenSwitchProps) {
           disciplines={disciplines}
           players={communityPlayers}
           visiblePlayers={visiblePlayers}
+          persisted={persisted}
           filterIds={filterIds}
           disciplinesById={disciplinesById}
           editingPlayer={editingPlayer}

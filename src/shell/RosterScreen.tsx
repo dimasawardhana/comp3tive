@@ -27,6 +27,25 @@ export interface RosterScreenProps {
   onSavePlayer: (player: Player) => Promise<void>;
   onDeletePlayer: (id: Id) => Promise<void>;
   onCloseEditor: () => void;
+  /**
+   * The browser's persistence verdict for this origin, forwarded from
+   * `useDurability`. Tri-state on purpose, and the three cases are three
+   * different policies:
+   *
+   *  - `true` — the only basis for saying anything reassuring, and only in the
+   *    present tense and attributed to the browser. It is one reading from one
+   *    page load; nothing re-checks it, and the user can still clear site data.
+   *  - `false` — the only basis for saying the data is not stored persistently,
+   *    and the only thing that raises the export nudge.
+   *  - `null` — nobody has answered yet, or there was no API to ask. An
+   *    unknown is not a refusal, so it is never rendered as bad news.
+   *
+   * The note is written as three explicit comparisons rather than a truthiness
+   * test, on purpose: `!persisted` folds `null` into the refusal branch, and
+   * `persisted && …` renders nothing at all for both unknown and refused. One
+   * control, two policies, one of them a lie.
+   */
+  persisted: boolean | null;
 }
 
 /**
@@ -119,6 +138,11 @@ export function RosterScreen(props: RosterScreenProps) {
               style={{ display: "none" }}
             />
             <div className="roster-toolbar-spacer" />
+            <span className="durability-note">
+              {props.persisted === true && "This browser reports persistent storage for this app. Keep a backup anyway."}
+              {props.persisted === false && "This browser reports this app's data is not stored persistently. Keep a backup."}
+              {props.persisted === null && "Storage protection unknown in this browser. Keep a backup."}
+            </span>
             <button className="btn btn-ghost" onClick={props.onExport}>
               Export
             </button>

@@ -1002,6 +1002,31 @@ h1 {
   line-height: 1;
   margin-top: 6px;
 }
+
+/* The export nudge. A banner, not a card: it states one sentence and offers one
+   way out, and the "anyway" in the reassuring case is the whole design. Sized
+   with `.status-banner`'s tokens because it is that shape — a quiet strip of
+   surface, hairline edge, muted text — and nothing louder, so it reads as
+   information the app owes the user rather than an alarm it is raising. */
+.nudge {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+  padding: 10px 14px;
+  background: var(--surface-2);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-md);
+  margin-bottom: 12px;
+}
+.nudge-msg {
+  font-size: 12px;
+  color: var(--text-2);
+}
+.nudge .link {
+  margin-left: auto;
+  font-size: 12px;
+}
 .dashboard-empty {
   margin-top: 6px;
 }
@@ -1222,6 +1247,20 @@ h1 {
 .roster-toolbar-spacer {
   flex: 1 1 auto;
   min-width: 8px;
+}
+
+/* The storage note. Sits immediately before the Export button, after the
+   toolbar's spacer, so the sentence about backing up and the control that
+   does it are one visual group. Small and muted because it is a standing
+   status, not an event: it is on screen every time the roster is, and a status
+   that shouted would be one people learn to skip. The 13rem basis keeps it to
+   a couple of lines beside the button and lets the button keep its place. */
+.durability-note {
+  font-size: 12px;
+  line-height: 1.35;
+  color: var(--text-2);
+  flex: 0 1 13rem;
+  text-align: right;
 }
 
 .field-error {

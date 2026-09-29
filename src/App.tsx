@@ -24,6 +24,7 @@ import { ScreenSwitch } from "./shell/ScreenSwitch";
 import { AddCommunityForm } from "./shell/AddCommunityForm";
 import { useAddCommunity } from "./shell/useAddCommunity";
 import { useStoredPref, useMediaQuery } from "./shell/usePreferences";
+import { useDurability } from "./shell/useDurability";
 import { useToasts } from "./shell/useToasts";
 import { formatError } from "./ui/format";
 
@@ -101,6 +102,29 @@ export default function App() {
   const visiblePlayers = filterIds.length === 0
     ? communityPlayers
     : communityPlayers.filter((p) => p.capabilities.some((c) => filterIds.includes(c.disciplineId)));
+  /**
+   * Storage durability, the one call site of the hook.
+   *
+   * Destructured field by field, and that is not a style preference: the hook
+   * hands back a fresh object literal on every render, so the returned value
+   * must never reach a dependency array. The only thing passed to the hook here
+   * is a number, and the only thing passed *on* is `dismissNudge`, which the
+   * hook keeps stable across renders by `useCallback`.
+   *
+   * `shouldNudge` is recomputed against `Date.now()` in the hook's render body,
+   * so it never flips on its own — a tab left open across the fortnight
+   * boundary keeps the answer it painted. That is accepted, not overlooked:
+   * every interaction this app has re-renders `App` (the nav keeps its state
+   * here, and every store refresh lands in state), so the stale window is
+   * exactly the stretch in which the user has touched nothing at all — and the
+   * first thing they do, on returning, corrects it. A timer would re-render
+   * the whole tree every tick for a case with nobody in it to warn.
+   */
+  const { persisted, shouldNudge, dismissNudge, recordExport } = useDurability({
+    playerCount: communityPlayers.length,
+  });
+  /** Null renders no row; the hook has already applied every other gate. */
+  const exportNudge = shouldNudge ? { onDismiss: dismissNudge } : null;
   // The unscoped source is deliberate: `find` by id is already unique, and
   // narrowing it is a behaviour change no ticket asks for.
   const viewTournament = useMemo(
@@ -215,6 +239,13 @@ export default function App() {
     a.download = `comp3tive-backup-${new Date().toISOString().slice(0, 10)}.json`;
     a.click();
     URL.revokeObjectURL(url);
+    // Last, after the download has been triggered and its object URL released:
+    // the export is over from the app's point of view, and this is the
+    // bookkeeping. The browser exposes no way to learn whether the user then
+    // cancelled a save dialog, so what is recorded is "an export was
+    // triggered" — the distinction the hook already draws about this key when
+    // it says a file on disk is the backup.
+    recordExport();
   };
 
   const {
@@ -422,6 +453,8 @@ export default function App() {
           downloadingId={downloadingId}
           pendingMerge={importer.pendingMerge}
           sessionsLoading={sessions.loading}
+          nudge={exportNudge}
+          persisted={persisted}
           squadsLoading={savedSquads.loading}
           disciplinesLoading={catalog.loading}
           sessionStore={sessionStore}
