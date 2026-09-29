@@ -80,8 +80,8 @@ const closingOf = (result_: SplitResult) => {
  * player row. The gap sentence lives here, so a copy assertion that scans the
  * whole poster would be reading a roster it does not own.
  */
-const footerOf = (result_: SplitResult) => {
-  const lines = layoutShareImage(input(2, 5, result_)).ops
+const footerOf = (result_: SplitResult, roster_: Player[] = roster) => {
+  const lines = layoutShareImage({ ...input(2, 5, result_), roster: roster_ }).ops
     .filter((op) => op.kind === "text")
     .map((op) => (op.kind === "text" ? op.text : ""));
   return lines.slice(lines.findLastIndex((line) => line.startsWith("• ")) + 1);
@@ -313,5 +313,47 @@ describe("layoutShareImage", () => {
     const painted = footerOf(proven).join(" ");
     expect(painted).toContain(closingOf(proven));
     expect(painted).not.toContain("A smaller one may exist.");
+  });
+
+  it("breaks the hedged line before the stranded word, not after it", () => {
+    // The wrap is a character-width budget, so it breaks exactly where the
+    // budget runs out, and the hedged sentence's budget runs out one character
+    // after its "A". A one-character word alone at the end of a line is the most
+    // conspicuous thing on the poster: it reads as a bug, not as a break. This
+    // is the common case, not the corner one — every budget-exhausted search and
+    // every hand edit takes this branch. Fails if `wrap` breaks greedily without
+    // looking at the word it is about to leave behind.
+    const lines = footerOf(result(2, 5, BEST_FOUND));
+    expect(lines[0]?.split(" ").at(-1)?.length).toBeGreaterThan(1);
+    expect(lines).toEqual(["Gap 0.4. The smallest gap known for this pool.", "A smaller one may exist."]);
+  });
+
+  it("leaves a closing line that fits on one line unbroken", () => {
+    // The other half of the rule above: moving a word down must not invent a
+    // break where the line already fitted. The proven sentence is 43 characters
+    // against a 53-character budget, and it must arrive as one op — a footer
+    // that split a line with room to spare would be a wrap that breaks on
+    // something other than the budget. Fails if the orphan rule is applied
+    // before the fit is checked.
+    expect(footerOf(result(2, 5, PROVEN))).toEqual(["Gap 0.4. The proven minimum for this pool."]);
+  });
+
+  it("never strands a one-character word, whatever the word is", () => {
+    // The rule is word length, not the letter A. A player whose name is two
+    // one-character words puts a different one-character word exactly where the
+    // hedged sentence puts its "A", and it must move down too — here with the
+    // name list sized so the break lands on it. Fails if the fix tests for "A",
+    // or if the break lands between the two halves of the name.
+    const sitOuts: Player[] = [
+      { id: "budi", communityId: "c1", name: "Budi Santoso", capabilities: [cap(4, 4, 4)] },
+      { id: "citra", communityId: "c1", name: "Citra Dewi", capabilities: [cap(4, 4, 4)] },
+      { id: "andi", communityId: "c1", name: "Andi Wijaya", capabilities: [cap(4, 4, 4)] },
+      { id: "xy", communityId: "c1", name: "X Y", capabilities: [cap(4, 4, 4)] },
+    ];
+    const lines = footerOf(result(2, 5, PROVEN, ["budi", "citra", "andi", "xy"]), [...roster, ...sitOuts]);
+    // Only a line with text after it can strand: the last line's short word is
+    // the end of the sentence, not a break in it.
+    for (const line of lines.slice(0, -1)) expect(line.split(" ").at(-1)?.length).toBeGreaterThan(1);
+    expect(lines.join(" ")).toContain("X Y");
   });
 });

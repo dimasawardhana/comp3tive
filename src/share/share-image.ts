@@ -127,6 +127,12 @@ function fit(text: string, font: string, maxWidth: number): string {
  * leave an unhedged poster, so the footer wraps and never truncates. A single
  * word too wide for the column (a long name in the not-playing line) is cut at
  * the glyph, because the invariant under test is that ink stays on the paper.
+ *
+ * A break leaves the last word of the finished line on its own, and a
+ * one-character word there is the most conspicuous thing on a poster: "A" reads
+ * as a mistake rather than as a line ending. The word moves down with the one
+ * that follows it, and only when the pair fits — a break that fixes the orphan
+ * by pushing a word past the column edge would trade one defect for another.
  */
 function wrap(text: string, font: string, maxWidth: number): string[] {
   const lines: string[] = [];
@@ -154,8 +160,15 @@ function wrap(text: string, font: string, maxWidth: number): string[] {
     }
     const candidate = line ? `${line} ${word}` : word;
     if (line && textWidth(candidate, font) > maxWidth) {
-      lines.push(line);
-      line = word;
+      const orphan = line.slice(line.lastIndexOf(" ") + 1);
+      const head = line.slice(0, line.length - orphan.length - 1);
+      if (orphan.length === 1 && head && textWidth(`${orphan} ${word}`, font) <= maxWidth) {
+        lines.push(head);
+        line = `${orphan} ${word}`;
+      } else {
+        lines.push(line);
+        line = word;
+      }
     } else {
       line = candidate;
     }
