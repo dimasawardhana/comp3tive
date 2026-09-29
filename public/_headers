@@ -25,3 +25,23 @@
 
 /
   Cache-Control: no-cache
+
+# The icons are the one immutable-looking thing here that is NOT content-hashed:
+# `icon-192.png` keeps its name across a redesign (src/manifest.test.ts pins it),
+# so an immutable year would hide a redrawn icon from every returning visitor for
+# a year. `no-cache` costs three small revalidations per visit, and the worker's
+# cache is what actually serves them afterwards.
+/icons/*
+  Cache-Control: no-cache
+
+# The manifest is a claim about the app that a new deploy can contradict, and the
+# home screen is built from it. It is revalidated like a document.
+/manifest.webmanifest
+  Cache-Control: no-cache
+
+# The worker is the only file here that must never be served stale: a cached
+# `sw.js` is an old set of caching rules held against the new build, on every
+# device, until a hard refresh. `no-cache` still sends the body — it just makes
+# the browser ask whether it is current, which is the update check.
+/sw.js
+  Cache-Control: no-cache
