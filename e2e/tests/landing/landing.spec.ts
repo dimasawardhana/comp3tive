@@ -35,6 +35,7 @@ const FORMATS: Record<TournamentFormat, true> = {
   series: true,
   "single-elim": true,
   swiss: true,
+  "round-robin": true,
 };
 
 /** Navigate to the Landing Page by absolute path, independent of baseURL. */

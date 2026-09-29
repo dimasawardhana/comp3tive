@@ -60,6 +60,26 @@ export function rerollPool(
   return [];
 }
 
+/**
+ * Whether a format's bracket can be built from `n` split teams.
+ *
+ * Every format gets its own arm, because the refusal in `consumeTeams` names
+ * `tournament.format`: a format with no arm here would be told it had been
+ * checked against a rule that belongs to another format, or fall through to
+ * the Series count and refuse a tournament it could have run.
+ *
+ * Round robin's counts come from what the circle method can schedule: any
+ * count from 2 up, inside the 8-team cap the stepper enforces, less 2, where a
+ * round robin is one pairing and Series already says that. Odd counts are in —
+ * the bye is a fixture that was never booked, not a walkover.
+ */
+export function bracketSupports(format: TournamentFormat, n: number): boolean {
+  return format === "swiss" ? n >= 2 && n % 2 === 0
+       : format === "single-elim" ? (n === 2 || n === 4 || n === 8)
+       : format === "round-robin" ? n >= 3 && n <= 8
+       : n === 2; // series
+}
+
 const toggleId = (ids: Id[], id: Id): Id[] =>
   ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id];
 
@@ -250,14 +270,10 @@ export function useSplitFlow(deps: SplitFlowDeps): SplitFlowResult {
       return;
     }
     // A bracket needs a team count its format supports (single elim: 2/4/8;
-    // series: 2; swiss: even). Guard before building so a mismatch is a clear
-    // message, not a crash inside buildBracket.
+    // series: 2; swiss: even; round robin: 3-8). Guard before building so a
+    // mismatch is a clear message, not a crash inside buildBracket.
     const n = teams.length;
-    const bracketOk =
-      tournament.format === "swiss" ? n >= 2 && n % 2 === 0
-      : tournament.format === "single-elim" ? (n === 2 || n === 4 || n === 8)
-      : n === 2; // series
-    if (!bracketOk) {
+    if (!bracketSupports(tournament.format, n)) {
       notify(`Could not save: a ${tournament.format} bracket needs a supported number of teams (got ${n}).`, "error");
       return;
     }

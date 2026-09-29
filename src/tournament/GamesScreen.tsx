@@ -33,6 +33,8 @@ const TEAM_COUNTS: Record<TournamentFormat, number[]> = {
   series: [2],
   "single-elim": [4, 2, 8],
   swiss: [4, 6, 8],
+  // The counts the circle method can schedule: 3 to 8, odd ones included.
+  "round-robin": [3, 4, 5, 6, 7, 8],
 };
 
 export function GamesScreen({ tournaments, disciplines, onCreate, onOpen, onDelete, onManageDisciplines, prefill, onPrefillConsumed, activeCommunity }: Props) {

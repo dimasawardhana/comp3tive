@@ -8,6 +8,7 @@ export const FORMAT_LABEL: Record<TournamentFormat, string> = {
   series: "Series",
   "single-elim": "Single elimination",
   swiss: "Swiss",
+  "round-robin": "Round robin",
 };
 
 /** Human labels per tournament lifecycle state. */

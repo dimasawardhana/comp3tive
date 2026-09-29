@@ -75,7 +75,7 @@ _Avoid_: position, lane, slot
 ### Sessions & teams
 
 **Tournament**:
-A competition container created before teams are split: it fixes a discipline, a format (Series, single elimination, Swiss), a series length, and a target team count. Teams from the split are submitted into it, and match results and progress are saved inside it.
+A competition container created before teams are split: it fixes a discipline, a format (Series, single elimination, Swiss, round robin), a series length, and a target team count. Teams from the split are submitted into it, and match results and progress are saved inside it.
 _Avoid_: room, game room, tourney, competition, bracket (bracket = the visual form, not the entity)
 
 **Match**:

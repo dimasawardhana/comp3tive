@@ -54,11 +54,23 @@ export function validateTournamentSpec(
   return issues;
 }
 
-/** Get valid team counts for a tournament format. */
+/**
+ * Get valid team counts for a tournament format.
+ *
+ * Round robin's list is derived, not copied. `roundRobinSchedule` answers for
+ * every count from 2 up, and the team stepper stops at 8
+ * (`src/session/MatchScreen.tsx`), so the format can field 3 to 8. Two teams
+ * are left out because a round robin between two teams is one pairing, which is
+ * the whole of the Series format: round robin starts at the first count where
+ * it says something Series does not. The odd counts stay in, because the bye is
+ * what the circle method pads for and a bye carries no points, no result and no
+ * winner — an uneven field is a real fixture, not a compromise.
+ */
 function getValidTeamCounts(format: TournamentFormat): number[] {
   return format === "series" ? [2]
        : format === "single-elim" ? [2, 4, 8]
        : format === "swiss" ? [4, 6, 8]
+       : format === "round-robin" ? [3, 4, 5, 6, 7, 8]
        : [];
 }
 

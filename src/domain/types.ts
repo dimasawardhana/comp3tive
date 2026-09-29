@@ -22,7 +22,7 @@ export interface Player {
 
 // ---- Tournaments (CONTEXT.md: the competition container) ----
 
-export type TournamentFormat = "series" | "single-elim" | "swiss";
+export type TournamentFormat = "series" | "single-elim" | "swiss" | "round-robin";
 export type TournamentStatus = "draft" | "active" | "complete";
 export type SeriesLength = 1 | 3 | 5;
 

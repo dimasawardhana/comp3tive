@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { applyResult, buildBracket, standings } from "./bracket";
+import { applyResult, buildBracket, champion, standings, undoLastGame } from "./bracket";
 import type { GameResult, Id, Tournament, TournamentMatch, TournamentTeam } from "../domain/types";
 
 const team = (id: string, strength: number): TournamentTeam => ({
@@ -476,5 +476,203 @@ describe("swiss: the last-resort pairing when no rematch-free assignment exists"
     }
     // Every team still plays: the last resort floats the record rule, it does not drop anyone.
     expect(new Set(r2.flatMap((x) => [x.teamAId, x.teamBId])).size).toBe(4);
+  });
+});
+
+describe("buildBracket: round robin", () => {
+  it("builds every pairing exactly once, with no advancing links", () => {
+    const t = buildBracket(tourney("round-robin", 4));
+    expect(t.status).toBe("active");
+    expect(t.matches).toHaveLength(6);
+    // Round robin matches are independent, so no match feeds another.
+    for (const m of t.matches) {
+      expect(m.winnerNext).toBeNull();
+      expect(m.loserNext).toBeNull();
+    }
+    const seen = t.matches.map((m) => [m.teamAId!, m.teamBId!].sort().join(":"));
+    expect(new Set(seen).size).toBe(6);
+  });
+
+  it("uses n-1 rounds for an even count and n for an odd one, with ids from the shared helper", () => {
+    const even = buildBracket(tourney("round-robin", 6));
+    expect(Math.max(...even.matches.map((m) => m.round))).toBe(5);
+    expect(even.matches).toHaveLength(15);
+
+    const odd = buildBracket(tourney("round-robin", 3));
+    expect(Math.max(...odd.matches.map((m) => m.round))).toBe(3);
+    expect(odd.matches).toHaveLength(3);
+    expect(odd.matches.map((m) => m.id)).toEqual(["m-1-0", "m-2-0", "m-3-0"]);
+  });
+
+  it("emits no match for a bye: an odd count produces n(n-1)/2 matches", () => {
+    for (const n of [3, 5, 7]) {
+      expect(buildBracket(tourney("round-robin", n)).matches).toHaveLength((n * (n - 1)) / 2);
+    }
+  });
+
+  it("is idempotent: rebuilding regenerates the same matches", () => {
+    const once = buildBracket(tourney("round-robin", 5));
+    const twice = buildBracket(once);
+    expect(twice.matches.map((m) => m.id)).toEqual(once.matches.map((m) => m.id));
+  });
+
+  it("rests the top seed in round 1, and one team per round, at every odd count", () => {
+    // The bye order is a decision, made here because this is where the seeding
+    // is. The ring anchors its fixed slot to seed 1, so seed 1 is the team that
+    // rests first; the ring then hands the bye round by round until each team
+    // has had exactly one. The counterfactual is in the task report: seating the
+    // bottom seed in the anchor hands it the first bye and costs the top two
+    // seeds their last-round meeting (round 2 at 5 teams, round 3 at 7).
+    for (const n of [3, 5, 7]) {
+      const t = buildBracket(tourney("round-robin", n));
+      const rounds = Math.max(...t.matches.map((m) => m.round));
+      const resting = (round: number) =>
+        t.teams
+          .map((team) => team.id)
+          .find((id) => !t.matches.some((m) => m.round === round && (m.teamAId === id || m.teamBId === id)));
+      expect(resting(1), `n=${n}`).toBe("t1");
+      const rests = Array.from({ length: rounds }, (_, i) => resting(i + 1));
+      expect(rests, `n=${n}`).not.toContain(undefined);
+      expect(new Set(rests).size, `n=${n}`).toBe(n);
+    }
+  });
+
+  it("pins the whole 5-team table, the bye order included", () => {
+    const t = buildBracket(tourney("round-robin", 5));
+    // The Berger table the ring produces, with each bye simply absent: the team
+    // no match names in a round is the team resting in it. t1 rests in round 1,
+    // then the bye goes to t4, t2, t5, t3.
+    expect(t.matches.map((m) => [m.id, m.teamAId, m.teamBId])).toEqual([
+      ["m-1-0", "t2", "t5"],
+      ["m-1-1", "t3", "t4"],
+      ["m-2-0", "t1", "t5"],
+      ["m-2-1", "t2", "t3"],
+      ["m-3-0", "t1", "t4"],
+      ["m-3-1", "t5", "t3"],
+      ["m-4-0", "t1", "t3"],
+      ["m-4-1", "t4", "t2"],
+      ["m-5-0", "t1", "t2"],
+      ["m-5-1", "t4", "t5"],
+    ]);
+  });
+
+  it("books no one-sided match, so a bye can never be recorded as a result", () => {
+    for (const n of [3, 5, 7]) {
+      const built = buildBracket(tourney("round-robin", n, { seriesLength: 1 }));
+      for (const m of built.matches) {
+        expect(m.teamAId, m.id).not.toBeNull();
+        expect(m.teamBId, m.id).not.toBeNull();
+      }
+      // Played to the end: every team played its n-1 games and every recorded
+      // game came from a real fixture. A bye booked as a 1-0 would hand someone
+      // a game they never played, and this is where it would show.
+      const played = built.matches.reduce((acc, m) => applyResult(acc, m.id, [game(m.teamBId!)]), built);
+      expect(played.status, `n=${n}`).toBe("complete");
+      const games = played.teams.map(
+        (team) => played.matches.filter((m) => m.teamAId === team.id || m.teamBId === team.id).length,
+      );
+      expect(games, `n=${n}`).toEqual(played.teams.map(() => n - 1));
+      expect(played.matches.reduce((count, m) => count + m.games.length, 0), `n=${n}`).toBe(
+        (n * (n - 1)) / 2,
+      );
+    }
+  });
+
+  it("has nothing to record a bye against: a round's positions stop at its real pairings", () => {
+    const t = buildBracket(tourney("round-robin", 5, { seriesLength: 1 }));
+    // In the schedule, round 1's third pairing is the bye. It is not a match,
+    // so it has no id, no games and nothing to undo.
+    expect(t.matches.filter((m) => m.round === 1)).toHaveLength(2);
+    expect(() => applyResult(t, "m-1-2", [game("t1")])).toThrow(/No match with that id/);
+  });
+
+  it("keeps a field too small to schedule in draft, and hands the scheduler nothing it will throw on", () => {
+    // `roundRobinSchedule` throws on a count that is not a count and answers no
+    // rounds at all for one team. This arm is what keeps either unreachable.
+    expect(buildBracket(tourney("round-robin", 0)).status).toBe("draft");
+    const alone = buildBracket(tourney("round-robin", 1));
+    expect(alone.status).toBe("draft");
+    expect(alone.matches).toEqual([]);
+  });
+});
+
+describe("round robin: status, standings and champion", () => {
+  // `tourney` defaults to a best-of-3 series, where one recorded game decides
+  // nothing. A round robin is proven here at best-of-1, so a single game resolves
+  // a match and the last round's completion is observable.
+  const bo1 = (n: number) => buildBracket(tourney("round-robin", n, { seriesLength: 1 }));
+
+  /** Play every match, giving each win to teamB, so the outcome is deterministic. */
+  const playAll = (t: Tournament): Tournament =>
+    t.matches.reduce((acc, m) => applyResult(acc, m.id, [game(m.teamBId!)]), t);
+
+  it("stays active until the last round is decided, then completes", () => {
+    const built = bo1(4);
+    const lastRound = Math.max(...built.matches.map((m) => m.round));
+    let t = built;
+    for (const m of built.matches.filter((x) => x.round < lastRound)) {
+      t = applyResult(t, m.id, [game(m.teamAId!)]);
+    }
+    expect(t.status).toBe("active");
+    const finals = built.matches.filter((m) => m.round === lastRound);
+    t = applyResult(t, finals[0].id, [game(finals[0].teamAId!)]);
+    expect(t.status).toBe("active"); // one match of the last round still open
+    t = applyResult(t, finals[1].id, [game(finals[1].teamAId!)]);
+    expect(t.status).toBe("complete");
+  });
+
+  it("crowns the standings leader, and is never null once complete", () => {
+    const t = playAll(bo1(4));
+    expect(t.status).toBe("complete");
+    const leader = standings(t)[0].teamId;
+    // The specific silent breakage this change prevents: every result is
+    // recorded, so a null champion would be a wrong answer, not an unfinished
+    // tournament. The old lookup answered with the winner of round 1's first
+    // match, which here is t4 on 2 wins while t3 leads on 3.
+    expect(champion(t)).not.toBeNull();
+    expect(champion(t)!.id).toBe(leader);
+  });
+
+  it("crowns the standings leader even when round 1's opening match was won by someone else", () => {
+    // At 5 teams the opening match is t2 v t5 (t1 rests), so a champion read
+    // off round 1 returns t5, who wins 3 of her 4 games to t1's 4 of 4.
+    let t = bo1(5);
+    const winners: [Id, Id][] = [
+      ["m-1-0", "t5"], // t5 beats t2 — the round 1 opener
+      ["m-1-1", "t3"],
+      ["m-2-0", "t1"],
+      ["m-2-1", "t3"],
+      ["m-3-0", "t1"],
+      ["m-3-1", "t5"],
+      ["m-4-0", "t1"],
+      ["m-4-1", "t4"],
+      ["m-5-0", "t1"],
+      ["m-5-1", "t5"],
+    ];
+    for (const [id, winner] of winners) t = applyResult(t, id, [game(winner)]);
+    expect(t.status).toBe("complete");
+    expect(standings(t).map((s) => s.teamId)).toEqual(["t1", "t5", "t3", "t4", "t2"]);
+    expect(champion(t)!.id).toBe("t1");
+  });
+
+  it("is null while the tournament is unfinished, which is the only legitimate null", () => {
+    const t = bo1(3);
+    expect(t.status).toBe("active");
+    expect(champion(t)).toBeNull();
+  });
+
+  it("undoes a recorded game and drops back to active", () => {
+    const played = playAll(bo1(3));
+    expect(played.status).toBe("complete");
+    expect(undoLastGame(played).status).toBe("active");
+  });
+
+  it("never generates a round of its own, the way swiss does", () => {
+    const built = bo1(5);
+    const played = playAll(built);
+    // The whole fixture list is built up front; `settle` has no swiss branch to
+    // fall into, so completing a round cannot invent a new one.
+    expect(played.matches).toHaveLength(built.matches.length);
+    expect(played.status).toBe("complete");
   });
 });

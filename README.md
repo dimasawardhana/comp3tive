@@ -19,7 +19,8 @@ Split a roster of rated players into balanced teams, then run a tournament on te
   `Dead even. Best gap found.` It never claims an arrangement is minimal when nobody searched for
   one. `src/session/gapProvenance.ts` documents the rule in its own header: *"no search ran, not
   this arrangement is minimal."*
-- **Formats.** Series, single elimination, or Swiss (`TournamentFormat` in `src/domain/types.ts`).
+- **Formats.** Series, single elimination, Swiss, or round robin (`TournamentFormat` in
+  `src/domain/types.ts`).
 - **Your data.** Rosters, Saved Squads, Sessions and Tournaments live in this browser's IndexedDB
   (`src/storage/indexed-db.ts`). Two smaller things live in `localStorage`: which Community is
   active (`src/domain/useCommunities.ts`, which "drives every roster/session filter in the app")
