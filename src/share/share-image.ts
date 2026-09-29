@@ -202,7 +202,7 @@ export function textWidth(text: string, font: string): number {
   const px = Number(font.match(/(\d+)px/)?.[1] ?? 34);
   const family = font.match(/"([^"]+)"/)?.[1] ?? "";
   const advances = ADVANCES[`${family}@${font.match(/^(\d+)/)?.[1] ?? ""}`];
-  const mean = MEAN_ADVANCE[family] ?? 0.52;
+  const mean = MEAN_ADVANCE[family] ?? MEAN_ADVANCE.Outfit;
   return [...text].reduce((sum, char) => sum + (advances?.[char] ?? mean), 0) * px;
 }
 

@@ -11,6 +11,10 @@
 
    The one variable file per family per subset carries that family's whole
    weight axis, so one rule covers every weight the app asks for.
+ *
+   A file's cmap holds more codepoints than its `unicode-range` below selects;
+   parity with the CDN is what is guaranteed, not reachability of every glyph
+   in the file, because the ranges are Google's and were not re-derived here.
 
    Family names are load-bearing. `src/index.css`, `src/split.css` and
    `src/landing.css` name "Outfit" and "Familjen Grotesk" through
@@ -23,7 +27,12 @@
 
 /* Latin-ext is declared before latin so a codepoint in both ranges — U+0131
    and U+0152/U+0153 among them — resolves to the more specific face, which is
-   the order Google's own css2 response used. */
+   the order Google's own css2 response used. The vietnamese rule breaks that
+   order by sitting last, which reassigns seven combining marks between two
+   faces rather than resolving them; it is inert, because both faces are the
+   same typeface at the same instance of the same variable axis, so the
+   declaration order cannot change what is drawn. Reordering it to "match"
+   google's emission order would be the one change here that could matter. */
 @font-face {
   font-family: "Outfit";
   font-style: normal;

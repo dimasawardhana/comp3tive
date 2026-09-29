@@ -238,16 +238,38 @@ describe("layoutShareImage", () => {
 
   it("gives an ordinary name its whole line in a column, and clips only an extraordinary one", () => {
     // Two teams is the only split `ae0b3e1` leaves shareable, and it is the
-    // narrow one: a row budget that subtracts the poster's outer 64px margin
-    // inside a 460px column clips a 13-character name at 18 characters, with
-    // the rating — the number the poster exists to show — cut off with it.
-    // Fails if the budget takes `MARGIN` instead of the block's gutter, or if
-    // the rating is appended after `fit` rather than before it.
-    const named: Player[] = roster.map((p, i) => (i === 0 ? { ...p, name: "Rangga Saputra" } : p));
-    const rows = layoutShareImage({ ...input(2, 5), roster: named }).ops
+    // narrow one: a row budget of 390.57px inside a 460px column, which is a
+    // name of about 20 characters in this face.
+    //
+    // HISTORY, and the reason this case has two fixtures. It was written with
+    // one, and that fixture — "Rangga Saputra" — had quietly stopped being able
+    // to fail. The bug it exists for takes `MARGIN` instead of the block's
+    // `BLOCK_GUTTER`, narrowing the budget from 390.57px to 342.57px; under the
+    // old `0.52` estimate "• Rangga Saputra (4.0)" measured 388.96px, well over
+    // the narrowed budget, so restoring the bug clipped the label and the test
+    // went red. The real advance widths measure that same label at 335.05px,
+    // which fits in the narrowed budget with 7.53px to spare — so after Task 9
+    // retuned the metrics, restoring the exact bug this case names passed the
+    // whole suite. A test that only failed for the wrong reason is a test that
+    // stops failing when the wrong reason is fixed, and the companion
+    // `columnEdge` assertion above only ever fires when the budget is *widened*.
+    //
+    // So the fixture now sits in the window between the two budgets: wide
+    // enough that the gutter bug clips it, ordinary enough that it has no
+    // business being clipped. The second fixture pins the other side of the
+    // same boundary, which this case's name has always promised and never
+    // asserted. Fails if the budget takes `MARGIN` instead of the gutter, if it
+    // widens past the block, or if the rating is appended after `fit` rather
+    // than before it.
+    const named = (name: string): Player[] => roster.map((p, i) => (i === 0 ? { ...p, name } : p));
+    const rows = (name: string) => layoutShareImage({ ...input(2, 5), roster: named(name) }).ops
       .filter((op) => op.kind === "text" && op.text.startsWith("• "))
       .map((op) => (op.kind === "text" ? op.text : ""));
-    expect(rows).toContain("• Rangga Saputra (4.0)");
+    expect(rows("Rangga Saputra")).toContain("• Rangga Saputra (4.0)");
+    // 370.09px against a 390.57px budget — over 342.57px.
+    expect(rows("Siti Nurhaliza Putri")).toContain("• Siti Nurhaliza Putri (4.0)");
+    // 444.41px, past the budget in the other direction.
+    expect(rows("Rangga Saputra Wijaya").some((row) => row.startsWith("• Rangga Saputra Wijaya") && row.endsWith("…"))).toBe(true);
   });
 
   it("lists unassigned players only when there are any", () => {
@@ -387,15 +409,25 @@ describe("the poster's own type metrics", () => {
   it("measures with the fonts' own advance widths, not an average", () => {
     // The numbers are the `hmtx` advances of the woff2 files in `public/fonts`,
     // divided by each family's units per em, read with `wght` pinned to the
-    // weight in the `ctx.font`. Pinned here so a careless edit to the table is
-    // a test failure rather than a quietly different poster — and the ratio is
-    // the reason a per-character table is not gold-plating: in this face an "i"
-    // is 0.2458 em and a "W" is 0.9125, so any single constant is wrong for one
-    // of them by better than 2x, in whichever direction the name happens to go.
+    // weight in the `ctx.font`. Pinned here so a careless edit to a table is a
+    // test failure rather than a quietly different poster — and the ratio is
+    // the reason a per-character table is not gold-plating: in these faces an
+    // "i" is 0.2458 em and a "W" is 0.9125 em, so any single constant is wrong
+    // for one of them by better than 2x, in whichever direction the name goes.
+    //
+    // Both tables, not one. The Outfit half drives `renderShareImage`'s own
+    // `document.fonts.load(DISPLAY)` — the discipline heading and the team
+    // names — and until this, its 104 numbers were pinned by no test at all,
+    // which is the worse half of the same gap: an edit to it would not fail, it
+    // would just quietly move the poster.
     const body = fontsOf().find((font) => font.includes("Familjen Grotesk")) as string;
     expect(textWidth("iii", body)).toBeCloseTo(3 * 0.2458 * 34, 5);
     expect(textWidth("WWW", body)).toBeCloseTo(3 * 0.9125 * 34, 5);
     expect(textWidth("WWW", body) / textWidth("iii", body)).toBeGreaterThan(3.5);
+    const display = fontsOf().find((font) => font.includes("Outfit")) as string;
+    expect(textWidth("iii", display)).toBeCloseTo(3 * 0.248 * 48, 5);
+    expect(textWidth("WWW", display)).toBeCloseTo(3 * 0.992 * 48, 5);
+    expect(textWidth("WWW", display) / textWidth("iii", display)).toBeGreaterThan(3.9);
   });
 
   it("charges an unlisted glyph its own family's measured mean, not a guess", () => {
