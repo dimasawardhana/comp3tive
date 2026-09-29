@@ -184,9 +184,25 @@ test.describe("the fairness line", () => {
     // one.
     const cards = await readTeamCards(page);
     const named = await line.evaluate((el) => el.textContent ?? "");
-    const best = /^(.+?) \(([\d.]+)\) is (Team [A-Z])'s best; (.+?) \(([\d.]+)\) is (Team [A-Z])'s weakest\.$/.exec(named);
-    expect(best, `the line does not have the two-sentence shape: ${named}`).not.toBeNull();
-    const [, bestName, bestStrength, bestTeam, worstName, worstStrength, worstTeam] = best!;
+    // `.fairness` renders the band sentence and then the trade sentence, so the
+    // trade is what follows the band's full stop. Anchoring a pattern at the
+    // element instead is the trap: bound at `^`, `(.+?)` takes the *shortest*
+    // prefix that reaches a " (", which is the band sentence plus the name, and
+    // the card lookup then hunts for a player called
+    // "Every team averages 3.2 to 3.3. Player 3". The band is therefore matched
+    // and consumed first, and the pattern below is anchored on what remains.
+    //
+    // Limit worth knowing: a pool that also benched somebody would put the
+    // not-playing clause between the two sentences, and where that clause ends
+    // is not recoverable from the rendered text — "Sari Wira" is two list
+    // items or one name plus one name, and the DOM cannot say. This pool
+    // benches nobody, and a pool that did would fail this lookup loudly rather
+    // than pass quietly.
+    const band = /^(Every team averages \d+\.\d+ to \d+\.\d+\.)/.exec(named);
+    expect(band, `the line does not open with a two-ended band sentence: ${named}`).not.toBeNull();
+    const trade = /^(.+?) \(([\d.]+)\) is (Team [A-Z])'s best; (.+?) \(([\d.]+)\) is (Team [A-Z])'s weakest\.$/.exec(named.slice(band![1].length).trimStart());
+    expect(trade, `the text after the band sentence is not a two-clause trade: ${named}`).not.toBeNull();
+    const [, bestName, bestStrength, bestTeam, worstName, worstStrength, worstTeam] = trade!;
     for (const [name, strength, team] of [[bestName!, bestStrength!, bestTeam!], [worstName!, worstStrength!, worstTeam!]] as const) {
       const card = cards.find((c) => c.label === team);
       expect(card, `no team card labelled ${team}`).toBeTruthy();
@@ -300,28 +316,48 @@ test.describe("the fairness line", () => {
     await expect(line).toContainText("is Team");
     await expectNoProvenanceWords(page);
 
-    const painted = await line.evaluate((el) => {
-      const s = getComputedStyle(el);
-      return { color: s.color, opacity: Number(s.opacity) };
-    });
-    const paper = await hero.locator(".pitch").evaluate((el) => getComputedStyle(el).backgroundColor);
-    const readoutInk = await hero.locator(".readout").evaluate((el) => getComputedStyle(el).color);
-    // Painted in the same ink as the readout directly above it, in this colour
-    // scheme. That is the claim; a contrast ratio would be a proxy for it.
-    expect(painted.color).toBe(readoutInk);
-
-    const rgb = (value: string) => (value.match(/[\\d.]+/g) ?? []).slice(0, 3).map(Number);
+    // Legibility, in this colour scheme and in the other one. The claim is that
+    // the line is painted in the readout's own ink and stays legible on the
+    // hero's paper, so it is measured on the 0.8-opacity blend rather than on
+    // the declared colour.
     const channel = (c: number) => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4);
     const luminance = ([r, g, b]: number[]) =>
-      0.2126 * channel(r! / 255) + 0.7152 * channel(g! / 255) + 0.0722 * channel(b! / 255);
-    // And legibly, measured on the 0.8-opacity blend rather than the declared
-    // colour.
-    const [fr, fg, fb] = rgb(painted.color);
-    const paperRgb = rgb(paper);
-    const blended = paperRgb.map((c, i) => painted.opacity * [fr, fg, fb][i]! + (1 - painted.opacity) * c);
-    const a = luminance(blended);
-    const b = luminance(paperRgb);
-    expect((Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05), `${painted.color} at ${painted.opacity} on ${paper}`).toBeGreaterThan(4.5);
+      0.2126 * channel(r / 255) + 0.7152 * channel(g / 255) + 0.0722 * channel(b / 255);
+    const rgb = (value: string) => {
+      const parts = (value.match(/[\d.]+/g) ?? []).slice(0, 3).map(Number);
+      // Readable in the failure message: a mistyped character class here once
+      // matched no digits at all and the ratio came out NaN, which reads as a
+      // failed threshold rather than as a broken helper.
+      expect(parts, `could not read three colour channels out of "${value}"`).toHaveLength(3);
+      expect(parts.every((c) => Number.isFinite(c)), `"${value}" parsed to ${JSON.stringify(parts)}`).toBe(true);
+      return parts as [number, number, number];
+    };
+
+    for (const scheme of ["light", "dark"] as const) {
+      await page.emulateMedia({ colorScheme: scheme });
+      const painted = await line.evaluate((el) => {
+        const s = getComputedStyle(el);
+        return { color: s.color, opacity: Number(s.opacity) };
+      });
+      const paper = await hero.locator(".pitch").evaluate((el) => getComputedStyle(el).backgroundColor);
+      const readoutInk = await hero.locator(".readout").evaluate((el) => getComputedStyle(el).color);
+      // Painted in the same ink as the readout directly above it. That is the
+      // claim; a contrast ratio is a proxy for it.
+      expect(painted.color, `in ${scheme} the line is ${painted.color} and the readout is ${readoutInk}`).toBe(readoutInk);
+      // The 0.8 the rule sets, asserted rather than assumed: the blend below is
+      // only the honest measurement while the opacity is the one in the sheet.
+      expect(painted.opacity, `in ${scheme} the line's opacity`).toBeCloseTo(0.8, 2);
+
+      const [fr, fg, fb] = rgb(painted.color);
+      const paperRgb = rgb(paper);
+      const blended = paperRgb.map((c, i) => painted.opacity * [fr, fg, fb][i]! + (1 - painted.opacity) * c) as [number, number, number];
+      const a = luminance(blended);
+      const b = luminance(paperRgb);
+      const ratio = (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+      expect(Number.isFinite(ratio), `in ${scheme} the ratio came out ${ratio} for ${painted.color} on ${paper}`).toBe(true);
+      expect(ratio, `in ${scheme}: ${painted.color} at ${painted.opacity} on ${paper} blends to rgb(${blended.map(Math.round).join(", ")})`).toBeGreaterThan(4.5);
+    }
+    await page.emulateMedia({ colorScheme: null });
 
     // The line adds a wrapped sentence to a hero the capture script also
     // measures; it must not push the page sideways at a phone width.
