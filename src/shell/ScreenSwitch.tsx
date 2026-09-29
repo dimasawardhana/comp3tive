@@ -303,6 +303,11 @@ export function ScreenSwitch(props: ScreenSwitchProps) {
           }
           onSaveSquad={(name, result) => saveSquadFromSplit(name, result, activeSplit.session.disciplineId)}
           onBack={() => goBack()}
+          // The landing hero mounts SplitScreen with no `share`, so the same
+          // screen renders there with no share control: the demo split belongs
+          // to nobody, and a Share button on a public marketing page would
+          // offer to publish a fabricated roster.
+          share={activeCommunity ? { communityName: activeCommunity.name } : undefined}
         />
       )}
       {view.mode === "history" && (

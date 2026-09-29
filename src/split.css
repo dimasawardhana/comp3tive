@@ -267,6 +267,32 @@
   gap: 8px;
 }
 
+/* ---------- share sheet ---------- */
+/* The share sheet is reachable from SplitScreen's subtree, so its rules are
+   here by the same membership rule as the Save Squad modal's. */
+.share-preview {
+  font-family: "Familjen Grotesk", sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text);
+  background: var(--surface-2);
+  border: 1.5px solid var(--hairline);
+  border-radius: var(--r-md);
+  padding: 12px 14px;
+  resize: vertical;
+}
+.share-preview:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}
+/* Reserved height, so the sheet does not jump when the status appears. */
+.share-status {
+  min-height: 1.2em;
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-2);
+}
+
 @media (min-width: 768px) {
   .modal-card {
     padding: 32px 32px 24px;

@@ -7,6 +7,7 @@ import { rerollPool, type SplitSource } from "../shell/useSplitFlow";
 import { BIB } from "../ui/constants";
 import { Breadcrumb } from "../nav";
 import { Modal } from "../ui/Modal";
+import { ShareSheet } from "../share/ShareSheet";
 
 interface Props {
   session: Session;
@@ -18,6 +19,12 @@ interface Props {
   onSaveSquad?: (name: string, result: SplitResult) => Promise<void> | void;
   /** Source of this split: drives header, breadcrumbs, persistence, forward action. */
   source: SplitSource;
+  /**
+   * Present only where sharing makes sense: the app, never the landing hero.
+   * It carries the community name rather than a bare flag, so "no share
+   * control" and "no community to share into" are one absent prop, not two.
+   */
+  share?: { communityName: string };
   /** Go back to the match setup screen to change the roster. */
   onBack?: () => void;
 }
@@ -205,12 +212,13 @@ function SaveSquadModal({
   );
 }
 
-export function SplitScreen({ session, discipline, roster, onPersistResult, onSubmitTournament, onSaveSquad, source, onBack }: Props) {
+export function SplitScreen({ session, discipline, roster, onPersistResult, onSubmitTournament, onSaveSquad, source, share, onBack }: Props) {
   const [editable, setEditable] = useState<SplitResult>(session.result);
   const [swapMode, setSwapMode] = useState(false);
   const [pick, setPick] = useState<{ teamIndex: number; playerId: Id } | null>(null);
   const [rerollCount, setRerollCount] = useState(1);
   const [saveOpen, setSaveOpen] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [persistError, setPersistError] = useState<string | null>(null);
   const pitchRef = useRef<HTMLDivElement>(null);
@@ -412,6 +420,25 @@ export function SplitScreen({ session, discipline, roster, onPersistResult, onSu
             Save squad
           </button>
         )}
+        {/*
+          Gated on a non-empty result, not just on the prop. The bar renders
+          outside the teams ternary, so with no teams the empty state ("Solver
+          failed") sits directly above a live action bar. Sharing there would
+          emit "Futsal · Thursday Crew — 0 teams" and a gap verdict for a
+          pool the app never actually split — a fairness claim, quoted in a
+          group chat, about an arrangement that does not exist. Re-roll is the
+          only honest action on that screen, and it is already there.
+        */}
+        {share && !swapMode && result.teams.length > 0 && (
+          <button
+            type="button"
+            className="btn btn-ghost"
+            onClick={() => setShareOpen(true)}
+            data-testid="share-teams"
+          >
+            Share
+          </button>
+        )}
         {swapMode ? (
           <button type="button" className="btn btn-primary" onClick={toggleSwapMode}>
             Done swapping
@@ -438,6 +465,16 @@ export function SplitScreen({ session, discipline, roster, onPersistResult, onSu
           saving={saving}
           onCancel={() => setSaveOpen(false)}
           onSave={doSave}
+        />
+      )}
+
+      {shareOpen && share && (
+        <ShareSheet
+          communityName={share.communityName}
+          discipline={discipline}
+          result={result}
+          roster={roster}
+          onClose={() => setShareOpen(false)}
         />
       )}
     </div>
