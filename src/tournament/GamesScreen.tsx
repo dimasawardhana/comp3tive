@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import type { Community, Discipline, Id, SeriesLength, Tournament, TournamentFormat } from "../domain/types";
 import { validateTournamentSpec, type TournamentValidationIssue } from "./tournament-validation";
+import { roundRobinSchedule } from "../data/round-robin";
 import { PageHeader } from "../ui/PageHeader";
 import { FORMAT_LABEL, SELECTABLE_FORMATS, STATUS_LABEL } from "../ui/constants";
 import { Modal } from "../ui/Modal";
@@ -30,13 +31,59 @@ interface Props {
 // offered when the app can run it, not when the domain can name it.
 const BO: SeriesLength[] = [1, 3, 5];
 
-const TEAM_COUNTS: Record<TournamentFormat, number[]> = {
+/**
+ * The team counts each format offers, in the order the chips read them.
+ *
+ * One rule, two copies: this table says which count chips are enabled, and
+ * `getValidTeamCounts` in tournament-validation.ts says what the validator
+ * accepts. `team-counts.test.ts` imports this table and asserts the two agree,
+ * because a chip the validator rejects is a create that fails on the floor and
+ * a count the validator takes that no chip offers is a format nothing can run.
+ *
+ * The **first** entry is the count a format opens on, so the order is a product
+ * decision rather than part of the rule: single elimination opens on 4, since
+ * a two-team single elimination is a Series with extra steps.
+ */
+export const TEAM_COUNTS: Record<TournamentFormat, number[]> = {
   series: [2],
   "single-elim": [4, 2, 8],
   swiss: [4, 6, 8],
-  // The counts the circle method can schedule: 3 to 8, odd ones included.
+  // What the circle method can schedule, 3 to 8. The odd counts stay because a
+  // bye is a real fixture: it is the empty slot the ring already carries, it
+  // hands out no result, and over the n rounds every team rests on exactly one.
   "round-robin": [3, 4, 5, 6, 7, 8],
 };
+
+/**
+ * The row of count chips: every count any format takes, ascending, so a chip
+ * exists for each one and the formats that refuse it render it disabled.
+ *
+ * Computed from `TEAM_COUNTS` rather than written out as a second list, because
+ * that row is the one a visitor sees: it is how a 3- or 5-team night discovers
+ * the format is playable at all. A count a format takes is a chip, and a count
+ * no format takes is not on the row to begin with.
+ */
+const COUNT_CHIPS: readonly number[] = [...new Set(Object.values(TEAM_COUNTS).flat())].sort(
+  (a, b) => a - b,
+);
+
+/**
+ * The format that takes `n` split teams, read off the same two tables the
+ * modal's chips are rendered from, so a squad of any supported count pre-fills
+ * into a tournament that can actually be created.
+ *
+ * 2 is a Series, 4 and 8 a single elimination, 6 a Swiss — all exactly as
+ * before. What changes is 3, 5 and 7: they used to pre-fill as Swiss, which the
+ * validator then refused, so those squads dead-ended on a tournament the app
+ * could have run. Round robin is the only format that takes every count from 3
+ * to 8, so each count now lands on the one format that takes it.
+ *
+ * A one-team squad fits no format at all; Swiss is the fallback because its
+ * rule is the one the validator's own message will quote, and no tournament is
+ * created either way.
+ */
+export const formatForTeamCount = (n: number): TournamentFormat =>
+  SELECTABLE_FORMATS.find((f) => TEAM_COUNTS[f].includes(n)) ?? "swiss";
 
 export function GamesScreen({ tournaments, disciplines, onCreate, onOpen, onDelete, onManageDisciplines, prefill, onPrefillConsumed, activeCommunity }: Props) {
   const [creating, setCreating] = useState(false);
@@ -52,13 +99,9 @@ export function GamesScreen({ tournaments, disciplines, onCreate, onOpen, onDele
   // Squad pre-fill: open the create modal with discipline + team count already set.
   useEffect(() => {
     if (!prefill) return;
-    const squadFormat: TournamentFormat =
-      prefill.teamCount === 2 ? "series"
-      : prefill.teamCount <= 8 && TEAM_COUNTS["single-elim"].includes(prefill.teamCount) ? "single-elim"
-      : "swiss";
     setCreating(true);
     setDisciplineId(prefill.disciplineId);
-    setFormat(squadFormat);
+    setFormat(formatForTeamCount(prefill.teamCount));
     setTeamCount(prefill.teamCount);
     setSeriesLength(3);
     onPrefillConsumed?.();
@@ -323,7 +366,7 @@ export function GamesScreen({ tournaments, disciplines, onCreate, onOpen, onDele
             <div className="modal-section">
               <div className="field-label">Teams</div>
               <div className="chips">
-                {[2, 4, 6, 8].map((n) => {
+                {COUNT_CHIPS.map((n) => {
                   const allowed = counts.includes(n);
                   return (
                     <button
@@ -347,7 +390,14 @@ export function GamesScreen({ tournaments, disciplines, onCreate, onOpen, onDele
                 {format === "series" && "Series: 2 teams only."}
                 {format === "single-elim" && "Single elimination: 2, 4, or 8 teams."}
                 {format === "swiss" && "Swiss: 4, 6, or 8 teams."}
+                {format === "round-robin" && "Round robin: 3 to 8 teams, odd counts included."}
               </p>
+              {format === "round-robin" && teamCount % 2 === 1 && (
+                <p className="modal-section-hint">
+                  {teamCount} teams is an odd field, so one team sits out each round. Every team rests
+                  exactly once, and a bye is not a loss.
+                </p>
+              )}
             </div>
 
             {format === "single-elim" && (
@@ -368,6 +418,7 @@ export function GamesScreen({ tournaments, disciplines, onCreate, onOpen, onDele
               {format === "series" && ` · BO${seriesLength} = first to ${Math.ceil(seriesLength / 2)} wins`}
               {format === "single-elim" && ` · ${teamCount === 2 ? 1 : teamCount === 4 ? 2 : 3} round${teamCount === 8 ? "s" : ""}${thirdPlace ? " · 3rd-place match" : ""}`}
               {format === "swiss" && ` · ${teamCount === 4 ? 2 : teamCount === 6 ? 3 : 3} rounds · standings`}
+              {format === "round-robin" && ` · ${roundRobinSchedule(teamCount).length} rounds · every team plays every other`}
             </div>
 
             <div className="bar">

@@ -338,7 +338,14 @@ export function TournamentScreen({ tournament, disciplines, matchingSquads, rost
             </div>
           )}
 
-          {tournament.format === "swiss" ? (
+          {/* Two tournaments, two views. A format that crowns by table renders the
+              table and its rounds; a format that crowns by one last match renders a
+              bracket. Round robin is the first kind — it has no final to play, and its
+              rounds are `Round 1..n` with the last of them no more a final than the
+              first — so it joins Swiss here. `BracketView` labels its last column
+              "Final", and a round robin shown in a bracket would carry that word over a
+              match that does not exist. */}
+          {tournament.format === "swiss" || tournament.format === "round-robin" ? (
             <StandingsView tournament={tournament} onMatch={setRecording} />
           ) : (
             <BracketView tournament={tournament} onMatch={setRecording} />
