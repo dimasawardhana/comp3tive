@@ -18,13 +18,18 @@ interface Props {
 const COPY_FAILED = "Copy failed. Select the text above and copy it.";
 
 /**
- * One sentence for every way the poster fails to exist, and the same recovery
- * `COPY_FAILED` gives, because the recovery *is* the same: the text is still
- * on screen, and it is the only thing left that can be sent. Two sentences for
- * one recovery would be free to drift, and the drift would only show up in a
- * browser too broken to have drawn anything.
+ * One sentence for every way the image fails to reach the organizer — a canvas
+ * that will not draw, a clipboard that will not take it, a file that will not
+ * be written — and the same recovery `COPY_FAILED` gives, because the recovery
+ * *is* the same: the text is still on screen, and it is the only thing left
+ * that can be sent.
+ *
+ * The organizer cannot tell those three apart, so neither can the sheet: what
+ * they share is that no image arrived. Naming the cause instead ("couldn't
+ * draw") would be a claim about a cause they cannot act on, and it would be
+ * wrong for the two failures that are not the canvas.
  */
-const IMAGE_FAILED = "Couldn't draw the image. Select the text above and copy it.";
+const IMAGE_FAILED = "Image failed. Select the text above and copy it.";
 
 /**
  * The filename the fallback saves under, stamped UTC so it cannot depend on the
@@ -95,19 +100,40 @@ export function ShareSheet({ communityName, discipline, result, roster, onClose 
   };
 
   /**
-   * A blob the click already drew, handed to the browser as a file. The one
-   * path that always works, and therefore the one the copy path falls back to.
+   * A blob the click already drew, handed to the browser as a file, and the
+   * one path that needs no capability at all — which is why the copy path
+   * falls back to it and why it has to be the one that cannot fail outward.
+   *
+   * It is total: every browser call in it can refuse — `createObjectURL` on a
+   * revoked or sandboxed document, `appendChild`, the synthetic click — and
+   * this function is called from inside `shareImage`'s `catch`, so a throw
+   * from here would escape the very handler meant to contain the failure and
+   * leave the button doing nothing visible. It answers with a boolean instead
+   * and revokes in a `finally`, so a refusal at any step still gives the URL
+   * back rather than stranding the blob for the life of the document.
    */
-  const downloadImage = (blob: Blob, saved: string) => {
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = posterName();
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    setStatus(saved);
+  const downloadImage = (blob: Blob, saved: string): boolean => {
+    let url: string | null = null;
+    try {
+      url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = posterName();
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setStatus(saved);
+      return true;
+    } catch {
+      return false;
+    } finally {
+      // Structural, not positional: the next task cannot move the revoke above
+      // the click and leak. Deferred by a task because the download reads the
+      // URL as the click is dispatched, not after `click()` returns — the same
+      // shape `src/App.tsx` uses for its own anchor download.
+      const created = url;
+      if (created) setTimeout(() => URL.revokeObjectURL(created), 0);
+    }
   };
 
   const shareImage = async () => {
@@ -128,7 +154,7 @@ export function ShareSheet({ communityName, discipline, result, roster, onClose 
       return;
     }
     if (!canCopyImage) {
-      downloadImage(blob, "Downloaded the image.");
+      if (!downloadImage(blob, "Downloaded the image.")) imageFailed();
       return;
     }
     try {
@@ -137,8 +163,10 @@ export function ShareSheet({ communityName, discipline, result, roster, onClose 
     } catch {
       // A refused write never costs the user the text the sheet already holds,
       // and the poster is already made — so the file is one click from going
-      // out, and the sentence says which of the two things happened.
-      downloadImage(blob, "Couldn't copy the image. Downloaded it instead.");
+      // out, and the sentence says which of the two things happened. If even
+      // that is refused, `imageFailed` owns the outcome, so no path out of this
+      // handler can end with a button that did nothing and said nothing.
+      if (!downloadImage(blob, "Couldn't copy the image. Downloaded it instead.")) imageFailed();
     }
   };
 

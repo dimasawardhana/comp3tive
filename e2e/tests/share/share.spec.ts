@@ -167,20 +167,21 @@ test.describe("the share sheet", () => {
     await sheet.getByTestId("share-image").click();
     await expect(sheet.locator(".share-status")).toHaveText("Copied.", { timeout: 15_000 });
 
+    // The first item's *own* type list, unfiltered. Filtering to image/png and
+    // then asserting the first result is `image/png` proves only that the
+    // filter worked; `:521` asks whether the first thing on the clipboard is
+    // the poster, which a filter cannot answer.
     const items = await page.evaluate(async () => {
       const list = await navigator.clipboard.read();
-      const out: Array<{ type: string; size: number }> = [];
-      for (const item of list) {
-        for (const type of item.types) {
-          if (type !== "image/png") continue;
-          const blob = await item.getType(type);
-          out.push({ type, size: blob.size });
-        }
-      }
-      return out;
+      return Promise.all(
+        list.map(async (item) => ({
+          types: [...item.types],
+          size: item.types.includes("image/png") ? (await item.getType("image/png")).size : 0,
+        })),
+      );
     });
     expect(items.length).toBeGreaterThan(0);
-    expect(items[0].type).toBe("image/png");
+    expect(items[0].types).toContain("image/png");
     // A legible poster at 1080 px wide, not a blank or truncated bitmap.
     expect(items[0].size).toBeGreaterThan(10_000);
   });
@@ -232,12 +233,50 @@ test.describe("the share sheet", () => {
     // The point of the whole path: a control that cannot deliver says so in the
     // one region the sheet already speaks through, rather than doing nothing
     // visible at all.
-    await expect(sheet.locator(".share-status")).toHaveText(
-      "Couldn't draw the image. Select the text above and copy it.",
-    );
+    // 15 s, not the 10 s config default: `renderShareImage` awaits the two CDN
+    // faces *before* it asks for a 2D context, so this status sits behind the
+    // same font wait the copy spec above gives 15 s.
+    await expect(sheet.locator(".share-status")).toHaveText("Image failed. Select the text above and copy it.", {
+      timeout: 15_000,
+    });
 
     // The recovery is the text path's, unchanged: the split is still there and
     // it is left selected, because it is the only thing left that can be sent.
+    const preview = sheet.locator("textarea.share-preview");
+    await expect(preview).toHaveValue(/Thursday Crew/);
+    const selection = await preview.evaluate((el) => {
+      const t = el as HTMLTextAreaElement;
+      return { start: t.selectionStart, end: t.selectionEnd, len: t.value.length };
+    });
+    expect(selection.end - selection.start).toBe(selection.len);
+  });
+
+
+
+  test("says so and keeps the text when the poster cannot be written to a file either", async ({ page }) => {
+    await page.addInitScript(() => {
+      // The download is the fallback that is supposed to always work, so it
+      // cannot be allowed to throw out of the handler it is called from: the
+      // copy path calls it from inside its own `catch`, and an exception here
+      // would escape that and leave the button doing nothing at all. Which
+      // call refuses is the browser's business — here it is the object URL,
+      // because a refused `createObjectURL` leaks nothing and so pins the
+      // sentence without also pinning a revocation order.
+      Object.defineProperty(window, "ClipboardItem", { get: () => undefined, configurable: true });
+      URL.createObjectURL = () => {
+        throw new Error("injected: this browser will not mint an object URL");
+      };
+    });
+    await splitTwoTeams(page);
+    const sheet = await openSheet(page);
+
+    await sheet.getByTestId("share-image").click();
+    await expect(sheet.locator(".share-status")).toHaveText("Image failed. Select the text above and copy it.", {
+      timeout: 15_000,
+    });
+
+    // The same recovery the draw failure gives, because it is the same
+    // recovery: the split is still on screen and it is left selected.
     const preview = sheet.locator("textarea.share-preview");
     await expect(preview).toHaveValue(/Thursday Crew/);
     const selection = await preview.evaluate((el) => {
