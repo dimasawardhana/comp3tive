@@ -1263,6 +1263,26 @@ h1 {
   text-align: right;
 }
 
+/* The CSV column hint. Below the roster toolbar rather than inside it: it
+   describes the file, and the toolbar is a row of controls, so a paragraph of
+   prose between two buttons would read as belonging to whichever button it
+   sat nearest. Muted and small for the same reason the storage note is — this
+   is standing reference copy, on screen every time the roster is, and not an
+   event. The 80ch measure keeps a sentence to about a line and a half on the
+   widest screen this app runs on. */
+.import-hint {
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--text-2);
+  max-width: 80ch;
+  margin: 12px 0 0;
+}
+/* The first one clears the toolbar; the rest sit in a block under it, so the
+   list reads as one note in three lines rather than as three notes. */
+.import-hint + .import-hint {
+  margin-top: 2px;
+}
+
 .field-error {
   font-size: 13px;
   color: var(--danger);

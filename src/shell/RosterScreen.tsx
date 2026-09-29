@@ -3,6 +3,7 @@ import { PageHeader } from "../ui/PageHeader";
 import { Screen } from "../ui/Screen";
 import { PlayerEditModal } from "../roster/PlayerEditModal";
 import type { PendingMerge } from "./usePlayerImport";
+import { CSV_TEMPLATE, CSV_TEMPLATE_FILE_NAME } from "../data/csv-template";
 
 export interface RosterScreenProps {
   activeCommunity: Community | null;
@@ -70,6 +71,51 @@ export interface RosterScreenProps {
  */
 export function RosterScreen(props: RosterScreenProps) {
   const { activeCommunity, disciplines, players, visiblePlayers, filterIds, disciplinesById, editingPlayer, fileInputRef } = props;
+  /**
+   * The discipline spellings the import will accept, read from the catalog this
+   * screen was handed rather than written out here. `csvRowsToPlayers` matches a
+   * row's discipline against every discipline's short name *and* full name, case
+   * insensitively, so both spellings are on offer and the parenthesis is not a
+   * courtesy — it is the second string the parser would accept. The list is
+   * derived, so a fourth sport is in the sentence the moment it is in the
+   * catalog, and a sentence written by hand here would be a list that quietly
+   * went stale and refused rows the app could have imported.
+   */
+  const acceptedDisciplines = disciplines
+    .map((d) => (d.name.toLowerCase() === d.shortName.toLowerCase() ? d.shortName : `${d.shortName} (${d.name})`))
+    .join(", ");
+
+  /**
+   * The template download.
+   *
+   * It follows `ShareSheet.downloadImage`'s shape — anchor appended, clicked,
+   * removed, and the object URL revoked on the next task — rather than
+   * `App.tsx`'s `handleExport`, which revokes in the same tick as the click.
+   * The browser reads the object URL as the click is dispatched, so that revoke
+   * is a race; it was noted and accepted in Task 4's review, and it is not worth
+   * copying into a third path. Unlike `downloadSampleData` in
+   * `src/data/sample-data.ts`, this one revokes at all.
+   *
+   * It is not wrapped in a try/catch. Every call in it is one the browser either
+   * has or has not, and a refusal here — a document with no object-URL support,
+   * a sandboxed frame — throws into a click handler where it lands in the
+   * console. That is the better outcome: a catch with nowhere to report would
+   * make a failed download indistinguishable from a browser that quietly
+   * blocked one, and this screen has no channel to say so (the roster's report
+   * surface is Task 16's, and a `notify` prop belongs with it).
+   */
+  const downloadCsvTemplate = () => {
+    const blob = new Blob([CSV_TEMPLATE], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = CSV_TEMPLATE_FILE_NAME;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 0);
+  };
+
   return (
     <Screen>
       <PageHeader
@@ -145,6 +191,22 @@ export function RosterScreen(props: RosterScreenProps) {
               }}
               style={{ display: "none" }}
             />
+            {/*
+             * Beside the import control and not beside the export control,
+             * because this is the other half of that pair: one hands the file
+             * out, the other reads it back. It sits after the hidden input
+             * rather than before "Import players" so the control that reads a
+             * file comes first in the reading order of a screen whose left-hand
+             * cluster is: add one by hand, or add many from a file.
+             */}
+            <button
+              type="button"
+              className="btn btn-ghost"
+              data-testid="download-csv-template"
+              onClick={downloadCsvTemplate}
+            >
+              Download CSV template
+            </button>
             <div className="roster-toolbar-spacer" />
             <span className="durability-note">
               {props.persisted === true && "This browser reported persistent storage for this app on this visit. Keep a backup anyway."}
@@ -155,6 +217,33 @@ export function RosterScreen(props: RosterScreenProps) {
               Export
             </button>
           </div>
+
+          {/*
+           * The CSV contract, in the app rather than in the file. It cannot go in
+           * the file: the parser has no comment syntax, so an instruction line
+           * there is a data row whose strength is not a number, and it would
+           * reach the user as a skipped line on an otherwise clean import. It
+           * lives here because a user reads it before deciding to download
+           * anything, and the user who never downloads has to write the file by
+           * hand. Every claim these sentences make is checked against the parser
+           * in RosterScreen.csv-hint.test.ts, which is the only thing standing
+           * between this copy and a parser that changes under it.
+           */}
+          <p className="import-hint">
+            Fill the template in and save it, then press Import players and pick that file. Nothing
+            here is read until you choose it.
+          </p>
+          <p className="import-hint">
+            CSV columns, in this order: name, discipline, strength. A name with a comma in it goes
+            in quotes &mdash; the template&apos;s second row shows one.
+          </p>
+          <p className="import-hint">
+            Strength is a number from 1 to 5. Leave it blank and it is read as 3; text there skips
+            the row.
+          </p>
+          {disciplines.length > 0 && (
+            <p className="import-hint">Discipline must be one of: {acceptedDisciplines}.</p>
+          )}
 
           {editingPlayer !== null && activeCommunity && (
             <PlayerEditModal

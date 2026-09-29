@@ -1,9 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { createElement } from "react";
-import { renderToStaticMarkup } from "react-dom/server";
-import { RosterScreen, type RosterScreenProps } from "./RosterScreen";
 import { PREDICTS_LOSS, SAFETY_BAN } from "../test-support/safetyCopy";
-import type { Community } from "../domain/types";
+import { renderRoster } from "../test-support/renderRoster";
 
 /**
  * The storage note is the one place this app speaks about durability, and it
@@ -18,8 +15,6 @@ import type { Community } from "../domain/types";
  * e2e/tests/dashboard/nudge.spec.ts is where this is actually read on screen.
  */
 
-const COMMUNITY: Community = { id: "c1", name: "Thursday Crew", createdAt: 0 };
-
 const PERSISTED_COPY =
   "This browser reported persistent storage for this app on this visit. Keep a backup anyway.";
 const REFUSED_COPY =
@@ -27,33 +22,7 @@ const REFUSED_COPY =
 const UNKNOWN_COPY = "This app could not confirm persistent storage here. Keep a backup.";
 
 /** RosterScreen renders nothing of the toolbar without a community. */
-const screen = (persisted: boolean | null): string =>
-  renderToStaticMarkup(
-    createElement(RosterScreen, {
-      activeCommunity: COMMUNITY,
-      disciplines: [],
-      players: [],
-      visiblePlayers: [],
-      filterIds: [],
-      disciplinesById: new Map(),
-      editingPlayer: null,
-      fileInputRef: { current: null },
-      onToggleFilter: () => {},
-      onClearFilters: () => {},
-      onAddPlayer: () => {},
-      onOpenPlayer: () => {},
-      pendingMerge: null,
-      onConfirmMerge: () => {},
-      onCancelMerge: () => {},
-      importFile: async () => {},
-      onExport: () => {},
-      onSplitMatch: () => {},
-      onSavePlayer: async () => {},
-      onDeletePlayer: async () => {},
-      onCloseEditor: () => {},
-      persisted,
-    } satisfies RosterScreenProps),
-  );
+const screen = (persisted: boolean | null): string => renderRoster({ persisted });
 
 /** The text inside the note element, so an assertion cannot be satisfied by the Export button. */
 const noteText = (html: string): string => {
