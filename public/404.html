@@ -4,11 +4,22 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>comp3tive — page not found</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <!-- Self-hosted type, as on both real documents. This file is served for
+         unmatched paths, so the preloads are the only thing on it that can
+         404 — and they resolve root-relative like the rest of the app. -->
     <link
-      href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=Familjen+Grotesk:wght@400;500;600&display=swap"
-      rel="stylesheet"
+      rel="preload"
+      as="font"
+      type="font/woff2"
+      crossorigin
+      href="/fonts/outfit-latin-6c18d579.woff2"
+    />
+    <link
+      rel="preload"
+      as="font"
+      type="font/woff2"
+      crossorigin
+      href="/fonts/familjen-grotesk-latin-414d5dfe.woff2"
     />
     <style>
       /* Self-contained by necessity: this file is served for unmatched paths by
@@ -23,6 +34,12 @@
         --accent-ink: #ffffff;
         --hairline: #e7e3dc;
         --r-md: 12px;
+        /* The type stack, copied from src/tokens.css with the rest of them.
+           This document is reached when a URL is wrong, which is also when a
+           font is least likely to be in cache, so the fall-back half of each
+           list is doing more work here than anywhere else. */
+        --font-display: "Outfit", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        --font-body: "Familjen Grotesk", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
       }
       :root[data-theme="dark"] {
         --surface: #1c1917;
@@ -48,7 +65,7 @@
         padding: 0;
       }
       body {
-        font-family: "Familjen Grotesk", system-ui, sans-serif;
+        font-family: var(--font-body);
         background: var(--surface);
         color: var(--text);
         line-height: 1.5;
@@ -62,7 +79,7 @@
         text-align: center;
       }
       .wordmark {
-        font-family: "Outfit", sans-serif;
+        font-family: var(--font-display);
         font-size: 15px;
         font-weight: 700;
         color: var(--text-2);
@@ -72,7 +89,7 @@
       }
       .kicker {
         display: inline-block;
-        font-family: "Outfit", sans-serif;
+        font-family: var(--font-display);
         font-size: 11px;
         font-weight: 700;
         letter-spacing: 0.18em;
@@ -84,7 +101,7 @@
         content: "▸ ";
       }
       h1 {
-        font-family: "Outfit", sans-serif;
+        font-family: var(--font-display);
         font-size: clamp(28px, 7vw, 40px);
         font-weight: 600;
         line-height: 1.05;
@@ -98,7 +115,7 @@
       }
       .cta {
         display: inline-block;
-        font-family: "Outfit", sans-serif;
+        font-family: var(--font-display);
         font-size: 16px;
         font-weight: 600;
         text-decoration: none;

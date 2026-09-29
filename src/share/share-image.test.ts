@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { blockHeight, layoutShareImage } from "./share-image";
+import { blockHeight, layoutShareImage, textWidth } from "./share-image";
 import { teamsAsText } from "./share-text";
 import { BIB } from "../ui/constants";
 import { FUTSAL_DISCIPLINE } from "../domain/seed";
@@ -209,7 +209,7 @@ describe("layoutShareImage", () => {
     for (const op of ops) {
       if (op.kind !== "text") continue;
       const size = Number(op.font.match(/(\d+)px/)?.[1]);
-      const w = op.text.length * size * 0.52;
+      const w = textWidth(op.text, op.font);
       const left = op.align === "right" ? op.x - w : op.x;
       expect(left).toBeGreaterThanOrEqual(0);
       expect(left + w).toBeLessThanOrEqual(width);
@@ -230,7 +230,7 @@ describe("layoutShareImage", () => {
     const columnEdge = MARGIN + (width - MARGIN * 2 - COLUMN_GAP) / 2;
     for (const op of ops) {
       if (op.kind !== "text" || !op.text.startsWith("• ")) continue;
-      const w = op.text.length * Number(op.font.match(/(\d+)px/)?.[1]) * 0.52;
+      const w = textWidth(op.text, op.font);
       const left = op.align === "right" ? op.x - w : op.x;
       expect(left + w <= columnEdge || left >= columnEdge + COLUMN_GAP).toBe(true);
     }
@@ -315,17 +315,23 @@ describe("layoutShareImage", () => {
     expect(painted).not.toContain("A smaller one may exist.");
   });
 
-  it("breaks the hedged line before the stranded word, not after it", () => {
-    // The wrap is a character-width budget, so it breaks exactly where the
-    // budget runs out, and the hedged sentence's budget runs out one character
-    // after its "A". A one-character word alone at the end of a line is the most
-    // conspicuous thing on the poster: it reads as a bug, not as a break. This
-    // is the common case, not the corner one — every budget-exhausted search and
-    // every hand edit takes this branch. Fails if `wrap` breaks greedily without
-    // looking at the word it is about to leave behind.
+  it("breaks the hedged line where the measured budget runs out, not where the old guess said", () => {
+    // The invariant under test is the one the case was written for: no line
+    // ends on a one-character word, which on a poster reads as a bug rather
+    // than as a break. Where the break lands has moved, and the reason is the
+    // measurement rather than a change of heart — `0.52` per character
+    // overstated this sentence by 21% (1255 px against 1033 px measured in
+    // Familjen Grotesk at wght 500), and that overstatement is the only reason
+    // it used to run out one character after the "A". On the fonts' own
+    // advances the budget runs out after "may", so the orphan rule does not
+    // fire here and cannot be observed from this sentence any more. "never
+    // strands a one-character word, whatever the word is" is where the rule
+    // firing is pinned; what is pinned here is that the break follows the
+    // measurement. Fails if `wrap` returns to a fixed character count, or if
+    // the one-character-word guard is dropped.
     const lines = footerOf(result(2, 5, BEST_FOUND));
-    expect(lines[0]?.split(" ").at(-1)?.length).toBeGreaterThan(1);
-    expect(lines).toEqual(["Gap 0.4. The smallest gap known for this pool.", "A smaller one may exist."]);
+    for (const line of lines.slice(0, -1)) expect(line.split(" ").at(-1)?.length).toBeGreaterThan(1);
+    expect(lines).toEqual(["Gap 0.4. The smallest gap known for this pool. A smaller one may", "exist."]);
   });
 
   it("leaves a closing line that fits on one line unbroken", () => {
@@ -355,5 +361,52 @@ describe("layoutShareImage", () => {
     // the end of the sentence, not a break in it.
     for (const line of lines.slice(0, -1)) expect(line.split(" ").at(-1)?.length).toBeGreaterThan(1);
     expect(lines.join(" ")).toContain("X Y");
+  });
+});
+
+describe("the poster's own type metrics", () => {
+  /**
+   * The families the poster draws in, read out of a real op rather than typed,
+   * so a rename on the token side cannot be satisfied by renaming the test too.
+   */
+  const fontsOf = () => [...new Set(layoutShareImage(input(2, 5)).ops.filter((op) => op.kind === "text").map((op) => (op.kind === "text" ? op.font : "")))] as string[];
+  const stackOf = (font: string) => (font.match(/px (.+)$/)?.[1] ?? "").split(",").map((face) => face.trim().replace(/^"|"$/g, ""));
+
+  it("draws in exactly the two families the token sheet names, in the same order", () => {
+    // A `ctx.font` is a literal string, so `src/share/share-image.ts` repeats
+    // `--font-display` and `--font-body` rather than reading them. That copy is
+    // the only place the poster's faces can drift from the app's — and the drift
+    // is invisible: a poster in a different face is not a broken poster. Fails
+    // if a stack is edited here without the token, or the other way about.
+    const sheet = readFileSync(new URL("../tokens.css", import.meta.url), "utf8");
+    const declared = (token: string) => (sheet.match(new RegExp(`${token}:\\s*([^;]+);`))?.[1] ?? "").split(",").map((face) => face.trim().replace(/^"|"$/g, ""));
+    expect(stackOf(fontsOf()[0] as string)).toEqual(declared("--font-display"));
+    expect(fontsOf().map(stackOf).filter((faces) => faces[0] === "Familjen Grotesk")[0]).toEqual(declared("--font-body"));
+  });
+
+  it("measures with the fonts' own advance widths, not an average", () => {
+    // The numbers are the `hmtx` advances of the woff2 files in `public/fonts`,
+    // divided by each family's units per em, read with `wght` pinned to the
+    // weight in the `ctx.font`. Pinned here so a careless edit to the table is
+    // a test failure rather than a quietly different poster — and the ratio is
+    // the reason a per-character table is not gold-plating: in this face an "i"
+    // is 0.2458 em and a "W" is 0.9125, so any single constant is wrong for one
+    // of them by better than 2x, in whichever direction the name happens to go.
+    const body = fontsOf().find((font) => font.includes("Familjen Grotesk")) as string;
+    expect(textWidth("iii", body)).toBeCloseTo(3 * 0.2458 * 34, 5);
+    expect(textWidth("WWW", body)).toBeCloseTo(3 * 0.9125 * 34, 5);
+    expect(textWidth("WWW", body) / textWidth("iii", body)).toBeGreaterThan(3.5);
+  });
+
+  it("charges an unlisted glyph its own family's measured mean, not a guess", () => {
+    // Player names are data: an accented Latin letter, a CJK name or an emoji
+    // all reach the poster, and none is in the table. The fall-back has to be a
+    // measured quantity or a name in a script this table does not cover is laid
+    // out by an assumption — which is the guess this replaced. Fails if the
+    // fall-back is hard-coded to the old 0.52, or if an unlisted glyph silently
+    // measures as zero and a row collapses.
+    const body = fontsOf().find((font) => font.includes("Familjen Grotesk")) as string;
+    expect(textWidth("한", body)).toBeCloseTo(0.5128 * 34, 5);
+    expect(textWidth("", body)).toBe(0);
   });
 });

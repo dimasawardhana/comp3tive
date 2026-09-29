@@ -22,11 +22,23 @@
         /* storage blocked — show the page */
       }
     </script>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <!-- Type is self-hosted (src/fonts.css); the files are content-hashed, so
+         these two preloads cannot go stale against the @font-face. Only the
+         latin subsets are preloaded: the latin-ext and vietnamese ones are
+         fetched on demand, and only if a codepoint needs them. -->
     <link
-      href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=Familjen+Grotesk:wght@400;500;600&display=swap"
-      rel="stylesheet"
+      rel="preload"
+      as="font"
+      type="font/woff2"
+      crossorigin
+      href="/fonts/outfit-latin-6c18d579.woff2"
+    />
+    <link
+      rel="preload"
+      as="font"
+      type="font/woff2"
+      crossorigin
+      href="/fonts/familjen-grotesk-latin-414d5dfe.woff2"
     />
     <link rel="stylesheet" href="/src/landing.css" />
   </head>
@@ -55,12 +67,12 @@
           <title id="comp3tive-t">comp3tive</title>
           <defs>
             <clipPath id="wg">
-              <text x="209" y="128" text-anchor="start" style="font-family:'Outfit','Segoe UI',system-ui,sans-serif;font-weight:600;font-size:128px">3</text>
+              <text x="209" y="128" text-anchor="start" style="font-family:var(--font-display);font-weight:600;font-size:128px">3</text>
             </clipPath>
           </defs>
-          <text x="6" y="104" text-anchor="start" style="font-family:'Outfit','Segoe UI',system-ui,sans-serif;font-weight:600;font-size:64px;letter-spacing:.06em"><tspan fill="#C2410C">COMP</tspan></text>
-          <text x="209" y="128" text-anchor="start" fill="#57534E" style="font-family:'Outfit','Segoe UI',system-ui,sans-serif;font-weight:600;font-size:128px">3</text>
-          <text x="279.9" y="104" text-anchor="start" style="font-family:'Outfit','Segoe UI',system-ui,sans-serif;font-weight:600;font-size:64px;letter-spacing:.06em"><tspan fill="#57534E">TIVE</tspan></text>
+          <text x="6" y="104" text-anchor="start" style="font-family:var(--font-display);font-weight:600;font-size:64px;letter-spacing:.06em"><tspan fill="#C2410C">COMP</tspan></text>
+          <text x="209" y="128" text-anchor="start" fill="#57534E" style="font-family:var(--font-display);font-weight:600;font-size:128px">3</text>
+          <text x="279.9" y="104" text-anchor="start" style="font-family:var(--font-display);font-weight:600;font-size:64px;letter-spacing:.06em"><tspan fill="#57534E">TIVE</tspan></text>
           <rect x="0" y="0" width="450" height="81" fill="#C2410C" clip-path="url(#wg)"/>
         </svg>
       </header>

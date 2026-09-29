@@ -52,7 +52,7 @@
 
 .kicker {
   display: inline-block;
-  font-family: "Outfit", sans-serif;
+  font-family: var(--font-display);
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.18em;
@@ -66,7 +66,7 @@
 }
 
 .badge {
-  font-family: "Familjen Grotesk", sans-serif;
+  font-family: var(--font-body);
   font-size: 10px;
   font-weight: 600;
   letter-spacing: 0.08em;
@@ -96,7 +96,7 @@
   gap: 6px;
 }
 .empty .big {
-  font-family: "Outfit", sans-serif;
+  font-family: var(--font-display);
   font-weight: 600;
   font-size: 22px;
   text-transform: uppercase;
@@ -122,7 +122,7 @@
 }
 .btn {
   flex: 1;
-  font-family: "Familjen Grotesk", sans-serif;
+  font-family: var(--font-body);
   font-weight: 600;
   font-size: 16px;
   padding: 15px 18px;
@@ -159,7 +159,7 @@
 }
 
 .field-label {
-  font-family: "Outfit", sans-serif;
+  font-family: var(--font-display);
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.14em;
@@ -169,7 +169,7 @@
 }
 
 .rating-label {
-  font-family: "Familjen Grotesk", sans-serif;
+  font-family: var(--font-body);
   font-size: 13px;
   font-weight: 500;
   color: var(--text);
@@ -178,7 +178,7 @@
 }
 
 .input {
-  font-family: "Familjen Grotesk", sans-serif;
+  font-family: var(--font-body);
   font-size: 16px;
   color: var(--text);
   background: var(--surface-2);
@@ -251,7 +251,7 @@
   outline-offset: 2px;
 }
 .modal-title {
-  font-family: "Outfit", sans-serif;
+  font-family: var(--font-display);
   font-size: 22px;
   font-weight: 600;
   text-transform: uppercase;
@@ -271,7 +271,7 @@
 /* The share sheet is reachable from SplitScreen's subtree, so its rules are
    here by the same membership rule as the Save Squad modal's. */
 .share-preview {
-  font-family: "Familjen Grotesk", sans-serif;
+  font-family: var(--font-body);
   font-size: 14px;
   line-height: 1.5;
   color: var(--text);
@@ -328,7 +328,7 @@
   color: var(--text);
 }
 .team .tname {
-  font-family: "Outfit", sans-serif;
+  font-family: var(--font-display);
   font-weight: 700;
   font-size: 13px;
   letter-spacing: 0.12em;
@@ -404,7 +404,7 @@
   opacity: 0.75;
 }
 .team .avg b {
-  font-family: "Outfit", sans-serif;
+  font-family: var(--font-display);
   font-weight: 700;
   font-size: 20px;
   letter-spacing: 0;
@@ -420,7 +420,7 @@
   padding: 0 2px;
 }
 .mid .tag {
-  font-family: "Outfit", sans-serif;
+  font-family: var(--font-display);
   font-weight: 600;
   font-size: 11px;
   letter-spacing: 0.08em;
@@ -470,7 +470,7 @@
 .scale .num {
   position: absolute;
   top: 50%;
-  font-family: "Outfit", sans-serif;
+  font-family: var(--font-display);
   font-weight: 600;
   font-size: 13px;
   letter-spacing: 0.02em;
@@ -498,13 +498,13 @@
 }
 .readout {
   text-align: center;
-  font-family: "Outfit", sans-serif;
+  font-family: var(--font-display);
   font-weight: 600;
   font-size: 15px;
   letter-spacing: 0.02em;
 }
 .readout .fine {
-  font-family: "Familjen Grotesk", sans-serif;
+  font-family: var(--font-body);
   font-weight: 500;
   font-size: 13px;
   opacity: 0.8;
@@ -517,7 +517,7 @@
    takes its spacing from that gap alone. */
 .fairness {
   text-align: center;
-  font-family: "Familjen Grotesk", sans-serif;
+  font-family: var(--font-body);
   font-weight: 500;
   font-size: 13px;
   line-height: 1.5;
@@ -570,7 +570,7 @@
   background: var(--whistle);
   color: var(--whistle-ink);
   border-radius: var(--r-md);
-  font-family: "Familjen Grotesk", sans-serif;
+  font-family: var(--font-body);
   font-size: 14px;
   font-weight: 600;
 }
@@ -598,7 +598,7 @@
   min-width: 28px;
   height: 22px;
   padding: 0 6px;
-  font-family: "Outfit", sans-serif;
+  font-family: var(--font-display);
   font-size: 12px;
   font-weight: 700;
   background: var(--text);
@@ -613,7 +613,7 @@
   border-color: #faf8f5;
 }
 .player-name {
-  font-family: "Familjen Grotesk", sans-serif;
+  font-family: var(--font-body);
   font-size: 15px;
   font-weight: 700;
   color: var(--text);
@@ -634,7 +634,7 @@
   gap: 4px;
 }
 .rating-cell .rating-label {
-  font-family: "Outfit", sans-serif;
+  font-family: var(--font-display);
   font-size: 9px;
   font-weight: 700;
   letter-spacing: 0.06em;
@@ -682,7 +682,7 @@
   white-space: nowrap;
 }
 .tname-avg {
-  font-family: "Outfit", sans-serif;
+  font-family: var(--font-display);
   font-size: 12px;
   font-weight: 700;
   background: rgba(28, 25, 23, 0.85);
@@ -692,7 +692,7 @@
   flex-shrink: 0;
 }
 .tag-gap {
-  font-family: "Outfit", sans-serif;
+  font-family: var(--font-display);
   font-size: 14px;
   font-weight: 700;
 }

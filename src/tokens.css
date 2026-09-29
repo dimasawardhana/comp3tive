@@ -1,3 +1,5 @@
+@import "./fonts.css";
+
 /* Design system: "Paper & Pencil" (per DESIGN.md). Warm paper, quiet ink, one amber accent for live action. */
 
 /* Single source of truth for every design token. Consumed by the app
@@ -30,6 +32,21 @@
   --panel-card: rgba(250, 248, 245, 0.06);
   --track: rgba(250, 248, 245, 0.25);
   --tick: rgba(250, 248, 245, 0.4);
+  /* Type. The two faces are self-hosted (`src/fonts.css`); everything after
+     them is the deliberate fall-back, and it matters more now than it did when
+     a CDN miss cost a slow first paint. Same-origin, a wrong path is a silent
+     404: no error, no console line, and the app renders in the fall-back
+     forever. So the stack is written out rather than left as a bare
+     `sans-serif` — `system-ui` first, because it is the closest thing to
+     Familjen Grotesk's grotesk on the platform; the named faces after it for
+     user agents with no `system-ui`; the generic last, so an old one still
+     gets a sans rather than a serif. Outfit's chain matches: it is a geometric
+     sans, and a serif fall-back under a geometric headline is the one that
+     reads as a different product. `src/share/share-image.ts` cannot read a
+     custom property — a `ctx.font` is a literal string — so it repeats these
+     two lists, and `src/share/share-image.test.ts` fails if they drift. */
+  --font-display: "Outfit", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-body: "Familjen Grotesk", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --shadow: 0 1px 2px rgba(28, 25, 23, 0.04), 0 4px 12px rgba(28, 25, 23, 0.08);
   --r-lg: 16px;
   --r-md: 12px;
