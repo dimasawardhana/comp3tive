@@ -21,6 +21,17 @@
       crossorigin
       href="/fonts/familjen-grotesk-latin-414d5dfe.woff2"
     />
+    <!-- The installable surface. The manifest's `start_url` is this document, so
+         the launcher opens the tool and not the pitch; see public/manifest.webmanifest
+         and Task 10's report for the field-by-field reasoning. `theme-color` is the
+         OS chrome and is one static value, so it is the light theme's --surface:
+         the paper `.topbar-wrap` paints, so the status strip and the app's own bar
+         are one surface. iOS ignores the manifest for the home-screen icon and
+         reads `apple-touch-icon`, which is why the two documents carry it. -->
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta name="theme-color" content="#FAF8F5" />
+    <link rel="icon" href="/icons/icon-192.png" sizes="192x192" />
+    <link rel="apple-touch-icon" href="/icons/maskable-512.png" />
   </head>
   <body>
     <div id="root"></div>

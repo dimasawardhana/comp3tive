@@ -40,6 +40,20 @@
       crossorigin
       href="/fonts/familjen-grotesk-latin-414d5dfe.woff2"
     />
+    <!-- The installable surface. `theme-color` is the OS chrome and is one static
+         value, so it is the light theme's --surface: the same paper the sticky
+         topbar paints, so the status strip and the app's own bar are one surface
+         with no seam. It is deliberately NOT --accent; amber is this design's
+         "do this now" colour (--whistle, --danger share it) and a permanent bar
+         of it above a hairline-ruled paper UI would spend it as wallpaper.
+         `apple-touch-icon` points at the maskable tile, not icon-192: iOS ignores
+         the manifest and applies its own crop, and that tile's glyph is drawn
+         larger to survive one. `rel="icon"` also stops the /favicon.ico miss that
+         404s onto the 404 page on every load. Task 12 owns the install copy. -->
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta name="theme-color" content="#FAF8F5" />
+    <link rel="icon" href="/icons/icon-192.png" sizes="192x192" />
+    <link rel="apple-touch-icon" href="/icons/maskable-512.png" />
     <link rel="stylesheet" href="/src/landing.css" />
   </head>
   <body>
