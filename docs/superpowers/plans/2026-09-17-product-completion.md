@@ -1838,6 +1838,27 @@ const world = (): SeedWorld => ({
   activeCommunityId: "comm-rr",
 });
 
+> **CORRECTION (2026-09-28, after Task 8 landed).** This plan names things that have moved
+> underneath it, in four places, and the line numbers below are deliberately **not** cited because
+> corrections to this file shift them. Match on content:
+>
+> - **The discipline is `MLBB`, not "Mobile Legends".** Four occurrences in this plan are wrong:
+>   the two `modal.locator(".chip", { hasText: "Mobile Legends" })` lines in Task 8's spec, and the
+>   two `share-text` assertions that expect a copied string to start `"Mobile Legends · Thursday
+>   Crew"`. Both describe a name the seed does not use. Those specs passed because their
+>   implementers wrote them against the real seed rather than from this plan.
+> - **The post-save screen is the review panel**, which initialises with the teams seated and
+>   nothing played. "The split screen appears next" is wrong.
+> - **A best-of-three needs two games to decide a match** — `resolvedWinner` needs
+>   `majority(3) = 2`, not one. A spec that decides a BO3 after a single game asserts a result the
+>   engine has not reached.
+> - **`TEAM_COUNTS["single-elim"]` stays `[4, 2, 8]`**, not this plan's `[2, 4, 8]`. The first
+>   entry is what the modal opens on, so the plan's order would make every single-elim tournament
+>   default to two teams.
+> - **The round count is `roundRobinRounds(n)`**, never `roundRobinSchedule(n).length`. The latter
+>   is the number of *rows*, and a bye is a row, so it reads roughly double for every selectable
+>   count: 6 rows over 3 rounds at `n = 4`, and 6 rows over 3 rounds at `n = 3`.
+
 test("a 3-team round robin is selectable, runs, and crowns a champion from the standings", async ({ page }) => {
   await gotoHubSeeded(page, world(), "Games");
 
