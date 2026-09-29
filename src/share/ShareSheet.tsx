@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 import type { Discipline, Player, SplitResult } from "../domain/types";
 import { Modal } from "../ui/Modal";
 import { teamsAsText } from "./share-text";
+import { renderShareImage } from "./share-image";
 
 interface Props {
   /** Names the community in the headline; who these teams are for. */
@@ -17,18 +18,43 @@ interface Props {
 const COPY_FAILED = "Copy failed. Select the text above and copy it.";
 
 /**
- * The share surface: the finished teams as one block of text, onto the
- * clipboard.
+ * One sentence for every way the poster fails to exist, and the same recovery
+ * `COPY_FAILED` gives, because the recovery *is* the same: the text is still
+ * on screen, and it is the only thing left that can be sent. Two sentences for
+ * one recovery would be free to drift, and the drift would only show up in a
+ * browser too broken to have drawn anything.
+ */
+const IMAGE_FAILED = "Couldn't draw the image. Select the text above and copy it.";
+
+/**
+ * The filename the fallback saves under, stamped UTC so it cannot depend on the
+ * machine's timezone: `src/data/sample-data.ts`'s download takes its name from
+ * the data it loaded, and there is no data record here to name it.
+ */
+const posterName = (): string => `comp3tive-teams-${new Date().toISOString().slice(0, 10)}.png`;
+
+/**
+ * The share surface: the finished teams, as text for a chat and as a poster
+ * for anywhere a picture is what lands.
+ *
+ * Two ways out of one sheet, because the two are not substitutes. The text is
+ * searchable, quotable and pasteable into a group chat; the poster is the same
+ * split drawn, for a channel where a wall of names reads as noise. Both are
+ * built from the one `result` and the one `roster` in scope, so neither can
+ * describe a split the other does not.
  *
  * The preview is not a second rendering of the split. It is the string
  * `teamsAsText` returns, character for character, because that string is what
  * leaves the app — into a group chat, quoted back at the people who made it.
  * A sheet that re-derived the text beside the module that owns it would be free
  * to disagree with it, and the disagreement would only ever surface after the
- * message was sent.
+ * message was sent. The poster takes the same module's `closingLine` for the
+ * same reason, from the same `result`.
  *
  * `discipline` carries its own name, so the sheet never takes `disciplineName`
- * beside it: two props for one value is one of them silently wrong.
+ * beside it: two props for one value is one of them silently wrong. Both
+ * renderings are handed `discipline.name` — the poster's input wants a
+ * `disciplineName`, and it is the one value, not two.
  */
 export function ShareSheet({ communityName, discipline, result, roster, onClose }: Props) {
   const text = teamsAsText({ communityName, disciplineName: discipline.name, discipline, result, roster });
@@ -45,6 +71,75 @@ export function ShareSheet({ communityName, discipline, result, roster, onClose 
     if (!el) return;
     el.focus();
     el.select();
+  };
+
+  /**
+   * Feature-detected, not assumed: a browser may have `ClipboardItem` and still
+   * refuse `image/png`, in which case the download is the honest action.
+ *
+   * This picks the *label* and nothing else. It is a heuristic, and a wrong
+   * `true` costs the organizer one status line — the copy is attempted, fails,
+   * and the blob that was just drawn is written to a file instead. The
+   * guarantee is `downloadImage`, which needs no capability at all.
+   */
+  const canCopyImage = typeof ClipboardItem !== "undefined" && ClipboardItem.supports?.("image/png") === true;
+
+  /**
+   * The shared recovery, beside `selectAll` rather than inside the handler, so
+   * the image path cannot grow a second spelling of what the text path already
+   * says.
+   */
+  const imageFailed = () => {
+    setStatus(IMAGE_FAILED);
+    selectAll();
+  };
+
+  /**
+   * A blob the click already drew, handed to the browser as a file. The one
+   * path that always works, and therefore the one the copy path falls back to.
+   */
+  const downloadImage = (blob: Blob, saved: string) => {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = posterName();
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    setStatus(saved);
+  };
+
+  const shareImage = async () => {
+    let blob: Blob;
+    try {
+      // Drawn once for both paths. A poster the clipboard refused is the same
+      // poster, not a second draw that can fail where the first one did not —
+      // and `layoutShareImage` is cheap but `fillText` over 1080 px of type is
+      // not free.
+      blob = await renderShareImage({ disciplineName: discipline.name, discipline, result, roster });
+    } catch {
+      // The documented failure is a canvas that will not hand out a 2D
+      // context, and then there is no blob to download and no file to save.
+      // Saying so is the whole behaviour: without this the button is a control
+      // that silently does nothing, which is what the sheet's copy path refuses
+      // to be.
+      imageFailed();
+      return;
+    }
+    if (!canCopyImage) {
+      downloadImage(blob, "Downloaded the image.");
+      return;
+    }
+    try {
+      await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
+      setStatus("Copied.");
+    } catch {
+      // A refused write never costs the user the text the sheet already holds,
+      // and the poster is already made — so the file is one click from going
+      // out, and the sentence says which of the two things happened.
+      downloadImage(blob, "Couldn't copy the image. Downloaded it instead.");
+    }
   };
 
   const copyText = async () => {
@@ -91,6 +186,14 @@ export function ShareSheet({ communityName, discipline, result, roster, onClose 
           onClick={() => void copyText()}
         >
           {copied ? "Copied" : "Copy text"}
+        </button>
+        <button
+          type="button"
+          className="btn btn-ghost"
+          data-testid="share-image"
+          onClick={() => void shareImage()}
+        >
+          {canCopyImage ? "Copy image" : "Download image"}
         </button>
       </div>
     </Modal>

@@ -1,11 +1,17 @@
 /**
- * The share surface: the finished teams as one block of text, onto the
- * clipboard.
+ * The share surface: the finished teams as one block of text for a chat, and
+ * as a poster for anywhere a picture is what lands.
  *
- * This spec is the only place the clipboard itself is exercised. The unit tests
- * beside the sheet (`src/share/ShareSheet.test.ts`) render it statically, which
- * cannot see a resolved promise or a rejected one — and "the text left the
- * building" is the whole claim of this feature, so it is worth a real browser.
+ * This spec is the only place the clipboard itself is exercised, in both of
+ * its forms. The unit tests beside the sheet (`src/share/ShareSheet.test.ts`)
+ * render it statically, which cannot see a resolved promise or a rejected one
+ * — and "the teams left the building", in text or in pixels, is the whole
+ * claim of this feature, so it is worth a real browser.
+ *
+ * Three of the specs here take a capability away and assert the honest
+ * fallback rather than a crash: no clipboard API (text), no `ClipboardItem`
+ * (poster download), and no 2D context (no poster at all, and a sentence
+ * saying so).
  *
  * The pool is uniform MLBB, ten players at two teams: a measured, proven split
  * (`e2e/tests/split/gap-provenance.spec.ts` records this pool at
@@ -16,6 +22,7 @@
  * the split screen changes.
  */
 import { test, expect } from "@playwright/test";
+import { readFileSync } from "node:fs";
 import type { Page } from "@playwright/test";
 import { gotoHubSeeded, type SeedWorld } from "../../support/seed";
 
@@ -143,5 +150,100 @@ test.describe("the share sheet", () => {
     await page.goto("/");
     await expect(page.locator("#landing-hero .split-screen")).toBeVisible();
     await expect(page.locator("#landing-hero").getByTestId("share-teams")).toHaveCount(0);
+  });
+
+  // ---------------------------------------------------------------------
+  // The poster. Same sheet, same split, one more way out — and the one that
+  // can fail in a way copying text cannot, because it draws to a canvas first.
+  // ---------------------------------------------------------------------
+
+  test("copies the poster to the clipboard as a PNG", async ({ page }) => {
+    await splitTwoTeams(page);
+    const sheet = await openSheet(page);
+    // The label is a feature detection, so a browser that would refuse an
+    // image says so before the click rather than after it.
+    await expect(sheet.getByTestId("share-image")).toHaveText("Copy image");
+
+    await sheet.getByTestId("share-image").click();
+    await expect(sheet.locator(".share-status")).toHaveText("Copied.", { timeout: 15_000 });
+
+    const items = await page.evaluate(async () => {
+      const list = await navigator.clipboard.read();
+      const out: Array<{ type: string; size: number }> = [];
+      for (const item of list) {
+        for (const type of item.types) {
+          if (type !== "image/png") continue;
+          const blob = await item.getType(type);
+          out.push({ type, size: blob.size });
+        }
+      }
+      return out;
+    });
+    expect(items.length).toBeGreaterThan(0);
+    expect(items[0].type).toBe("image/png");
+    // A legible poster at 1080 px wide, not a blank or truncated bitmap.
+    expect(items[0].size).toBeGreaterThan(10_000);
+  });
+
+  test("downloads the poster when the browser cannot write an image to the clipboard", async ({ page }) => {
+    await page.addInitScript(() => {
+      // The constructor is defined away rather than deleted: `delete` on a
+      // global interface is a silent no-op where the property is not
+      // configurable, and a silently no-opped stub would leave this asserting
+      // the copy path it is here to disprove. This is the same shape as the
+      // clipboard stub in the spec above.
+      Object.defineProperty(window, "ClipboardItem", { get: () => undefined, configurable: true });
+    });
+    await splitTwoTeams(page);
+    const sheet = await openSheet(page);
+    await expect(sheet.getByTestId("share-image")).toHaveText("Download image");
+
+    const download = page.waitForEvent("download");
+    await sheet.getByTestId("share-image").click();
+    const file = await download;
+    expect(file.suggestedFilename()).toMatch(/^comp3tive-teams-\d{4}-\d{2}-\d{2}\.png$/);
+    await expect(sheet.locator(".share-status")).toHaveText("Downloaded the image.");
+
+    // The filename is not the file: assert the bytes on disk are a PNG of
+    // poster size, so a save that produced a zero-byte or HTML body cannot
+    // pass by naming itself correctly.
+    const path = await file.path();
+    expect(path).not.toBeNull();
+    const bytes = readFileSync(path as string);
+    expect(bytes.length).toBeGreaterThan(10_000);
+    // PNG magic number.
+    expect([...bytes.subarray(0, 8)]).toEqual([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+  });
+
+  test("says so and keeps the text when the poster cannot be drawn", async ({ page }) => {
+    await page.addInitScript(() => {
+      // `renderShareImage` draws on an `OffscreenCanvas` wherever the browser
+      // has one, so breaking `HTMLCanvasElement` alone would never be reached.
+      // Take the constructor away and both paths end up asking a canvas for a
+      // 2D context, which is the one failure `renderShareImage` documents.
+      Object.defineProperty(window, "OffscreenCanvas", { get: () => undefined, configurable: true });
+      HTMLCanvasElement.prototype.getContext = (() =>
+        null) as typeof HTMLCanvasElement.prototype.getContext;
+    });
+    await splitTwoTeams(page);
+    const sheet = await openSheet(page);
+
+    await sheet.getByTestId("share-image").click();
+    // The point of the whole path: a control that cannot deliver says so in the
+    // one region the sheet already speaks through, rather than doing nothing
+    // visible at all.
+    await expect(sheet.locator(".share-status")).toHaveText(
+      "Couldn't draw the image. Select the text above and copy it.",
+    );
+
+    // The recovery is the text path's, unchanged: the split is still there and
+    // it is left selected, because it is the only thing left that can be sent.
+    const preview = sheet.locator("textarea.share-preview");
+    await expect(preview).toHaveValue(/Thursday Crew/);
+    const selection = await preview.evaluate((el) => {
+      const t = el as HTMLTextAreaElement;
+      return { start: t.selectionStart, end: t.selectionEnd, len: t.value.length };
+    });
+    expect(selection.end - selection.start).toBe(selection.len);
   });
 });

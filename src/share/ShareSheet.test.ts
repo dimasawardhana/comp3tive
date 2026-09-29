@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { ShareSheet } from "./ShareSheet";
@@ -43,6 +43,22 @@ const sheet = () =>
     }),
   );
 
+/**
+ * The sheet as a browser that has `ClipboardItem` would see it. The stub is a
+ * global because the capability check reads a global — a prop or a module-level
+ * constant would test a seam this sheet deliberately does not have, and a
+ * module-level one would freeze the answer at import, which in `node` is
+ * always "no clipboard".
+ */
+const withClipboardItem = (ctor: { supports?: (type: string) => boolean }) => {
+  vi.stubGlobal("ClipboardItem", ctor);
+  return sheet();
+};
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
+
 /** The five entities React emits for a `value`, undone — the box shows the raw string. */
 const unescape = (s: string) =>
   s
@@ -81,14 +97,54 @@ describe("the share sheet", () => {
     expect(sheet()).toContain("<textarea class=\"share-preview\" readOnly=\"\"");
   });
 
-  it("offers one copy control and says nothing about the copy before it happens", () => {
+  it("keeps the text control, and says nothing about either action before it happens", () => {
     // Fails if the status region is seeded with a claim ("Copied.", "Ready.")
-    // rather than waiting on the click, or if the button loses its testid and
-    // the e2e can no longer reach the control it is asserting on.
+    // rather than waiting on a click, or if the button loses its testid and
+    // the e2e can no longer reach the control it is asserting on. The sheet
+    // now offers two ways out, and the status line is still one line: a poster
+    // that reports itself before it is drawn would be a second claim to keep.
     const html = sheet();
     expect(html).toContain('data-testid="share-copy-text"');
     expect(html).toContain("Copy text");
     expect(html).toMatch(/<p class="share-status" role="status"><\/p>/);
+  });
+
+  it("offers the poster, labelled for a browser that cannot put an image on the clipboard", () => {
+    // This suite runs in the `node` environment, where `ClipboardItem` does
+    // not exist — so the static render *is* the fallback branch, for free, and
+    // the label it has to print is the one a browser without an image
+    // clipboard sees. Fails if the control is missing, and just as hard if it
+    // claims "Copy image" with nothing behind the claim.
+    const html = sheet();
+    expect(html).toContain('data-testid="share-image"');
+    expect(html).toMatch(/data-testid="share-image"[^>]*>\s*Download image\s*<\/button>/);
+  });
+
+  it("claims a clipboard copy only where the browser says it will take an image", () => {
+    // The hazard `ClipboardItem.supports?.("image/png")` exists for: the
+    // constructor's presence is not permission, and a browser that has it can
+    // still refuse the type. Fails if the check is replaced by
+    // `typeof ClipboardItem !== "undefined"`, if the two labels are swapped,
+    // and if the label is hardcoded to either one.
+    expect(withClipboardItem({ supports: () => true })).toMatch(
+      /data-testid="share-image"[^>]*>\s*Copy image\s*<\/button>/,
+    );
+    expect(withClipboardItem({ supports: () => false })).toMatch(
+      /data-testid="share-image"[^>]*>\s*Download image\s*<\/button>/,
+    );
+    // No `supports` at all is the third browser: not asked, so not claimed.
+    expect(withClipboardItem({})).toMatch(/data-testid="share-image"[^>]*>\s*Download image\s*<\/button>/);
+  });
+
+  it("keeps both ways out of the sheet in one bar, so neither is a second surface", () => {
+    // D31 puts the D32 control in *this* sheet, and the e2e opens exactly one
+    // `.modal-card` for both. Fails if the poster grows a modal of its own, or
+    // if either control is moved out of the bar the other lives in.
+    const html = sheet();
+    const bar = html.slice(html.indexOf('<div class="bar">'), html.indexOf("</div>", html.indexOf('<div class="bar">')));
+    expect(bar).toContain('data-testid="share-copy-text"');
+    expect(bar).toContain('data-testid="share-image"');
+    expect(html.match(/class="modal-card"|class="modal-overlay"/g)?.length).toBe(2);
   });
 
   it("gives the sheet a named close control, the keyboard's only way out", () => {
