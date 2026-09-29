@@ -284,18 +284,39 @@ describe("the web app manifest", () => {
     }
   });
 
-  it("leaves the Landing Page's copy alone, because the claim is not true yet", () => {
-    // Phase B deleted the offline promise because nothing backed it, and Task 12
-    // puts it back when the worker does. This task adds a manifest, which is the
-    // other half of that promise, and must not drag the copy forward with it.
-    // Comments are stripped because a comment is not something a reader sees.
+  it("carries the offline claim the service worker now backs, and still promises no install prompt", () => {
+    // This was written as an absence by Task 10: Phase B had deleted the offline
+    // promise and a manifest is not a promise anybody can keep, so the page must
+    // not make it. Task 12 proved the promise against a real browser and put it
+    // back, so the guard is inverted — this is the assertion that goes red if the
+    // claim is removed again.
+    //
+    // The claim is asserted on the Landing Page's spoken copy, because that is
+    // where it is written; the app document is a shell with a `<title>` and has no
+    // copy to carry it. Comments are stripped because a comment is not something
+    // a reader sees. The scope is pinned with the claim: "works offline" alone is
+    // the unscoped sentence Phase B deleted, and Task 12 restored a sentence that
+    // is only true once comp3tive has run with a network.
+    const spoken = DOCUMENTS.landing.replace(/<!--[\s\S]*?-->/g, "");
+    expect(spoken).toMatch(/once comp3tive has run with a network/i);
+    expect(spoken).toMatch(/it opens and runs a tournament with no signal/i);
+    // The pre-B14 sentence, verbatim, must not come back: it was the unscoped
+    // form, and one claim may not appear twice at two scopes.
+    expect(spoken).not.toMatch(/works with no signal/i);
+
+    // The two install-prompt phrasings are a *different* promise — the manifest
+    // and the worker make comp3tive installable, but neither of these sentences
+    // is written on the page and nothing in this repo proves either phrasing is
+    // the right one. So they stay absences: the offline claim came back because
+    // it was proved, and they would come back because they sounded good.
     for (const [name, html] of Object.entries(DOCUMENTS)) {
-      const spoken = html.replace(/<!--[\s\S]*?-->/g, "");
-      for (const claim of [/works offline/i, /no signal/i, /install the app/i, /add to home screen/i]) {
-        expect(spoken, `${name} must not claim ${claim}`).not.toMatch(claim);
+      const copy = html.replace(/<!--[\s\S]*?-->/g, "");
+      for (const claim of [/install the app/i, /add to home screen/i]) {
+        expect(copy, `${name} must not claim ${claim}`).not.toMatch(claim);
       }
     }
+
     const described = DOCUMENTS.landing.match(/name="description"\s+content="([^"]*)"/)?.[1] ?? "";
-    expect(described).not.toMatch(/works offline/i);
+    expect(described).toMatch(/works offline after one online run\./i);
   });
 });

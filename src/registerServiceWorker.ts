@@ -32,9 +32,12 @@ export const SERVICE_WORKER_URL = "/sw.js";
  *
  * Nothing is reported, and that is a decision rather than an omission. The one
  * thing this could report is "you will not get the offline experience", which is
- * not an error the user can act on, and the app says nothing false either way:
- * the Landing Page makes no offline or install claim of its own, because the
- * claim belongs to the next task, which proves it first.
+ * not an error the user can act on. What it would be wrong to do is stay silent
+ * in the other direction: the Landing Page now says comp3tive opens and runs a
+ * tournament with no signal once it has run with a network, and that sentence is
+ * scoped to a worker being installed — by this file, and only by this file. A
+ * browser that refuses the registration is the one case where the sentence stops
+ * being true, and it is also the one case no user can act on.
  *
  * Nothing is awaited either. `register()` resolves once the worker is
  * *registered*; activation happens on the browser's own schedule, which no

@@ -90,16 +90,26 @@ test.describe("Landing Page", () => {
     ]);
 
     const trust = page.locator(".landing-trust li");
-    await expect(trust).toHaveCount(3);
+    await expect(trust).toHaveCount(4);
     await expect(trust).toContainText([
       "The screen says when the gap is the best it found, not proven",
       "stays on your device",
       "no account",
+      // The offline row, restored by Task 12 and scoped to the condition that
+      // makes it true. It is a *fourth* row, not a replacement: the count was 3
+      // because there were three true rows, and swapping a true row out to keep
+      // the number at 3 would delete a claim nobody asked to delete. The scope is
+      // asserted whole, not by keyword — "Works offline" on its own is the
+      // unscoped sentence Phase B deleted, and a reword that drops "once comp3tive
+      // has run with a network" must not pass on the strength of "no signal".
+      "Once comp3tive has run with a network, it opens and runs a tournament with no signal",
     ]);
 
-    // B14: the offline promise is deleted, not softened. D02 restores it with the
-    // manifest and service worker; until then the page must not make it at all.
-    await expect(page.locator(".landing-trust")).not.toContainText("no signal");
+    // B14 wrote this as an absence: the offline promise was deleted, so the page
+    // must not make it. Task 12 put it back, so the guard is inverted. It is now
+    // the assertion that fails if the claim is removed again — the receipt the
+    // proof and the copy cannot drift apart on.
+    await expect(page.locator(".landing-trust")).toContainText("no signal");
     // B14 round 3: "for a two-team pool" was still a pool-size claim. Two-team
     // futsal pools of 32+ abort at NODE_BUDGET, so the row now promises the one
     // thing true at every size — the screen flags the best-found case.
@@ -174,13 +184,15 @@ test.describe("Landing Page", () => {
     // Offered but not in the union: the chip list drifted out of the domain.
     expect(SELECTABLE.filter((f) => !NAMED_FORMATS.includes(f))).toEqual([]);
 
-    // B14 round 2: the meta description repeated the unscoped claim the lede
-    // had just dropped, and the offline promise is deleted rather than softened
-    // — D02 restores it with the manifest and service worker.
+    // B14 round 2: the meta description repeated the unscoped claim the lede had
+    // just dropped, and the offline promise was deleted rather than softened.
+    // Task 12 puts it back, so both halves flip: the claim is asserted present,
+    // scope included, because a claim that lives only in the body is a claim a
+    // search result and a share text will not carry — and an unscoped one in the
+    // meta is the exact repeat Phase C found.
     const described = (await page.locator('meta[name="description"]').getAttribute("content")) ?? "";
     expect(described).toContain("it can prove");
-    expect(described).not.toContain("Works offline");
-    expect(described).not.toContain("no signal");
+    expect(described).toContain("Works offline after one online run.");
 
     // The Roster rail counts the catalog, so it is asserted against the catalog
     // rather than a typed number: a fourth seed must not leave a stale count.
