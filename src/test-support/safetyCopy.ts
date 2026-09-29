@@ -9,6 +9,18 @@
  * it with the copy in front of them, and the other file is left unguarded. This
  * file is the one place the rule is written, and the vitest include glob (which
  * matches only `.test.ts` under `src`) means it is never collected as a test.
+
+ * **Why this is a directory and not a file beside the tests — do not collapse
+ * it.** The obvious tidier is to move the two exports into one of the two
+ * `.test.ts` files and import them from the other. That does not work, and the
+ * failure is silent and confusing rather than loud: importing a `.test.ts` from
+ * another `.test.ts` executes the imported file's `describe` and `it` calls in
+ * the importer's module graph, so vitest collects the donor file's cases a
+ * second time under the wrong name and the suite doubles. The double
+ * registration is the entire reason this file exists outside the test files.
+ * It is invisible from the inside — the code reads like a module that happens
+ * to have a folder around it — which is why the reason is written here rather
+ * than left to be rediscovered by the next person who tidies.
  *
  * **Why `protect` is on the list even though the product is entitled to the
  * word.** The unknown line used to read "Storage protection unknown in this
