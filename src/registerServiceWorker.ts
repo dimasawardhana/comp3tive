@@ -9,8 +9,14 @@
  * test environment.
  */
 export interface WorkerCapable {
-  readonly serviceWorker?: { register(url: string): Promise<unknown> };
+  readonly serviceWorker?: {
+    register(url: string): Promise<unknown>;
+    addEventListener(type: "message", handler: (event: { data: unknown }) => void): void;
+  };
 }
+
+/** The worker's message for a page that is running a build which is no longer deployed. */
+export const STALE_BUILD_MESSAGE = "comp3tive:stale-build";
 
 /** The worker's scope is `/` (vite.config.ts), so the script sits at the root. */
 export const SERVICE_WORKER_URL = "/sw.js";
@@ -34,8 +40,20 @@ export const SERVICE_WORKER_URL = "/sw.js";
  * *registered*; activation happens on the browser's own schedule, which no
  * promise here can shorten, and the render must not queue behind a file it does
  * not need.
+ *
+ * `reload` is why the message listener is here and not in main.tsx. A page that
+ * is running a build which is no longer deployed cannot repair itself — the chunk
+ * URL it holds is gone from the server — so the only way back to a working app is
+ * to start again, and the worker is the only party that knows. It reports at most
+ * once per worker lifetime, so a deploy that is broken in a way which keeps 404ing
+ * costs this user one reload and not a loop.
  */
-export function registerServiceWorker(nav: WorkerCapable = navigator): void {
+export function registerServiceWorker(nav: WorkerCapable = navigator, reload: () => void = () => window.location.reload()): void {
   if (!("serviceWorker" in nav)) return;
-  void nav.serviceWorker?.register(SERVICE_WORKER_URL).catch(() => undefined);
+  const container = nav.serviceWorker;
+  if (!container) return;
+  void container.register(SERVICE_WORKER_URL).catch(() => undefined);
+  container.addEventListener("message", (event) => {
+    if (event.data === STALE_BUILD_MESSAGE) reload();
+  });
 }

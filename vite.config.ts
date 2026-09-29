@@ -40,16 +40,29 @@ export function substitute(source: string, token: string, value: string): string
  * Write the emitted precache list and a build-derived version into dist/sw.js.
  *
  * The precache list is generated, never hand-maintained: a hand-written list
- * would drift from the hashed filenames and 404 on every offline fetch. The
- * version is a hash of each precached file's path *and bytes*, not of the names
- * alone, because two of these URLs are not content-hashed — `/icons/*.png` and
- * `/manifest.webmanifest` keep their names across a redesign. Hashing names
- * alone would let a redrawn icon ship with the old bytes already sitting in the
- * old cache, under the same cache name, indefinitely.
+ * would drift from the hashed filenames and 404 on every offline fetch.
  *
- * A worker-only change does not move the version and does not need to: the same
- * URLs under the same names are the same bytes, and the browser updates the
- * script itself on its own byte comparison, whatever the cache is called.
+ * The version is a hash of a URL and the bytes behind it, over EVERY precached
+ * URL — the documents included, not just the assets. Two reasons, and the second
+ * one was a real defect in the first cut of this file:
+ *
+ *  - `/icons/*.png` and `/manifest.webmanifest` keep their names across a
+ *    redesign, so hashing asset names alone cannot see a redrawn icon.
+ *  - A document changed on disk changes what `/app/` serves, and a version that
+ *    ignored that would leave the new document sitting in a cache the worker
+ *    never re-opens. "The document changed but the cache did not" is exactly the
+ *    bug the version exists to prevent.
+ *
+ * The cost is a full re-precache on a deploy that changes copy only and no asset
+ * — one download of a few hundred kB per returning user, on a visit they were
+ * going to make anyway. That is the right trade: the promise of a
+ * content-derived version is that a changed byte produces a new cache, and
+ * honouring it everywhere is cheaper than being right about files and wrong
+ * about the page.
+ *
+ * A worker-only change does not move the version and does not need to: no
+ * precached URL or byte changed, and the browser updates the script itself on its
+ * own byte comparison, whatever the cache is called.
  */
 export function serviceWorkerBuild(outDir = resolve(import.meta.dirname, "dist")) {
   return {
@@ -78,11 +91,17 @@ export function serviceWorkerBuild(outDir = resolve(import.meta.dirname, "dist")
       // The licence texts beside the fonts are not fonts: they are not precached,
       // and they keep Cloudflare's own Content-Type (public/_headers).
       const precache = [...assets, ...list("fonts", (name) => name.endsWith(".woff2")), ...list("icons")];
+      // A URL and a hash of the bytes behind it — the unit the version is made
+      // of. A precache URL is already a path inside `dist`; a document URL is not,
+      // so its file is named in DOCUMENTS.
+      const fingerprint = (url: string, file: string) =>
+        `${url}\n${createHash("sha256").update(readFileSync(join(outDir, file))).digest("hex")}`;
       const version = createHash("sha256")
         .update(
-          precache
-            .map((url) => `${url}\n${createHash("sha256").update(readFileSync(join(outDir, url))).digest("hex")}`)
-            .join("\n"),
+          [
+            ...DOCUMENTS.map(([url, file]) => fingerprint(url, file)),
+            ...precache.map((url) => fingerprint(url, url)),
+          ].join("\n"),
         )
         .digest("hex")
         .slice(0, 12);

@@ -3,8 +3,11 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { Script, createContext } from "node:vm";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
+// `vite.config.ts` exports `serviceWorkerBuild` and `substitute` for this file
+// and for nothing else. A second plugin instance bound to the real `dist` is
+// therefore expected here, not a surprise: the tests never call the default.
 import { serviceWorkerBuild, substitute } from "../vite.config";
-import { registerServiceWorker, SERVICE_WORKER_URL } from "./registerServiceWorker";
+import { registerServiceWorker, SERVICE_WORKER_URL, STALE_BUILD_MESSAGE } from "./registerServiceWorker";
 
 /**
  * The service worker, exercised without a browser.
@@ -47,6 +50,8 @@ const net: { fetch: (url: string) => Promise<FakeResponse> } = { fetch: async ()
 /** A `caches` whose `match` searches every store in creation order, as the real one does. */
 class FakeCaches {
   readonly stores = new Map<string, Map<string, FakeResponse>>();
+  /** Set to make the next `put` reject, as a full disk or a 206 would. */
+  refuseNextPut = false;
   private store = (name: string) => {
     const found = this.stores.get(name) ?? new Map<string, FakeResponse>();
     this.stores.set(name, found);
@@ -61,7 +66,19 @@ class FakeCaches {
       if (answers.some((answer) => !answer.ok)) throw new Error("addAll: a response was not ok");
       urls.forEach((url, index) => this.store(name).set(new URL(url, ORIGIN).href, answers[index]!));
     },
-    put: async (key: { url: string }, response: FakeResponse) => void this.store(name).set(key.url, response),
+    put: async (key: { url: string }, response: FakeResponse) => {
+      if (this.refuseNextPut) {
+        this.refuseNextPut = false;
+        throw new Error("QuotaExceededError: the cache is full");
+      }
+      this.store(name).set(key.url, response);
+    },
+    // Scoped to this one cache, which is the point: the real `Cache.match` never
+    // looks at another cache, and the global `caches.match` always does.
+    match: async (key: string | { url: string }) => {
+      const url = typeof key === "string" ? new URL(key, ORIGIN).href : key.url;
+      return this.store(name).get(url);
+    },
   });
   readonly keys = async () => [...this.stores.keys()];
   readonly match = async (key: string | { url: string }) => {
@@ -92,19 +109,32 @@ interface Worker {
   readonly caches: FakeCaches;
   readonly skipWaiting: () => number;
   readonly claimed: () => number;
+  /** Everything the worker has posted to an open page, in order. */
+  readonly messages: string[];
   /** Resolves with whatever `respondWith` was given, or undefined for a pass-through. */
   dispatch(type: "install" | "activate" | "fetch", key?: FakeRequest): Promise<FakeResponse | undefined>;
 }
 
-function startWorker(source: string): Worker {
-  const caches = new FakeCaches();
+/**
+ * `storage` is shared so a second generation can be started over the first one's
+ * cache — which is the only state in which the purge, and the stale tab it
+ * strands, exist at all. A fresh `FakeCaches` per worker could never see it.
+ */
+function startWorker(source: string, storage = new FakeCaches()): Worker {
+  const caches = storage;
   const listeners = new Map<string, (event: unknown) => void>();
   const calls = { skipWaiting: 0, claim: 0 };
+  const messages: string[] = [];
   const context = {
     self: {
       addEventListener: (type: string, handler: (event: unknown) => void) => void listeners.set(type, handler),
       skipWaiting: async () => void (calls.skipWaiting += 1),
-      clients: { claim: async () => void (calls.claim += 1) },
+      clients: {
+        claim: async () => void (calls.claim += 1),
+        // includeUncontrolled is the point: the page that most needs to hear
+        // about a dead build is one the activation has just handed to the network.
+        matchAll: async () => [{ postMessage: (data: string) => void messages.push(data) }],
+      },
       location: { origin: ORIGIN },
     },
     caches,
@@ -116,6 +146,7 @@ function startWorker(source: string): Worker {
 
   return {
     caches,
+    messages,
     skipWaiting: () => calls.skipWaiting,
     claimed: () => calls.claim,
     async dispatch(type, key) {
@@ -123,6 +154,7 @@ function startWorker(source: string): Worker {
       if (!handler) throw new Error(`the worker registered no ${type} listener`);
       const waits: Promise<unknown>[] = [];
       let answered: Promise<FakeResponse> | undefined;
+
       handler({
         request: key,
         waitUntil: (work: Promise<unknown>) => void waits.push(Promise.resolve(work)),
@@ -177,6 +209,13 @@ function build(dir: string): string {
 const EMITTED = build(syntheticDist());
 const versionOf = (source: string) => /const VERSION = "([0-9a-f]{12})";/.exec(source)![1]!;
 /** The cache name the shipped worker opens, read out of the file it ships in. */
+
+/** Everything a built worker will hold, as absolute URLs, read off its own source. */
+const precacheOf = (source: string) =>
+  [
+    ...(JSON.parse(/const PRECACHE_ASSETS = (\[[^\]]*\]);/.exec(source)![1]!) as string[]),
+    ...(JSON.parse(/const DOCUMENTS = (\[[^\]]*\]);/.exec(source)![1]!) as string[]),
+  ].map((url) => new URL(url, ORIGIN).href);
 const CACHE_NAME = `comp3tive-${versionOf(EMITTED)}`;
 
 /** Install over a working network: the state every user is in once, online. */
@@ -191,6 +230,12 @@ const offline = () => {
     throw new Error("offline");
   };
 };
+
+/**
+ * A cache write is deliberately not awaited by the page, so a test that asserts
+ * one happened has to let the microtask and the promise it opened run first.
+ */
+const settle = () => new Promise((resolve) => setTimeout(resolve, 0));
 
 beforeAll(() => vi.spyOn(console, "log").mockImplementation(() => undefined));
 afterAll(() => {
@@ -231,6 +276,17 @@ describe("the build that fills the worker in", () => {
     // only the file name, and an installed app opens offline to the 404 page.
     const documents = JSON.parse(/const DOCUMENTS = (\[[^\]]*\]);/.exec(EMITTED)![1]!) as string[];
     expect(documents).toEqual(["/", "/index.html", "/app/", "/app/index.html", "/404.html", "/manifest.webmanifest"]);
+  });
+
+  it("moves the version when a document's bytes change, not only an asset's", () => {
+    // Fail: hashing the precache assets alone. The document is precached under a
+    // stable URL, so a copy-only deploy would produce an identical version, the
+    // worker would keep opening the cache it already has, and the new `/app/`
+    // would sit on the server being ignored. "The document changed but the cache
+    // did not" is the bug the version exists to prevent.
+    const edited = syntheticDist();
+    writeFileSync(join(edited, "app/index.html"), "<!doctype html><title>a different app</title>");
+    expect(build(edited)).not.toBe(EMITTED);
   });
 
   it("gives an identical build the same version, and a changed file a different one", () => {
@@ -351,6 +407,108 @@ describe("what the worker does when it activates", () => {
   });
 });
 
+/**
+ * The state that only exists across two worker generations sharing one Cache
+ * Storage, which is the state the purge creates and the state a returning user's
+ * stale tab is stranded in. Nothing above this line can see it: each worker in
+ * isolation is a clean install.
+ */
+describe("what a tab left on the previous build experiences", () => {
+  /**
+   * Two generations over one storage, with only the second one deployed. The
+   * `deployed` set is the server: anything not in it is a 404, which is exactly
+   * what happens to a build's files when the next deploy replaces them.
+   */
+  async function twoGenerations() {
+    const storage = new FakeCaches();
+    const first = syntheticDist();
+    const firstSource = build(first);
+    const previousName = `comp3tive-${versionOf(firstSource)}`;
+
+    // The second build changes the roster chunk, so it gets a new URL and the
+    // first build's URL stops existing on the server. That is what a deploy does
+    // to a hashed asset, and it is the case that strands an open tab.
+    const second = syntheticDist();
+    rmSync(join(second, "assets/sample-data-DhS_gulj.js"));
+    writeFileSync(join(second, "assets/sample-data-Cx9new2.js"), "the roster chunk of the second build");
+    const secondSource = build(second);
+    const currentName = `comp3tive-${versionOf(secondSource)}`;
+    expect(currentName).not.toBe(previousName);
+
+    // The served body names who served it — "first"/"second" for what each build
+    // installed, "network" for what the server returns afterwards — so "was this
+    // read out of my own cache or somebody else's?" has an observable answer
+    // rather than a plausible one.
+    const deployed = new Set<string>(precacheOf(firstSource));
+    let servedBy = "first";
+    net.fetch = async (url) => (deployed.has(url) ? respond(200, `${servedBy} ${url}`) : respond(404, "gone"));
+    const previous = startWorker(firstSource, storage);
+    await previous.dispatch("install");
+    await previous.dispatch("activate");
+    const previouslyCached = previous.caches.urls(previousName);
+
+    deployed.clear();
+    for (const url of precacheOf(secondSource)) deployed.add(url);
+    servedBy = "second";
+    const current = startWorker(secondSource, storage);
+    await current.dispatch("install");
+    await current.dispatch("activate");
+    servedBy = "network";
+    return { storage, previous, previousName, currentName, previouslyCached };
+  }
+
+  it("serves its chunk before the deploy, then loses it and is told the build is gone", async () => {
+    // The state the harness could not express before: two generations over one
+    // storage. Before the deploy the chunk is a cache hit. After it the chunk is
+    // gone from the server and the cache that held it has been purged, so the tab
+    // gets a 404 — and the page is told to start again rather than sitting on a
+    // dead build with nothing but a manual refresh.
+    const { storage, previous, previousName, currentName, previouslyCached } = await twoGenerations();
+    expect(previouslyCached).toContain(`${ORIGIN}/assets/sample-data-DhS_gulj.js`);
+    expect(storage.stores.has(previousName)).toBe(false);
+    expect([...storage.stores.keys()]).toEqual([currentName]);
+
+    expect((await previous.dispatch("fetch", request("/assets/sample-data-DhS_gulj.js")))?.status).toBe(404);
+    expect(previous.messages).toEqual([STALE_BUILD_MESSAGE]);
+  });
+
+  it("is never answered out of the current build's cache", async () => {
+    // Fail: the global `caches.match`. A tab still being served by the previous
+    // worker asks for a URL the current build has, and a global lookup finds the
+    // current build's copy of it — so the old document is handed a module it was
+    // never given. Scoped to its own cache, the read misses and the bytes come
+    // from the network, which is the truth about where they came from.
+    const { previous, currentName } = await twoGenerations();
+    // It IS in the current build's cache, so a global lookup would find it...
+    expect(previous.caches.stores.get(currentName)?.get(`${ORIGIN}/assets/sample-data-Cx9new2.js`)?.body).toMatch(
+      /^second /,
+    );
+    // ...and this is what the tab actually gets.
+    expect((await previous.dispatch("fetch", request("/assets/sample-data-Cx9new2.js")))?.body).toMatch(/^network /);
+  });
+
+  it("is never answered the current build's document while it is offline", async () => {
+    // The same rule on the document path. The previous worker's cache has been
+    // purged, so its offline fallback must come up empty and rethrow rather than
+    // quietly serve the next build's HTML to a page that cannot run its assets.
+    const { previous } = await twoGenerations();
+    offline();
+    await expect(previous.dispatch("fetch", request("/app/", { mode: "navigate" }))).rejects.toThrow();
+  });
+
+  it("says it once, so a deploy that keeps 404ing cannot become a reload loop", async () => {
+    // Fail: the once-per-lifetime guard removed. A worker that posts on every
+    // 404 reloads a page forever, and the user watches a spinner instead of a
+    // tournament.
+    const { previous } = await twoGenerations();
+    const url = request("/assets/sample-data-DhS_gulj.js");
+    await previous.dispatch("fetch", url);
+    await previous.dispatch("fetch", url);
+    await previous.dispatch("fetch", request("/assets/never-existed-9f2c.js"));
+    expect(previous.messages).toEqual([STALE_BUILD_MESSAGE]);
+  });
+});
+
 describe("what the fetch handler answers", () => {
   it("serves a precached asset without touching the network", async () => {
     // Fail: dropping /assets/ from the cache-first prefixes, which turns every
@@ -360,17 +518,45 @@ describe("what the fetch handler answers", () => {
     expect((await worker.dispatch("fetch", request("/assets/app-DkiMwHQd.js")))?.body).toBe("body 200");
   });
 
-  it("fetches an asset it has not seen, and never stores an error", async () => {
+  it("fetches an asset it has not seen, and never stores an error or a slice", async () => {
     // Fail: caching a non-2xx, which turns one bad deploy into a permanent one
-    // under an asset URL.
+    // under an asset URL; or caching a 206, which serves one reader's slice to
+    // the next reader whole.
     const worker = await installed();
     net.fetch = async () => respond(200, "the new chunk");
     expect((await worker.dispatch("fetch", request("/assets/new-9f2c.js")))?.body).toBe("the new chunk");
+    await settle();
     expect(worker.caches.urls(CACHE_NAME)).toContain(`${ORIGIN}/assets/new-9f2c.js`);
 
     net.fetch = async () => respond(500);
     expect((await worker.dispatch("fetch", request("/assets/broken-9f2c.js")))?.status).toBe(500);
+    net.fetch = async () => respond(206, "bytes 0-99 of something");
+    expect((await worker.dispatch("fetch", request("/assets/sliced-9f2c.js")))?.status).toBe(206);
+    await settle();
     expect(worker.caches.urls(CACHE_NAME)).not.toContain(`${ORIGIN}/assets/broken-9f2c.js`);
+    expect(worker.caches.urls(CACHE_NAME)).not.toContain(`${ORIGIN}/assets/sliced-9f2c.js`);
+  });
+
+  it("still answers the page when the cache refuses to store what it was given", async () => {
+    // Fail: a floating, unguarded `cache.put`. `Cache.put` rejects on a full
+    // disk, and a full disk is exactly the user who installed the app and has
+    // every precached byte on their device — the one user this whole file exists
+    // for. The rejection is caught here rather than left to the runner to notice,
+    // because a run that merely happens not to fail is not a guard.
+    const unhandled: unknown[] = [];
+    const record = (reason: unknown) => void unhandled.push(reason);
+    process.on("unhandledRejection", record);
+    try {
+      const worker = await installed();
+      worker.caches.refuseNextPut = true;
+      net.fetch = async () => respond(200, "the new chunk");
+      expect((await worker.dispatch("fetch", request("/assets/quota-9f2c.js")))?.body).toBe("the new chunk");
+      await settle();
+      expect(unhandled).toEqual([]);
+      expect(worker.caches.urls(CACHE_NAME)).not.toContain(`${ORIGIN}/assets/quota-9f2c.js`);
+    } finally {
+      process.off("unhandledRejection", record);
+    }
   });
 
   it("prefers the network for a document, and stores what it gets", async () => {
@@ -379,6 +565,7 @@ describe("what the fetch handler answers", () => {
     const worker = await installed();
     net.fetch = async () => respond(200, "the new document");
     expect((await worker.dispatch("fetch", request("/app/", { mode: "navigate" })))?.body).toBe("the new document");
+    await settle();
     expect(worker.caches.stores.get(CACHE_NAME)?.get(`${ORIGIN}/app/`)?.body).toBe("the new document");
   });
 
@@ -422,12 +609,23 @@ describe("what the fetch handler answers", () => {
 });
 
 describe("registering the worker", () => {
+  /** A container that records the message listener so a test can post to it. */
+  function container(register = vi.fn(async () => undefined)) {
+    const listeners = new Map<string, (event: { data: unknown }) => void>();
+    return {
+      register,
+      addEventListener: (type: string, handler: (event: { data: unknown }) => void) => void listeners.set(type, handler),
+      post: (data: unknown) => listeners.get("message")?.({ data }),
+      heard: () => [...listeners.keys()],
+    };
+  }
+
   it("registers it at the root, which is the scope the manifest declares", () => {
     // Fail: a URL outside the scope. The browser rejects it, and an install
     // prompt that leads nowhere is worse than no prompt.
-    const register = vi.fn(async () => undefined);
-    registerServiceWorker({ serviceWorker: { register } });
-    expect(register).toHaveBeenCalledWith(SERVICE_WORKER_URL);
+    const box = container();
+    registerServiceWorker({ serviceWorker: box });
+    expect(box.register).toHaveBeenCalledWith(SERVICE_WORKER_URL);
     expect(new URL(SERVICE_WORKER_URL, ORIGIN).pathname.startsWith("/")).toBe(true);
   });
 
@@ -444,8 +642,21 @@ describe("registering the worker", () => {
     const register = vi.fn(async () => {
       throw new Error("SecurityError: the script has an unsupported MIME type");
     });
-    expect(() => registerServiceWorker({ serviceWorker: { register } })).not.toThrow();
+    expect(() => registerServiceWorker({ serviceWorker: container(register) })).not.toThrow();
     await vi.waitFor(() => expect(register).toHaveBeenCalledOnce());
+  });
+
+  it("reloads when the worker says this page is on a build that is gone", () => {
+    // Fail: no listener, or a listener that ignores the message. A tab whose
+    // chunk URL 404ed cannot repair itself; the reload is the only way back, and
+    // without it the user is on a dead build until they reload by hand.
+    const reload = vi.fn();
+    const box = container();
+    registerServiceWorker({ serviceWorker: box }, reload);
+    box.post("something else entirely");
+    expect(reload).not.toHaveBeenCalled();
+    box.post(STALE_BUILD_MESSAGE);
+    expect(reload).toHaveBeenCalledOnce();
   });
 });
 

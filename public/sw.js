@@ -81,45 +81,125 @@ self.addEventListener("activate", (event) => {
   // cost is a mixed build; the benefit is nothing. So: skipWaiting, no claim.
 });
 
-/** Cache-first for immutable build output, the fonts and the icons. */
+/** What the worker sends a page that is running a build that is no longer deployed. */
+const STALE_BUILD = "comp3tive:stale-build";
+/** One report per worker lifetime, so a broken deploy cannot become a reload loop. */
+let staleBuildReported = false;
+
+/**
+ * Store a response, and refuse to let a failure to store it become a failure of
+ * the page.
+ *
+ * `Cache.put` rejects on a 206, on some opaque responses, and on a full disk —
+ * and a full disk is precisely the user who installed the app and has every
+ * precached byte on their device. A floating, unguarded put turns that user's
+ * next load into an unhandled rejection and silently under-caches the one person
+ * for whom any of this exists. The write is also deliberately not awaited: the
+ * page is not waiting on a cache, it is waiting on a tournament.
+ */
+function store(request, response) {
+  // A non-2xx is a real answer and is not stored: caching an error under an asset
+  // URL would turn one bad deploy into a permanent one. Neither is a 206, which
+  // is a slice of a body and would be served whole to the next reader.
+  if (!response.ok || response.status === 206) return;
+  void caches
+    .open(CACHE)
+    .then((cache) => cache.put(request, response.clone()))
+    .catch(() => undefined);
+}
+
+/**
+ * Tell the open pages that this one is running a build that is no longer there.
+ *
+ * A 404 for build output means the page asked for a URL from a deploy that has
+ * been replaced: the file is gone from the server, and the cache that used to
+ * hold it is either a previous build's — already purged by the worker that took
+ * over — or gone under storage pressure. Nothing can make that request succeed,
+ * and nothing inside the page can fix it except starting again on the current
+ * build, so the one thing worth doing is say so.
+ *
+ * This is not a consequence of `skipWaiting`, and it is not fixed by dropping it.
+ * A tab that stays open across a deploy runs no update check at all until it
+ * navigates, so its chunk is already being served from a cache that the new
+ * worker will purge out from under it. Removing `skipWaiting` narrows that
+ * window; it does not close it, because the browser can evict Cache Storage on
+ * its own schedule and nothing in this file can stop that.
+ */
+function reportStaleBuild() {
+  if (staleBuildReported) return;
+  staleBuildReported = true;
+  void self.clients
+    // includeUncontrolled, because the page that most needs this is a tab the
+    // activation just handed back to the network.
+    .matchAll({ includeUncontrolled: true, type: "window" })
+    .then((clients) => Promise.all(clients.map((client) => client.postMessage(STALE_BUILD))))
+    .catch(() => undefined);
+}
+
+/**
+ * Cache-first for immutable build output, the fonts and the icons.
+ *
+ * The read is scoped to this worker's own cache and NOT the global
+ * `caches.match`, and that is the whole difference between a stale tab and a
+ * broken one. `caches.match` searches every cache on the origin, so a tab still
+ * being served by the previous worker — which a `skipWaiting` activation leaves
+ * in place, deliberately, because claiming it is worse — would ask for a chunk
+ * URL that both builds happen to share and be handed the NEW build's bytes out
+ * of the NEW cache. An old document running a new module is the bug this file
+ * has spent the most comment on avoiding, and the global lookup reintroduces it
+ * through the back door. Scoped, that request is a miss, and a miss is a 404 the
+ * page can be told about.
+ */
 async function cacheFirst(request) {
-  const cached = await caches.match(request);
+  const cache = await caches.open(CACHE);
+  const cached = await cache.match(request);
   if (cached) return cached;
   const response = await fetch(request);
-  // A non-2xx is a real answer and is not stored: caching an error under an asset
-  // URL would turn one bad deploy into a permanent one.
-  if (response.ok) {
-    const cache = await caches.open(CACHE);
-    cache.put(request, response.clone());
-  }
+  store(request, response);
+  if (response.status === 404) reportStaleBuild();
   return response;
 }
 
 /**
  * Network-first for documents, with the precached copy as the offline fallback.
  *
- * A document is the one thing that must never go stale, because a stale document
- * names the asset URLs of the build that produced it, and those are gone.
+ * A document is served from the network whenever there is a network; the cache
+ * only ever answers an offline navigation. That is not the same as "documents
+ * cannot go stale" — a document is loaded once and lives in the page, and what a
+ * page goes stale on is the chunk URLs it was handed, which is what the 404 above
+ * is about. This shape is here because the two failure modes have opposite
+ * fixes: a document must not be served from a cache when the network is up,
+ * because a cached document names the asset URLs of the build that produced it;
+ * and an asset must never be re-fetched when the cache already has it, because
+ * the hashed name means the bytes cannot have changed.
  */
 async function networkFirst(request) {
   try {
     const response = await fetch(request);
-    if (response.ok) {
-      const cache = await caches.open(CACHE);
-      cache.put(request, response.clone());
-    }
+    store(request, response);
     return response;
   } catch (err) {
     // The request itself, then the bare path, then a designed 404 rather than a
     // browser error. A navigation that is in no cache at all is a wrong URL, and
-    // the 404 page is the honest answer to a wrong URL.
+    // the 404 page is the honest answer to a wrong URL. Scoped to this worker's
+    // cache for the reason given on `cacheFirst`: an offline tab on an old build
+    // is better served the document it came with than the one it cannot run.
+    const cache = await caches.open(CACHE);
     for (const key of [request, new URL(request.url).pathname, "/404.html"]) {
-      const cached = await caches.match(key);
+      const cached = await cache.match(key);
       if (cached) return cached;
     }
     throw err;
   }
 }
+
+// Two notes for whoever reads this in `vite dev`, where it does not work and is
+// not meant to. `publicDir` is copied but nothing fills the placeholders, so the
+// precache list is a bare identifier and the script throws when it is evaluated
+// — the worker installs nothing, `register()` still resolves, and the app runs
+// online-only, exactly as it did before this file existed. The swallow in
+// src/registerServiceWorker.ts is what keeps that silent, so a developer on
+// localhost does not meet a console error for a build artefact.
 
 self.addEventListener("fetch", (event) => {
   const request = event.request;
