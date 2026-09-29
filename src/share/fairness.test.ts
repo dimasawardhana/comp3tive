@@ -84,6 +84,13 @@ const ONE_UNRATED_SIDE = split([team(0, ["p1"]), team(1, ["p4"])]);
 const THREE_TEAMS = split([team(0, ["p1", "p6"]), team(1, ["p2", "p5"]), team(2, ["p3", "p7"])]);
 /** Two people the split dropped, one of them rated. */
 const WITH_SITS = split([team(0, ["p1", "p6"]), team(1, ["p2", "p5"])], { unassigned: ["p4", "p3"] });
+/**
+ * The same two people dropped from an even split, which is where the not-playing
+ * clause has to survive a `trade` that is empty. The empty string is the case
+ * that loses the sentence, and the clause lives in the other field for exactly
+ * that reason.
+ */
+const EVEN_WITH_SITS = split(EVEN.teams, { unassigned: ["p4", "p3"] });
 /** An id no roster holds, which is what a stale result looks like. */
 const WITH_A_STALE_ID = split([team(0, ["p1", "p6"]), team(1, ["p2", "p5"])], { unassigned: ["pX"] });
 const ONE_TEAM = split([team(0, ["p1", "p6"])]);
@@ -149,7 +156,7 @@ describe("explainFairness", () => {
 
   it("uses the singular form when every team lands on the same number", () => {
     // Fails if the branch tests `result.gap === 0` instead of the two formatted
-    // ends: a hand edit leaves a gap of 0.03 that both ends round to 4.0, and
+    // ends: a hand edit leaves a gap of 0.04 that both ends round to 4.0, and
     // then the copy would claim a 4.0 to 4.0 band nobody can read.
     const handRounded: SplitResult = {
       ...EVEN,
@@ -216,6 +223,16 @@ describe("explainFairness", () => {
     expect(explainFairness(input(EVEN)).averages).toBe("Every team averages 4.0.");
     expect(explainFairness(input(EVEN)).trade).toBe("");
     expect(explainFairness(input(UNEVEN)).trade).toBe("Andi (5.0) is Team A's best; Eka (3.0) is Team B's weakest.");
+
+    // The not-playing clause has to survive the empty `trade`, because that is
+    // the branch a split with sit-outs is most likely to take. Fails if the
+    // early return hands back `band` instead of `averages`: two people are
+    // dropped and the line says nothing about them, on precisely the path the
+    // clause was put in the always-shown field for.
+    expect(explainFairness(input(EVEN_WITH_SITS))).toEqual({
+      averages: "Every team averages 4.0. Not playing: Dewi, Citra",
+      trade: "",
+    });
   });
 
   it("says nothing about a trade when one side holds nobody the discipline rates", () => {
@@ -302,12 +319,21 @@ describe("the gap verdict this module does not make", () => {
     // assertion cannot drift from the sentence it guards. Fails if either
     // string borrows the verdict's vocabulary: "proven", "minimum" here, and
     // "smallest", "known", "smaller", "exist" for the other verdict.
+    //
+    // The size check is what keeps the loop from passing on nothing. A rewrite
+    // to short words only ("All tied at 4.0.") would empty every set and the
+    // loop would never run, so the guard is on the sentence's own side, where
+    // this module decides the wording, not on the verdict's. That is also why
+    // EVEN is not in the list: its `trade` is "" by design, and a sentence that
+    // is legitimately empty cannot satisfy a non-emptiness assertion.
     for (const solver of [BEST_FOUND, PROVEN]) {
       const verdict = copyWords(closingLine(split(BAND.teams, { solver })));
-      for (const result of [BAND, EVEN, WITH_SITS, THREE_TEAMS]) {
+      for (const result of [BAND, WITH_SITS, THREE_TEAMS]) {
         const { averages, trade } = explainFairness(input(split(result.teams, { unassigned: result.unassigned, solver })));
         for (const sentence of [averages, trade]) {
-          for (const word of copyWords(sentence)) expect(verdict.has(word)).toBe(false);
+          const words = copyWords(sentence);
+          expect(words.size).toBeGreaterThan(0);
+          for (const word of words) expect(verdict.has(word)).toBe(false);
         }
       }
     }
@@ -335,10 +361,16 @@ describe("the module's own copy", () => {
   it("keeps the banned words out of the module's own literals, not only out of one fixture's output", () => {
     // The sweep above can only speak about the branches it reaches. These are
     // every string this file could hand a reader, so a word that no fixture
-    // currently triggers is unavailable rather than merely absent. Fails if the
-    // walk stops finding literals at all, which would make the check vacuous.
+    // currently triggers is unavailable rather than merely absent.
+    //
+    // The guard is for the copy itself, not for the count. A count is satisfied
+    // by a walk that finds only the two import specifiers and the "?" fallback,
+    // and 14 of the 27 nodes here are empty template head and tail pairs, so the
+    // number carries almost no information. Looking for a sentence fails both a
+    // broken walk and a refactor that moved the copy to a sibling file, which is
+    // the case this assertion exists to catch.
     const literals = copyLiterals(MODULE_AST);
-    expect(literals.length).toBeGreaterThan(4);
+    expect(literals.join("")).toContain("Every team averages");
     for (const literal of literals) {
       for (const banned of BANNED) expect(literal.toLowerCase()).not.toContain(banned);
       expect(literal).not.toContain(EM_DASH);
