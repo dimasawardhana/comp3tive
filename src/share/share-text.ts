@@ -58,8 +58,8 @@ export function orderedSlots(slots: TeamSlot[], roster: Player[], discipline: Di
 export function closingLine(result: SplitResult): string {
   const gap = result.gap.toFixed(1);
   return gapKind(result) === "proven"
-    ? `Gap ${gap} — the proven minimum for this pool.`
-    : `Gap ${gap} — the smallest gap known for this pool. A smaller one may exist.`;
+    ? `Gap ${gap}. The proven minimum for this pool.`
+    : `Gap ${gap}. The smallest gap known for this pool. A smaller one may exist.`;
 }
 
 export function teamsAsText(input: ShareTextInput): string {
@@ -75,7 +75,7 @@ export function teamsAsText(input: ShareTextInput): string {
   });
 
   const parts = [
-    `${disciplineName} · ${communityName} — ${result.teams.length} teams`,
+    `${disciplineName} · ${communityName}, ${result.teams.length} teams`,
     ...blocks,
     closingLine(result),
   ];

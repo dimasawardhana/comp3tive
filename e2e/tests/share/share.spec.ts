@@ -88,16 +88,16 @@ test.describe("the share sheet", () => {
     // sentence to carry a qualifier.
     const preview = sheet.locator("textarea.share-preview");
     await expect(preview).toHaveValue(
-      /^Mobile Legends · Thursday Crew — 2 teams\n[\s\S]*\nGap 0\.0 — the proven minimum for this pool\.$/,
+      /^Mobile Legends · Thursday Crew, 2 teams\n[\s\S]*\nGap 0\.0\. The proven minimum for this pool\.$/,
     );
 
     await sheet.getByTestId("share-copy-text").click();
     await expect(sheet.locator(".share-status")).toHaveText("Copied.");
 
     const copied = await page.evaluate(() => navigator.clipboard.readText());
-    expect(copied.startsWith("Mobile Legends · Thursday Crew — 2 teams\n")).toBe(true);
+    expect(copied.startsWith("Mobile Legends · Thursday Crew, 2 teams\n")).toBe(true);
     for (const name of NAMES) expect(copied).toContain(name);
-    expect(copied).toContain("Gap 0.0 — the proven minimum for this pool.");
+    expect(copied).toContain("Gap 0.0. The proven minimum for this pool.");
 
     // Byte for byte what the organizer read, because the preview and the
     // clipboard are one string: a sheet that re-rendered the text on copy would

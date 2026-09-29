@@ -72,8 +72,8 @@ const input = (solver: SplitResult["solver"], teams = TWO_TEAMS, unassigned: str
   roster: ROSTER,
 });
 
-const PROVEN_CLOSING = "Gap 0.4 — the proven minimum for this pool.";
-const BEST_FOUND_CLOSING = "Gap 0.4 — the smallest gap known for this pool. A smaller one may exist.";
+const PROVEN_CLOSING = "Gap 0.4. The proven minimum for this pool.";
+const BEST_FOUND_CLOSING = "Gap 0.4. The smallest gap known for this pool. A smaller one may exist.";
 
 describe("teamsAsText", () => {
   it("renders the proven case with the headline, one block per team and the proven closing line", () => {
@@ -82,7 +82,7 @@ describe("teamsAsText", () => {
     // move — this is the whole string, so any of them breaks it.
     expect(teamsAsText(input(PROVEN))).toBe(
       [
-        "Futsal · Thursday Crew — 2 teams",
+        "Futsal · Thursday Crew, 2 teams",
         "",
         "Team A · avg 4.2",
         "• Andi (4.3)",
@@ -102,7 +102,7 @@ describe("teamsAsText", () => {
     // make the closing line the only thing this assertion can catch.
     expect(teamsAsText(input(BUDGET_SPENT))).toBe(
       [
-        "Futsal · Thursday Crew — 2 teams",
+        "Futsal · Thursday Crew, 2 teams",
         "",
         "Team A · avg 4.2",
         "• Andi (4.3)",
@@ -121,7 +121,7 @@ describe("teamsAsText", () => {
     // Fails if: the headline hardcodes a count, or `teamName(2)` stops being
     // derived from the index (a 3-team pool is where "Team C" first appears).
     const text = teamsAsText(input(PROVEN, THREE_TEAMS));
-    expect(text.split("\n")[0]).toBe("Futsal · Thursday Crew — 3 teams");
+    expect(text.split("\n")[0]).toBe("Futsal · Thursday Crew, 3 teams");
     expect(text).toContain("Team C · avg 3.0");
   });
 
