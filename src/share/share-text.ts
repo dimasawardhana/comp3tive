@@ -36,12 +36,19 @@ function orderedSlots(slots: TeamSlot[], roster: Player[], discipline: Disciplin
  * ran, and this is the one surface where a wrong answer leaves the app entirely —
  * in the group chat, quoting the app. Re-deriving provenance would put a second,
  * divergent rule next to the one the split screen obeys.
+ *
+ * The best-found sentence describes the *result*, never the search that produced
+ * it. "The smallest gap found. The search ended before proving it minimal." was
+ * true of a budget-exhausted `fairSplit` and false of a hand swap, where nothing
+ * was found and no search ended. "The smallest gap known for this pool. A
+ * smaller one may exist." is true of all three, so this branch needs no third
+ * provenance state and no new field. Do not restore the mechanism wording.
  */
 function closingLine(result: SplitResult): string {
   const gap = result.gap.toFixed(1);
   return gapKind(result) === "proven"
     ? `Gap ${gap} — the proven minimum for this pool.`
-    : `Gap ${gap} — the smallest gap found. The search ended before proving it minimal.`;
+    : `Gap ${gap} — the smallest gap known for this pool. A smaller one may exist.`;
 }
 
 export function teamsAsText(input: ShareTextInput): string {
@@ -58,7 +65,7 @@ export function teamsAsText(input: ShareTextInput): string {
 
   const parts = [
     `${disciplineName} · ${communityName} — ${result.teams.length} teams`,
-    blocks.join("\n\n"),
+    ...blocks,
     closingLine(result),
   ];
   if (result.unassigned.length > 0) {

@@ -200,7 +200,7 @@ The closing line states the verdict in **both** cases, because a chat message ha
 sentence:
 
 - `gapKind(result) === "proven"` → `Gap 0.4 — the proven minimum for this pool.`
-- `gapKind(result) === "best-found"` → `Gap 0.4 — the smallest gap found. The search ended before proving it minimal.`
+- `gapKind(result) === "best-found"` → `Gap 0.4 — the smallest gap known for this pool. A smaller one may exist.`
 
 **Branch on `gapKind`, never on `gapQualifier() !== null`.** The qualifier is append-only and
 returns `null` in the proven case — correct on screen, wrong in a message that must stand alone.

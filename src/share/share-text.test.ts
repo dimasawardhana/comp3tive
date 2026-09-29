@@ -73,7 +73,7 @@ const input = (solver: SplitResult["solver"], teams = TWO_TEAMS, unassigned: str
 });
 
 const PROVEN_CLOSING = "Gap 0.4 — the proven minimum for this pool.";
-const BEST_FOUND_CLOSING = "Gap 0.4 — the smallest gap found. The search ended before proving it minimal.";
+const BEST_FOUND_CLOSING = "Gap 0.4 — the smallest gap known for this pool. A smaller one may exist.";
 
 describe("teamsAsText", () => {
   it("renders the proven case with the headline, one block per team and the proven closing line", () => {
@@ -127,7 +127,7 @@ describe("teamsAsText", () => {
 
   it("lists a player without a capability in the discipline last, with no parenthesis", () => {
     // Dewi has no futsal capability, so her line is bare and it is the last in her
-    // block. Fails if the two `null` arms of the comparator are flipped (she would
+    // block. Fails if the `sa === null` arm of the comparator is flipped (she would
     // read first) or if the line renders `strengthOf(...) ?? 0` — she would read
     // "• Dewi (0.0)", a Strength of zero she was never rated.
     const text = teamsAsText(input(PROVEN));
@@ -136,11 +136,14 @@ describe("teamsAsText", () => {
     expect(block.split("\n")[1]).toBe("• Dewi");
     expect(text).not.toContain("Dewi (");
 
-    // Authored with her first and two rated teammates behind her, so her position
-    // can only come from the comparator. A two-member block cannot tell a correct
-    // comparator from a contradictory one — this one can.
+    // Authored between two rated teammates, so her position can only come from the
+    // comparator. Slot order matters here: a two-member block cannot tell a correct
+    // comparator from a contradictory one, and neither can `[p4, p1, p3]` — that one
+    // renders `p1 p3 p4` even when only the `sa` arm is inverted, because the
+    // contradiction is never observed. `[p3, p4, p1]` is observed, so it pins both
+    // arms.
     const authoredFirst: SplitResult["teams"] = [
-      { index: 0, slots: [slot("p4"), slot("p1"), slot("p3")], totalStrength: 8.33, avgStrength: 2.8 },
+      { index: 0, slots: [slot("p3"), slot("p4"), slot("p1")], totalStrength: 8.33, avgStrength: 2.8 },
     ];
     expect(teamsAsText(input(PROVEN, authoredFirst))).toContain(
       ["Team A · avg 2.8", "• Andi (4.3)", "• Citra (4.0)", "• Dewi"].join("\n"),
