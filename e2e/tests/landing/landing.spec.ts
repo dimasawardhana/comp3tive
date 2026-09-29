@@ -16,27 +16,39 @@
  */
 import { test, expect } from "@playwright/test";
 import { SEED_DISCIPLINES } from "../../../src/domain/seed";
-import type { TournamentFormat } from "../../../src/domain/types";
+import { FORMAT_LABEL, SELECTABLE_FORMATS } from "../../../src/ui/constants";
 import type { Page } from "@playwright/test";
 
 /** The Landing Page's own h1; the app's is "Dashboard" (or another screen title). */
 const LANDING_H1 = "Pick the players. Get the fairest teams it can prove.";
 
+/** `FORMAT_LABEL` widened to string keys, so a format can be looked up by name. */
+const LABELS: Record<string, string> = FORMAT_LABEL;
+/** What the union can name, and what the create modal can actually run. */
+const NAMED_FORMATS: readonly string[] = Object.keys(LABELS);
+const SELECTABLE: readonly string[] = SELECTABLE_FORMATS;
+
 /**
- * The formats a tournament can be run in, keyed by `TournamentFormat`
- * (src/domain/types.ts:25). The map is exhaustive by construction — the same
- * idiom the app's own label map uses (`Record<TournamentFormat, string>` in
- * src/ui/constants.ts:7) — so it mirrors the code that owns the set instead
- * of adding a second list of formats. Adding "round-robin" to the union makes
- * this object literal a `tsc` error until the rail's number is rechecked, and
- * the count assertion then fails while the page still reads 3.
+ * The Formats rail counts the formats a visitor can **pick**, so it is asserted
+ * against `SELECTABLE_FORMATS` — the list the create modal renders — and not
+ * against `TournamentFormat`, which is a claim about what the domain can
+ * **name**. The two are different facts and the difference is load-bearing.
+ *
+ * Phase D added "round-robin" to the union one task before the chip exists. A
+ * guard typed `Record<TournamentFormat, true>` plus a count turned that gap
+ * into a `tsc` error, and the fix that satisfied the type was to write 4 on a
+ * page that offers three: a type had forced the page to claim a format nobody
+ * could open. Not stale — not yet true, which is a different failure and is
+ * why the rail keeps saying 3 until Task 8 ships the chip.
+ *
+ * Both directions are caught, and they are not the same failure: the rail or
+ * the sentence naming a format the modal does not offer (the page over-claims),
+ * and a format the modal offers that the union cannot name (the chip list
+ * drifting out of the domain). What is deliberately *not* checked is the union's
+ * size: growing the domain must not move the page on its own.
  */
-const FORMATS: Record<TournamentFormat, true> = {
-  series: true,
-  "single-elim": true,
-  swiss: true,
-  "round-robin": true,
-};
+const formatsClaim = async (page: Page) =>
+  ((await page.locator('section[aria-labelledby="landing-row-play"] .landing-claim').textContent()) ?? "").toLowerCase();
 
 /** Navigate to the Landing Page by absolute path, independent of baseURL. */
 const gotoLanding = (page: Page) => page.goto("/", { waitUntil: "load" });
@@ -146,12 +158,21 @@ test.describe("Landing Page", () => {
     );
     await expect(page.locator(".landing-footer")).not.toContainText("fair teams for futsal nights");
 
-    // The Formats rail counts the formats the app can run, so it is asserted
-    // against `TournamentFormat` — the union that owns the set — rather than a
-    // typed number: Phase D's round-robin must not leave a stale 3.
+    // The Formats rail and the sentence beside it both state what the app can
+    // run, so both are checked against the modal's own list — see the note on
+    // `SELECTABLE_FORMATS` above for why not against the union.
     await expect(
       page.locator(".landing-fact", { hasText: "Formats" }).locator("dd"),
-    ).toHaveText(String(Object.keys(FORMATS).length));
+    ).toHaveText(String(SELECTABLE.length));
+    const claim = await formatsClaim(page);
+    // Named and offered: the page says it, and the app can do it.
+    for (const format of SELECTABLE) expect(claim, format).toContain(LABELS[format].toLowerCase());
+    // Named by the domain but not offered: the page must not say it.
+    for (const format of NAMED_FORMATS.filter((f) => !SELECTABLE.includes(f))) {
+      expect(claim, format).not.toContain(LABELS[format].toLowerCase());
+    }
+    // Offered but not in the union: the chip list drifted out of the domain.
+    expect(SELECTABLE.filter((f) => !NAMED_FORMATS.includes(f))).toEqual([]);
 
     // B14 round 2: the meta description repeated the unscoped claim the lede
     // had just dropped, and the offline promise is deleted rather than softened

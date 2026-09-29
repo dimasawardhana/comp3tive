@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import type { Community, Discipline, Id, SeriesLength, Tournament, TournamentFormat } from "../domain/types";
 import { validateTournamentSpec, type TournamentValidationIssue } from "./tournament-validation";
 import { PageHeader } from "../ui/PageHeader";
-import { FORMAT_LABEL, STATUS_LABEL } from "../ui/constants";
+import { FORMAT_LABEL, SELECTABLE_FORMATS, STATUS_LABEL } from "../ui/constants";
 import { Modal } from "../ui/Modal";
 
 interface Props {
@@ -26,7 +26,8 @@ interface Props {
   activeCommunity?: Community | null;
 }
 
-const FORMATS: TournamentFormat[] = ["series", "single-elim", "swiss"];
+// The chips come from `SELECTABLE_FORMATS` (src/ui/constants.ts): a format is
+// offered when the app can run it, not when the domain can name it.
 const BO: SeriesLength[] = [1, 3, 5];
 
 const TEAM_COUNTS: Record<TournamentFormat, number[]> = {
@@ -282,7 +283,7 @@ export function GamesScreen({ tournaments, disciplines, onCreate, onOpen, onDele
             <div className="modal-section">
               <div className="field-label">Format</div>
               <div className="chips">
-                {FORMATS.map((f) => (
+                {SELECTABLE_FORMATS.map((f) => (
                   <button
                     key={f}
                     type="button"
