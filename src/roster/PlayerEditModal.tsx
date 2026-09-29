@@ -3,6 +3,7 @@ import type { Capability, Discipline, Id, Player } from "../domain/types";
 import { ConfirmButton } from "../ui/ConfirmButton";
 import { validatePlayer, type ValidationIssue } from "../domain/validation";
 import { Modal } from "../ui/Modal";
+import { attributeBounds, attributeScale, middleOf } from "./BulkRateModal";
 
 interface Props {
   player: Player | null; // null = new player
@@ -20,10 +21,23 @@ type CapDraft = {
   preferredRole: Id | null;
 };
 
+/**
+ * A new capability opens on the middle of each attribute's own scale, not on a
+ * literal `3`.
+ *
+ * The `3` this replaces was correct for all three seeded disciplines and wrong
+ * for any other: `DisciplineEditModal` lets a person add a discipline whose
+ * attributes start at `4` (`src/domain/DisciplineEditModal.tsx:67` hardcodes
+ * `{min:1,max:5}` today and offers no bounds input), and then this wrote a
+ * rating that `validateCapability` refuses — so a player who was given a
+ * capability in that discipline could not be saved at all until someone guessed
+ * which button to press. A rating the discipline never declared is not a
+ * default, it is a blocked save.
+ */
 const emptyCap = (disciplineId: Id, discipline: Discipline | undefined): CapDraft => ({
   disciplineId,
   ratings: discipline
-    ? Object.fromEntries(discipline.attributes.map((a) => [a.id, 3])) as Record<Id, number>
+    ? Object.fromEntries(discipline.attributes.map((a) => [a.id, middleOf(a)])) as Record<Id, number>
     : {},
   eligibleRoles: discipline ? discipline.roles.map((r) => r.id) : [],
   preferredRole: null,
@@ -208,26 +222,59 @@ export function PlayerEditModal({ player, disciplines, communityId, onClose, onS
                     </button>
                   </div>
 
+                  {/*
+                   * The scale is the discipline's, read through the same three
+                   * helpers the bulk rate uses, so the two rating surfaces
+                   * cannot answer differently for the same person. Both the
+                   * buttons and the `?? middleOf(a)` fallbacks moved: a
+                   * capability whose ratings lack the attribute — a record from
+                   * a hand-edited backup, or one the app did not write — used
+                   * to display as `3` and press no button at all on a scale
+                   * that does not contain 3. `middleOf` is always a step the
+                   * scale can show, or the midpoint of bounds the discipline
+                   * declared, so one of the two controls is always pressed.
+                   */}
                   <div className="cap-ratings">
-                    {d.attributes.map((a) => (
-                      <div key={a.id} className="rating-row">
-                        <span className="rating-label">{a.name}</span>
-                        <div className="rating-buttons">
-                          {[1, 2, 3, 4, 5].map((n) => (
-                            <button
-                              key={n}
-                              type="button"
-                              className={`rating-btn ${(cap.ratings[a.id] ?? 3) === n ? "on" : ""}`}
-                              onClick={() => setRating(cap.disciplineId, a.id, n)}
-                              aria-label={`${a.name} ${n}`}
-                              aria-pressed={(cap.ratings[a.id] ?? 3) === n}
-                            >
-                              {n}
-                            </button>
-                          ))}
+                    {d.attributes.map((a) => {
+                      const steps = attributeScale(a);
+                      const { min, max } = attributeBounds(a);
+                      const current = cap.ratings[a.id] ?? middleOf(a);
+                      return (
+                        <div key={a.id} className="rating-row">
+                          <span className="rating-label">{a.name}</span>
+                          {steps.length > 0 ? (
+                            <div className="rating-buttons">
+                              {steps.map((n) => (
+                                <button
+                                  key={n}
+                                  type="button"
+                                  className={`rating-btn ${current === n ? "on" : ""}`}
+                                  onClick={() => setRating(cap.disciplineId, a.id, n)}
+                                  aria-label={`${a.name} ${n}`}
+                                  aria-pressed={current === n}
+                                >
+                                  {n}
+                                </button>
+                              ))}
+                            </div>
+                          ) : (
+                            <input
+                              className="input rating-number"
+                              type="number"
+                              min={min}
+                              max={max}
+                              value={current}
+                              aria-label={`${a.name} rating`}
+                              onChange={(e) => {
+                                const next = Number(e.target.value);
+                                if (e.target.value.trim() === "" || !Number.isFinite(next)) return;
+                                setRating(cap.disciplineId, a.id, next);
+                              }}
+                            />
+                          )}
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
 
                   <div className="cap-roles">

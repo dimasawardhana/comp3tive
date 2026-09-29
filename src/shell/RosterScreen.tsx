@@ -497,9 +497,15 @@ export function RosterScreen(props: RosterScreenProps) {
     remember(allSelected ? [] : visiblePlayers.map((p) => p.id));
 
   /**
-   * Changing the filter takes the selection with it. A ticked row that is no
-   * longer on screen is not offered to the dialog anyway, and clearing here
-   * means the count beside the button never describes rows the user cannot see.
+   * Changing the filter takes the selection with it.
+   *
+   * This is a *presentation* decision, not a safety one, and the distinction
+   * matters: `selectedIn` already intersects the ids with `visiblePlayers` on
+   * every render, so a row the filter hid is not in the set the dialog is handed
+   * whether or not this clear happens. What the clear buys is that the count
+   * beside the button stops describing rows the user cannot see — the ids go
+   * back to the roster in the same order, the count is true, and switching a
+   * filter off does not silently restore ticks the user had forgotten about.
    */
   const toggleFilter = (id: Id): void => {
     setSelection(NO_SELECTION);
@@ -516,9 +522,12 @@ export function RosterScreen(props: RosterScreenProps) {
    * Every player goes through `onSavePlayer`, so the in-memory list, the store
    * and the single-player editor all see the write the same way; this screen
    * holds no roster of its own to fall out of step. The writes are one at a
-   * time and can stop half way, so a failure counts what landed and says so —
-   * a toast claiming all 12 were written when 7 were would be the worst thing
-   * this screen could do.
+   * time and can stop half way, so a failure counts what landed, names the last
+   * player that landed — the writes run in roster order, so that name is the
+   * boundary of the saved run and not merely its size — and says so. A toast
+   * claiming all 12 were written when 7 were would be the worst thing this
+   * screen could do, and "7 of them" alone would leave the user to open twelve
+   * players to learn which seven.
    *
    * The selection is cleared only here, on the success path. Cancelling the
    * dialog writes nothing and keeps the ticks, because a user who pressed
@@ -540,7 +549,7 @@ export function RosterScreen(props: RosterScreenProps) {
       props.notify(
         saved === 0
           ? `Could not rate any of the ${updated.length} selected players: ${formatError(err)}`
-          : `Could not rate all ${updated.length} selected players: ${formatError(err)}. ${saved} of them are saved.`,
+          : `Could not rate all ${updated.length} selected players: ${formatError(err)}. ${saved} of them are saved, up to ${updated[saved - 1].name}.`,
         "error",
       );
       throw err;

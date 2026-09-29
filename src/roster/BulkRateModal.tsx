@@ -50,24 +50,41 @@ export function attributeBounds(attribute: Attribute): { min: number; max: numbe
  * The whole-number steps of an attribute's own scale, or `[]` when a row of
  * buttons would be the wrong control.
  *
- * `[]` means two different things and both mean "use the number field": a range
- * with no whole number in it (`0.5`-`0.75` is a scale nobody can tick), and a
- * range too wide to be a row of buttons. Neither is reachable from the seeded
- * catalog and both are legal on `Attribute`, which is the whole reason the
- * control asks the discipline instead of assuming the range it ships with today.
+ * **`[]` means the discipline wants a number field, and it covers three cases.**
+ * A range with no whole number in it (`0.5`-`0.75` is a scale nobody can tick);
+ * a range too wide to be a row of buttons (`0`-`1000` is a thousand buttons in a
+ * dialog); and a range with a *fractional* end — `1`-`3.5` is the one that bites.
+ * Its whole steps are `1, 2, 3`, so `3.5` is legal to `validateCapability` and
+ * unreachable by any button, and a capability already holding `3.5` would open
+ * with nothing pressed while this module's own comment promised a pressed step.
+ * A scale the buttons cannot say all of is a scale the buttons must not claim to
+ * say, so a fractional end sends the whole attribute to the field.
+ *
+ * None of the three is reachable from the seeded catalog and all three are legal
+ * on `Attribute`, which is the whole reason the control asks the discipline
+ * instead of assuming the range it ships with today.
  */
 export function attributeScale(attribute: Attribute): number[] {
   const { min, max } = attributeBounds(attribute);
-  const lo = Math.ceil(min);
-  const hi = Math.floor(max);
-  if (!Number.isFinite(lo) || !Number.isFinite(hi) || hi - lo >= MAX_SCALE_BUTTONS) return [];
+  if (!Number.isInteger(min) || !Number.isInteger(max)) return [];
+  if (max - min >= MAX_SCALE_BUTTONS) return [];
   const steps: number[] = [];
-  for (let n = lo; n <= hi; n++) steps.push(n);
+  for (let n = min; n <= max; n++) steps.push(n);
   return steps;
 }
 
-/** The step halfway up an attribute's own scale: the value the dialog opens on. */
-function middleOf(attribute: Attribute): number {
+/**
+ * The step halfway up an attribute's own scale: the value a rating control
+ * opens on when there is nothing better to open on.
+ *
+ * Exported because the single-player editor opens on it too, for the same
+ * reason: a literal `3` is a rating the discipline never declared, and on a
+ * discipline whose scale starts at `4` it is a rating `validateCapability`
+ * refuses — so a player who was given a new capability could not save at all
+ * until someone guessed which button to press. A step on the scale, or, when
+ * there is no step, the midpoint of the bounds the discipline did declare.
+ */
+export function middleOf(attribute: Attribute): number {
   const { min, max } = attributeBounds(attribute);
   const steps = attributeScale(attribute);
   if (steps.length > 0) return steps[Math.floor((steps.length - 1) / 2)];
@@ -167,6 +184,25 @@ export function ratePlayers(
  * players" reads as eight separate judgements; they are one judgement written
  * eight times, and the sentence is where that is said out loud. It is dropped
  * for a single player, where "the same" has nobody to be the same as.
+ *
+ * **The clause is a property of the rating set, not of today's strength model,
+ * and it is the one sentence here that could quietly become false.** Every
+ * selected player ends this write holding the same ratings for this discipline,
+ * and `StrengthModel` is a union of pure functions of those ratings
+ * (`src/domain/types.ts:101-105`) — equal inputs, equal output, whichever arm
+ * runs. That is why no guard is written here: with `kind: "mean"` the only
+ * member (`src/domain/types.ts:105`), a `kind === "mean"` test could not be
+ * exercised by any test, so it would ship as an assertion nothing could fail.
+ *
+ * **To whoever adds the second kind — a weighted model, a positional penalty:**
+ * re-read this. If a new `StrengthModel` is still a pure function of one
+ * capability's ratings, this sentence stands as written and there is nothing to
+ * do. If the new kind reads anything else — a roster, a role, the number of
+ * players, a state outside `Capability` — then "their strength there is now the
+ * same" is a false claim, and the fix is to say what is actually true rather
+ * than to delete the clause: the ratings are identical, so the sentence must
+ * name the ratings and drop the consequence. Nothing in the test suite will fail
+ * on that day, which is exactly why the warning is here.
  */
 export function rateConfirmation(discipline: Discipline, ratings: Record<Id, number>, count: number): string {
   const what = discipline.attributes.map((a) => `${a.name} ${ratings[a.id]}`).join(", ");
@@ -174,6 +210,64 @@ export function rateConfirmation(discipline: Discipline, ratings: Record<Id, num
   return count === 1
     ? `This app set ${what} ${scope}.`
     : `This app set ${what} ${scope}, so their strength there is now the same.`;
+}
+
+/**
+ * Every reason this write would be refused, as `validatePlayer` wrote it.
+ *
+ * This is the *messages* half of the refusal, and it is kept separate from the
+ * half a person sees because the two are checkable in different ways:
+ * `RefusalAlert` below renders what these strings become, and that is the part
+ * a test asserts with `renderToStaticMarkup`. Splitting them is what lets the
+ * rendered surface be covered at all — the list is gated on a click, and node
+ * has no click.
+ *
+ * It takes the players `ratePlayers` already built, not the inputs to build
+ * them, so the dialog rates a set once and validates that same set and a test
+ * can drive the pair exactly the way `apply` does.
+ *
+ * **The message is pushed verbatim, with no player name in front of it**, the
+ * way `PlayerEditModal` renders it (`src/roster/PlayerEditModal.tsx:294-299`).
+ * This dialog builds every capability it writes from one discipline and one set
+ * of numbers, so a name would prefix one sentence once per selected player, and
+ * twelve lines of the same sentence is how a refusal gets skimmed.
+ */
+export function rateProblems(updated: Player[], disciplines: Discipline[]): string[] {
+  const messages = updated.flatMap((player) => validatePlayer(player, disciplines).map((issue) => issue.message));
+  // Distinct, in the order they were met. One write from one discipline's
+  // numbers fails the same way for every player it touches, so twelve
+  // identical lines is a list that reads as twelve problems and is one.
+  return [...new Set(messages)];
+}
+
+/**
+ * The refusal list — the one thing on this surface that tells a user their input
+ * was not accepted.
+ *
+ * **It is its own component because it is the only part of a refusal a test can
+ * see, and that is not the same as the only part that matters.** The list is
+ * gated on state that only a click reaches, and this project's unit environment
+ * is `node` (`vitest.config.ts`), where `renderToStaticMarkup` runs a component
+ * but no effect and no handler — so a test cannot press the button that fills
+ * this list. It *can* render this element, which is why the markup a refused
+ * write puts in front of a user is pinned here in `BulkRateModal.test.ts`
+ * rather than left to be checked by the two functions that produce it: a test
+ * that only asserted `rateProblems` would still pass if `role="alert"` were
+ * deleted, and a refusal nothing announces is not a refusal the user was told.
+ *
+ * `role="alert"` is what makes it announced; the class is the app's own, shared
+ * with the single-player editor (`src/roster/PlayerEditModal.tsx:340-345`), so
+ * the two refusals are styled and read by one set of rules.
+ */
+export function RefusalAlert({ issues }: { issues: readonly string[] }) {
+  if (issues.length === 0) return null;
+  return (
+    <ul className="field-errors" role="alert">
+      {issues.map((issue, i) => (
+        <li key={i} className="field-error">{issue}</li>
+      ))}
+    </ul>
+  );
 }
 
 /**
@@ -226,13 +320,10 @@ export function BulkRateModal({ disciplines, players, defaultDisciplineId, onApp
 
   const apply = async () => {
     if (!discipline) return;
-    const updated = ratePlayers(players, discipline, ratings);
     // Every touched player is validated before the first one is written, so a
     // refusal is a refusal of the whole set.
-    const problems: string[] = [];
-    for (const player of updated) {
-      for (const issue of validatePlayer(player, disciplines)) problems.push(`${player.name}: ${issue.message}`);
-    }
+    const updated = ratePlayers(players, discipline, ratings);
+    const problems = rateProblems(updated, disciplines);
     if (problems.length > 0) {
       setIssues(problems);
       return;
@@ -261,13 +352,7 @@ export function BulkRateModal({ disciplines, players, defaultDisciplineId, onApp
         Rate {players.length} player{players.length === 1 ? "" : "s"}
       </h1>
 
-      {issues.length > 0 && (
-        <ul className="field-errors" role="alert">
-          {issues.map((issue, i) => (
-            <li key={i} className="field-error">{issue}</li>
-          ))}
-        </ul>
-      )}
+      <RefusalAlert issues={issues} />
 
       <div className="modal-section">
         <div className="modal-section-title"><span>Discipline</span></div>
@@ -352,10 +437,15 @@ export function BulkRateModal({ disciplines, players, defaultDisciplineId, onApp
               </div>
               {strength !== null && (
                 <div className="derived-readout">
-                  <span className="derived-label">Strength</span>
+                  <span className="derived-label">Strength after applying</span>
                   <span className="derived-value" aria-live="polite">{strength.toFixed(1)}</span>
                 </div>
               )}
+              {/* The label says *after applying* because with a set that
+                  disagrees with itself the number belongs to nobody on screen:
+                  it is what the roster will say once these numbers are saved,
+                  not what any one selected player has today. The note below
+                  repeats the derivation, and the two together are one claim. */}
               <p className="derived-note">
                 Strength is worked out by this app from the ratings above. It is not stored, and it
                 cannot be edited here.

@@ -23,8 +23,11 @@ import {
   attributeBounds,
   attributeScale,
   BulkRateModal,
+  middleOf,
   rateConfirmation,
   ratePlayers,
+  rateProblems,
+  RefusalAlert,
   startingRatings,
 } from "./BulkRateModal";
 import { SEED_DISCIPLINES, FUTSAL_DISCIPLINE } from "../domain/seed";
@@ -82,6 +85,19 @@ const text = (html: string): string =>
     .replace(/\s+/g, " ")
     .trim();
 
+/**
+ * The refusal the dialog would show, computed the way `apply` computes it:
+ * rate the set once, then validate the players that came back. Every case below
+ * goes through this rather than calling `rateProblems` with hand-built players,
+ * so none of them can describe a refusal the dialog would not actually produce.
+ */
+const refusal = (
+  players: Player[],
+  discipline: Discipline,
+  ratings: Record<string, number>,
+  disciplines: Discipline[] = SEED_DISCIPLINES,
+): string[] => rateProblems(ratePlayers(players, discipline, ratings), disciplines);
+
 /** A custom discipline whose attributes are not on a 1-5 scale. */
 const TEN_POINT: Discipline = {
   id: "ten",
@@ -111,6 +127,44 @@ describe("an attribute's own bounds", () => {
   it("builds one step per whole number on the scale", () => {
     expect(attributeScale(FUTSAL_DISCIPLINE.attributes[0])).toEqual([1, 2, 3, 4, 5]);
     expect(attributeScale(TEN_POINT.attributes[0])).toEqual([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+  });
+
+  it("sends a partly fractional scale to the number field, because the top step is unreachable otherwise", () => {
+    // 1-3.5 is the case that only shows up if you look for it: 1, 2 and 3 are
+    // whole steps, so a button row looks right — and 3.5, which
+    // `validateCapability` accepts, cannot be pressed by any of them.
+    const halfTop: Attribute = { id: "h", name: "Reach", min: 1, max: 3.5 };
+    expect(attributeScale(halfTop)).toEqual([]);
+    const odd: Discipline = { ...TEN_POINT, attributes: [halfTop] };
+    const html = render({ disciplines: [odd], players: [futsalOutsider("x")], defaultDisciplineId: "ten" });
+    expect(html).toContain('aria-label="Reach rating"');
+    expect(html).toContain('min="1"');
+    expect(html).toContain('max="3.5"');
+  });
+
+  it("opens a rating control on a step of the scale, for any scale the discipline declares", () => {
+    // The property the two `[]` cases exist to protect: whatever the bounds,
+    // either a step is pressed or a field carries the midpoint.
+    for (const attribute of [
+      { id: "a", name: "A" },
+      { id: "b", name: "B", min: 0, max: 10 },
+      { id: "c", name: "C", min: 4, max: 6 },
+      { id: "d", name: "D", min: 1, max: 3.5 },
+      { id: "e", name: "E", min: 0.5, max: 0.75 },
+    ] as Attribute[]) {
+      const steps = attributeScale(attribute);
+      const value = middleOf(attribute);
+      const { min, max } = attributeBounds(attribute);
+      expect(value).toBeGreaterThanOrEqual(min);
+      expect(value).toBeLessThanOrEqual(max);
+      if (steps.length > 0) expect(steps).toContain(value);
+    }
+  });
+
+  it("opens a 4-6 scale on 5, which is what a discipline that starts at 4 needs", () => {
+    // The blocked save, in a number: a literal 3 is not on this scale at all.
+    expect(middleOf({ id: "r", name: "Reach", min: 4, max: 6 })).toBe(5);
+    expect(attributeScale({ id: "r", name: "Reach", min: 4, max: 6 })).toEqual([4, 5, 6]);
   });
 
   it("offers a number field, not an empty row of buttons, when the scale has no whole step", () => {
@@ -372,5 +426,129 @@ describe("the dialog's surface", () => {
   it("shows every discipline in the catalog, by the name the app shows elsewhere", () => {
     const html = render();
     for (const short of ["Futsal", "MLBB", "Badminton"]) expect(html).toContain(`>${short}</button>`);
+  });
+});
+
+describe("a refused write", () => {
+  /**
+   * The refusal is the one thing on this surface that tells a user their input
+   * was not accepted, and it had no coverage at any layer: the cases above drive
+   * `ratePlayers` and `validatePlayer` as functions and never reach the list the
+   * dialog renders from them. A test that only asserted the two functions would
+   * keep passing if the `role="alert"` were deleted — and a refusal nothing
+   * announces is not a refusal the user was told.
+   *
+   * **The coverage here is both halves, and the split is the whole point.** The
+   * list is gated on state only a click reaches, and this project's unit
+   * environment is `node`, where `renderToStaticMarkup` runs a component but no
+   * effect and no handler. So `rateProblems` is what the dialog calls to *fill*
+   * the list, and `RefusalAlert` — the dialog's own element, not a copy of it —
+   * is what the test renders to see it *shown*. Between the two, the message
+   * that is produced and the alert it is announced in are both pinned, and the
+   * link between them is the dialog's own `apply`, checked by reading it.
+   *
+   * No jsdom dependency is added to get here: rendering a component needs no
+   * document, and what a click would change is which of the two halves is
+   * populated, not either half's shape.
+   */
+  const outOfRange: Player = {
+    ...futsalPlayer("andi"),
+    capabilities: [
+      {
+        disciplineId: "futsal",
+        attributeRatings: { technical: 9, fitness: 2, "game-iq": 2 },
+        eligibleRoles: ["goalkeeper"],
+        preferredRole: null,
+      },
+    ],
+  };
+
+  it("refuses a rating the discipline's own bounds forbid, before anything is written", () => {
+    // A capability whose recorded rating is already outside the bounds — a
+    // hand-edited backup, or a discipline whose scale has since changed — is
+    // what makes the write refuse. The dialog opens on what the player has, so
+    // the refusal is only reachable by pressing the button, which is the point:
+    // the check runs at the write, not at the render.
+    expect(refusal([outOfRange], FUTSAL_DISCIPLINE, { technical: 9, fitness: 2, "game-iq": 2 }))
+      .toEqual(['Rating for "Technical" must be 1-5, got 9.']);
+  });
+
+  it("says it in the validator's own words, with no player name in front", () => {
+    // One message here, not one per selected player: the dialog builds every
+    // capability from one discipline and one set of numbers, so a name would
+    // prefix the same sentence once per player and the refusal would read as a
+    // list of twelve problems.
+    const problems = refusal(
+      [outOfRange, futsalPlayer("budi"), futsalPlayer("citra")],
+      FUTSAL_DISCIPLINE,
+      { technical: 9, fitness: 2, "game-iq": 2 },
+    );
+    expect(problems).toEqual(['Rating for "Technical" must be 1-5, got 9.']);
+    for (const name of ["Andi", "Budi", "Citra"]) expect(problems.join(" ")).not.toContain(name);
+  });
+
+  it("is refused by the numbers being written, not by what a player already had", () => {
+    // A bulk write replaces every rating of the discipline, so a stored 9 is
+    // corrected rather than carried — and the one thing that can still refuse it
+    // is a rating the *fields* hold that the discipline does not allow, which a
+    // number field on a fractional or wide scale can produce. The dialog's
+    // contract is that the set is refused as a set, and the single distinct
+    // message is what it refuses with.
+    expect(
+      refusal(
+        [futsalPlayer("andi"), { ...outOfRange, id: "zaki", name: "Zaki" }],
+        FUTSAL_DISCIPLINE,
+        { technical: 4, fitness: 4, "game-iq": 4 },
+      ),
+    ).toEqual([]);
+    expect(
+      refusal([futsalOutsider("zaki")], TEN_POINT, { reach: 11, grip: 4 }, [TEN_POINT]),
+    ).toEqual(['Rating for "Reach" must be 0-10, got 11.']);
+  });
+
+  it("has nothing to say about a set the validator accepts", () => {
+    expect(
+      refusal([futsalPlayer("andi"), futsalOutsider("zaki")], FUTSAL_DISCIPLINE, { technical: 4, fitness: 4, "game-iq": 4 }),
+    ).toEqual([]);
+  });
+
+  it("announces the refusal, in the app's own error list", () => {
+    // The rendered half. `RefusalAlert` is the element `BulkRateModal` puts on
+    // screen when a refusal comes back non-empty — the same import, the same
+    // element, so this fails if the dialog stops announcing or stops using the
+    // app's own class.
+    const html = renderToStaticMarkup(
+      createElement(RefusalAlert, { issues: refusal([outOfRange], FUTSAL_DISCIPLINE, { technical: 9, fitness: 2, "game-iq": 2 }) }),
+    );
+    expect(html).toContain('class="field-errors"');
+    expect(html).toContain('role="alert"');
+    expect(text(html)).toBe('Rating for "Technical" must be 1-5, got 9.');
+  });
+
+  it("puts nothing on the screen when there is no refusal", () => {
+    // The other half of the gate: the list is absent, not empty, so a dialog
+    // that has not been refused does not announce a phantom problem.
+    expect(
+      renderToStaticMarkup(
+        createElement(RefusalAlert, { issues: refusal([futsalPlayer("andi")], FUTSAL_DISCIPLINE, { technical: 4, fitness: 4, "game-iq": 4 }) }),
+      ),
+    ).toBe("");
+  });
+
+  it("opens on no alert at all, so the refusal is a property of pressing the button", () => {
+    // The link between the two halves, read off the component rather than
+    // assumed. Opening the dialog with a set it would refuse must show no
+    // alert: the refusal happens at the write, so a test that found one here
+    // would be describing a dialog that announces a problem nobody has hit.
+    const dialog = render({ players: [outOfRange] });
+    expect(dialog).not.toContain("field-errors");
+    expect(dialog).not.toContain('role="alert"');
+    // The dialog really is the refusing one and not an inert set: `refusal`
+    // above turned these players into exactly the message the alert announces,
+    // and the discipline on screen is the one that would refuse them.
+    expect(dialog).toContain("Futsal");
+    expect(refusal([outOfRange], FUTSAL_DISCIPLINE, { technical: 9, fitness: 2, "game-iq": 2 })).toEqual([
+      'Rating for "Technical" must be 1-5, got 9.',
+    ]);
   });
 });
