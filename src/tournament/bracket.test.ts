@@ -621,6 +621,26 @@ describe("round robin: status, standings and champion", () => {
     expect(t.status).toBe("complete");
   });
 
+  it("is not complete while a fixture from an earlier round is unplayed", () => {
+    // Round robin books every fixture up front and has no frontier, so the last
+    // round is only the last *column*. Completing it early crowns a champion in
+    // a tournament nobody finished, which is why the fixtures are recorded out
+    // of order here: `stays active until the last round is decided` plays them
+    // in order and cannot see this.
+    const built = bo1(5);
+    const lastRound = Math.max(...built.matches.map((m) => m.round));
+    const earlier = built.matches.filter((m) => m.round < lastRound);
+    expect(earlier.length).toBe(8);
+    let t = built.matches
+      .filter((m) => m.round === lastRound)
+      .reduce((acc, m) => applyResult(acc, m.id, [game(m.teamBId!)]), built);
+    expect(t.status).toBe("active");
+    expect(champion(t)).toBeNull();
+    t = earlier.reduce((acc, m) => applyResult(acc, m.id, [game(m.teamBId!)]), t);
+    expect(t.status).toBe("complete");
+    expect(champion(t)!.id).toBe(standings(t)[0].teamId);
+  });
+
   it("crowns the standings leader, and is never null once complete", () => {
     const t = playAll(bo1(4));
     expect(t.status).toBe("complete");
@@ -628,7 +648,8 @@ describe("round robin: status, standings and champion", () => {
     // The specific silent breakage this change prevents: every result is
     // recorded, so a null champion would be a wrong answer, not an unfinished
     // tournament. The old lookup answered with the winner of round 1's first
-    // match, which here is t4 on 2 wins while t3 leads on 3.
+    // match, which here is t4, with t2, t3 and t4 all on two wins and the id
+    // tiebreak putting t2 first.
     expect(champion(t)).not.toBeNull();
     expect(champion(t)!.id).toBe(leader);
   });

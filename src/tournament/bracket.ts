@@ -53,14 +53,18 @@ function resolvedWinner(games: GameResult[], a: Id | null, b: Id | null, seriesL
 }
 
 /**
- * Round count for a format: single elim = log2(N); swiss = ceil(log2 N);
- * round robin = n-1 rounds on an even field, n on an odd one (the extra round
- * exists only to give the bye somewhere to sit).
+ * Round count for the formats that complete on a frontier: single elim =
+ * log2(N), swiss = ceil(log2 N).
+ *
+ * Round robin is deliberately not answerable here. It books every fixture up
+ * front and has no frontier, so its round count is the schedule's own (n-1 on
+ * an even field, n on an odd one, where the extra round exists only to give the
+ * bye somewhere to sit) and this function has nothing to compute. Naming the
+ * two formats in the signature keeps a call site from asking the wrong
+ * question: there is no third arm to keep honest.
  */
-const roundsFor = (format: Tournament["format"], n: number): number =>
-  format === "single-elim" ? Math.log2(n)
-  : format === "round-robin" ? (n % 2 === 0 ? n - 1 : n)
-  : Math.ceil(Math.log2(n));
+const roundsFor = (format: "single-elim" | "swiss", n: number): number =>
+  format === "single-elim" ? Math.log2(n) : Math.ceil(Math.log2(n));
 
 function emptyMatch(round: number, position: number): TournamentMatch {
   return {
@@ -276,16 +280,19 @@ function pairRound(t: Tournament, recs: Map<Id, TeamRecord>, played: Set<string>
 }
 
 function requiredMatches(t: Tournament): TournamentMatch[] {
-  if (t.format === "series") return t.matches;
+  // Round robin books every fixture up front and has no frontier, so the last
+  // round is just the last column: "the last round is decided" would complete a
+  // tournament whose earlier rounds were never played. Every fixture is
+  // required, exactly as for a series.
+  if (t.format === "round-robin" || t.format === "series") return t.matches;
   if (t.format === "single-elim") {
     const finalRound = roundsFor(t.format, t.teams.length);
     const finals = t.matches.filter((m) => m.round === finalRound && !m.isThirdPlace);
     const third = t.matches.find((m) => m.isThirdPlace);
     return third ? [...finals, third] : finals;
   }
-  // Round robin reaches this fallthrough on purpose: every fixture is booked up
-  // front, so the last round is the last of the work and "the last round is
-  // decided" is exactly "the tournament is complete".
+  // Swiss, and Swiss only: a frontier exists, so the last round standing is the
+  // last of the work.
   const lastRound = t.matches.reduce((max, m) => Math.max(max, m.round), 0);
   return t.matches.filter((m) => m.round === lastRound);
 }
@@ -390,11 +397,13 @@ export function undoLastGame(tournament: Tournament): Tournament {
 
 
 /**
- * Swiss standings, crowned by play: series wins, then the head-to-head winner
- * when exactly two teams share a record (Swiss guarantees at most one meeting
- * per pair, so it is well defined there), then game difference, then game wins.
- * Those three keys read the played record, not the seed: seeding builds the
- * bracket, play decides the table.
+ * Standings for the two formats that crown by table — Swiss and round robin —
+ * ordered by play: series wins, then the head-to-head winner when exactly two
+ * teams share a record, then game difference, then game wins. Head-to-head is
+ * well defined in both, and for the same reason: neither format schedules a
+ * pair twice, Swiss by its rematch-free pairing and round robin because every
+ * pair meets exactly once. Those keys read the played record, not the seed:
+ * seeding builds the bracket, play decides the table.
  *
  * Ascending `team.id` is the deterministic last resort when all three tie, and
  * it is *not* seed-neutral: ids are handed out in strength order (`team-1` is

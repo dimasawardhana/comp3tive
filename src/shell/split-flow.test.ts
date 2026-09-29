@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { bracketSupports, rerollPool, splitFlowRule, type SplitSource } from "./useSplitFlow";
 import type { TeamAssignment, TournamentFormat } from "../domain/types";
+import { FORMAT_LABEL } from "../ui/constants";
 
 const teams = (a: string[], b: string[]): TeamAssignment[] => [
   { index: 0, slots: a.map((playerId) => ({ playerId, roleId: null })), totalStrength: 0, avgStrength: 0 },
@@ -62,14 +63,42 @@ describe("rerollPool", () => {
 });
 
 describe("bracketSupports", () => {
-  const FORMATS: TournamentFormat[] = ["series", "single-elim", "swiss", "round-robin"];
+  // The union, at runtime. `FORMAT_LABEL` is typed by `TournamentFormat`, so a
+  // member that arrives with no arm in `bracketSupports` is named here and
+  // fails the probe below — the plain array this replaced was a list the union
+  // could outgrow in silence. Deriving a *test* fact from the union costs
+  // nothing; deriving a page's number from it is what the landing guard learned
+  // not to do.
+  const NAMED = Object.keys(FORMAT_LABEL).filter((f): f is TournamentFormat => f in FORMAT_LABEL);
 
-  it("answers for every format, so none of them falls through to the series rule", () => {
+  /**
+   * One count each format must accept. Typed by the union, so a new member is a
+   * `tsc` error until it gets a probe, and the probe is what catches a missing
+   * arm: a format without one falls through to the series rule and answers
+   * false for everything except 2. Series probes 2, which is that fallthrough's
+   * own answer, so series itself is covered by the `n=3` case in the third test
+   * below rather than here.
+   */
+  const PROBE: Record<TournamentFormat, number> = {
+    series: 2,
+    "single-elim": 8,
+    swiss: 6,
+    "round-robin": 5,
+  };
+
+  it("answers for every format the union names, with an arm of its own", () => {
+    expect(NAMED.slice().sort()).toEqual(Object.keys(PROBE).sort());
+    for (const format of NAMED) {
+      expect(bracketSupports(format, PROBE[format]), format).toBe(true);
+    }
+  });
+
+  it("tells the formats apart at five teams, so none answers with another's rule", () => {
     // The refusal message names `tournament.format`, so a format with no arm
-    // would be told it had been checked when it had not. Five teams is the
+    // here would be told it had been checked when it had not. Five teams is the
     // count that tells them apart: odd, so swiss refuses it; not 2, so series
     // refuses it; not a single-elim count; and the one round robin runs.
-    for (const format of FORMATS) {
+    for (const format of NAMED) {
       expect(bracketSupports(format, 5), format).toBe(format === "round-robin");
     }
   });
