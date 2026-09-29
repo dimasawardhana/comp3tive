@@ -72,18 +72,22 @@ export interface RosterScreenProps {
 export function RosterScreen(props: RosterScreenProps) {
   const { activeCommunity, disciplines, players, visiblePlayers, filterIds, disciplinesById, editingPlayer, fileInputRef } = props;
   /**
-   * The discipline spellings the import will accept, read from the catalog this
-   * screen was handed rather than written out here. `csvRowsToPlayers` matches a
-   * row's discipline against every discipline's short name *and* full name, case
-   * insensitively, so both spellings are on offer and the parenthesis is not a
-   * courtesy — it is the second string the parser would accept. The list is
-   * derived, so a fourth sport is in the sentence the moment it is in the
-   * catalog, and a sentence written by hand here would be a list that quietly
-   * went stale and refused rows the app could have imported.
+   * How one discipline is written in the hint: its short name, with the full
+   * name beside it when the two differ. `csvRowsToPlayers` matches a row's
+   * discipline against every discipline's short name *and* full name, case
+   * insensitively (`src/data/player-import.ts:193`), so the parenthetical is not
+   * a courtesy — it is the second string the parser would accept, and a hint
+   * reading "MLBB" alone would be false for a user who typed "Mobile Legends".
+   *
+   * These are rendered as one element each, in a list, and not joined into a
+   * sentence, because a discipline name is free text: `DisciplineEditModal`
+   * takes whatever a person types, and a custom discipline called
+   * "Volleyball, Indoor" inside a comma-joined list reads as two sports. That
+   * would make the one sentence on this screen which claims to be exhaustive
+   * quietly wrong, on exactly the kind of name the app's own UI can produce.
    */
-  const acceptedDisciplines = disciplines
-    .map((d) => (d.name.toLowerCase() === d.shortName.toLowerCase() ? d.shortName : `${d.shortName} (${d.name})`))
-    .join(", ");
+  const disciplineSpelling = (d: Discipline): string =>
+    d.name.toLowerCase() === d.shortName.toLowerCase() ? d.shortName : `${d.shortName} (${d.name})`;
 
   /**
    * The template download.
@@ -228,21 +232,37 @@ export function RosterScreen(props: RosterScreenProps) {
            * hand. Every claim these sentences make is checked against the parser
            * in RosterScreen.csv-hint.test.ts, which is the only thing standing
            * between this copy and a parser that changes under it.
+           *
+           * The quoting sentence names a row, and the row it names is counted
+           * from the end of the file. It used to say "the second row", which is
+           * wrong twice over: the quoted example is the file's third line, and a
+           * spreadsheet counts the heading as row 1, so the row a reader would
+           * go and look at demonstrated nothing. A pointer into a file can also
+           * go stale, so the test names the row the same way this sentence does
+           * and fails when the two disagree — the two cannot now drift apart
+           * quietly, which is how the wrong row survived a passing test.
            */}
           <p className="import-hint">
             Fill the template in and save it, then press Import players and pick that file. Nothing
             here is read until you choose it.
           </p>
           <p className="import-hint">
-            CSV columns, in this order: name, discipline, strength. A name with a comma in it goes
-            in quotes &mdash; the template&apos;s second row shows one.
+            CSV columns, in this order: name, discipline, strength. Any value with a comma in it goes
+            in quotes &mdash; the last example row in the template shows one in the name column.
           </p>
           <p className="import-hint">
             Strength is a number from 1 to 5. Leave it blank and it is read as 3; text there skips
             the row.
           </p>
           {disciplines.length > 0 && (
-            <p className="import-hint">Discipline must be one of: {acceptedDisciplines}.</p>
+            <>
+              <p className="import-hint">Discipline must be one of:</p>
+              <ul className="import-hint-list">
+                {disciplines.map((d) => (
+                  <li key={d.id}>{disciplineSpelling(d)}</li>
+                ))}
+              </ul>
+            </>
           )}
 
           {editingPlayer !== null && activeCommunity && (

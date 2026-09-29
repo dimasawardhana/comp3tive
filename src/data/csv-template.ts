@@ -17,16 +17,31 @@
  * in `RosterScreen`'s `.import-hint`, where they are also readable by someone
  * who has not downloaded anything yet.
  *
- * **The two example rows are named so that leaving one behind is self-evident.**
- * The app cannot tell an example from a real entry: the row is a name, a
- * discipline and a number, and a fourth "is an example" column would have to be
- * read by the parser, which this phase may not change. So the marker has to live
- * in the name itself, and it has to be a string no one would give a person.
- * "Andi" would not be — a leftover Andi is a ghost the user has to notice and
- * remember to delete, and worse, one they may read as a real teammate. Every
- * example name here starts with `Example Player` and carries a number, so a
- * roster that still holds one says on its face that the file was not finished.
- * That is the whole defence, and `csv-template.test.ts` holds it.
+ * **The two example rows are named so that leaving one behind is self-evident,
+ * because the name is the only marker there is.** No rule distinguishes an
+ * example from a real entry today: the row is a name, a discipline and a
+ * number, and the app writes it exactly as it would write a teammate.
+ *
+ * That is a deferral with an owner, not a constraint of Phase A. An "is this an
+ * example" column would need `parsePlayerCsv`, which this phase may not
+ * change — but the parser is not the only place such a rule could live, and
+ * saying otherwise would be a false limitation. `importFile` in
+ * `src/shell/usePlayerImport.ts` is the app's CSV import path, it is listed in
+ * `contracts.md`'s Phase D table as a C file this phase extends, and it holds
+ * the parsed `rows` before it writes anything. With no parser change and no new
+ * dependency it could drop these two rows, or push a synthetic
+ * `ImportSkip({ line, reason: "Looks like a template example row — delete it if
+ * you did not mean to import it." })` into the import report the next task
+ * builds. That belongs to the task that builds the report, not to the one that
+ * writes this file.
+ *
+ * Until it does, the marker has to live in the name itself, and it has to be a
+ * string no one would give a person. "Andi" would not be — a leftover Andi is a
+ * ghost the user has to notice and remember to delete, and worse, one they may
+ * read as a real teammate. Every example name here starts with
+ * `Example Player` and carries a number, so a roster that still holds one says
+ * on its face that the file was not finished. That is the whole defence today,
+ * and `csv-template.test.ts` holds it.
  *
  * **Row two is quoted on purpose.** It is the one piece of CSV syntax a user
  * cannot guess: an unquoted comma inside a name splits the record, the third

@@ -1283,6 +1283,29 @@ h1 {
   margin-top: 2px;
 }
 
+/* The accepted disciplines, one element per sport. A list rather than a
+   comma-joined sentence because a discipline name is free text: a custom
+   discipline called "Volleyball, Indoor" in a joined list reads as two sports,
+   and the sentence it belongs to is the one that claims to be exhaustive. One
+   element per discipline also gives each accepted spelling its own place in the
+   reading order instead of asking the reader to parse punctuation. Wrapped and
+   inline so three seeds stay on one line and five custom sports do not push
+   the page down the screen. */
+.import-hint-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 14px;
+  list-style: none;
+  margin: 2px 0 0;
+  padding: 0;
+  max-width: 80ch;
+}
+.import-hint-list li {
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--text-2);
+}
+
 .field-error {
   font-size: 13px;
   color: var(--danger);

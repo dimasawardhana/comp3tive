@@ -27,15 +27,20 @@ const world = (): SeedWorld => ({
 test("the column contract is on the page, and the template downloads", async ({ page }) => {
   await gotoHubSeeded(page, world(), "Roster");
 
-  // Four sentences, in this order. The last one is rendered from the discipline
-  // catalog rather than written out, so it is the one that changes when a sport
-  // is added; here it is the seed three.
+  // Four sentences, in this order, and a list under the fourth. The list is
+  // rendered from the discipline catalog rather than written out, so it is what
+  // changes when a sport is added; here it is the seed three, one element each.
   const hints = page.locator(".import-hint");
   await expect(hints).toHaveCount(4);
   await expect(hints.nth(0)).toContainText("press Import players and pick that file");
   await expect(hints.nth(1)).toContainText("CSV columns, in this order: name, discipline, strength.");
   await expect(hints.nth(2)).toContainText("Leave it blank and it is read as 3");
-  await expect(hints.nth(3)).toHaveText("Discipline must be one of: Futsal, MLBB (Mobile Legends), Badminton.");
+  await expect(hints.nth(3)).toHaveText("Discipline must be one of:");
+  await expect(page.locator(".import-hint-list li")).toHaveText([
+    "Futsal",
+    "MLBB (Mobile Legends)",
+    "Badminton",
+  ]);
 
   const download = page.waitForEvent("download");
   await page.getByTestId("download-csv-template").click();
@@ -67,8 +72,16 @@ test("downloading the template does not put a player on the roster", async ({ pa
   await page.getByTestId("download-csv-template").click();
   await download;
 
-  // The app hands the browser a blob URL and reads nothing back: the file only
-  // reaches the roster when a person picks it, and the hint's first sentence is
-  // what says so. If this ever fails, the download has started importing.
+  // **This case is weaker than its name, and it is kept for what it does rule
+  // out, not for what it looks like it rules out.** A count of zero resolves the
+  // instant it is read: it cannot observe an import that lands a tick later, so
+  // it would not catch a download that imported asynchronously and slowly. What
+  // it does catch is a download that imports synchronously or at all within the
+  // click, and that is the only shape the handler could take — the click
+  // creates a Blob, an anchor and an object URL, and nothing in `RosterScreen`
+  // reads any of them back. The structural half of the same claim is asserted
+  // properly in `RosterScreen.csv-hint.test.ts`, which pins exactly one file
+  // input on the screen, and the download's own path is a closed function of
+  // `CSV_TEMPLATE`.
   await expect(page.locator(".roster .row")).toHaveCount(0);
 });
