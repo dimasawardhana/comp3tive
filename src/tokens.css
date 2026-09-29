@@ -9,6 +9,13 @@
 
 /* ---------- tokens: light (default) ---------- */
 :root {
+  /* The app follows the OS (see the `prefers-color-scheme` block below), and this
+     tells the user agent so: form controls, scrollbars and the canvas under the
+     page stop being hard-wired light. It is not cosmetic housekeeping — the
+     installed window on iOS reads `apple-touch-icon` and not the manifest, and iOS
+     reads no manifest `theme_color` at all, so this declaration is what gives the
+     status bar on a home-screen app something to match against. */
+  color-scheme: light dark;
   --surface: #faf8f5; /* paper - warm white, like blank paper */
   --surface-2: #ffffff; /* elevated */
   --hairline: #e7e3dc; /* slightly warm hairline */

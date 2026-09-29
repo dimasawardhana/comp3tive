@@ -26,8 +26,10 @@
          and Task 10's report for the field-by-field reasoning. `theme-color` is the
          OS chrome and is one static value, so it is the light theme's --surface:
          the paper `.topbar-wrap` paints, so the status strip and the app's own bar
-         are one surface. iOS ignores the manifest for the home-screen icon and
-         reads `apple-touch-icon`, which is why the two documents carry it. -->
+         are one surface. iOS reads no manifest `theme_color` and rounds the icon to
+         a squircle at full bleed, which is why both documents carry
+         `apple-touch-icon` — the maskable tile, for its larger glyph rather than
+         for its survival. -->
     <link rel="manifest" href="/manifest.webmanifest" />
     <meta name="theme-color" content="#FAF8F5" />
     <link rel="icon" href="/icons/icon-192.png" sizes="192x192" />

@@ -38,11 +38,18 @@ const SAFE_MARGIN = 0.95;
 /** Channel distance from PAPER above which a pixel counts as ink. */
 const INK_THRESHOLD = 24;
 
-/** Masks a consumer might crop to. The 80% circle is the guarantee; the rest are harsher. */
+/**
+ * Masks a consumer might crop to. Only the first is a guarantee: the 80% circle is
+ * what the maskable spec promises to keep. The rest are NOT all harsher than it —
+ * Android's adaptive icon only guarantees its inner 66/108 (61.1%), which is the
+ * one a real launcher actually applies — so a tile that clears the spec can still
+ * be cropped, and what leaves is measured, not assumed.
+ */
 const MASKS = [
   { file: "mask-80-circle.png", note: "the 80% circle the spec guarantees", css: "circle(40% at 50% 50%)" },
+  { file: "mask-61-safe-zone.png", note: "Android's 66/108 zone, which is never cropped", css: "circle(30.5556% at 50% 50%)" },
+  { file: "mask-70-circle.png", note: "between the two", css: "circle(35% at 50% 50%)" },
   { file: "mask-tile-rounded.png", note: "a full-bleed launcher tile", css: "inset(0% round 22.37%)" },
-  { file: "mask-70-circle.png", note: "a launcher harsher than the spec", css: "circle(35% at 50% 50%)" },
 ];
 
 /**
@@ -53,7 +60,7 @@ const MASKS = [
 async function iconMarkup() {
   const svg = await readFile(MARK, "utf8");
   const [subset] = (await readdir(FONT_DIR))
-    .filter((name) => name.startsWith("outfit-latin-") && name.endsWith(".woff2"))
+    .filter((name) => name.startsWith("outfit-latin-") && !name.includes("-ext-") && name.endsWith(".woff2"))
     .sort();
   if (!subset) throw new Error("outfit-latin subset missing — run the Task 9 downloads");
   const face = (await readFile(resolve(FONT_DIR, subset))).toString("base64");
@@ -160,7 +167,7 @@ await mkdir(OUT, { recursive: true });
 const mark = await iconMarkup();
 const browser = await chromium.launch();
 try {
-  // ---- measure the mark once, so the maskable scale is solved rather than guessed.
+  // ---- measure the mark once, so the tile scale is solved rather than guessed.
   const probe = await inkBox(browser, await render(browser, mark, PROBE, PROBE));
   if (probe.count === 0) throw new Error("the mark rendered no ink at all; the SVG or the face is wrong");
   const reach = Math.max(...corners(probe).map(([dx, dy]) => Math.hypot(dx, dy)));
@@ -169,42 +176,49 @@ try {
   // would clip the glyph outright.
   const safeScale = (SAFE_DIAMETER / 2) * SAFE_MARGIN / reach;
   const clipScale = 0.5 / edge;
-  const maskableScale = Math.min(safeScale, clipScale);
+  // One scale for ALL THREE tiles, not one for the maskable and two at 1.0. A
+  // launcher picks between the `any` and `maskable` entries on its own, so a
+  // smaller mark on the `any` tiles means the app's icon changes size depending on
+  // which tile that launcher happened to read. And fitting all three to the safe
+  // circle makes "every tile we ship survives a crop" one property of the files
+  // rather than a promise about one of them.
+  const scale = Math.min(safeScale, clipScale);
   console.log(
     `probe  ${PROBE}px  ink ${probe.x1 - probe.x0 + 1}x${probe.y1 - probe.y0 + 1}` +
-      `  reach ${(reach * 100).toFixed(1)}%  maskable scale ${maskableScale.toFixed(3)}` +
+      `  reach ${(reach * 100).toFixed(1)}%  tile scale ${scale.toFixed(3)}` +
       `  (safe ${safeScale.toFixed(3)}, clip ${clipScale.toFixed(3)})`,
   );
-  if (clipScale < safeScale) console.warn("  the viewBox edge, not the safe circle, is what limits the maskable mark");
+  if (clipScale < safeScale) console.warn("  the viewBox edge, not the safe circle, is what limits the mark");
 
   const targets = [
-    { file: "icon-192.png", size: 192, scale: 1, maskable: false },
-    { file: "icon-512.png", size: 512, scale: 1, maskable: false },
-    // Ink fitted to the safe circle, which is a different drawing from "the same with padding".
-    { file: "maskable-512.png", size: 512, scale: maskableScale, maskable: true },
+    { file: "icon-192.png", size: 192 },
+    { file: "icon-512.png", size: 512 },
+    { file: "maskable-512.png", size: 512 },
   ];
 
   for (const target of targets) {
-    const box = Math.round(target.size * target.scale);
+    const box = Math.round(target.size * scale);
     const png = await render(browser, mark, target.size, box);
     const ink = await inkBox(browser, png);
     if (ink.count === 0) throw new Error(`${target.file} is blank`);
-    if (target.maskable && escapesSafeCircle(ink, SAFE_DIAMETER)) {
+    if (escapesSafeCircle(ink, SAFE_DIAMETER)) {
       throw new Error(
-        `${target.file}: ink reaches the tile edge (${ink.x0},${ink.y0})-(${ink.x1},${ink.y1}); ` +
-          `it must sit inside the ${SAFE_DIAMETER * 100}% safe circle`,
+        `${target.file}: ink reaches ${ink.x0},${ink.y0}-${ink.x1},${ink.y1}; ` +
+          `every tile this ships must sit inside the ${SAFE_DIAMETER * 100}% safe circle`,
       );
     }
     await writeFile(resolve(OUT, target.file), png);
     const reachPct = (Math.max(...corners(ink).map(([dx, dy]) => Math.hypot(dx, dy))) * 100).toFixed(1);
     console.log(
       `${target.file}  ${target.size}x${target.size}  ${png.length} bytes  ` +
-        `ink ${ink.x1 - ink.x0 + 1}x${ink.y1 - ink.y0 + 1} at (${ink.x0},${ink.y0})  reach ${reachPct}%` +
-        (target.maskable ? `  (safe circle ${SAFE_DIAMETER * 100}%)` : ""),
+        `ink ${ink.x1 - ink.x0 + 1}x${ink.y1 - ink.y0 + 1} at (${ink.x0},${ink.y0})  ` +
+        `reach ${reachPct}%  safe circle ${SAFE_DIAMETER * 100}%`,
     );
   }
 
-  // ---- the same tile under real launch masks, for a human to look at.
+  // ---- the written maskable tile under real launch crops, for a human to look at.
+  // Composited from the file on disk, not re-rendered, so what is looked at is the
+  // committed bytes. All three tiles carry the same ink, so this one speaks for them.
   if (maskDir) {
     await mkdir(maskDir, { recursive: true });
     const png = await readFile(resolve(OUT, "maskable-512.png"));
