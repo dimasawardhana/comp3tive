@@ -1521,7 +1521,7 @@ git commit -m "feat(tournament): a pure round-robin schedule by the circle metho
 
 **Two things stated up front, because they are the load-bearing decisions.**
 
-1. **`roundsFor` is left alone, not bypassed and not extended.** `bracket.ts:53` is shared by `buildBracket` (`:91`), `requiredMatches` (`:194`) and `champion` (`:323`). This plan previously said round robin "needs a different round count (`n - 1` / `n`), so it gains an arm" — that arm was unreachable at all four call sites and has been deleted; the parameter is typed `("single-elim" | "swiss")` so `tsc` refuses the question. Round robin's round count is `roundRobinSchedule(n).length`.
+1. **`roundsFor` is left alone, not bypassed and not extended.** `bracket.ts:53` is shared by `buildBracket` (`:91`), `requiredMatches` (`:194`) and `champion` (`:323`). This plan previously said round robin "needs a different round count (`n - 1` / `n`), so it gains an arm" — that arm was unreachable at all four call sites and has been deleted; the parameter is typed `("single-elim" | "swiss")` so `tsc` refuses the question. Round robin's round count is `roundRobinRounds(n)`, never `roundRobinSchedule(n).length`, which counts rows and a bye is a row. The evidence and the whole reversal are in the CORRECTION at Step 5.
 2. **`champion()` is a required change, and it fails silently in two distinct ways.** Today only `"swiss"` takes the standings branch (`:319`); everything else falls to the single-elim final lookup at `:323`, which computes `finalRound = 1` for a non-single-elim format and then reads `matches.find(m => m.round === 1 && !m.isThirdPlace)`. For round robin that is the **first round's first match**. Measured against this exact source: with a completed 4-team schedule whose standings leader finished on 2 wins, `champion()` returned `t4` — a team with 1 win that happened to win round 1's first match — and with a 3-team schedule whose last round was decided but whose round 1 was blank, it returned `null`. Both are wrong results, not crashes.
 
 - [ ] **Step 1: Write the failing tests**
@@ -1694,7 +1694,17 @@ section used to say it "needs a different round count (`n - 1` / `n`), so it gai
 was added and it is **unreachable** — all four call sites pass single-elim or Swiss — so it was
 deleted again, and the parameter is now typed `("single-elim" | "swiss")`. `tsc` passes at every call
 site because each already sits in a narrowing branch, so the wrong question is unaskable rather
-than merely unused. Round robin's round count is the schedule's own: `roundRobinSchedule(n).length`.
+than merely unused. Round robin's round count is `roundRobinRounds(n)` — **not**
+`roundRobinSchedule(n).length`, which counts *rows*, and a bye is a row, so it reads roughly
+double the truth for every count from 3 up (6 rows over 3 rounds at both `n = 3` and `n = 4`).
+The evidence is the function's own docstring, `src/data/round-robin.ts:106-115`, which is a
+refusal written for exactly this mistake: *"**This is not `roundRobinSchedule(n).length`, and
+the difference is the whole point of this function.** The schedule is one row per pairing and
+one row per bye, so a round is `m / 2` rows, not one."* `src/tournament/GamesScreen.tsx:421`
+asks `roundRobinRounds(teamCount)` for the preview, so the value a caller actually uses is the
+one this block now names. (An earlier revision of this correction ended with the wrong value
+above; Task 8's correction, further down this task, already had the right one, so the file
+disagreed with itself.)
 
 <details><summary>The arm this section used to prescribe, kept only so the change is legible</summary>
 
@@ -1802,7 +1812,7 @@ Run:
 git diff -U0 src/tournament/bracket.test.ts | grep -E "^-[^-]" | grep -v "^---"
 git diff src/tournament/bracket.ts
 ```
-Expected: the first command prints **nothing** (additions only). The second shows the three additive hunks: `roundsFor`'s new arm, the new `buildBracket` block, and the widened `champion` condition. No `swiss`, `single-elim` or `series` line appears as a removal.
+Expected: the first command prints **nothing** (additions only). The second shows the new `buildBracket` block and the widened `champion` condition. It does **not** show a `roundsFor` arm — there is none, per the CORRECTION above — and the hunks are not all additive: `requiredMatches`' `series` line is widened rather than added beside, per the CORRECTION in Step 5. No `single-elim` and no `swiss` line appears as a removal.
 
 - [ ] **Step 9: Run the whole unit suite, then commit**
 
@@ -4145,7 +4155,7 @@ git commit -m "feat(roster): rate a set of players at once, validated before it 
 | 10. D35 proven: exhaustive schedule, `champion()` not null, existing tests unmodified | 6 Step 1, 7 Steps 1, 7, 8, 8 Step 7 |
 | 11. D36 proven: skipped line, template download, bulk rating, both hint strings | 15 Step 6, 16 Step 1, 17 Step 1 |
 | 12. D37 proven: `.fairness` visible, no banned substring, capture-hero passes | 5 Steps 6, 7 |
-| 13. `git diff --stat src/tournament/bracket.ts` is round-robin only | 7 Step 8 |
+| 13. `git diff --stat src/tournament/bracket.ts` is round-robin only — **unsatisfiable as written**; `requiredMatches`' `series` line is widened, so the check that was reaching for is "no `single-elim` and no `swiss` *arm* changed" | 7 Step 8, narrowed in place by the CORRECTION at Step 5 |
 
 **Placeholder scan.** No "TBD", "TODO", "implement later", "handle edge cases" or "similar to Task N" appears. Every code step carries runnable code. Every verification step names a command and an expected result.
 
@@ -4165,4 +4175,4 @@ git commit -m "feat(roster): rate a set of players at once, validated before it 
 
 **Two implementation defects found and fixed while writing this plan, both by running the code rather than reading it.** The first draft of `layoutShareImage` overflowed the 1080 px canvas (a long player name reached x=1147) and collided the two column averages. Task 3's implementation clips labels with `fit()` and aligns each block's average to its own right edge; the spec's own "keeps every glyph inside the poster" test now pins that.
 
-**Not verified, stated plainly.** `src/ui/Modal.tsx`, `src/shell/RosterScreen.tsx`, `src/shell/usePlayerImport.ts`, `src/shell/useSplitFlow.ts`, `src/shell/useToasts.ts` and `src/ui/constants.ts` do not exist yet — they are Phase C's deliverables. Every task that touches them names the exact interface `contracts.md` and C's spec freeze, and Tasks 2, 14, 15, 16 and 17 must re-read the landed file before editing it. If a name differs from the frozen contract, stop and report it rather than adapting silently.
+**Not verified, stated plainly — and now overtaken.** This paragraph was written while `src/ui/Modal.tsx`, `src/shell/RosterScreen.tsx`, `src/shell/usePlayerImport.ts`, `src/shell/useSplitFlow.ts`, `src/shell/useToasts.ts` and `src/ui/constants.ts` did not exist; they were Phase C's deliverables, and Tasks 2, 14, 15, 16 and 17 were told to re-read each one after it landed rather than trust the frozen contract. **All six have since landed, so that instruction is discharged rather than pending.** It is kept because the failure it guards against is the one that actually happened elsewhere in this phase: names read off a contract instead of off the file. Three shipped corrections are exactly that shape — the content-hashed font names, the worker's third build-time placeholder, and all four durability sentences — and in every case the frozen contract was right and the shipped file differed.
