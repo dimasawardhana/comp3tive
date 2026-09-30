@@ -394,7 +394,7 @@ export function SplitScreen({ session, discipline, roster, onPersistResult, onSu
           <span className="swap-banner-icon" aria-hidden="true">⇄</span>
           <span>
             {pick
-              ? `Now tap a player on the other team to swap with ${roster.find((p) => p.id === pick.playerId)?.name ?? "?"}.`
+              ? `Now tap a player on the other team to swap with ${roster.find((p) => p.id === pick.playerId)?.name ?? "?"}`
               : "Tap one player on each team to swap them."}
           </span>
         </div>

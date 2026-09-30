@@ -7,11 +7,13 @@
  * two functions.
  *
  * Four are held on purpose, and each for its own reason rather than as a
- * number: `SplitScreen.tsx:91` and `:397`, which `contracts.md` holds at zero
- * removed lines; `TournamentScreen.tsx:490`, which resolves a tournament
- * *team* and not a player, out of a different collection with a different
- * fallback; and `fairness.test.ts:304`, which must not build its oracle out
- * of the helper it is testing.
+ * number: `SplitScreen.tsx:91`, which `contracts.md` holds at zero removed
+ * lines; `SplitScreen.tsx:397`, whose one amendment (`contracts.md:538`) is
+ * scoped to a single character and so leaves the lookup standing;
+ * `TournamentScreen.tsx:490`, which resolves a tournament *team* and not a
+ * player, out of a different collection with a different fallback; and
+ * `fairness.test.ts:304`, which must not build its oracle out of the helper it
+ * is testing.
  *
  * Every expected string below is written out, never taken from these
  * functions, because a test that computed its oracle with the resolver would
