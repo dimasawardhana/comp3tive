@@ -182,15 +182,28 @@ describe("the fairness line on the split screen", () => {
     expect(screen(TWO_EVEN)).not.toContain("Eka (1.0)");
   });
 
-  it("leaves the not-playing list unpunctuated, as the other three surfaces print it", () => {
-    // The clause is lifted whole from `teamsAsText` (src/share/share-text.ts:83)
-    // and the poster, and a full stop after the list would print `?.` for a
-    // stale id. The line is unpunctuated after the list, and the sentence that
-    // follows it starts with the trade, not with a second stop.
-    const text = line(screen(TWO_WITH_SITOUT));
+  it("closes the not-playing list, so the trade's first name is not read as another sitter", () => {
+    // The rendered line is one sentence: the band, the sit-outs, the trade. A
+    // reader reads the run after "Not playing:" as a list, so it has to stop
+    // somewhere. Fails today in the way a reader fails: nothing ends it, Fajar
+    // joins the list, and the same line both benches him and calls him Team B's
+    // best, three words later.
+    //
+    // The mark is a semicolon and not a full stop, for the reason the module
+    // already records: a full stop after the list prints `?.` for an id the
+    // roster no longer holds. It is also the mark the trade clause beside it
+    // already uses, so the two halves of one line read as one hand.
+    const text = line(screen(TWO_WITH_SITOUT)) ?? "";
     expect(text).toContain("Every team averages 3.0 to 4.2. Not playing: Lina, Mira");
+    // The run after the label, read forward as comma-separated names and
+    // stopped at the first character that cannot be part of a name. The stop is
+    // the whole claim: a reader ends the list on a mark, so any mark satisfies
+    // this and none is named here.
+    const run = text.slice(text.indexOf("Not playing: ") + "Not playing: ".length);
+    const end = run.search(/[^'\p{L}\p{N}, ]/u);
+    const entries = run.slice(0, end < 0 ? run.length : end).split(", ").map((piece) => piece.trim());
+    expect(entries).toEqual(["Lina", "Mira"]);
     expect(text).not.toContain("Mira.");
     expect(text).not.toContain("?.");
-    expect(text).toContain("Not playing: Lina, Mira Fajar (5.0) is Team B's best;");
   });
 });

@@ -93,6 +93,12 @@ const WITH_SITS = split([team(0, ["p1", "p6"]), team(1, ["p2", "p5"])], { unassi
 const EVEN_WITH_SITS = split(EVEN.teams, { unassigned: ["p4", "p3"] });
 /** An id no roster holds, which is what a stale result looks like. */
 const WITH_A_STALE_ID = split([team(0, ["p1", "p6"]), team(1, ["p2", "p5"])], { unassigned: ["pX"] });
+/**
+ * The same stale id against an even split, so the unknown player is the whole
+ * list and nothing follows it. It is the shape where a closing mark would be
+ * the reader's last character.
+ */
+const EVEN_WITH_A_STALE_ID = split(EVEN.teams, { unassigned: ["pX"] });
 const ONE_TEAM = split([team(0, ["p1", "p6"])]);
 const NO_TEAMS = split([]);
 
@@ -113,6 +119,38 @@ const shareInput = (result: SplitResult) => ({
 function copyWords(sentence: string): Set<string> {
   const names = new Set(ROSTER.map((p) => p.name.toLowerCase()));
   return new Set((sentence.toLowerCase().match(/[a-z]+/g) ?? []).filter((w) => w.length >= 5 && !names.has(w)));
+}
+
+/** The label the three surfaces anchor a sit-out list on. */
+const NOT_PLAYING = "Not playing: ";
+
+/**
+ * The line a screen prints: `averages`, then `trade`, one space between, which
+ * is how `FairnessLine` composes them. The two fields are half a sentence each
+ * and the reader sees one line, so a claim about the sentence is a claim about
+ * this string and never about one field.
+ */
+const composedLine = (result: SplitResult): string => {
+  const { averages, trade } = explainFairness(input(result));
+  return `${averages}${trade ? ` ${trade}` : ""}`;
+};
+
+/**
+ * The sit-outs as a reader counts them: the run after the label, read forward
+ * as comma-separated names and stopped at the first character that cannot be
+ * part of a name or of the comma between two.
+ *
+ * The stop is the whole claim. A reader ends the list on a mark, and a list
+ * that never ends goes on eating the sentence that follows it, so any mark
+ * satisfies this and none is named. Naming one here would make the test a
+ * restatement of the fix instead of a statement about the line.
+ */
+function sitOuts(line: string): string[] {
+  const at = line.indexOf(NOT_PLAYING);
+  if (at < 0) return [];
+  const run = line.slice(at + NOT_PLAYING.length);
+  const end = run.search(/[^'\p{L}\p{N}, ]/u);
+  return run.slice(0, end < 0 ? run.length : end).split(", ").map((piece) => piece.trim());
 }
 
 const MODULE_AST = ts.createSourceFile(
@@ -258,9 +296,38 @@ describe("explainFairness", () => {
     // `trade` (which the screen renders only when a trade sentence exists, so a
     // sit-out would vanish on an even split), or if the names come out in a
     // different order than `result.unassigned` holds them.
+    //
+    // The list is closed here and nowhere else: a trade follows it, so the
+    // mark is on. This is the exact string that pins which mark it is, since
+    // the case above states the property any mark would satisfy.
     const { averages, trade } = explainFairness(input(WITH_SITS));
-    expect(averages).toBe("Every team averages 3.5 to 4.0. Not playing: Dewi, Citra");
+    expect(averages).toBe("Every team averages 3.5 to 4.0. Not playing: Dewi, Citra;");
     expect(trade).not.toContain("Not playing");
+  });
+
+  it("closes the not-playing list, so the trade's first name is not read as another sitter", () => {
+    // The screen prints one line: the band, the sit-outs, the trade. Read as
+    // prose, the run after "Not playing:" is a list, so a reader counts the
+    // names in it and stops where the list stops.
+    //
+    // Fails today in exactly the way a reader fails. Nothing ends the list, so
+    // the trade's opening name joins it, and the same line then says of one
+    // player both that he is not playing and that he is a team's best, three
+    // words apart. The claim here is the count and the words, so whichever mark
+    // ends the list satisfies it; which mark is held by the exact strings.
+    const benched = WITH_SITS.unassigned.map((id) => ROSTER.find((p) => p.id === id)?.name ?? "?");
+    expect(sitOuts(composedLine(WITH_SITS))).toEqual(benched);
+  });
+
+  it("leaves no mark on the list when the list is the last thing on the line", () => {
+    // An even split has no higher side, so there is no trade and the sit-outs
+    // are where the line stops. A closing mark here would print "Dewi, Citra;"
+    // on its own, which is the same defect pointed the other way: a sentence
+    // that ends on a mark. Fails if the terminator is appended to the list
+    // instead of being decided by whether a trade follows it.
+    const composed = composedLine(EVEN_WITH_SITS);
+    expect(sitOuts(composed)).toEqual(["Dewi", "Citra"]);
+    expect(composed).toMatch(/[\p{L}\p{N}']$/u);
   });
 
   it("shows no not-playing clause when the split placed everyone", () => {
@@ -273,9 +340,12 @@ describe("explainFairness", () => {
   it("prints a question mark for an id the roster no longer holds", () => {
     // A result outliving the player it names. Fails if the lookup is a bare
     // `.name` on a possibly-absent player, which throws rather than prints, or
-    // if a full stop is appended after the list, which prints "?." here and in
-    // every screen that shows it. The mark is `teamsAsText`'s, unchanged.
-    expect(explainFairness(input(WITH_A_STALE_ID)).averages).toBe("Every team averages 3.5 to 4.0. Not playing: ?");
+    // if a full stop closes the list, which prints "?." here and in every screen
+    // that shows it. What closes it is the semicolon the trade clause beside it
+    // already uses, and where nothing follows the list no mark is printed at
+    // all, so the same unknown id ends the line as a bare "?".
+    expect(explainFairness(input(WITH_A_STALE_ID)).averages).toBe("Every team averages 3.5 to 4.0. Not playing: ?;");
+    expect(explainFairness(input(EVEN_WITH_A_STALE_ID)).averages).toBe("Every team averages 4.0. Not playing: ?");
   });
 
   it("returns an empty pair when fewer than two teams exist", () => {

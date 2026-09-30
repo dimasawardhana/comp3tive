@@ -192,13 +192,12 @@ test.describe("the fairness line", () => {
     // the card lookup then hunts for a player called
     // "Every team averages 3.2 to 3.3. Player 3". The band is therefore matched
     // and consumed first, and the pattern below is anchored on what remains.
-    //
     // Limit worth knowing: a pool that also benched somebody would put the
-    // not-playing clause between the two sentences, and where that clause ends
-    // is not recoverable from the rendered text — "Sari Wira" is two list
-    // items or one name plus one name, and the DOM cannot say. This pool
-    // benches nobody, and a pool that did would fail this lookup loudly rather
-    // than pass quietly.
+    // not-playing clause between the two sentences. That clause ends on a mark
+    // of its own now, but this pattern's shortest first capture still swallows
+    // it along with the trade's opening name, and no card carries that string,
+    // so such a pool fails this lookup loudly rather than passing quietly.
+    // This pool benches nobody.
     const band = /^(Every team averages \d+\.\d+ to \d+\.\d+\.)/.exec(named);
     expect(band, `the line does not open with a two-ended band sentence: ${named}`).not.toBeNull();
     const trade = /^(.+?) \(([\d.]+)\) is (Team [A-Z])'s best; (.+?) \(([\d.]+)\) is (Team [A-Z])'s weakest\.$/.exec(named.slice(band![1].length).trimStart());
@@ -279,22 +278,25 @@ test.describe("the fairness line", () => {
     await expectNoProvenanceWords(page);
   });
 
-  test("a pool the split cannot absorb names who is not playing, unpunctuated", async ({ page }) => {
+  test("a pool the split cannot absorb names who is not playing, and stops there", async ({ page }) => {
     // Twelve players, two of them far below the rest. The split puts the ten
     // 4.0s on the teams and leaves the two weak ones off, the band is even, so
     // `trade` is empty and the not-playing clause is the last thing on the line.
-    // This is the cell where the empty `trade` and the missing full stop meet.
+    // This is the cell where the empty `trade` and the closing mark meet: with
+    // nothing after the list, the mark that keeps the trade's opening name out
+    // of the list would itself be a sentence ending on a mark.
     await gotoSeeded(page, world(sitOutPlayers()));
     await splitWith(page, "Mobile Legends", 2);
 
     const line = page.locator(".fairness");
     await expect(line).toHaveText("Every team averages 4.0. Not playing: Player 11, Player 12");
     const text = await lineText(page);
-    // No full stop after the list. The clause is lifted whole from `teamsAsText`
-    // (src/share/share-text.ts:83) and the poster, and a stop here would print
-    // `?.` for an id the roster no longer holds — the one string in this
-    // sentence the reader can get wrong.
-    expect(text.endsWith(".")).toBe(false);
+    // The line ends on a name, not on punctuation. A full stop here would print
+    // `?.` for an id the roster no longer holds, and the semicolon that closes
+    // the list when a trade follows it must not be printed when none does: the
+    // clause is lifted whole from `teamsAsText` (src/share/share-text.ts:83) and
+    // the poster, so this line and those two end the same way.
+    expect(text).toMatch(/[\p{L}\p{N}']$/u);
     await expectNoProvenanceWords(page);
   });
 
