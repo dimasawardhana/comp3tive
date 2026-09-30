@@ -528,6 +528,69 @@ ended before proving it minimal" are both untrue — a different false claim tha
 Correcting it honestly needs a string that describes the *result* rather than the search, or a third
 verdict. Recorded in `IMPLEMENTATION_PLAN.md`'s known-open table; it is a copy decision for D31's owner.
 
+### Amended by Day 2, R1, 2026-10-01 — one ghost button in the split bar
+
+**`src/session/SplitScreen.tsx` gains exactly one control: the `Swap` entry point back into the
+split bar.** This amendment is written **before** the code, and it is deliberately narrower than
+"the action bar is writable", because a grant that size would retire the rule in the row above
+(`contracts.md:538`) rather than amend it.
+
+**What it grants, in full:** one `<button>` inserted into the `.split-bar` action row of
+`src/session/SplitScreen.tsx`, rendering the label `Swap`, bound to the **existing**
+`toggleSwapMode` at `:348-351`, and hidden when `swapMode` is already on. That is the whole grant.
+The handler is not rewritten, the state is not restructured, and no new prop is added.
+
+**What it does not grant, and each item is not reopened by it:**
+
+- **It grants no permission to remove, rename, reorder or rewrite any existing line.** The
+  zero-removed-lines verification in the row above still applies and still returns nothing, because
+  this edit is **purely additive**: the button and its guard are inserted, and no line above or below
+  them is touched. If a later change to this button turns out to need a removed line, that is a
+  **third** named exception and it has to be written as one. This one does not pre-pay it.
+- **It does not grant a second control.** A fifth bar button of any other kind, an icon-only
+  affordance on a card, a long-press handler, a keyboard shortcut, and a gesture are all out of
+  scope, and each would need its own amendment with its own reason.
+- **It does not touch the swap-prompt line at `:397`**, the banner's structure at `:392-401`, the
+  `swapMode ?` branch at `:497`, or the `!swapMode` guards that hide Back, Save squad and Share
+  while the mode is on. Those three guards are what make the mode a **single exit** — with five
+  actions on the bar, one mode where three of them are hidden and one where a single `Done swapping`
+  is all that remains is the shape that reads; changing it is a design decision, not a repair.
+- **It grants no edit to any declaration in `src/split.css`.** Whether a fifth action still fits
+  the bar is a measurement, not a styling opinion, and `e2e/tests/split/action-bar.spec.ts` now
+  makes it on six states. That file measured six bar states before this amendment and **the
+  swap-mode row among them was a composed probe** — real nodes, but a row the shipped app could not
+  enter. After this amendment it still measures six states, but that one is reached by clicking
+  `Swap`, so its numbers come from the app rather than from a fixture. The addendum below grants
+  that file's comment its correction; it grants no CSS.
+
+**One addendum, added after measuring rather than before guessing.** The fifth action does not fit
+the paragraph that explains `.split-bar`'s wrap (`src/split.css:784-814`), and that paragraph makes
+three claims that this button falsifies: that the bar is "the only one that can hold four actions",
+that it "holds one to four actions (Back, Save squad and Share are each conditional, and the primary
+is one of three labels)", and that the tournament bar "breaks 2+2 with the primary sharing its line
+with `Share`". At 390 the five-action bars now break **3+2** (reopened from History) and **2+2+1**
+(from a tournament draft), and the bar holds one to five. Those are measured numbers, from
+`e2e/tests/split/action-bar.spec.ts`, not estimates.
+
+So this amendment grants a **second, comment-only** edit: the prose inside the single comment block
+at `src/split.css:784-814` may be corrected to the measured shape. **No declaration in that file may
+change.** The wrap itself (`flex-wrap: wrap`, `src/split.css:815`) was measured to still produce a
+two-line bar at 390 for the common state and a three-line bar for the widest one, with no label
+truncated, no action under 44px and no sideways scroll — the treatment the comment describes still
+does its job at five, which is why nothing in `src/*.css` is being rewritten to accommodate the
+button. If a future state ever needed a stylesheet change, that is a **third** named exception.
+
+**Why the grant is this narrow.** The feature did not break because someone decided to remove swap
+mode. `36d32b6` (2026-09-07) rewrote this bar to add the `inTournament` prop and, in the same hunk,
+dropped two `Swap` buttons while keeping the handler, the `swapMode ?` branch, the exit and the
+banner. **The entry point was the exit**, so for ten weeks the feature was unreachable and every
+test stayed green, because every test asserted the mode was off or said nothing at all. A grant
+phrased as "this bar is writable" would have permitted the same accident in the other direction:
+the next person to reshape this row would be editing a file two phases touch, with no seam to slow
+them down. Naming one button, one label and one existing handler leaves the row checkable —
+`grep -E "^-[^-]"` still answers *did this file lose anything*, and `data-testid="swap-mode"` names
+the one thing this amendment is about.
+
 
 ---
 
@@ -535,7 +598,7 @@ verdict. Recorded in `IMPLEMENTATION_PLAN.md`'s known-open table; it is a copy d
 
 | File | Phases | The rule |
 |---|---|---|
-| `src/session/SplitScreen.tsx` | A03 (`reroll`), B13 (gap copy), B15 (two strings), C26 + C28 (crumb block, pool expression), D31/D37/D38 (additive) | Each phase edits one named region. D's edit is purely additive: one `share?` prop, one `Share` button, one `<p className="fairness">`. Verify with `git diff -U0 src/session/SplitScreen.tsx \| grep -E "^-[^-]" \| grep -v "^---"` → no output. **One named exception, 2026-09-30:** the swap-prompt line at `:397` may lose its **trailing full stop**, and nothing else about that line. See §5. |
+| `src/session/SplitScreen.tsx` | A03 (`reroll`), B13 (gap copy), B15 (two strings), C26 + C28 (crumb block, pool expression), D31/D37/D38 (additive), **R1 (Day 2, one ghost button, additive)** | Each phase edits one named region. D's edit is purely additive: one `share?` prop, one `Share` button, one `<p className="fairness">`. Verify with `git diff -U0 src/session/SplitScreen.tsx \| grep -E "^-[^-]" \| grep -v "^---"` → no output. **One named exception, 2026-09-30:** the swap-prompt line at `:397` may lose its **trailing full stop**, and nothing else about that line. See §5. **Second named exception, 2026-10-01 (R1):** one `Swap` ghost button may be **inserted** into the `.split-bar` row and bound to the existing `toggleSwapMode`. Purely additive, so the zero-removed-lines check above still holds; it grants no removal, no second control, no edit to `:397`/`:392-401`/`:497` or the three `!swapMode` guards, and **no declaration in any stylesheet**. It does grant one **comment-only** correction, to the paragraph at `src/split.css:784-814` that states how many actions the bar holds. See §5. |
 | `src/tournament/bracket.ts` | A07 (pairing, standings), D35 (round-robin arms) | D adds a `buildBracket` arm, a `roundsFor` arm, and extends `champion()` to also accept `"round-robin"`. The `series`, `single-elim` and `swiss` arms are not modified. |
 | `src/main.tsx` | A05 (error boundary), D33 (SW registration) | Registration is added on `window`'s `load`, outside `<ErrorBoundary>`, with the rejection handled so a failed registration is silent. The render call and A05's wrapper are unchanged. |
 | `src/App.tsx` | A (delete/import handlers), B15 (two strings), C (decomposition), E (sign-in) | Sequenced, never concurrent: A → B → C → E. |

@@ -78,6 +78,34 @@ that enters the mode and performs a swap, and the four documents that still desc
 **This is a user-facing bug, not a chore.** It has been dead for ten weeks and no test can catch it,
 because entering the mode is the thing that is missing.
 
+**Landed 2026-10-01.** The amendment came first: `contracts.md` §5 now carries a named exception
+granting **one** `Swap` ghost button, bound to the existing `toggleSwapMode`, plus one comment-only
+correction to `src/split.css:784-814` — which stated "one to four actions" and described the
+tournament bar breaking 2+2, both falsified by the fifth button. The button was inserted, not
+substituted, so `git diff -U0 src/session/SplitScreen.tsx | grep -E "^-[^-]"` still returns nothing
+and the row's zero-removed-lines rule is untouched. It is gated on `result.teams.length > 1`, the
+gate `Share` already had, because a swap needs two teams and the screen below that renders "Solver
+failed".
+
+**It is gated on one team count that no design had to decide:** at 390 the five-action bars wrap to
+**3+2** from History and **2+2+1** from a tournament draft, against 350 of content width. No
+declaration changed, no label truncates, no action dropped below 44px, and the three-action and
+two-action bars still fit on one line. `action-bar.spec.ts` now pins a line count **per state**
+rather than one global number, because a single global number would have been one of those two
+lying.
+
+**The coverage is the part that matters, and it is not the arithmetic.** `swapPlayers` was already
+unit-tested and the card affordances were never touched, which is exactly why ten weeks passed:
+the function was covered and the reaching was not. `e2e/tests/split/swap.spec.ts` now enters the
+mode through the button, trades two players, and asserts the gap moved 4.0 → 2.4 on a seed built so
+the number cannot drift by chance; it also covers the same-team clear, Enter and Space, the
+`role="button"` / `tabIndex={0}` affordances, and the transitions in and out. Against `497aa8b` —
+three commits back, and byte-identical to `HEAD` for this file — **all six go red**, four of them on
+`waiting for getByTestId('swap-mode')`. The sixth is a negative assertion (Swap withheld below two
+teams) and passes on both commits by construction; `SplitScreen.swap-entry.test.ts` is 5-red of 6
+for the same reason. **That split is the finding, not a caveat: a test that cannot fail on the
+broken commit is not the test, and the one that survives is the one making a negative claim.**
+
 ### R2 · The "prop nobody passes" sweep — **~half a day**
 
 The sweep that found swap mode covered *"a state nothing can turn on"* and explicitly **not** *"a prop
@@ -142,8 +170,10 @@ say which, because two trackers for one work is how the first one got stale.
 **Day 1, yours:** open the PR, land CI, one `curl`, deploy, verify, merge. That is the whole critical
 path and nothing below competes with it.
 
-**Day 2, in any order:** R1 (swap mode — the only user-facing bug left) · D1 (`app-health`) · R2 (the
-prop sweep).
+**Day 2, in any order:** ~~R1 (swap mode — was the only user-facing bug left)~~ **landed 2026-10-01,
+see above** · D1 (`app-health`) · R2 (the prop sweep). **R1 was the last user-facing bug in this
+file**, so the two that remain are both sweeps, and neither of them is something a user is waiting
+on.
 
 **Day 3:** D2, D3, and a decision on the four "not doing" rows above — because a row that is
 deliberately not being done needs to be a decision, not a drift.

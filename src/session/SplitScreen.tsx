@@ -494,6 +494,32 @@ export function SplitScreen({ session, discipline, roster, onPersistResult, onSu
             Share
           </button>
         )}
+        {/*
+          The entry point, and the reason this bar can hold five actions.
+          `36d32b6` dropped this button while keeping `toggleSwapMode`, the
+          `swapMode ?` arm below and the banner above, so the mode's only
+          control was its own exit and no user could reach it.
+
+          It is placed with the other secondaries, last of them and before the
+          primary, because that is the order `.split-bar`'s wrap is reasoned
+          about in (`src/split.css:784-814`: the secondaries take the first line
+          and the primary its own). Anywhere else would put a ghost on the far
+          side of the bar's one loud control.
+
+          Gated on `result.teams.length > 1` for the reason Share is: a swap
+          needs two teams, and under that threshold the screen renders "Solver
+          failed", where the only honest action is the re-roll already here.
+        */}
+        {!swapMode && result.teams.length > 1 && (
+          <button
+            type="button"
+            className="btn btn-ghost"
+            onClick={toggleSwapMode}
+            data-testid="swap-mode"
+          >
+            Swap
+          </button>
+        )}
         {swapMode ? (
           <button type="button" className="btn btn-primary" onClick={toggleSwapMode}>
             Done swapping

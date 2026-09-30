@@ -54,42 +54,54 @@
  *
  * ## The states, and why there are six
  *
- * The bar holds **one to four** actions. `onBack && !swapMode`, `onSaveSquad &&
- * !swapMode`, and a Share button gated on `share && result.teams.length > 1`
- * each decide independently (`src/session/SplitScreen.tsx:458-515`), and the
- * primary is one of three labels. A fix written against four actions holds only
- * on the day it was written, so every state is measured:
+ * The bar holds **one to five** actions. `onBack && !swapMode`, `onSaveSquad &&
+ * !swapMode`, `share && result.teams.length > 1` and the `Swap` entry (the same
+ * `teams.length > 1` gate, for the same reason) each decide independently
+ * (`src/session/SplitScreen.tsx:458-541`), and the primary is one of three
+ * labels. A fix written against one count holds only on the day it was written,
+ * so every state is measured:
  *
  * | state | reached by | actions |
  * | --- | --- | --- |
- * | four, reopened from History | History → a seeded session | `← History`, `Save squad`, `Share`, `Re-roll` |
- * | four, from a tournament draft | Games → new tournament → Split your teams | `← Match setup`, `Save squad`, `Share`, `Save teams to tournament →` |
- * | three, share withheld | History → a one-team result, the "Solver failed" screen | `← History`, `Save squad`, `Re-roll` |
- * | one, the Landing Page hero | the root document | `Re-roll` |
- * | two, `onBack` absent | probed, see below | `Save squad`, `Re-roll` |
- * | one, swap mode | probed, see below | `Done swapping` |
+ * | five, reopened from History | History → a seeded session | `← History`, `Save squad`, `Share`, `Swap`, `Re-roll` |
+ * | five, from a tournament draft | Games → new tournament → Split your teams | `← Match setup`, `Save squad`, `Share`, `Swap`, `Save teams to tournament →` |
+ * | three, share and swap withheld | History → a one-team result, the "Solver failed" screen | `← History`, `Save squad`, `Re-roll` |
+ * | two, the Landing Page hero | the root document | `Swap`, `Re-roll` |
+ * | four, `onBack` absent | probed, see below | `Save squad`, `Share`, `Swap`, `Re-roll` |
+ * | one, swap mode | the `Swap` button, see below | `Done swapping` |
  *
  * The tournament row is the widest bar the app can render — its primary label
  * is 24 characters where "Re-roll" is 7 — so it is the one that would break
- * first if the treatment were tuned to the other four.
+ * first if the treatment were tuned to the other five. At 390 it is also the
+ * only state that needs three lines; every other state wraps to two or fewer,
+ * and each state's line count is pinned rather than described.
  *
- * ### The two probed states, and what a probe is not
+ * ### `Swap`, which this file previously could not reach
  *
- * Neither is reachable through the shipped app, and this file says which is
- * which rather than quietly dropping them:
+ * **Until 2026-10-01 swap mode had no entry point at all.** `setSwapMode` was
+ * called from `toggleSwapMode` and nowhere else, and `toggleSwapMode` was bound
+ * only to the "Done swapping" button, which renders only when the mode is
+ * already on. `36d32b6` (2026-09-07) dropped the two `Swap` buttons while
+ * keeping the handler, the branch, the exit and the banner, and **the entry
+ * point was the exit**. This file recorded that as a finding rather than
+ * working around it, and measured the row anyway through a probe.
  *
- * - **swap mode has no entry point.** `setSwapMode` is called from
- *   `toggleSwapMode` (`src/session/SplitScreen.tsx:348-351`) and from nowhere
- *   else, and `toggleSwapMode` is bound to the "Done swapping" button, which is
- *   rendered only when swap mode is already on (`src/session/SplitScreen.tsx:497-500`).
- *   The state cannot be entered. That is a finding, not a fixture problem, and
- *   it is not this file's to fix — but the bar it *would* render still has to fit.
- * - **two actions is unreachable** because the three conditions do not vary
- *   independently: the app's screen always passes `onBack`, `onSaveSquad` and
- *   `share` (`src/shell/ScreenSwitch.tsx:321-327`) and the Landing Page passes
- *   none of them (`src/landing.tsx:151-161`). One is the floor, four the ceiling.
+ * The `Swap` button is back (`src/session/SplitScreen.tsx:497-522`, one named
+ * grant in `contracts.md:601`), so the swap-mode row is no longer composed: it
+ * is reached by clicking `Swap` and measuring what the app then renders. That
+ * is the difference between this number and a fixture's, and it is the reason
+ * this row is worth keeping separate from the probed one below.
  *
- * So those two rows are measured with a **layout probe**: the bar's children are
+ * ### The one probed state, and what a probe is not
+ *
+ * **"Four actions, `onBack` absent" is unreachable**, and this file says so
+ * rather than quietly dropping it: the conditions do not vary independently.
+ * The app's screen always passes `onBack`, `onSaveSquad` and `share`
+ * (`src/shell/ScreenSwitch.tsx:321-327`) and the Landing Page passes none of
+ * them (`src/landing.tsx:151-161`), so the real floor is two actions (the hero)
+ * and the real ceiling is five.
+ *
+ * So that row is measured with a **layout probe**: the bar's children are
  * replaced with clones of the buttons the app rendered on that same screen, in
  * the order `SplitScreen` renders them. It is not a mock and not a hand-built
  * fixture — the nodes under measurement are the app's own nodes, so the class,
@@ -99,6 +111,13 @@
  * the bar's box, the flex line breaking, the target sizes, the labels — is the
  * real stylesheet on real nodes in the real document, which is the only way to
  * measure a state the app will not enter.
+ *
+ * **Swap mode is no longer a probe.** It was one until 2026-10-01, for the
+ * reason recorded above, and it is the one row here the app itself now builds:
+ * the button that reaches it is a node that did not exist at all when this file
+ * was written. Its measurement therefore carries the same weight as the other
+ * five, and `e2e/tests/split/swap.spec.ts` covers what the mode does once the
+ * bar hands over to it.
  *
  * ## The floor the treatment must not buy its way past
  *
@@ -295,7 +314,7 @@ const readBar = (page: Page): Promise<BarReading> => page.evaluate(() => {
  * Replace the bar's children with clones of the buttons the app just rendered,
  * matched **by label** and not by position, secondaries first and one primary
  * last — the order `SplitScreen` renders them. Matching by label rather than
- * taking the first N is what lets "two actions, `onBack` absent" ask for
+ * taking the first N is what lets "four actions, `onBack` absent" ask for
  * `Save squad` and not inherit `← History` from the row it was composed from.
  * See the header for what a probe is and is not.
  */
@@ -361,42 +380,61 @@ type State = {
   open: (page: Page) => Promise<void>;
   /** the exact labels, in render order: nothing added, nothing renamed, nothing hidden */
   labels: readonly string[];
+  /**
+   * How many flex lines the bar occupies, per width. Pinned rather than
+   * described because the line count *is* the shape of the treatment: a bar
+   * that stayed on one line at 390 could only get there by shrinking a target
+   * or cutting a label, both of which this file already fails on separately.
+   * Measured at 390 and 1280 with the same labels the loop asserts.
+   */
+  lines: Record<390 | 1280, number>;
   /** probed states compose the row instead of reaching it; see the header */
   probed?: boolean;
 };
 
 const STATES: readonly State[] = [
   {
-    name: "four actions, a session reopened from History",
+    name: "five actions, a session reopened from History",
     open: (page) => openSession(page, 0),
-    labels: ["← History", "Save squad", "Share", "Re-roll"],
+    labels: ["← History", "Save squad", "Share", "Swap", "Re-roll"],
+    lines: { 390: 2, 1280: 1 },
   },
   {
-    name: "four actions, from a tournament draft",
+    name: "five actions, from a tournament draft",
     open: openTournamentSplit,
-    labels: ["← Match setup", "Save squad", "Share", "Save teams to tournament →"],
+    labels: ["← Match setup", "Save squad", "Share", "Swap", "Save teams to tournament →"],
+    lines: { 390: 3, 1280: 1 },
   },
   {
-    name: "three actions, Share withheld on a solver failure",
+    name: "three actions, the solver-failure screen withholds Share and Swap",
     open: (page) => openSession(page, 1),
     labels: ["← History", "Save squad", "Re-roll"],
+    lines: { 390: 1, 1280: 1 },
   },
   {
-    name: "one action, the Landing Page hero",
+    name: "two actions, the Landing Page hero",
     open: openLandingHero,
-    labels: ["Re-roll"],
+    labels: ["Swap", "Re-roll"],
+    lines: { 390: 1, 1280: 1 },
   },
   {
-    name: "two actions, onBack absent",
+    name: "four actions, onBack absent",
     open: (page) => openSession(page, 0),
-    labels: ["Save squad", "Re-roll"],
+    labels: ["Save squad", "Share", "Swap", "Re-roll"],
+    lines: { 390: 2, 1280: 1 },
     probed: true,
   },
   {
     name: "one action, swap mode",
-    open: (page) => openSession(page, 0),
+    // Reached through the app, not composed: the `Swap` button, then the mode's
+    // own banner, which is what proves the entry point actually took.
+    open: async (page) => {
+      await openSession(page, 0);
+      await page.getByTestId("swap-mode").click();
+      await expect(page.locator(".swap-banner")).toBeVisible();
+    },
     labels: ["Done swapping"],
-    probed: true,
+    lines: { 390: 1, 1280: 1 },
   },
 ];
 
@@ -438,8 +476,18 @@ test.describe("the split screen's action bar", () => {
           read.bar.clientWidth,
         );
 
+        // The line count is the shape, and it is per state rather than global:
+        // the tournament bar needs three lines at 390 where the History bar
+        // needs two, and a single global number would be one of those two lying.
+        // A fifth action pushed the widest bar from two lines to three; that is
+        // the bar growing, not a label being cut, and pinning it is how the
+        // next fifth action has to argue about it.
+        const lines = new Set(read.actions.map((a) => a.top)).size;
+        expect(lines, `${where}: the bar is ${lines} line(s) tall, expected ${state.lines[width as 390 | 1280]}`).toBe(
+          state.lines[width as 390 | 1280],
+        );
+
         for (const action of read.actions) {
-          // Nothing crosses the bar's own right edge.
           expect(action.right, `${where}: "${action.name}" ends at ${action.right}, past the bar's ${read.bar.contentRight}`).toBeLessThanOrEqual(
             read.bar.contentRight + 1,
           );
@@ -595,7 +643,7 @@ test.describe("the split screen's action bar", () => {
     // the component writes is the name the user finds, at both widths.
     await page.setViewportSize({ width: 390, height: 844 });
     await openSession(page, 0);
-    for (const label of ["← History", "Save squad", "Share", "Re-roll"]) {
+    for (const label of ["← History", "Save squad", "Share", "Swap", "Re-roll"]) {
       await expect(page.getByRole("button", { name: label, exact: true }), label).toBeVisible();
     }
     // The tournament bar's primary is the widest label in the app, and the one
