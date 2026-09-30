@@ -1,6 +1,6 @@
 # 31: Share the result — copy the teams as text
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **What to build:** From the split screen, one control copies the finished teams into the
 clipboard as plain text a group chat can read: a headline, a block per team with each
@@ -51,3 +51,29 @@ verdict in both cases. A re-roll is not automatically unproven: `varietySplit` s
 - [ ] `npx vitest run` exits 0 with no failures and the new `src/share/share-text.test.ts` in the output; `npx tsc -b` exits 0.
 
 **Blocked by:** —
+
+## Comments
+
+**Status re-checked 2026-09-30 against `feature/revamp` — shipped. The split screen has a share
+control, the sheet shows the text before it is copied, and the honest fallback is in place.**
+
+`src/share/share-text.ts:65` exports `teamsAsText` as a pure function with no DOM and no React
+import. `closingLine` (`:58-63`) branches on **`gapKind`**, never on `gapQualifier() !== null`, and
+says so in the doc comment above it — including why the best-found sentence describes the *result*
+rather than the search, so it is true of a budget-exhausted `fairSplit`, a `varietySplit` and a
+`swapPlayers` result alike. `Not playing: …` is appended only when `result.unassigned` is non-empty.
+
+`SplitScreen` renders the `Share` button (`data-testid="share-teams"`) **only** when the optional
+`share` prop is passed (`src/session/SplitScreen.tsx:459`), so the landing hero gains no control —
+`src/landing.tsx:153` mounts with no `share` prop, and `e2e/tests/share/share.spec.ts` has a case
+named "the landing hero gains no share control" that pins it. The sheet renders inside the shared
+`<Modal>` from `src/ui/Modal.tsx`, shows the text in a read-only `.share-preview` textarea, and
+falls back to `Copy failed. Select the text above and copy it.` (`:18`) rather than throwing.
+
+**Three strings in this ticket's body no longer match the code, and the code is right.** The
+headline is `Futsal · Thursday Crew, 2 teams` rather than `Futsal · Thursday Crew — 3 teams`, and
+the two gap sentences use a full stop where this ticket wrote an em-dash:
+`Gap 0.4. The proven minimum for this pool.` and
+`Gap 0.4. The smallest gap known for this pool. A smaller one may exist.` `DESIGN.md:200` bans
+em-dashes in visible copy and `DESIGN.md:204` records this sweep specifically. Anyone implementing
+from this body alone would reintroduce three em-dashes.

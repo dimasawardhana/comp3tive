@@ -1,6 +1,6 @@
 # 14: The landing page claims only what ships
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **What to build:** Every claim on the Landing Page at `/` is either true of the build today, is
 removed, or is marked as restored by a later ticket. The page stops promising a proven minimum
@@ -159,3 +159,26 @@ Handoff to Phase D02: when the manifest and service worker ship, restore the off
 `index.html` trust list row 3 becomes `Works with no signal. The court has no wifi.`, the meta
 description regains `Works offline, `, and `e2e/tests/landing/landing.spec.ts`'s third trust
 assertion changes from `"no account"` back to `"no signal"`.
+
+**Status re-checked 2026-09-30 against `feature/revamp` — shipped. Every claim in the acceptance
+table is either true of the build or gone from the page.**
+
+`index.html:209-214` is the trust list, and all three true claims from this ticket are present
+verbatim. The offline row is now a **fourth** row — `Once comp3tive has run with a network, it opens
+and runs a tournament with no signal.` — restored by ticket 33 exactly as this ticket's own handoff
+note above prescribed, and `e2e/tests/landing/landing.spec.ts:93-116` pins the count at 4 with a
+comment explaining why the offline row is an addition and not a replacement.
+
+The lede (`index.html:100-102`) reads "the smallest strength gap it can prove, weighing every role,
+and naming who is covering when one runs short" — carrying `it can prove` and `smallest strength
+gap`, with `exact, not estimated` gone, as required. The meta description (`index.html:9`) reads
+"Works offline after one online run" — the honest form of the restored claim, and still free of
+`badminton`. The Roster rail's `Disciplines` fact reads `3` (`index.html:186`), matching
+`SEED_DISCIPLINES.length` now that badminton ships. The badminton card
+(`src/landing.tsx:110-115`) reads `roles: ["Front court", "Rear court"]`, `teamSize: "2 v 2"`.
+
+**The hero claim is verified, not assumed.** `src/landing.tsx:213` fills `[data-landing-gap]` from
+`result.gap.toFixed(2)`. Running the exact shipped `ROSTER` (`src/landing.tsx:19-30`) through
+`freshSplit` gives **gap 0.10, `optimal: true`, 51 nodes** — so the rail's `0.10` at `index.html:120`
+is genuinely the solver's output and is genuinely proven, which is the one claim this ticket said
+must be preserved.

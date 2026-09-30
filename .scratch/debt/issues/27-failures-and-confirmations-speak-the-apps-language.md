@@ -1,6 +1,6 @@
 # 27: Failures and confirmations speak the app's language
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **What to build:** No operation blocks the thread with a native browser dialog; a rejected
 domain operation shows a message instead of vanishing into the console; and a write that fails
@@ -107,3 +107,28 @@ the handlers around it.
 **Blocked by:** 26 — it moves the handlers and the roster markup this ticket edits. Phase A's
 `.scratch/app-correctness/02` and `03` must also have landed: both edit the same handlers, and
 `03` adds validation at the very entry points this ticket rewrites.
+
+## Comments
+
+**Status re-checked 2026-09-30 against `feature/revamp` — shipped. No native dialog exists in
+`src/`, and every failure this ticket named now surfaces to the user.**
+
+`grep -rn "alert(\|window.confirm(" src/` returns **nothing**. `src/ui/ConfirmButton.tsx:37` is the
+single in-app two-step primitive, used by the five files this ticket enumerated —
+`DisciplineEditModal`, `PlayerEditModal`, `AppChrome` (the community delete), `SquadsScreen` and
+`HistoryScreen` — and the non-destructive import merge confirm is `usePlayerImport`'s
+`pendingMerge` (`:168,200-211`) as specified, not a seventh copy of the boolean.
+
+**The unhandled rejections are closed, and the messages are the domain's own.**
+`src/shell/useSplitFlow.ts:305-321` wraps `applyResult` and `undoLastGame` in try/catch and calls
+`notify(formatError(err), "error")` — no sentence invented, since the throw already carried the
+user-readable one. The ad-hoc session write keeps showing the split and adds
+`notify("Your split wasn't saved to History.", "error")` (`:258`), replacing the swallowed catch this
+ticket called out. The legacy-adoption effect has a `.catch` on both writes
+(`src/App.tsx:143,153`) rather than a floating `void`.
+
+`src/ui/Toasts.tsx:10-12` still carries `aria-live="polite"` on `.toast-container` and
+`role="status"` on every toast, and `ConfirmButton` returns a fragment with no modal and no focus
+move, so no confirmation steals focus. The one premise of this ticket that has since changed is
+where the handlers live — the ticket's file list predates Phase C's extraction — but the outcome it
+asked for is in the tree, in `src/shell/`.

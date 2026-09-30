@@ -102,3 +102,34 @@ have landed, or the extraction moves the very lines they patched.
 - [ ] `src/shell/useToasts.ts` exports `useToasts` and `src/ui/Toasts.tsx` renders the unchanged `.toast-container` markup; `grep -rn "toast-container" src/` names exactly one file
 
 **Blocked by:** 24, 25 — same file, and each must land green before the next begins.
+
+## Comments
+
+**Status re-checked 2026-09-30 against `feature/revamp` — partial. Status left
+`ready-for-agent`, and this is the one ticket in 13-37 where a `resolved` stamp would be actively
+harmful.**
+
+**Shipped, verified:** `src/shell/useSplitFlow.ts` exports `splitFlowRule` (`:31`) and `rerollPool`
+(`:51`), and `rerollPool` has a real production caller at `src/session/SplitScreen.tsx:299` — which
+was this ticket's own stated reason for existing. `grep 'source === "ad-hoc"\|source ===
+"tournament"' src/App.tsx` returns nothing, so every source branch goes through `splitFlowRule`.
+`RosterScreen.tsx`, `AppChrome.tsx`, `usePreferences.ts`, `useToasts.ts` and `ui/Toasts.tsx` all
+exist, `toast-container` is named in exactly one file, and `src/App.tsx` holds exactly the four
+`useState` calls this ticket names. The `consumeTeams` guard is preserved character-for-character
+including its message, now as `bracketSupports` (`useSplitFlow.ts:76-81,277`) with the round-robin
+arm ticket 35 added later.
+
+**Not shipped, verified: the headline target.** The first acceptance row is
+`wc -l src/App.tsx` is **less than 400**, measured with `wc -l`. It is **514**. The phase ledger
+records the shortfall as a deliberate, reasoned decision rather than an oversight —
+`.superpowers/sdd/2026-09-17-shell-and-structure/progress.md:609` ("`src/App.tsx` 600 -> 478. The
+under-400 goal was NOT met, and that is reported rather than chased") and `:634` ("Ruling: accept
+478 and record the shortfall; the closing extraction is not added here"). The file has since grown
+to 514 on Phase D's work.
+
+**Why the shortfall is not being resolved away.** `contracts.md:180` and the roadmap state the same
+under-400 target, so this is a real unclosed acceptance row and not a stale number in one ticket.
+But the ledger's own reason for not chasing it still stands: the remaining structural lines sit in
+a 161-line handler block, and scoping a task to "close 114 lines" would over-scope it into a much
+larger refactor than the residual justifies. That judgement has not been made, and it is not this
+task's to make — `src/App.tsx` is untouched by this re-check.

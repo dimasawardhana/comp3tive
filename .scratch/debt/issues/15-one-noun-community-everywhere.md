@@ -1,6 +1,6 @@
 # 15: One noun: Community, everywhere
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **What to build:** The group a roster belongs to is called a **Community** in every string a user
 reads. "Squad" survives only where it names the curated, named split (`Saved Squad`), which keeps
@@ -87,3 +87,25 @@ strings *are* that outcome.
 - [ ] `npm run e2e` passes, with no existing assertion edited
 
 **Blocked by:** — (runs after Phase A is green; sequencing only)
+
+## Comments
+
+**Status re-checked 2026-09-30 against `feature/revamp` — shipped. All five strings moved, and
+none of the five "leave alone" strings did.**
+
+`grep -rn "No players in this squad\|Split the squad\|then the squad\|Tournament squad\|Save
+tournament squad" src/` returns **nothing**. The five replacements are at
+`src/shell/RosterScreen.tsx:826` (`No players in this community`) and `:909` (`Split the roster`),
+`src/session/MatchScreen.tsx:43` (`then the roster`), and `src/session/SplitScreen.tsx:360`
+(`Tournament teams`) and `:480` (`Save teams to tournament →`). Two of the five have moved house
+since this ticket was written — Phase C's extraction put the roster hub's copy in
+`RosterScreen.tsx` rather than `App.tsx` — so the strings are where the ticket asked, in the file
+that now owns them.
+
+The new spec this ticket asked for exists: `e2e/tests/community/noun.spec.ts`, which seeds an empty
+roster and asserts the empty-state copy and the CTA. Its header is honest about its reach — it
+claims the two strings that render on a seeded empty-roster screen and explicitly does not claim
+the other three.
+
+`grep -rn "Squads" src/shell/nav-items.ts` confirms the nav label still names the Saved Squads hub,
+and the `title="New community"` switcher control is untouched.

@@ -1,6 +1,6 @@
 # 37: Make the split defensible in words
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **What to build:** The split screen answers the question the organizer is actually asked — *why
 are these teams fair?* — with one plain sentence built from the real numbers on screen: the
@@ -56,3 +56,28 @@ the same in both cases, do not import it and do not mention provenance at all.
 - [ ] `npx vitest run` exits 0 with `src/share/fairness.test.ts` in the output; `npx tsc -b` exits 0.
 
 **Blocked by:** 13 (B13's `gapProvenance.ts` and its `.readout` copy must exist first, so this ticket's line lands beside a settled readout rather than racing it)
+
+## Comments
+
+**Status re-checked 2026-09-30 against `feature/revamp` — shipped. The split screen now explains
+the number, at both layouts, without restating or contradicting the provenance qualifier.**
+
+`src/share/fairness.ts:47` exports `explainFairness` as a pure function returning
+`{ averages, trade }`, at the path `contracts.md` grants this phase. `averages` is
+`Every team averages {low} to {high}.` with the single-value collapse to `Every team averages {low}.`
+at `:54`, and `trade` names the strongest player on the highest-averaging team against the weakest
+on the lowest (`:76`) using `teamName(index)`. Strength is read through the flow helper, and a
+player with no capability in the discipline is excluded from both selections — the ticket's
+determinism and exclusion rules are in the module, not just intended.
+
+**Both live branches render it**, which was the ticket's sharpest requirement: `FairnessLine` is a
+component at `src/session/SplitScreen.tsx:132` and is rendered at `:181` (the 2-team pitch, directly
+after the `.readout`) and `:403` (the 3+ stack, under its own readout). The component returns `null`
+when there is no band to report, so the empty state renders nothing rather than a placeholder.
+
+**The boundary with ticket 13 held, and the em-dash ban held.** The line imports only
+`../share/fairness` and not `gapProvenance` — the two surfaces cannot disagree because neither
+re-derives the other's claim. `e2e/tests/split/fairness.spec.ts` has 5 cases including one that
+asserts the copy contains none of the banned provenance words, one for the even-split
+single-sentence form, one for the 3+ site, and one that the landing hero shows the line without
+overflowing.

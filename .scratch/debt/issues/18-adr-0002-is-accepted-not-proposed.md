@@ -1,6 +1,6 @@
 # 18: ADR-0002 is accepted, not proposed
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **What to build:** The architecture decision that shaped the whole tournament feature stops
 describing itself as a proposal. ADR-0002 is marked accepted with the date it was ratified, its
@@ -119,3 +119,17 @@ and still ships.
 is a document; this ticket is the ADR record, and the phase report is scratch that gets deleted.
 An accepted ADR asserting a layout the app does not have is the exact drift the phase exists to
 remove, so the correction belongs beside the claim.
+
+**Status re-checked 2026-09-30 against `feature/revamp` — shipped.**
+
+`docs/adr/0002-tournament-first-flow.md:5-6` reads `**Status**: accepted` followed by
+`**Accepted**: 2026-09-17`, and its last consequence names `winnerNext` and `loserNext` rather
+than `nextMatchId`. `docs/adr/0004-origin-aware-navigation.md:8` carries `**Status**: accepted`
+after its opening paragraph. `grep -L "Status" docs/adr/*.md` returns **nothing** — all eight ADRs
+state a status, which is one more than this ticket's acceptance row predicted ("all six"); the
+ticket's own `## Comments` above already records why.
+
+`grep -rn "nextMatchId" docs/adr/ docs/spec/ src/` returns **nothing**. The six files that still
+carry the field are the plan, the spec, this ticket, its predecessor ticket, the dated analysis
+document and the ticket that inherited the claim — every one of them naming it as the thing being
+fixed, which is what the ticket's own `## Comments` argued is the honest form of that check.

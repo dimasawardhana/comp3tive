@@ -1,6 +1,6 @@
 # 32: Share the result — render the teams as an image
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **What to build:** The share sheet gains a second action that turns the same teams into a
 PNG poster drawn in the app's own brand — paper ground, ink type, one amber figure, a bib
@@ -42,3 +42,26 @@ because the layout is a pure function. Reversing this decision requires an ADR.
 - [ ] `npx vitest run` exits 0 with `src/share/share-image.test.ts` in the output; `npx tsc -b` exits 0.
 
 **Blocked by:** 31
+
+## Comments
+
+**Status re-checked 2026-09-30 against `feature/revamp` — shipped, and the dependency decision this
+ticket reasoned about was the right one: `package.json` `dependencies` is still exactly `react` and
+`react-dom`.**
+
+`src/share/share-image.ts` exports `DrawOp` (`:13`) as the specified three-way discriminated union,
+`layoutShareImage` (`:283`) as a pure function with no canvas import, and `renderShareImage`
+(`:385`). `WIDTH` is 1080 (`:61`), the canvas prefers `OffscreenCanvas` and falls back to a
+detached `<canvas>` (`:392-396`), the blob comes from `convertToBlob({ type: "image/png" })`
+(`:417`), and the type faces are **loaded** before the first `fillText` rather than merely waited
+on — the `document.fonts.ready` hazard this ticket named is handled at `:369`.
+
+`src/share/ShareSheet.tsx:221-224` renders one control behind `data-testid="share-image"` whose
+label is `Copy image` when `ClipboardItem` supports `image/png` and `Download image` otherwise, and
+a failed image copy falls through to the download and says so at `:169` — so the text action is
+never lost. The filename is `comp3tive-teams-<YYYY-MM-DD>.png` (`:39`), matching the ticket's regex.
+
+`e2e/tests/share/share.spec.ts` has 7 cases including both clipboard routes this ticket required
+plus three honest-failure cases — no `ClipboardItem`, no 2D context, and a file that cannot be
+written either. The poster and the chat text cannot disagree, because the poster imports
+`closingLine` from `src/share/share-text.ts` rather than writing a third sentence.

@@ -117,3 +117,25 @@ of the owner-gated files, and a file being installed as the design source of tru
 false invariant while the scope note cites a housekeeping rule. `DESIGN.md:213` now lists the five
 hubs in `NAV_ITEMS` order. The scope constraint still stands for design decisions, and it was
 honoured: no token moved and no CSS changed.
+
+**Status re-checked 2026-09-30 against `feature/revamp` — still partial, deliberately left
+`ready-for-agent`.**
+
+**Shipped, verified:** `DESIGN.md:196` carries `## Copy voice` with the em-dash ban; `DESIGN.md:208`
+carries `## Accessibility & quality floor`; both sit before `## Things that don't change` at
+`DESIGN.md:221`, so the section-order acceptance row holds. The `DESIGN.md:213` nav-order
+correction is in.
+
+**Not shipped, verified:** the other half of this ticket. `docs/design.md` is **still on disk at
+8,113 bytes** and still carries the Scoreboard direction, its cobalt token and its Chakra Petch
+stack. Neither the deletion nor the one-line superseded pointer was applied.
+`grep -rln "cobalt\|Chakra" DESIGN.md docs/*.md src/ index.html app/` matches `docs/design.md` and
+nothing else — so the build is unambiguous and only the second design document survives, which is
+the drift this ticket exists to end.
+
+**Why it is not being resolved on the strength of the work that did land.** The remaining action is
+a one-line owner decision nobody has made: the ticket says "This file was authored by the repo
+owner; confirm the deletion before running it", and no confirmation is recorded anywhere in this
+file. `IMPLEMENTATION_PLAN.md:182` lists the same item under Known-open. Resolving the ticket would
+close a file that still has to be either deleted or reduced to a pointer, and the residue would
+stop looking for it.

@@ -1,6 +1,6 @@
 # 33: A real PWA — manifest, service worker, self-hosted fonts
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **What to build:** comp3tive becomes installable and genuinely works with no signal. It ships a
 web app manifest with real icons, a service worker that precaches both documents and every
@@ -67,3 +67,48 @@ self-hosting.** Its other requirements still hold and are carried into the crite
 - [ ] `npx vite build` exits 0 and `dist/` contains `sw.js`, `manifest.webmanifest`, `fonts/` and `icons/`; `npx playwright test` passes, including the font assertion in `e2e/tests/community/community.spec.ts`.
 
 **Blocked by:** 14 (B14 removes the offline claim and leaves the restore note; this ticket is the other half of that sequence)
+
+## Comments
+
+**Status re-checked 2026-09-30 against `feature/revamp` — shipped. The app is installable, works
+with no signal on both documents, and no request leaves the origin at runtime.**
+
+**The four font files reproduce this ticket's hashes exactly**, in the prescribed order:
+`6c18d579…` (outfit-latin), `0f53d1c0…` (outfit-latin-ext), `414d5dfe…` (familjen-grotesk-latin),
+`c53f18ec…` (familjen-grotesk-latin-ext). A fifth, `familjen-grotesk-vietnamese-7c82a402.woff2`,
+ships alongside them, which this ticket did not anticipate. The files are named after the first
+eight hex digits of their own hash (`outfit-latin-6c18d579.woff2`, and so on) rather than the plain
+names this ticket listed; the content is identical — the hashes are the ticket's — and the hashed
+naming is what makes the immutable year in `public/_headers` safe, which that file states.
+`src/fonts.css` declares 6 `@font-face` rules (two families × three subsets), all
+`font-display: swap` and `format("woff2-variations")` with a `format("woff2")` fallback, and is
+imported from exactly one place — `src/tokens.css:1` — so the two documents cannot drift. No
+stylesheet declares `@font-face` anywhere else.
+
+**All three CDN blocks are gone**: `grep -rn "fonts.googleapis\|fonts.gstatic\|preconnect"
+index.html app/index.html public/404.html` returns **nothing**, and each document instead carries
+two `rel="preload" as="font"` hints.
+
+`public/manifest.webmanifest` carries every prescribed field and three icons, and both documents
+link it plus `theme-color` and `apple-touch-icon`. `public/sw.js` (12,894 B) is a classic worker
+with `__BUILD_VERSION__` substituted at build time by `vite.config.ts:109`, `skipWaiting()` in
+`install`, a cache purge scoped to its own prefix in `activate`, network-first documents and
+cache-first assets and fonts. `public/_headers` keeps the three original rules byte-identical and
+adds the font, icon, manifest and `sw.js` rules.
+
+**The offline claim is restored, and scoped to what was proved.** `index.html:213` is the fourth
+trust row: `Once comp3tive has run with a network, it opens and runs a tournament with no signal.`
+— the conditional form, not this ticket's `Works with no signal. The court has no wifi.`, which
+would have been false before a first online run. The count stayed at four with the other three
+rows intact, and `e2e/tests/landing/landing.spec.ts:93-116` pins all four.
+
+`e2e/tests/pwa/offline.spec.ts` has 7 cases: no third-party host on either document, offline app
+shell, offline landing, a font served from cache with no network, a roster behind an `await
+import()` fetched with no network, a whole tournament run offline, and a new deploy activating,
+purging the old cache and filling the new one.
+
+**One deliberate deviation, documented in the worker itself.** `activate` does **not** call
+`clients.claim()`, which this ticket's acceptance list asked for. `public/sw.js:65-81` argues the
+case at length: this app loads code on demand, so claiming a running tab would hand an old document
+the new build's lazily-imported chunk, and `skipWaiting` alone already gives the half that matters.
+The reasoning is in the file, not only here.

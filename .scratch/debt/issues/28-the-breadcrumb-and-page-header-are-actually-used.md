@@ -1,6 +1,6 @@
 # 28: The breadcrumb and page header are actually used
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **What to build:** Breadcrumbs navigate — including the split screen's, which currently does
 nothing — and the screens use the shared crumb component instead of three hand-rolled copies.
@@ -98,3 +98,30 @@ file next — record it in the Answer.
 **Blocked by:** 22, 23, 27 — ticket 22 deletes `nav.tsx`'s unused `Id` import, and tickets 23 and
 27 touch the same three screens' constant imports and their dialogs. Landing them first keeps
 `SplitScreen.tsx` and `TournamentScreen.tsx` from being edited twice.
+
+## Comments
+
+**Status re-checked 2026-09-30 against `feature/revamp` — shipped. The shared `Breadcrumb` has
+three consumers and no screen hand-rolls the markup.**
+
+`src/nav.tsx:16` is the single definition, and `grep -rn 'className="breadcrumb"' src/` matches
+**only** `src/nav.tsx:18`. The three consumers are `src/session/MatchScreen.tsx`,
+`src/tournament/TournamentScreen.tsx` and `src/session/SplitScreen.tsx:348` — the two that already
+pass crumbs through `PageHeader`, and `SplitScreen`, which renders it directly since it has no
+`PageHeader`. A crumb without `go` renders as a `<span>`, so the current screen's own segment is
+never announced as a link.
+
+**The dead `<a href="#">` this ticket opened with is gone.** `SplitScreen` builds its first crumb
+from the source it already receives, using the same label its own back button renders —
+`{ label: backLabel, go: onBack }` with `Split result` as the second — so for a `session` split the
+crumb now says `History` and goes back to History, where before it said `Match setup` and did
+nothing. That is the "wrong for two of its four sources" defect, closed at the source rather than
+documented.
+
+**The cross-reference this ticket raised resolved in the right order.** It said that if ticket 16
+had already written "breadcrumbs do not navigate" into `docs/FLOW.md`, that line would now be false
+and the correction belonged to whoever owned the file next. Ticket 16 landed first and deliberately
+left the normative rule alone — its own `## Comments` records the decision to keep `:87`'s
+"Breadcrumbs are links — every crumb above the current screen navigates there" — so the contract
+was right, the code was wrong, and landing this ticket made the document true instead of codifying
+the gap. `docs/FLOW.md` was not edited by either ticket.

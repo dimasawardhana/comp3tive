@@ -1,6 +1,6 @@
 # 16: Reconcile the documents that contradict the code
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **What to build:** Every document a human or an agent reads states what the shipped app actually
 does. `docs/FLOW.md` is the worst offender because it calls itself "the contract"; `docs/spec/0002`
@@ -256,3 +256,27 @@ commit. And the dead-crumb note's reasoning was wrong: the first pass said the c
 not support — `SplitScreen` takes `onBack`, `src/App.tsx:1228` passes it, and a working `← Back`
 button renders at `:397-399`. The defect is the crumb, not a missing affordance, and the note now
 says that with the cites corrected (`:316-320` for the block; the old `:293-297` was stale).
+
+**Status re-checked 2026-09-30 against `feature/revamp` — shipped. Every document this ticket
+owned now states what the code does, and the two moves it gated on an owner were settled
+explicitly.**
+
+`docs/FLOW.md:1` is `# comp3tive · Page Flow` with no "(as-to-be)", `:27` says five bottom-nav
+hubs, and `grep -n "Tournaments" docs/FLOW.md` returns nothing — the hub is named **Games** at all
+eleven occurrences, matching `NAV_ITEMS` and `GamesScreen`'s own h1. `docs/spec/0002-tournaments-v1.md:3`
+carries a status line, `:67` states DB **v7** and backup v4 with the v3/v4 attributions, and its
+Data Model matches `src/domain/types.ts` (`players: Id[]`, tournament-level `seriesLength` and
+`thirdPlace`, `winnerNext`/`loserNext`). The Tailwind claim is gone from the paper-pencil plan.
+`docs/archive/DOMAIN_MODEL.md` carries the superseded banner, and `IMPLEMENTATION_PLAN.md` was
+deliberately left in place because it had been rewritten as the live index — the ticket's own
+`## Comments` above records that decision and that `DOMAIN_MODEL.md`'s move was made on the phase
+owner's explicit ruling.
+
+**Two acceptance rows read differently from what landed, and both were deliberate, as this
+ticket's own `## Comments` records.** The breadcrumb row was left normative rather than rewritten
+to "labels, not links" — landing ticket 28 first made the document's original claim true, so
+codifying the gap would have been the wrong fix. And `grep -rn "as-to-be\|Four bottom-nav\|DB v5\|
+Backup v3\|nextMatchId" docs/ *.md` does not return nothing, because the six files that still match
+are the plan, the spec, this ticket, its predecessor, the dated analysis document and the
+inheritance chain — every one naming the old text as the thing being corrected, which is the same
+argument ticket 18 makes about `nextMatchId`.
