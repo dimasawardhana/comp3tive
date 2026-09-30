@@ -138,6 +138,30 @@
   letter-spacing: 0.02em;
   text-transform: uppercase;
   font-size: 14px;
+  /* The primary is the loudest control in the app, so it is also the one a
+     thumb is most likely to miss. Its 14px uppercase is not a smaller target —
+     it is a *shorter box*, because the box is the line box plus the padding and
+     a 14px `line-height: normal` line box is 3px shorter than a 16px one. A
+     primary that is alone on its line has nothing to stretch it, so it renders
+     at 47px while the `.btn-ghost` beside it is 52px: the main action was the
+     smallest physical target in its own bar. Flexbox hid this in every row that
+     shares a line: a `display: flex` row stretches its items to the tallest of
+     them, so a primary beside a `.btn-ghost` was already 52px. That is why it
+     survived an audit — 47px only rendered where the primary is alone.
+
+     The fix is the padding, not the type. 14px uppercase reads as about 16px,
+     so the size is doing optical work and the hit area is what is wrong; raising
+     it to 16px widens every primary in the app, and measured at 390 it pushes
+     the tournament action bar from two lines to three — 139px of bar to 199px —
+     while still landing at 50px, two short of the ghost.
+
+     `.btn-ghost` sets the ceiling at 52px: a 16px line box (20) + 15px padding
+     either side + its 1.5px borders. The primary's line box is 17, so
+     (52 - 17) / 2 = 17.5px of padding either side puts it at exactly 52 — equal
+     to the tallest sibling rather than taller, so a row containing a primary
+     does not grow. Horizontal padding stays 18px, so no label changes width and
+     no bar re-wraps. */
+  padding: 17.5px 18px;
   box-shadow: 0 2px 0 rgba(28, 25, 23, 0.15);
 }
 .btn-primary:hover:not(:disabled) {

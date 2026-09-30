@@ -57,6 +57,16 @@ Type scale (one place this is non-negotiable):
 - **Paper feel**: no noise texture — just the warm paper background
 - **Inset surfaces** (form areas): `--surface-2` with 8px radius, hairline border
 
+### Buttons
+
+One button family, one height: **52px** (`src/split.css:123-172`). The box is the line box plus the padding plus any border, and a button's `line-height` is `normal` — Chrome's UA `font` shorthand resets it, so `.btn` inherits no line-height from `body` and each variant's line box follows its own font-size. Measured out of flow: `.btn` at 16px is 50px (20 + 30), `.btn-ghost` is 52px (20 + 30 + 2 for its borders), and `.btn-primary` at 14px was 47px (17 + 30). Three heights for one control, and the loudest one was the shortest.
+
+**The primary is never shorter than the button beside it.** `.btn-primary` carries `padding: 17.5px 18px`, which is `(52 − 17) / 2`: it lands on the family height exactly, so a row holding a primary does not grow, and its horizontal padding is untouched, so no label changes width and no bar re-wraps. Measured across every context, the lone primary went 47 → 52 and nothing else moved; the 390 action bar grew 5px, 134 → 139, with its sticky bottom edge still seated at 780.
+
+**Do not "fix" the 14px back to 16px.** Uppercase at 14px is optically about 16px, so the size is doing optical work and the hit area is what was wrong. Set it to 16px and every primary in the app widens: measured at 390, the tournament action bar goes from two lines to three, 139px of bar to 199px, because "Save teams to tournament →" no longer shares a line with "Share". It does not even reach the goal — 16px under the 15px padding is 50px, two short of the ghost beside it.
+
+**A primary that shares a flex line is stretched by it, which is why this survived an audit.** Every action row is `display: flex` with the default `align-items: stretch`, so a primary beside a `.btn-ghost` renders at the ghost's 52px and already looked correct in the Save squad, Player edit, Bulk rate, Share sheet and Discipline edit rows, and at every desktop width. 47px appeared only where the primary is alone on its line: a lone modal CTA, the error boundary's reload, and the wrapped second line of the four-action bar at 390. Geometry a thumb feels has to be measured where it renders, not where it is easiest to see.
+
 ## Layout
 
 ### Topbar (masthead)
@@ -215,7 +225,7 @@ Match-night, plain, active. People and what they do, never the system: "Split th
 
 ## Accessibility & quality floor
 
-Mobile-first and thumb-friendly (bottom bar actions, 44px+ targets) · `min-height:100dvh` (no mobile viewport jumps) · visible `:focus-visible` rings in amber (`--accent`) · text contrast ≥ 4.5:1 on every surface in both themes — `--text` on `--surface`, `--text-2` labels at full strength, and `--panel-text` on `--panel`, the pairing the split panel actually renders (`src/split.css:309,315`), measured at 16.5:1 light and 15.3:1 dark. The surface token on the panel is not `--surface`: in dark mode that is `#1c1917` on `--panel: #23201c`, 1.08:1 · responsive to desktop (the app column centers on a subtle hairline frame).
+Mobile-first and thumb-friendly (bottom bar actions, 44px+ targets — the button family sits at 52px, see [Buttons](#buttons)) · `min-height:100dvh` (no mobile viewport jumps) · visible `:focus-visible` rings in amber (`--accent`) · text contrast ≥ 4.5:1 on every surface in both themes — `--text` on `--surface`, `--text-2` labels at full strength, and `--panel-text` on `--panel`, the pairing the split panel actually renders (`src/split.css:309,315`), measured at 16.5:1 light and 15.3:1 dark. The surface token on the panel is not `--surface`: in dark mode that is `#1c1917` on `--panel: #23201c`, 1.08:1 · responsive to desktop (the app column centers on a subtle hairline frame).
 
 **Team bibs are the one surface this floor is not met on, and the gap is in the CSS.** The bib
 colours do not change between themes (`src/tokens.css:28-32`, `:75-79`), and the text drawn on
