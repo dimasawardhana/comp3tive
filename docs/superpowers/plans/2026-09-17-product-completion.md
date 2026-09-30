@@ -46,8 +46,8 @@ Copied verbatim from the spec. Every task's requirements implicitly include this
 | Create | `src/shell/useDurability.ts` | `persist()` once, `tb-last-export`, `tb-export-nudge-dismissed`, `shouldNudge` |
 | Create | `src/shell/useDurability.test.ts` | Shape and the no-`navigator.storage` path |
 | Create | `src/roster/BulkRateModal.tsx` | One rating per attribute, written through `validatePlayer` |
-| Create | `src/fonts.css` | Four `@font-face` rules, two per family |
-| Create | `public/fonts/*.woff2` (4), `public/fonts/OFL.txt` | Self-hosted variable subsets plus the licence |
+| Create | `src/fonts.css` | **Five** `@font-face` rules — latin, latin-ext and vietnamese for Familjen Grotesk, latin and latin-ext for Outfit. The spec says four, two per family; the CORRECTION at its D33 records the fifth |
+| Create | `public/fonts/*.woff2` (**5**), `public/fonts/{outfit,familjen-grotesk}-OFL.txt` | Self-hosted variable subsets plus **two** per-family licences, not one `OFL.txt`. The spec's D33 names the single file; the CORRECTION there records both |
 | Create | `public/manifest.webmanifest` | Install metadata for both documents |
 | Create | `public/sw.js` | Classic versioned service worker with two build-time placeholders |
 | Create | `public/icons/{icon-192,icon-512,maskable-512}.png` | Install icons from `brand/3-icon.svg` |

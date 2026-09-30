@@ -3099,5 +3099,23 @@ which is a second and separate finding from the abandoned criterion.
 | Plan step | Anchor conflict | Followed |
 |---|---|---|
 | T2.1 | `noUnusedLocals` reports 19 on HEAD and the ticket agrees; after T1 it is 15, so the plan says re-derive rather than quote | the compiler |
-| T3.7 | `modal-section-hint` appears in the spec's kit list but exists nowhere in `src/` | the source — it is not moved |
+| T3.7 | `modal-section-hint` appears in the spec's kit list but exists nowhere in `src/` — **never true; see the CORRECTION below** | the source — it is not moved |
 | T9.7 | `.sep` is listed among the kit selectors but has **no rule** in `index.css` or `landing.css` | the source — the kit list is the classes that have rules |
+
+**CORRECTION (2026-09-30, measured): the T3.7 row above was never true at any point, by any
+commit — it was not right and then stale.** "`modal-section-hint` exists nowhere in `src/`" is a
+claim about absence, and it was false from the first line of this plan. At the audit baseline
+`d87ac7b` the class is rendered at **three** sites — `src/session/SplitScreen.tsx:179`,
+`src/tournament/GamesScreen.tsx:326` and `:354` (`git grep -n "modal-section-hint" d87ac7b --
+src/`). It is at **four** today: `src/session/SplitScreen.tsx:218`, `GamesScreen.tsx:361`, `:389`
+and `:396`, the fourth being the round-robin odd-field hint Phase D's Task 7 added. So the
+spec's kit list was right to name it, this plan's conclusion — "it is not moved" — was right for
+the wrong stated reason, and the stated reason was a fabrication about the baseline.
+
+**Why this survived, when the two rows beside it are true.** A claim of absence has no address to
+resolve. Checking it means enumerating, and the check that was actually run on this file was an
+anchor audit — resolve every `file:line` — which has nothing to resolve in a sentence that
+cites none. The class name is the symbol, and the symbol is present in the tree the plan was
+written against. This is the same failure as the font count in Phase D's D33 CORRECTION: a
+correct-looking sentence in a paragraph whose job is to state what is true, carrying no anchor,
+therefore outside what an anchor audit can reach.

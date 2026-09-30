@@ -278,13 +278,43 @@ worker cover **both** `/` and `/app/`.
 | `public/fonts/familjen-grotesk-latin.woff2` | 18,916 | `414d5dfe…` | latin |
 | `public/fonts/familjen-grotesk-latin-ext.woff2` | 15,468 | `c53f18ec…` | latin-ext |
 
-**CORRECTION (2026-09-29, after Task 9 landed): the four file names in the table above do not
-exist, and the byte counts are right.** The committed files are
+**CORRECTION (2026-09-29, after Task 9 landed; amended 2026-09-30, because this correction was
+itself wrong): the four file names in the table above do not exist, the byte counts are right,
+and there are FIVE committed files, not four.** The committed files are
 `outfit-latin-6c18d579.woff2`, `outfit-latin-ext-0f53d1c0.woff2`,
-`familjen-grotesk-latin-414d5dfe.woff2` and `familjen-grotesk-latin-ext-c53f18ec.woff2` — the
-same bytes under the first 8 hex of their own sha256, which is the `sha256 (prefix)` column this
-table already prints. A fifth file shipped (`familjen-grotesk-vietnamese-7c82a402.woff2`, 6,292 B,
-Familjen Grotesk only), so "four" is five, and "≈81 kB" is ≈88 kB.
+`familjen-grotesk-latin-414d5dfe.woff2`, `familjen-grotesk-latin-ext-c53f18ec.woff2` **and**
+`familjen-grotesk-vietnamese-7c82a402.woff2` — the same bytes under the first 8 hex of their own
+sha256, which is the `sha256 (prefix)` column this table already prints, and all five landed in
+the one commit this correction is written about, `ce601c2`. So "four" is five, "≈81 kB" is
+≈88 kB (87,776 B counted), "four `@font-face` rules, two per family" is five rules, and the
+two licences are `public/fonts/outfit-OFL.txt` and `public/fonts/familjen-grotesk-OFL.txt`
+rather than the single `public/fonts/OFL.txt` the paragraph below names. The list in this
+correction used to end at four and mention the fifth in a subordinate clause, which made the
+sentence it corrected true and this sentence false, in the same block.
+
+**The fifth is a fifth, and dropping it is not tidying.** The live `css2` this app was loading
+served three subsets for Familjen Grotesk and two for Outfit — `latin` and `latin-ext` for
+both, plus `vietnamese` for **Familjen Grotesk only**, which is the only family that has it.
+That response is still fetchable, and its `vietnamese` block carries a `unicode-range` byte-
+identical to the one at `src/fonts.css:78`: thirteen comma-separated ranges over 111
+codepoints. Remove that face and 87 of those codepoints — `U+0300`, `U+0301`, `U+0303`,
+`U+0309`, `U+0323`, and `U+1EA0`–`U+1EF1`, the Vietnamese additions in Latin Extended Additional —
+are covered by no other Familjen Grotesk face, so they move to whatever `--font-body`'s fallback
+stack finds. `src/fonts.test.ts:79` asserts `toHaveLength(5)` for exactly that reason. One
+number in this paragraph's own evidence does not check out and is in `src/`, so it is reported
+rather than repaired here: the comment at `src/fonts.css:69` calls it "fifteen codepoint
+ranges", and the declaration it describes has thirteen.
+
+**Why this one survived an audit that found nothing, and why the next one might too.** The
+sentence corrected above cited no `file:line` — this amendment does, but it did not when the
+audit ran, and that is the whole mechanism. A line-resolution audit establishes that an
+*address* resolves; it says nothing about whether the words printed beside the address are
+true. A list has no address for such an audit to resolve — "the committed files are ⟨four
+names⟩" is a claim about membership, and the only way to check it is to enumerate the directory
+and compare. That was not done here, and the sentence sat in a block whose every other number
+was correct, which is why it read as verified. **A claim carrying no anchor is not covered by an
+audit that checks anchors.** That is the same reason the next uncorrected one will survive it
+too.
 
 **The unhashed name is not a name the tree can carry, which is why no table here can quote it.**
 Content-hashing the subsets is the property that makes `/fonts/*.woff2 → 1yr immutable` correct

@@ -856,6 +856,27 @@ There is no match-setup screen beneath a `session` or `squad` split, so "Match s
 wrong for those two sources as well as inert for all four. With `onBack` undefined the crumb
 renders as text, which is correct on the Landing Page.
 
+**CORRECTION (2026-09-30, measured): the consumer counts below were right when written and are
+now 9 and 9, and the roster screen is no longer rendered by `App.tsx`.** Both counts are
+**render sites** — one JSX call site each — and a call site is a consumer, so `SquadsScreen`
+counts twice. `src/ui/PageHeader.tsx`: **9** sites in 8 files — `DashboardScreen.tsx:91`,
+`DisciplinesScreen.tsx:22`, `GamesScreen.tsx:157`, `TournamentScreen.tsx:253`,
+`RosterScreen.tsx:563`, `MatchScreen.tsx:40`, `SquadsScreen.tsx:49` and `:104`,
+`HistoryScreen.tsx:22`. `src/ui/Screen.tsx`: **9** sites in 7 files — `DashboardScreen.tsx:90`,
+`DisciplinesScreen.tsx:21`, `ScreenSwitch.tsx:262` and `:277`, `RosterScreen.tsx:562`,
+`MatchScreen.tsx:39`, `SquadsScreen.tsx:48` and `:103`, `HistoryScreen.tsx:21`. `App.tsx` renders
+neither; it renders `ScreenSwitch` (`src/App.tsx:443`), and C26 moved the roster hub into
+`RosterScreen.tsx`. Its `crumbs` prop already accepted the shared component;
+`MatchScreen`, `TournamentScreen` and `SplitScreen` pass crumbs through it, and `SplitScreen`
+no longer keeps its own `.breadcrumb` div — it renders the shared `Breadcrumb`
+(`src/session/SplitScreen.tsx:348`), which is this ticket's deliverable and is the reason
+`src/nav.tsx`'s primitive has three consumers rather than zero.
+
+The paragraph below is kept as written because "seven screens plus the roster screen" is only
+meaningful against the seven that were named, and because the *method* it used — name the
+consumer, then count — is the part that still holds. Counting files would have said 8 and 7 and
+been right too, which is why the unit is stated rather than left implied.
+
 `src/ui/PageHeader.tsx` is rendered by seven screens (`DashboardScreen`, `DisciplinesScreen`,
 `HistoryScreen`, `MatchScreen`, `SquadsScreen`, `GamesScreen`, `TournamentScreen`) plus the
 roster screen that `App.tsx` renders, and its `crumbs` prop already accepts the shared
@@ -1308,3 +1329,20 @@ Every command runs from the repository root. "The suite" is
   not 20; `PageHeader`/`Screen` have 7 and 5 consumers, not 4 each; `grep -c "useState("
   src/App.tsx` is 13, not the 14 the audit and the roadmap state; and `app-health/03`'s
   "different type spellings" is cosmetic, since the unions and values are identical.
+
+  **CORRECTION (2026-09-30, measured): two of this item's three numbers have since moved, and
+  the correction that fixed them in place could not have found them either.** `PageHeader` and
+  `Screen` are `src/ui/PageHeader.tsx` and `src/ui/Screen.tsx`, and each is rendered at **9 and
+  9** JSX call sites — 9 sites in 8 files, and 9 in 7. The full listing is at the CORRECTION
+  above C28. `grep -c "useState(" src/App.tsx` is **0**, not 13, because C27 moved the chrome
+  into `src/shell/AppChrome.tsx`; the same measurement at this phase's last commit, `1bcce41`,
+  is also 0, so "13" describes a state no commit on this branch reaches. `noUnusedLocals` is
+  left as 19 and is **not verified here** — it is a compiler count, and this round does not run
+  the build.
+
+  **Why an anchor audit passes this bullet.** "7 and 5" carries no `file:line`; it is a count of
+  call sites, and the only check that reaches it enumerates the tree. The paragraph it sits in
+  is a list of corrections *to* audit numbers, so it reads as measured — which is the trap. The
+  rule is the one Phase B's spec and plan now carry and the one already in Phase D's: **resolve
+  the symbol, not the number.** `<PageHeader` and `<Screen` are the symbols, they still exist,
+  and a grep for them is what returned 9 — the line audit had nothing to run against.

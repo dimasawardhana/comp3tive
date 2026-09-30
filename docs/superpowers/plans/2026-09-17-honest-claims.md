@@ -30,6 +30,7 @@ Every task's requirements implicitly include this section. Values are copied ver
 - **Sample data format is v1, unchanged:** `"version": 1`, an `exportedAt` ISO string, `players`, and `sessions: []`.
 - **The solver is not touched.** No ticket here changes `NODE_BUDGET` (`src/solver/solver.ts:21`), the pruning bound, the search order, or any file under `src/solver/`.
 - **File ownership.** Phase B owns: `index.html`, `src/landing.tsx`, `src/landing.css`, `src/session/SplitScreen.tsx` (**gap copy only**), `src/domain/seed.ts`, `docs/FLOW.md`, `docs/design.md`, `docs/spec/0002-tournaments-v1.md`, `docs/adr/0002-*.md`, `sample-data/*.json`, root `DOMAIN_MODEL.md` / `IMPLEMENTATION_PLAN.md`. Three named additions this plan justifies: the new `src/session/gapProvenance.ts`; the five test files B19 shifts; and three e2e spec files (B13's, B14's, B15's).
+- **Resolve the symbol, not the number.** Every `file:line` in this plan is anchored to the audit baseline `HEAD d87ac7b`, and Phase C's C26/C27 move the roster UI and the community chrome out from under it, so any anchor into `src/App.tsx` will not survive. Each anchor therefore names its **symbol or quoted string** beside the line, and the symbol is authoritative: `gapKind`, `gapQualifier`, `GapMeter`, `.readout`, `Breadcrumb`, `SEED_DISCIPLINES`, `SAMPLE_DATA`, `DB_VERSION`, and the exact copy strings. **Where a number and a symbol disagree, the symbol wins and the number is re-derived from it** — never the reverse, and never by editing the anchor until it resolves. This is the same rule the D spec states in its own `**Line references.**` paragraph, and it is what the anchor-drift CORRECTION at this plan's Self-Review applies.
 - **The "no spec edited" rule does not apply to B14.** It guards Phase C's behaviour-preserving refactors. B14 changes user-visible copy, so editing `e2e/tests/landing/landing.spec.ts` is correct and required. Do not preserve the old assertions to keep the file byte-stable.
 - **Unit tests are `.ts` only.** `vite.config.ts` sets `test.include: ["src/**/*.test.ts"]`; `.tsx` is excluded. Any extracted logic you want under unit test must live in a `.ts` file.
 - **Always rebuild before trusting an e2e run.** `e2e/playwright.config.ts` serves `dist/` via `npm run preview` with `reuseExistingServer: true`.
@@ -44,14 +45,14 @@ Every task's requirements implicitly include this section. Values are copied ver
 |---|---|---|
 | Create | `src/session/gapProvenance.ts` | `GapKind`, `gapKind(result)`, `gapQualifier(result)` — the single phrasing source for solver provenance |
 | Create | `src/session/gapProvenance.test.ts` | Unit tests for both functions, including the swap-provenance case |
-| Modify | `src/session/SplitScreen.tsx:130-141` | `GapMeter`'s readout: qualified balanced + non-balanced branches (2-team pitch) |
-| Modify | `src/session/SplitScreen.tsx:334-345` | The 3+ team stack's `.readout`: same two branches |
+| Modify | `src/session/SplitScreen.tsx:168-182` | `GapMeter`'s `.readout`: qualified balanced + non-balanced branches (2-team pitch). Was `:130-141` at baseline; re-derived by symbol, not moved with the file |
+| Modify | `src/session/SplitScreen.tsx:390-402` | The 3+ team stack's `.readout`: same two branches. Was `:334-345` at baseline |
 | Create | `e2e/tests/split/gap-provenance.spec.ts` | Proves both render sites in both provenance states, and the re-roll path |
- | Modify | `src/App.tsx:1061` | Roster empty state: "No players in this community" (moves to `src/shell/RosterScreen.tsx` when C26 lands) |
-| Modify | `src/App.tsx:1123` | Roster CTA: "Split the roster" (moves to `src/shell/RosterScreen.tsx` when C26 lands) |
-| Modify | `src/session/MatchScreen.tsx:48` | Match setup lede: "then the roster" |
-| Modify | `src/session/SplitScreen.tsx:304` | Tournament badge: "Tournament teams" |
-| Modify | `src/session/SplitScreen.tsx:400` | Submit button: "Save teams to tournament →" |
+| Modify | `src/shell/RosterScreen.tsx:826` | Roster empty state: the string `No players in this community`. Cited as `src/App.tsx:1061` when this was written, and C26 landed: `src/App.tsx` is 514 lines now, so that address is past EOF |
+| Modify | `src/shell/RosterScreen.tsx:909` | Roster CTA: the string `Split the roster`. Cited as `src/App.tsx:1123`; C26 landed |
+| Modify | `src/session/MatchScreen.tsx:43` | Match setup lede: the string `then the roster`. Was `:48` |
+| Modify | `src/session/SplitScreen.tsx:360` | Tournament badge: the string `Tournament teams`. Was `:304` |
+| Modify | `src/session/SplitScreen.tsx:480` | Submit button: the string `Save teams to tournament →`. Was `:400` |
 | Create | `e2e/tests/community/noun.spec.ts` | Pins the corrected Roster empty state and split CTA |
 | Modify | `sample-data/futsal-roster.json` | 25-player audience-shaped roster that passes `validatePlayer` |
 | Modify | `sample-data/mpl-id-roster.json` | 25-player roster with five specialists per role |
@@ -2204,13 +2205,40 @@ present-tense claim about a file that has since moved. Each was re-checked:
 | the hub's own h1 is `src/tournament/GamesScreen.tsx:123` | `title="Games"` | **`src/tournament/GamesScreen.tsx:159`** |
 | the hand-rolled tournament crumb already reads `Games` at `src/tournament/TournamentScreen.tsx:265` | the crumb's `onClick` | `:265` is now a `.tms-item` row in the tournament detail list; the crumb moved during Phase C's `Breadcrumb` extraction |
 
-The two `SplitScreen.tsx` anchors in the last two rows are the same class and are left as measured
-at the time: `:334`/`:339`/`:345` were the readout block before Phase C, and `:293-297` was the
-dead crumb before C28 fixed it — which is the row's own point, so that one is now historical
-rather than wrong. **Every conclusion in the table still holds**; what no longer holds is the
-header's claim that the numbers beside them are the source's. The plan's own rule — resolve the
-symbol, not the number — is the one to apply, and `docs/FLOW.md` itself says so: every citation in
-it was re-enumerated and re-resolved after C28, because "a repointed citation that is also wrong is
+The two `SplitScreen.tsx` anchors in the last two rows are the same class, and **the readout one
+is now re-derived rather than left as measured at the time**: `:334`/`:339`/`:345` were the
+readout block before Phase C, and it is `src/session/SplitScreen.tsx:390-402` now — the 3+
+stack's `.readout`, still the two branches, still `gapQualifier`. `:293-297` was the dead crumb
+before C28 fixed it, which is that row's own point, so it stays historical rather than wrong.
+**Every conclusion in the table still holds**; what no longer holds is the header's claim that
+the numbers beside them are the source's.
+
+**CORRECTION (2026-09-30, second pass — this paragraph used to cite a rule this plan did not
+have).** "The plan's own rule — resolve the symbol, not the number" named a standing instruction
+that appeared nowhere in this file. It is now a Global Constraint, written in the form the D
+spec uses, and the paragraph above resolves against it instead of dangling.
+
+**And the File Map's own anchors are repaired by the same rule, rather than left for the next
+reader.** Five rows cited addresses that C26/C27 moved. Each was re-resolved by symbol:
+
+| was cited | symbol it was cited for | lives at, now |
+|---|---|---|
+| `src/session/SplitScreen.tsx:130-141` | `GapMeter`'s `.readout` | `src/session/SplitScreen.tsx:168-182` |
+| `src/session/SplitScreen.tsx:334-345` | the 3+ stack's `.readout` | `src/session/SplitScreen.tsx:390-402` |
+| `src/App.tsx:1061` | `No players in this community` | `src/shell/RosterScreen.tsx:826` |
+| `src/App.tsx:1123` | `Split the roster` | `src/shell/RosterScreen.tsx:909` |
+| `src/session/MatchScreen.tsx:48` | `then the roster` | `src/session/MatchScreen.tsx:43` |
+| `src/session/SplitScreen.tsx:304` | `Tournament teams` | `src/session/SplitScreen.tsx:360` |
+| `src/session/SplitScreen.tsx:400` | `Save teams to tournament →` | `src/session/SplitScreen.tsx:480` |
+
+The two `src/App.tsx` rows were past EOF — the file is 514 lines now, against 1,280 at baseline
+`d87ac7b` — which is a stronger failure than drift: an address that does not resolve reads as a
+mistake to fix, while an address that resolves to the wrong line reads as verified. Every row
+above kept its symbol in the Responsibility column, which is the only reason the current address
+could be found at all.
+
+`docs/FLOW.md` says the same thing about itself, and for the same reason: every citation in it
+was re-enumerated and re-resolved after C28, because "a repointed citation that is also wrong is
 worse than the one it replaces."
 
 **One risk carried, not hidden.** Between Task 4 and Phase A05, A05's new strict `parseBackup` rejects the *old* `sample-data/futsal-roster.json`. That window is real and expected; Task 4 is what closes it, and Task 4's first test asserts the exact invariant A05 depends on ("every `sample-data/*.json` player passes `validatePlayer`"). A05 and B20 are in different phases and different phases' files, so neither blocks the other; the ordering was agreed with Phase A directly.

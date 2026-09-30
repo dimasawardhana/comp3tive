@@ -121,6 +121,36 @@ unusable (`goalkeeper` eligible for all 25, `defender` for all 25, `winger` for 
 
 ## Design
 
+**Line references.** Every `file:line` in this spec and in the eight tickets is anchored to the
+audit baseline, `HEAD d87ac7b` — the commit named in the Problem Statement above. Phase A lands
+first and Phase C's C26/C27 move the roster UI out of `src/App.tsx` and the community chrome
+into `src/shell/` underneath this phase, so any anchor into `src/App.tsx` is a number with a
+shelf life. Each anchor therefore names its **symbol or quoted string** beside the line, and
+the symbol is authoritative: `gapKind`, `gapQualifier`, `GapMeter`, `.readout`, `Breadcrumb`,
+`SEED_DISCIPLINES`, `SAMPLE_DATA`, `DB_VERSION`, `.topbar-tools`, `.add-community`, and the
+exact copy strings. **Resolve the symbol, not the number.** Where a number and a symbol
+disagree, the symbol wins and the number is re-derived from it — never the reverse, and never
+by editing the anchor until it resolves.
+
+**A worked example, because a rule with no example attached is a rule nobody follows.** The
+Citation pass in this file's Self-Review cites six anchors into `src/App.tsx`. Resolved by
+symbol rather than by line, all six are findable today:
+
+| was cited | symbol it was cited for | lives at, now |
+|---|---|---|
+| `src/App.tsx:821` | `.squad-switcher`, the community switcher | `src/shell/AppChrome.tsx:93` |
+| `src/App.tsx:838` | `.squad-menu-list`, the community menu | `src/shell/AppChrome.tsx:112` |
+| `src/App.tsx:884` | `aria-label="New community"`, the icon button | `src/shell/AppChrome.tsx:153` |
+| `src/App.tsx:931` | `.add-community`, the new-community form | `src/shell/AddCommunityForm.tsx:21` |
+| `src/App.tsx:1061` | the string `No players in this community` | `src/shell/RosterScreen.tsx:826` |
+| `src/App.tsx:1123` | the string `Split the roster` | `src/shell/RosterScreen.tsx:909` |
+
+The last two are B15's own strings and the first four are the chrome C27 moved. Every one of
+the six is past EOF in the file it was cited in — `src/App.tsx` is 514 lines now, against 1,280
+at baseline — and all six are still exactly what they were cited for. A line audit alone would
+have called all six broken, because none of the six addresses resolves; a symbol audit calls
+all six fine, because all six exist.
+
 ### B13 — The split says whether its gap is proven
 
 **New module: `src/session/gapProvenance.ts`.** One source of truth, importable by Phase D's
