@@ -2834,6 +2834,38 @@ In `e2e/tests/landing/landing.spec.ts`, the trust assertions become exactly:
 
 The count stays 3, and no other landing copy changes.
 
+**CORRECTION (2026-09-30, after this step shipped): the count did not stay 3, the promise is
+scoped rather than restored bare, and B14's own guard was inverted rather than left alone.**
+Everything above is kept as written because it is what this step was told to do, and the shape of
+what actually shipped is the more useful record.
+
+- **The offline row is a fourth row, not a replacement for row 1's neighbour.** Shipped
+  (`index.html:210-213`): the three true rows are all still present, plus *"Once comp3tive has run
+  with a network, it opens and runs a tournament with no signal."* `landing.spec.ts:93` asserts
+  `toHaveCount(4)`. **Swapping a true row out to hold the number at 3 would have deleted a claim
+  nobody asked to delete** — the count was 3 because there were three true rows, and there are now
+  four.
+- **The description is scoped, not restored bare.** Shipped `index.html:9` reads *"Works offline
+  after one online run."* The unscoped `Works offline, ` is the overclaim B14 existed to remove;
+  the scoped sentence is the one the offline spec actually proves.
+- **B14's `not.toContainText("no signal")` guard is now `toContainText("no signal")`**
+  (`landing.spec.ts:112`). This step's instructions never mentioned the guard, which is how it came
+  to need inverting: B14 wrote it as an absence assertion because the promise was untrue, and once
+  the promise was true the same line became the receipt that the proof and the copy cannot drift
+  apart. **B14 was right while the promise was untrue and was deliberately superseded when it became
+  true.**
+- **Row 1's string is gone and the suite now forbids it.** `landing.spec.ts:116` asserts
+  `not.toContainText("proven minimum")`, so `"proven minimum for a two-team split"` — a string this
+  step tells the implementer to assert — is now a failure. Two-team futsal pools of 32+ abort at
+  `NODE_BUDGET`, so even the two-team scope did not hold at every two-team size. Row 1 is *"The
+  screen says when the gap is the best it found, not proven."*
+
+**This step's instructions are also mutually exclusive with Phase B's B14, which is why the shape
+changed rather than the count being forced back to 3.** B14 requires the list to contain no
+`no signal` at all; this step requires it to contain one. The spec's acceptance criterion 8 carries
+the contradiction and its resolution; the B spec's B14 section carries the same record from the
+other side, including which half of B14 died and why.
+
 - [ ] **Step 7: Verify the claim the page now makes**
 
 Run:
@@ -3191,6 +3223,45 @@ export function useDurability({ playerCount }: DurabilityDeps): {
 }
 ```
 
+**CORRECTION (2026-09-30, after Task 14 landed): the dismissal is a record, not a flag, and the
+gate has four conditions rather than three.** The code above is kept because it is what this step
+shipped and what Task 14 was written against; the change was made deliberately, survived review,
+and the review is `.superpowers/sdd/2026-09-17-product-completion/task-14-report.md` §"the
+dismissal". This points at it rather than re-arguing.
+
+**What the shape above could not express.** `readPref(NUDGE_DISMISSED_KEY) === "1"` and
+`writePref(NUDGE_DISMISSED_KEY, "1")` store a value that can only say *that* a dismissal happened,
+never *when* or *about what*. **A dismissal with no subject has nothing to expire against**, so
+permanent was not a policy this step chose — it was the only behaviour the shape permitted. That is
+the dismiss-at-5 / never-asked-at-50 defect: a user who closed the prompt at five players was never
+asked again however much data they added afterwards, and no later export lifted it.
+
+**What ships instead.** `dismissNudge` writes `{ at, playerCount }` and a pure `covers()` decides
+whether a dismissal still applies, lifting it on **either** condition:
+
+- **Time** — `DISMISSAL_TTL_MS = 30 * 24 * 60 * 60 * 1000` (`src/shell/useDurability.ts:80`). Past
+  30 days the dismissal stops covering.
+- **Size** — `playerCount >= dismissal.playerCount + MIN_PLAYERS_TO_NUDGE` (`:283`). The user
+  closed a prompt about the roster they had; that says nothing about the next batch of players,
+  and the next batch is what makes the data worth losing.
+
+Two further properties fall out of storing a record rather than a boolean, and both are tested: a
+dismissal whose timestamp is in the **future** is not a dismissal and mutes nothing — a restored
+profile, a hand-edited key, a machine whose clock was ahead — and an **export retires the
+dismissal in the same beat**, because the user did the one thing the prompt was asking for
+(`useDurability.ts:406-414`). The shipped test names the whole gate: *"nudges only when all four
+hold: refused, big enough, stale, and not dismissed"* (`useDurability.test.ts:312`), so the comment
+above reading "All three must hold" is one condition short of the truth.
+
+**The cost, which belongs in the same breath as the fix.** A user who dismisses and comes back after
+30 days is asked again, and that is a **worse** experience than a permanent silence for someone who
+has already answered the question. The trade is deliberate: one cycle of nagging in exchange for
+never training someone to dismiss the prompts that matter. The shipped code states it plainly
+(`useDurability.ts:70-72`) — *"a dismissal that never expired would leave someone who dismissed at
+five players unasked for the rest of their life"* — and names the number that would change the
+decision: whether real users read dismissals as "stop asking", in which case the fix is a shorter
+interval between *asks*, not a permanent mute.
+
 - [ ] **Step 4: Run the test to verify it passes**
 
 Run: `npx vitest run src/shell/useDurability.test.ts`
@@ -3220,7 +3291,17 @@ git commit -m "feat(data): ask the browser to keep the data, and record when it 
 - Consumes: `useDurability` from Task 13; `hubButton`/`gotoSeeded`/`SeedWorld` from `e2e/support/seed.ts`.
 - Produces: `.nudge` and `.durability-note`. No later task consumes them.
 
-**Two things this task must not break.** The stat cards are untouched: `.dashboard-stats` still renders exactly three `.tournament-meta-card.dashboard-stat` children labelled `Players`, `Saved squads`, `Tournaments`, so `e2e/tests/dashboard/dashboard.spec.ts:114-118` and `:221-224` stay green unchanged. And A09 owns untracking `playwright-report/` and `test-results/`; D does not duplicate that work.
+**Two things this task must not break.** The stat cards are untouched: `.dashboard-stats` still renders exactly three `.tournament-meta-card.dashboard-stat` children labelled `Players`, `Saved squads`, `Tournaments`. And A09 owns untracking `playwright-report/` and `test-results/`; D does not duplicate that work.
+
+**CORRECTION (2026-09-30): the two `dashboard.spec.ts` lines cited above are the wrong lines, and
+the claim they supported is checked somewhere else.** `dashboard.spec.ts:114-118` is the
+"switch to Beta" community-menu click and `:221-224` is a seed record for a session; neither
+touches the stat cards. The assertion this task actually adds is its own — the block below ends
+with `test("the stat cards are untouched by the nudge", …)`, which is at
+`e2e/tests/dashboard/nudge.spec.ts:100` and asserts `toHaveCount(3)` on
+`.dashboard-stats .dashboard-stat` directly. That is the stronger check: it counts the elements
+this task could have disturbed rather than relying on a different file's incidental behaviour. The
+spec's risk row carried the same wrong citation and is corrected there.
 
 - [ ] **Step 1: Write the failing spec**
 
@@ -3318,6 +3399,40 @@ test("a browser with no storage API shows an unknown note and never errors", asy
   expect(errors).toEqual([]);
 });
 ```
+
+**CORRECTION (2026-09-30, after this task landed): the file header and the test title in the block
+above, and the spec's risk row, all say the dismissal is permanent, and all three are wrong — as is
+the code above.** The shipped dismissal is a **snooze that expires**, not a permanent mute. The
+change was deliberate and survived review
+(`.superpowers/sdd/2026-09-17-product-completion/task-14-report.md` §"the dismissal"), and the
+block above is kept because it is what this task shipped and what the reviewer worked against.
+
+The shipped test is titled `test("dismissing the nudge is the hook's snooze, not a hidden row", …)`
+(`e2e/tests/dashboard/nudge.spec.ts:56`) — not `"dismissing the nudge is permanent"` — and it
+asserts the stored record's **shape** rather than merely its presence:
+
+```ts
+const stored = await page.evaluate(() => localStorage.getItem("tb-export-nudge-dismissed"));
+expect(stored).not.toBeNull();
+const dismissal = JSON.parse(String(stored)) as { at: number; playerCount: number };
+expect(dismissal.playerCount).toBe(6);
+expect(Number.isFinite(dismissal.at)).toBe(true);
+```
+
+**That extra assertion is why the test was renamed rather than kept.** A `useState(false)` inside
+the screen passes "still absent after reload" and then loses the snooze entirely on the next
+visit, so the test above cannot tell the two apart; the shipped one can, because it reads the key
+back and checks that the record says *when* and *about how many players*. The shipped file also
+drops the per-player `capabilities` from its seed (the shared `seedScript` already supplies the
+MLBB default, so the file never has to repeat it) and adds a case asserting an export clears
+`tb-export-nudge-dismissed` to `null`.
+
+**The expiry is a unit-test contract, not an e2e one** — a 30-day wait is not a test, and
+`Date.now()` is injected rather than waited on. `src/shell/useDurability.test.ts` carries it: `:339`
+a dismissal stops covering after 31 days, `:344` it stops covering once the roster grows by another
+batch, `:362` a future-dated dismissal mutes nothing, `:378` the exact boundaries still count. The
+full reasoning — and what a 30-day snooze costs — is in the CORRECTION at Task 13 Step 3 above and
+in the spec's D34 section.
 
 - [ ] **Step 2: Run the spec to verify it fails**
 
@@ -4150,8 +4265,8 @@ git commit -m "feat(roster): rate a set of players at once, validated before it 
 | 5. D31 proven, both clipboard cases | 2 Steps 1, 6 |
 | 6. D32 proven, image and download fallback | 4 Steps 1, 4 |
 | 7. D33 proven: no other host, offline both documents, deploy purge | 12 Steps 1, 2 |
-| 8. D33's claim restored | 11 Steps 6, 7 |
-| 9. D34 proven: nudge visible, dismiss persists, small roster quiet, 3 stat cards | 14 Steps 1, 6, 7 |
+| 8. D33's claim restored | 11 Steps 6, 7 — **the criterion was unsatisfiable as written** (`toHaveCount(3)` plus a fourth item's text) and is narrowed by the CORRECTION at criterion 8 |
+| 9. D34 proven: nudge visible, **the snooze survives a reload**, small roster quiet, 3 stat cards | 14 Steps 1, 6, 7 — **not "dismiss persists"**: a dismissal expires after 30 days or when the roster grows by another batch, so "persists" is the wrong word and the wrong contract. See the CORRECTION at Task 13 Step 3 |
 | 10. D35 proven: exhaustive schedule, `champion()` not null, existing tests unmodified | 6 Step 1, 7 Steps 1, 7, 8, 8 Step 7 |
 | 11. D36 proven: skipped line, template download, bulk rating, both hint strings | 15 Step 6, 16 Step 1, 17 Step 1 |
 | 12. D37 proven: `.fairness` visible, no banned substring, capture-hero passes | 5 Steps 6, 7 |
@@ -4159,10 +4274,25 @@ git commit -m "feat(roster): rate a set of players at once, validated before it 
 
 **Placeholder scan.** No "TBD", "TODO", "implement later", "handle edge cases" or "similar to Task N" appears. Every code step carries runnable code. Every verification step names a command and an expected result.
 
+**CORRECTION (2026-09-30): the scan above is self-defeating as written, and this spec's own
+Spec Self-Review already says so about itself.** `grep -nEi "TBD|TODO|FIXME|handle edge cases|etc\.|similar to (ticket|task)"`
+over this plan returns exactly one hit: the sentence above, which names each phrase in order to
+deny it. "No phrase appears" was never true of this file in the form the sentence takes; the
+honest statement is the one the spec makes, and the claim that survives is the second half — every
+code step carries runnable code and every verification step names a command and an expected
+result — which was checked by reading the steps rather than by grepping for the words.
+
+**Two other rows in the table above were mapped to steps whose instructions had to be corrected
+afterwards, which is a different thing from being unmet and is worth separating.** Criteria 8 and 9
+both ran; both produced something other than what their steps said, and in each case the
+**implementation** was right and the instruction was the defect — see the CORRECTIONs at Task 12
+Step 6 and Task 13 Step 3. Criterion 13 is the one case where the criterion itself could not be
+satisfied and had to be narrowed. Three different outcomes, and this review originally reported
+only the third.
+
 **Type consistency.** `ShareTextInput` (Task 1) is the shape `ShareSheet` (Tasks 2, 4) and `teamsAsText` use. `DrawOp` and `LayoutShareImageInput` (Task 3) are what `renderShareImage` (Task 4) replays. `RoundRobinPairing` (Task 6) is what Task 7's `buildBracket` arm consumes, as `roundRobinSchedule`'s return. `ImportReport` (Task 16) comes from C27 and is not redeclared. `DurabilityDeps` (Task 13) is what Task 14 calls. `onSavePlayer` (Task 17) is C26's exact prop name, confirmed with Phase C rather than guessed.
 
 **Three places the spec and the source disagreed, and what this plan follows.**
-
 1. **`champion()` does not return `null` — it returns the wrong team.** The spec and ticket 35 say round robin "finds no final for round robin and returns `null` **silently**". Measured against `src/tournament/bracket.ts:317-326`: for a completed 4-team round robin whose standings leader finished on two wins, `champion()` returned the team that won round 1's first match (one win). It returns `null` only when that round-1 match is itself unrecorded. **This plan follows the source**: Task 7 asserts the champion equals the standings leader, and adds a second case whose winner differs from the round-1 winner precisely so the null-only test cannot pass on the buggy code.
 2. **`requiredMatches` does need an arm** — the opposite of what this review concluded. It was
    checked by reading `bracket.ts` and by the status test in Task 7 Step 1, and the conclusion was
@@ -4172,6 +4302,17 @@ git commit -m "feat(roster): rate a set of players at once, validated before it 
    now takes round robin with `"series"` and returns every fixture. See the CORRECTION at Task 7
    Step 5, and commit `bc17fe7`.
 3. **Line anchors drift from the spec in three places**, because the spec's numbers were taken at audit baseline `d87ac7b` while these were read now: `src/domain/validation.ts` is `:14` and `:36` (spec says `:9`, `:35`); `src/session/flow.ts` is `:10` for `strengthOf` and `:16` for `teamName` (spec says `:29` and `:23`); `src/data/sample-data.ts`'s Blob precedent is `:40-54` (spec says `:52-60`). **This plan cites the numbers actually read.** The spec itself says to resolve the symbol, not the number, and every anchor here was confirmed by reading the line.
+
+**CORRECTION (2026-09-30): the anchor in item 1 above has moved, and the conclusion is now visible
+in the code rather than needing the probe that produced it.** `champion()` was at
+`src/tournament/bracket.ts:317-326` when this review measured it; it is at **`:450-464`** now, and
+it carries a `round-robin` arm this review's measurement predicted it would need:
+`if (tournament.format === "swiss" || tournament.format === "round-robin")`. The comment in the
+shipped arm states the defect in the same terms this review did — *"without this arm a completed
+round robin returned the winner of round 1's first match"* — so the finding and the fix agree.
+`:317-326` today is the middle of `recordGameResult`'s winner-resolution block, an unrelated
+region. Item 2's `bracket.ts:287` still holds (`requiredMatches`'s round-robin arm is on that
+line).
 
 **Two implementation defects found and fixed while writing this plan, both by running the code rather than reading it.** The first draft of `layoutShareImage` overflowed the 1080 px canvas (a long player name reached x=1147) and collided the two column averages. Task 3's implementation clips labels with `fit()` and aligns each block's average to its own right edge; the spec's own "keeps every glyph inside the poster" test now pins that.
 

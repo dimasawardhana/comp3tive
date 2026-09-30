@@ -253,6 +253,29 @@ still has three rows and the layout is unchanged. The offline sentence is **dele
 softened: D02's ticket restores it when the manifest and service worker ship, at which point
 `.landing-trust` row 3 becomes `Works with no signal. The court has no wifi.` again.
 
+**CORRECTION (2026-09-30, after D02 shipped): the offline row came back as a FOURTH row, and row
+1 was reworded once more.** Both of this paragraph's forward-looking sentences turned out to
+describe a different change than the one that shipped, and a reader following them would now
+delete a true claim.
+
+- **The restore is an addition, not a replacement.** This paragraph predicted "`.landing-trust` row
+  3 becomes `Works with no signal.`" — i.e. row 3 changing back. Shipped (`index.html:210-213`):
+  the three rows above are all still there, and a **fourth** was appended, scoped to the condition
+  that makes it true: *"Once comp3tive has run with a network, it opens and runs a tournament with
+  no signal."* The count went 3 → 4, and `landing.spec.ts:93` asserts `toHaveCount(4)`. The
+  action note that had been promoted into row 3 did not go back to being an action note; both
+  claims are now made, because both are true. **The prediction about *which row* was wrong and the
+  prediction that the claim would be restored was right**, and only the second is the one worth
+  keeping.
+- **Row 1's wording is itself superseded.** "The gap is the proven minimum for a two-team split"
+  was scoped to the 2-team case; two-team futsal pools of 32+ abort at `NODE_BUDGET`, so even that
+  did not hold at every size. Shipped row 1 is *"The screen says when the gap is the best it found,
+  not proven."*, and `landing.spec.ts:116` asserts the list does **not** contain
+  `"proven minimum"` at all.
+
+The B14 acceptance criterion's own CORRECTION, further down this file, records which half of B14
+died and why, and the mutual exclusion this created with Phase D's criterion 8.
+
 **2. The lede (`index.html:71-74`).** Today:
 
 ```
@@ -343,6 +366,29 @@ Three notes for the executor:
 - **D02 updates these assertions again.** When the service worker and manifest land, the
   third slot becomes the offline sentence once more. The B14 ticket carries this as an
   explicit handoff note.
+
+  **CORRECTION (2026-09-30, after D02 shipped): the third slot did not become the offline sentence
+  — the count went to four, and the "no `no signal`" guard was inverted rather than kept.** All
+  three changes below are shipped facts, cited to the lines that carry them:
+
+  | this spec says | shipped | where |
+  |---|---|---|
+  | `toHaveCount(3)` | `toHaveCount(4)` | `e2e/tests/landing/landing.spec.ts:93` |
+  | a third slot that "becomes the offline sentence" | a **fourth** `<li>` appended; the three true rows all stay | `index.html:210-213` |
+  | new coverage "asserts the trust list contains no `no signal`" | `toContainText("no signal")` — the guard is **inverted** | `e2e/tests/landing/landing.spec.ts:112` |
+
+  The inversion is the point. That test existed to stop a copy edit quietly reintroducing an
+  offline promise the app could not keep; once the app could keep it, the same test is what fails
+  if the claim is ever removed again. **B14's own guard is the receipt that the proof and the
+  copy cannot drift apart** — which is a stronger property than the absence it replaced, and it is
+  why the resolution went this way rather than leaving B14's clause standing.
+
+  The offline row is also **scoped where the earlier sentence was not**: *"Once comp3tive has run
+  with a network, it opens and runs a tournament with no signal."* The scope is asserted whole,
+  not by keyword, so a reword that drops the condition cannot pass on the strength of "no signal"
+  alone. And B14's own row-1 assertion is now `not.toContainText("proven minimum")`
+  (`landing.spec.ts:116`), so the `"proven minimum for a two-team split"` string this spec's block
+  above asserts is one the suite now forbids.
 
 Everything else in `landing.spec.ts` survives untouched: the rail-label assertion
 (`:49-55`), the lede assertion `"smallest strength gap"` (`:47`), the wordmark accessible-name
@@ -818,10 +864,60 @@ appears — `best-found`, because `varietySplit` stamps `optimal: false`
 (`src/solver/solver.ts:419`). `gapQualifier(result)` returns `null` for the first case and
 `"Best gap found."` for the other two.
 
-**B14.** On `/`, the trust list has exactly three items and contains no substring `no signal`;
-the lede contains `it can prove` and still contains `smallest strength gap`; the description meta
-contains neither `Works offline` nor `badminton` unless B19 shipped it; `Disciplines` in the
-Roster rail reads `2` or `3` matching `SEED_DISCIPLINES.length`.
+**B14 (ORIGINALLY).** On `/`, the trust list has exactly three items and contains no substring
+`no signal`; the lede contains `it can prove` and still contains `smallest strength gap`; the
+description meta contains neither `Works offline` nor `badminton` unless B19 shipped it;
+`Disciplines` in the Roster rail reads `2` or `3` matching `SEED_DISCIPLINES.length`.
+
+**CORRECTION (2026-09-30): the first clause of B14 is dead, and its two halves died for different
+reasons — one was superseded, one was chosen away. Neither was forgotten.**
+
+**Which half died, precisely.** B14's criterion has two halves about the trust list and they are
+now in different states:
+
+- **"contains no substring `no signal`" is no longer a live requirement at all.** Not narrowed,
+  not scoped: gone. It was an *absence* assertion — `not.toContainText("no signal")` — and it was
+  correct for exactly as long as the promise was untrue. Task 12 of Phase D then made it true and
+  flipped the guard from asserting absence to asserting presence. Shipped
+  (`e2e/tests/landing/landing.spec.ts:112`): `await expect(page.locator(".landing-trust")).toContainText("no signal")`.
+  The comment above it says why in the corpus's own voice: *"B14 wrote this as an absence: the
+  offline promise was deleted, so the page must not make it. Task 12 put it back, so the guard is
+  inverted."* **The anti-`no signal` rule was chosen, not forgotten** — a reader who meets only
+  B14's text will delete a true claim to satisfy it, and that is a real cost of leaving this
+  uncorrected.
+- **"exactly three items" is superseded to four.** `index.html:210-213` ships four `<li>`s, and
+  `landing.spec.ts:93` asserts `toHaveCount(4)`.
+
+**Why the restore was a fourth row rather than a replacement**, and why that matters here: Task 12
+restored the offline claim *only after proving a whole tournament plays with the network cut*, and
+the restored row is scoped to the condition that makes it true — *"Once comp3tive has run with a
+network, it opens and runs a tournament with no signal."* The three rows that were already true
+were not swapped out to keep the number at 3. The spec's own test comment gives the rule: *"The
+count was 3 because there were three true rows, and swapping a true row out to keep the number at
+3 would delete a claim nobody asked to delete."* A count is not a target; it is a fact about how
+many promises are true, and the fact changed.
+
+**The contradiction this creates with Phase D, stated because it is the reason the resolution goes
+this way and not the other.** Phase D's acceptance criterion 8 in
+`docs/superpowers/specs/2026-09-17-product-completion-design.md` requires
+`toHaveCount(3)` **and** the text `"no signal"` **and** `"proven minimum for a two-team split"`.
+**A list cannot have three items and contain a fourth item's text** — those two requirements are
+mutually exclusive, and no implementation satisfies both. **B14 was right while the promise was
+untrue, and was deliberately superseded when it became true.** That is the direction the code
+took, and the reason is not a preference: B14's clause was a guard against claiming offline
+support the app did not have, and once the app had it, keeping the guard would forbid the truth.
+The rest of B14's criterion — the lede, the meta description, the `Disciplines` count — is
+unaffected and still holds.
+
+**One further change inside the row B14 numbered 1, recorded here because the same criterion
+depends on it.** B14's row 1 read "The gap is the proven minimum for a two-team split." That was
+itself superseded, by a later correction that scoped it further still: shipped row 1 is *"The
+screen says when the gap is the best it found, not proven."*, and `landing.spec.ts:116` asserts
+`not.toContainText("proven minimum")`. The reason is measured, not stylistic: two-team futsal pools
+of 32+ abort at `NODE_BUDGET`, so even the two-team claim did not hold at every size. So of the
+three strings Phase D's criterion 8 names, **one is present, one is present in a reworded form
+that the spec now forbids outright, and one is absent as a count.** Criterion 8's own CORRECTION
+records this.
 
 **B15.** Grep-level: `grep -rn "No players in this squad\|Split the squad\|then the squad\|Tournament squad\|Save tournament squad" src/` returns nothing. The five replacement strings are present. Every "Saved squad" occurrence listed in the design is unchanged.
 
@@ -927,6 +1023,15 @@ three additions this spec must justify:
   No "TBD", "TODO", "handle edge cases", or "similar to ticket N". The B13 copy is given as
   literal strings and literal JSX. The B20 rosters are given as literal name lists, id schemes,
   and construction rules, with the measured result of each.
+
+  **CORRECTION (2026-09-30): the check above is self-defeating as written, and Phase D's spec
+  already says so about its own.** `grep -nEi "TBD|TODO|FIXME|handle edge cases|etc\.|similar to
+  (ticket|task)"` over this file returns exactly one hit: this bullet, which names each phrase in
+  order to deny it. "No phrase appears" was never true of this file in the form the bullet takes.
+  The claim that survives is the first and third sentences — exact files, exact strings, literal
+  copy — and it was checked by reading the tickets. This is the same defect the D spec's own
+  Placeholders bullet already discloses about itself, recorded here for the same reason: a scan
+  that matches its own sentence is a scan whose result cannot be reported as clean.
 - **Internal consistency.** Checked the following couplings:
   - B13's qualifier and B14's trust list both assert the 2-team case is provable, using the same
     measurement (`optimal: true`, ≤ 443 nodes for 2-team pools). They do not contradict.
@@ -970,3 +1075,40 @@ three additions this spec must justify:
   `e2e/tests/landing/landing.spec.ts:47`, `:237-239`). Numbers that describe solver or validator
   behaviour were produced by running the shipped code over the proposed data, and every one is
   quoted above.
+
+  **CORRECTION (2026-09-30): the pass enumerated 43 anchors, not 30, and at least 15 of them no
+  longer say what they are cited for.** Two separate defects, and the second is the one that
+  matters. The count is arithmetically wrong: the parenthetical above lists 43 distinct
+  `file:line` anchors across eleven files, so "30 anchors verified" understates its own evidence.
+  The drift is the substantive one — the pass is stated in the past tense and was true when run,
+  but this spec gives no baseline commit and no rule for what to do when a number moves, so a
+  reader re-running it today gets a different answer than the one recorded here. What is false
+  now is not the pass; it is the absence of a standing instruction to repeat it.
+
+  Every anchor in the list was re-checked individually. The result:
+
+  | cited | count | state now |
+  |---|---|---|
+  | `src/App.tsx:821`, `:838`, `:884`, `:931`, `:1061`, `:1123` | 6 | **all six are past EOF.** The file is 514 lines; Phase C's C26/C27 took it from 1,280. The two strings B15 owned (the empty state, the CTA label) live in `src/shell/RosterScreen.tsx` now, which is exactly what this spec's C26 handoff predicted |
+  | `e2e/tests/landing/landing.spec.ts:47` | 1 | a comment about the format-modal union, not the lede assertion; the lede assertion is at `:82` |
+  | `e2e/tests/landing/landing.spec.ts:237-239` | 1 | the CTA focus test; the trust assertions are at `:92-118` and now assert `toHaveCount(4)` |
+  | `src/landing.tsx:210-217`, `:111` | 2 | inside the file (219 lines) but not the badminton card — `:210-217` is the `railFacts` writer and `:111` is the discipline's own description string |
+  | `src/session/SplitScreen.tsx:135`, `:334`, `:294`, `:304`, `:400`, `:349-352` | 6 | inside the file (509 lines), but pre-C28 and pre-C26: `:294` was the dead crumb this spec's B16 row is about, and `:334`/`:339`/`:345` were the readout block before the extraction |
+  | `src/solver/solver.ts:419`, `:409`, `:81`, `:94`, `:515`, `:468-472` | 6 | **hold** — `:515` is still `if (settings.rolesRequired && !teams.every((t) => roleCoverPossible(t, roleIds))) return;`, which is the discrepancy row above |
+  | `docs/design.md:11`, `:32-37`, `:78-80` | 3 | **hold** — the file exists; B17's deletion of it did not happen, and that is a ticket outcome this spec records as a task rather than a result |
+  | `src/domain/types.ts:55-56`, `:61`, `:67`, `:70`, `:166`, `:157`; `src/session/edit.ts:55`, `:64`; `docs/FLOW.md:1`, `:26`, `:74`; `docs/spec/0002-tournaments-v1.md:31`, `:48`, `:52`, `:54`, `:63`; `DESIGN.md:15-24`, `:196` | 18 | **resolve to a line inside the file.** Not re-derived against the symbol each is cited for, and this correction does not claim they still are — it claims only that none of them is past EOF, which is the check that catches a moved file rather than a moved line |
+
+  **The rule to apply instead of the numbers** is already this corpus's: resolve the symbol, not
+  the line. The D spec says it outright for the same reason, and `docs/FLOW.md`'s own C28 pass
+  demonstrated the cost of not saying it — "a repointed citation that is also wrong is worse than
+  the one it replaces." A citation here that has drifted is not a small defect: `docs/design.md`'s
+  em-dash ban (`:72`) is the rule B13's copy is written against, and a reader who cannot resolve
+  it cannot check the copy.
+
+  **And one internal-consistency bullet above is now false, in the same place B14's reversal
+  lives.** "B13's qualifier and B14's trust list both assert the 2-team case is provable… They do
+  not contradict" was true of the two drafts and is not true of the shipped pair: the trust list's
+  row 1 no longer asserts the 2-team case at all, and the suite now forbids the phrase outright
+  (`e2e/tests/landing/landing.spec.ts:116`, `not.toContainText("proven minimum")`). B13's
+  qualifier is unchanged and still correct; what changed is the trust row beside it, twice — see
+  the CORRECTIONs at B14's design and at B14's acceptance criterion.

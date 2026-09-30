@@ -1390,6 +1390,38 @@ In `e2e/tests/landing/landing.spec.ts`, replace the trust block at `:57-63` with
     await expect(page.locator(".landing-lede")).not.toContainText("exact, not estimated");
 ```
 
+
+**CORRECTION (2026-09-30, after Phase D's Task 12 shipped): the last line of the block above is
+now the opposite assertion, the count is 4, and `"proven minimum for a two-team split"` is a string
+the suite now forbids.** Shipped (`e2e/tests/landing/landing.spec.ts:93`, `:112`, `:116`):
+
+```ts
+await expect(trust).toHaveCount(4);
+await expect(page.locator(".landing-trust")).toContainText("no signal");
+await expect(page.locator(".landing-trust")).not.toContainText("proven minimum");
+```
+
+Three changes, and the middle one is the reason this step's guard is not simply stale:
+
+- **The absence guard was inverted.** It existed to stop a copy edit reintroducing an offline
+  promise the app could not keep. Task 12 proved a whole tournament plays with the network cut and
+  then made the app able to keep it, so the same line is now what fails if the claim is ever
+  removed again. **B14 was right while the promise was untrue and was deliberately superseded when
+  it became true.**
+- **The offline row is a fourth row, not a replacement for row 3.** `index.html:210-213` carries
+  all three true rows plus *"Once comp3tive has run with a network, it opens and runs a tournament
+  with no signal."* Swapping a true row out to keep the number at 3 would delete a claim nobody
+  asked to delete; the count was 3 because there were three true rows, and there are now four.
+- **Row 1's string is gone entirely.** Two-team futsal pools of 32+ abort at `NODE_BUDGET`, so
+  "proven minimum for a two-team split" did not hold at every two-team size either. Row 1 is now
+  *"The screen says when the gap is the best it found, not proven."*
+
+The block above is kept as written because it is what B14 shipped and what the D02 handoff in Step
+11 was written against. **A reader who runs Step 1 today and applies it will delete a true claim to
+satisfy a test that no longer exists** — which is the specific harm this correction exists to
+prevent. The spec's B14 section carries the same record, and names the mutual exclusion this
+created with Phase D's acceptance criterion 8.
+
 In the same test, leave `:47` (`"smallest strength gap"`), `:49-55` (the rail labels), `:46` (the wordmark accessible name), `:65` (the action note) and `:66` (the footer) unchanged.
 
 - [ ] **Step 2: Build and run the spec to verify it fails**
@@ -1506,6 +1538,25 @@ ship, restore the offline claim. `index.html` trust-list row 3 becomes
 `Works offline, `, and this spec's third trust assertion changes from
 `"no account"` back to `"no signal"`.
 ```
+
+**CORRECTION (2026-09-30, after D02 shipped): the handoff above named the wrong row, and the
+restore was an addition.** It is kept verbatim because it is the text that was written into ticket
+14's `## Comments`, and a reader comparing the handoff against what shipped needs to see the
+difference rather than a corrected version that was never sent.
+
+- **"trust-list row 3 becomes `Works with no signal.`" — wrong about the row.** Shipped: the three
+  true rows are untouched and a **fourth** was appended (`index.html:210-213`), so
+  `landing.spec.ts:93` asserts `toHaveCount(4)`, not 3. D02's Task 12 also reworded row 1 and
+  changed the meta description to *"Works offline after one online run."* rather than restoring the
+  bare `Works offline, ` — the offline promise is now scoped to the condition that makes it true,
+  because that is the condition Task 12 proved.
+- **"this spec's third trust assertion changes from `"no account"` back to `"no signal"`" — the
+  right change, the wrong mechanism.** The assertion did not become the third of three; the count
+  grew and `"no signal"` was added to a list of four (`landing.spec.ts:94-107`).
+- **The `not.toContainText("no signal")` guard B14 added is not mentioned in this handoff at
+  all, and D02 inverted it** (`landing.spec.ts:112`). The handoff told D02 what to restore and not
+  what to remove; the guard was B14's own, and removing it was the right call for the reason
+  recorded at Step 1 above.
 
 ```bash
 git add index.html src/landing.tsx e2e/tests/landing/landing.spec.ts .scratch/debt/issues/14-the-landing-page-claims-only-what-ships.md
@@ -2096,6 +2147,16 @@ for the app-health tickets."
 
 **Placeholder scan.** No "TBD", "TODO", "implement later", "fill in details", "handle edge cases", "add appropriate error handling", "write tests for the above", or "similar to Task N". Every code step carries the real code or the exact replacement string. Every verification step names a command and an expected result, and every measured figure quoted in a test comment was reproduced against HEAD's shipped solver during planning.
 
+**CORRECTION (2026-09-30): the scan above is self-defeating as written, and the corpus already
+knows it.** `grep -nEi "TBD|TODO|implement later|fill in details|handle edge cases|add appropriate
+error handling|write tests for the above|similar to Task"` over this file returns exactly one hit:
+the sentence above, which names each forbidden phrase in order to deny it. "No phrase appears" was
+never true of this file in the form the sentence takes, and the honest statement is the one Phase
+D's spec Self-Review already makes for itself: the check matches this bullet, and this bullet is
+the only hit. The claim that survives is the second half — every code step carries real code and
+every verification step names a command and an expected result — and that was checked by reading
+the steps rather than by grepping for the words.
+
 **Type consistency.** `gapQualifier(result: SplitResult): string | null` is defined in Task 1 and consumed unchanged at two sites in Task 2. `gapKind(result: SplitResult): GapKind` is exported by Task 1 and used by its own tests plus Phase D. Task 5's `BADMINTON_DISCIPLINE` uses the same `roles` / `attributes` ids in `src/domain/seed.ts`, in Task 4's local test fixture, in the Task 4 JSON generator, and in the Task 6 landing card strings — one definition, four consistent uses. `SEED_DISCIPLINES` keeps its existing type and gains one element.
 
  **Cross-phase consistency.** Task 2's spec seeds its own capabilities and states why: A01's shared `seedScript` normalises every player to one uniform all-rounder, which measures `gap=0, optimal=true, nodes=2` at every team count and can never exercise the best-found path. Tasks 4 and 5 are ordered per ticket 19's `Blocked by: 20`; Tasks 5 and 6 per ticket 14's `Blocked by: 19`. Task 6 records the D02 handoff in ticket 14's `## Comments`. `contracts.md` D1 (`proven ⟺ result.solver.optimal`) is honoured literally: Task 1's implementation comment names both traps, and Task 2 asserts the re-roll path's qualifier by reading the field rather than by asserting a re-roll is never proven.
@@ -2105,6 +2166,17 @@ for the app-health tickets."
 - **To Phase C26** (Task 3): two of B15's five strings move from `src/App.tsx` to `src/shell/RosterScreen.tsx`. C must carry the strings, not re-derive them — `contracts.md` D2 already forbids independent renaming. Task 3's note names the two strings and the target file.
 - **To Phase C** (Task 4): the `sample-data.ts` dynamic-import warning is recorded, not fixed. It is a bundling change in C's territory (C owns `vite.config.ts`), and fixing it means moving the static import out of `src/domain/useDisciplines.ts:3` — architectural, not a data edit. If C declines it, it is a one-line follow-up ticket rather than silent debt.
 - **To Phase D02** (Task 6): the exact restore payload for the offline claim is written into ticket 14's `## Comments` — trust-list row 3, the meta description, and the spec assertion that flips back from `"no account"` to `"no signal"`.
+
+  **CORRECTION (2026-09-30, after D02 shipped): this handoff was delivered, acted on, and was
+  wrong about two of its three items.** It is kept as written because it is the handoff that was
+  sent, and the failure it produced is the useful part. Shipped: the offline row came back as a
+  **fourth** `<li>`, not as row 3 changing (`index.html:210-213`, `landing.spec.ts:93`
+  `toHaveCount(4)`); the meta description reads *"Works offline after one online run."* rather than
+  the bare `Works offline, `, because Task 12 scoped the promise to the condition it proved; and
+  the `"no signal"` assertion was added to a list of four rather than swapped in for `"no
+  account"`. **The handoff also said nothing about the `not.toContainText("no signal")` guard B14
+  had added**, and D02 had to invert it. A handoff that names what to restore and not what to
+  remove is the shape of this miss; the CORRECTION at Task 6 Step 11 has the full record.
 
 **Known discrepancies between the spec and the source, and which this plan follows.** Listed with the plan's own verified anchors:
 
@@ -2120,5 +2192,25 @@ for the app-health tickets."
  | B16's spec and ticket 16 both correct `docs/FLOW.md:26`'s "Four bottom-nav hubs" table to five rows, but leave the hub named **Tournaments** in §3 and every edge table | the hub's shipped label is **Games** everywhere: `src/App.tsx:65` (`{ mode: "games", label: "Games", icon: "▣" }`) and the screen's own h1 (`src/tournament/GamesScreen.tsx:123`, `title="Games"`). §3 is the table ticket 28's acceptance criteria check the rendered crumbs against, and the hand-rolled tournament crumb already reads `Games` (`src/tournament/TournamentScreen.tsx:265`) | Task 9 Step 6 renames the hub at all eleven occurrences (`:31`, `:43`, `:78`, `:80`, `:83`, `:120`, `:137`, `:138`, `:153`, `:167`, `:179`) and leaves the lowercase container noun "tournament" untouched. Reported by PlanC; verified against `NAV_ITEMS` and the rendered crumb. |
 | B16's spec says §3's breadcrumb table "keeps its values" | every crumb site emits exactly **one** separator (`src/session/MatchScreen.tsx:44`, `src/session/SplitScreen.tsx:295`, `src/tournament/TournamentScreen.tsx:265`), so the app renders two segments while §3's table lists up to four. Ticket 28 does not expand the crumbs | Task 9 Step 5 keeps the values (they are the path taken, which is what P1 is about) and appends the rendered-depth sentence so a reader cannot mistake the chain for literal crumb content |
 | B16's spec and ticket 16 both replace `docs/FLOW.md:74` with "Breadcrumbs are labels, not links" | **two of the three crumb sites already navigate**: `src/session/MatchScreen.tsx:41-45` (`onClick={…props.onBack()}`) and `src/tournament/TournamentScreen.tsx:263-269` (`onClick={…onBack()}`); only `src/session/SplitScreen.tsx:293-297` is dead, and ticket 28 exists to fix it and says landing it first "makes the documentation true instead of codifying the gap" | **neither the spec's rewrite nor the original** — Task 9 leaves `:10` and `:74` normative and appends a note naming the one dead site and ticket 28. Writing "labels, not links" would replace one false claim with another, in the phase whose purpose is to make claims true. Raised by PlanC and verified against all three sites. |
+
+
+**CORRECTION (2026-09-30): three of the anchors in the table above have drifted, and the table
+states them as verified.** The table's own header is "**Verified in the source**", which is a
+present-tense claim about a file that has since moved. Each was re-checked:
+
+| table row | cited | now |
+|---|---|---|
+| the Games hub is `src/App.tsx:65` | `{ mode: "games", label: "Games", icon: "▣" }` | `src/App.tsx:65` is `const isWide = useMediaQuery(…)`; the list is `NAV_ITEMS` in `src/shell/nav-items.ts:5` |
+| the hub's own h1 is `src/tournament/GamesScreen.tsx:123` | `title="Games"` | **`src/tournament/GamesScreen.tsx:159`** |
+| the hand-rolled tournament crumb already reads `Games` at `src/tournament/TournamentScreen.tsx:265` | the crumb's `onClick` | `:265` is now a `.tms-item` row in the tournament detail list; the crumb moved during Phase C's `Breadcrumb` extraction |
+
+The two `SplitScreen.tsx` anchors in the last two rows are the same class and are left as measured
+at the time: `:334`/`:339`/`:345` were the readout block before Phase C, and `:293-297` was the
+dead crumb before C28 fixed it — which is the row's own point, so that one is now historical
+rather than wrong. **Every conclusion in the table still holds**; what no longer holds is the
+header's claim that the numbers beside them are the source's. The plan's own rule — resolve the
+symbol, not the number — is the one to apply, and `docs/FLOW.md` itself says so: every citation in
+it was re-enumerated and re-resolved after C28, because "a repointed citation that is also wrong is
+worse than the one it replaces."
 
 **One risk carried, not hidden.** Between Task 4 and Phase A05, A05's new strict `parseBackup` rejects the *old* `sample-data/futsal-roster.json`. That window is real and expected; Task 4 is what closes it, and Task 4's first test asserts the exact invariant A05 depends on ("every `sample-data/*.json` player passes `validatePlayer`"). A05 and B20 are in different phases and different phases' files, so neither blocks the other; the ordering was agreed with Phase A directly.

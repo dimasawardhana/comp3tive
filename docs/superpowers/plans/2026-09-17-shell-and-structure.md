@@ -19,7 +19,53 @@ Copied from the spec's Scope, Design and Risks sections. Every task's requiremen
 3. **Extracted hooks are `.ts`, never `.tsx`.** `vite.config.ts` sets `test.include: ["src/**/*.test.ts"]`, so `.tsx` is excluded from the unit harness. A hook that must be unit-tested cannot be `.tsx`. This is a design constraint, not a preference. So `useNavigation.ts`, `useCommunityScope.ts`, `useSplitFlow.ts`, `usePreferences.ts`, `useToasts.ts` and `usePlayerImport.ts` are `.ts` and each testable one has a `.test.ts` beside it. `RosterScreen.tsx`, `AppChrome.tsx`, `ui/Toasts.tsx`, `ui/Modal.tsx` and `ui/ConfirmButton.tsx` are components, not hooks: they stay `.tsx`, their logic is trivial pass-through, and their proof is the browser suite.
 4. **No e2e spec is edited.** The suite passes with `git diff --stat e2e/tests` empty. "Passes" means zero failures and no file under `e2e/tests/**` modified. Unit tests may change only where a real API change requires it (Task 9's async download, enumerated below).
 5. **Byte-identical copy and classes.** Every moved string, label, class name and message is preserved character-for-character, except the three named deltas: `SplitScreen`'s crumb label becomes source-dependent (Task 8), the community delete menu stays open until confirmed (Task 7), and `createTournament`'s validation list joins with `"; "` instead of `'\n'` (Task 7). `git diff --stat src/index.css` is empty after Tasks 3, 7 and 8.
-6. **`src/App.tsx` ends under 400 lines**, measured as `wc -l src/App.tsx`. HEAD is **1,280**. Each extraction states its own interim ceiling so a stalled extraction is visible.
+6. **ORIGINALLY: `src/App.tsx` ends under 400 lines**, measured as `wc -l src/App.tsx`. HEAD is **1,280**. Each extraction states its own interim ceiling so a stalled extraction is visible.
+
+   **CORRECTION (2026-09-30, after the whole branch was measured): this constraint was never
+   satisfied, at any point, by any commit — it was not satisfied and later grew.** The distinction
+   is the content of the correction, because the two claims point a reader in opposite
+   directions: "met, then drifted" implies a commit exists where it held, and "never met" says
+   none does.
+
+   The measurement, re-runnable in two commands:
+
+   ```bash
+   for c in $(git log --format=%h -- src/App.tsx); do
+     printf "%s %s\n" "$c" "$(git show $c:src/App.tsx | wc -l)"
+   done
+   ```
+
+   **The smallest value in the whole series is 473, at `1bcce41`**, the last Phase C commit. It
+   is 514 today. The series is 1,280 → 600 → 478 → **473** → 514, and nothing in it is under 400.
+   Task 11's own ledger recorded the shortfall rather than chasing it — "~36 of it is pure
+   formatting… **Genuine structural excess is ~40, not 78**" — and that is where the phase
+   stopped. The reviews accepted a residual and the criterion predates that agreement, so
+   **this plan does not record the moment the target was abandoned**; that is the gap this
+   correction exists to name.
+
+   **The arithmetic does not close, and the honest sentence is not "the residual explains the
+   gap."** Phase C ended at 473, which is **73 over**. Phase D then added 41 lines, which is the
+   distance from 473 to today's 514. **473 − 41 = 432, still 32 over 400.** The accepted residual
+   is a **38-line storage carve-out** (D34's `useDurability` call site and its `recordExport()`
+   call, with their comments) plus **3 import-handler props** D36 added (`lastReport`, `nudge`,
+   `persisted`), counted from `git diff 1bcce41 HEAD -- src/App.tsx`.
+
+   **Do not add the ledger's "~36" to the 41.** That 36 is a share of the **78-line** gap measured
+   at **478** — the phase's own framing, where the other ~40 was called genuine structural excess.
+   It counts no block in the file. The two framings do not compose: at 473 the gap is 73, which is
+   neither 78 nor 36-plus-anything.
+
+   **So there are two findings here, not one, and this correction keeps them apart.** The
+   abandoned target was a decision, argued and minuted. **The 32 lines above 400 after the
+   residual is removed are nobody's** — no review accepted them, no ticket scoped them, and the
+   ledger's ~40-line structural estimate was never re-derived against the 473 the phase actually
+   reached. A documented decision is far easier to reopen than an unclaimed remainder nobody has
+   looked at, and letting the first stand in for the second would hide the second.
+
+   The spec's matching criterion is acceptance criterion 4 in
+   `docs/superpowers/specs/2026-09-17-shell-and-structure-design.md`, which carries the same
+   correction and the same measurement. Read them together: this plan's Step 12 ledger below was
+   written to fire "if `wc -l src/App.tsx` is still ≥ 400", and that branch is the one that ran.
 7. **`FORMAT_LABEL` is `Record<TournamentFormat, string>` on purpose.** Phase D's D16 adds `"round-robin"` to `TournamentFormat` (`src/domain/types.ts:25`) and that literal must fail the build until the key is added. The comment naming D16 is part of the deliverable.
 8. **Silencing is forbidden.** No `void x;` statement, no underscore-prefixed rename, no `@ts-ignore`, no suppression comment anywhere in `src/`. Deletion — or wiring up where a real caller was waiting — is the only resolution for a `noUnusedLocals` finding.
 9. **The `consumeTeams` guard is contractual and is preserved character-for-character**, message included: Swiss needs `n >= 2 && n % 2 === 0`; single-elim needs `n === 2 || n === 4 || n === 8`; series needs `n === 2`; a violation notifies `` `Could not save: a ${tournament.format} bracket needs a supported number of teams (got ${n}).` `` and builds no bracket. Phase D's D35 edits this guard where this plan puts it.
@@ -35,7 +81,7 @@ Copied from the spec's Scope, Design and Risks sections. Every task's requiremen
 | Delete | `src/tournament/team-participation-validator.ts` (97 lines) | Only importer was an unused import at `src/App.tsx:48` |
 | Modify | `src/tournament/TournamentScreen.tsx:250`, `:352-356` | Delete the unreachable "Re-split is locked" notice and its const |
 | Modify | `tsconfig.app.json:19` | `"noUnusedLocals": false` → `true` |
-| Modify | `src/App.tsx` (decomposition; 1,280 lines → under 400) | Composition root only |
+| Modify | `src/App.tsx` (decomposition; 1,280 lines → under 400 — **never reached; smallest value on any commit is 473, at `1bcce41`**. See the CORRECTION at Global Constraint 6) | Composition root only |
 | Create | `src/ui/constants.ts` | `BIB`, `FORMAT_LABEL`, `STATUS_LABEL` — one definition each |
 | Create | `src/ui/format.ts` | `relativeTime` — one definition |
 | Create | `src/ui/format.test.ts` | `relativeTime`'s five branches |
@@ -80,6 +126,12 @@ Copied from the spec's Scope, Design and Risks sections. Every task's requiremen
 | Modify | `vite.config.ts` | Only if the `split.css` import graph needs an entry adjustment; no other change |
 
 **C26's real reach is six files, not three.** Bringing `App.tsx` under 400 also moves `RosterScreen.tsx`, `AppChrome.tsx`, `usePreferences.ts`, `useToasts.ts` and `ui/Toasts.tsx`. After C26, anything touching the shell looks in `src/shell/` first, not `src/App.tsx`.
+
+**CORRECTION (2026-09-30): C26 moved all six and `App.tsx` was still 473 lines.** "Bringing
+`App.tsx` under 400" is what the ticket was for; the six files are what it did, and the line count
+is what it did not achieve. The six are correct and the sentence above is kept for that. The full
+measurement — including the arithmetic that does **not** close, and the 32 unclaimed lines that
+are nobody's — is at Global Constraint 6.
 
 ---
 
@@ -1897,6 +1949,22 @@ npx vitest run
 ```
 Expected: `wc -l` **below 400**; the four source checks print **nothing**; `useState(` in `App.tsx` → **4** (`tournamentPrefill`, `filterIds`, `editingPlayer`, `downloadingId`); `toast-container` names **exactly one** file (`src/ui/Toasts.tsx`); `tsc -b` exits 0; vitest **141 passed / 16 files**.
 
+**CORRECTION (2026-09-30, after the whole branch was measured): the ledger below was written,
+printed, and then not acted on — and this plan records no sentence saying so.** Every other row of
+this step's expectation held. `wc -l` came out at **478** at this point and **473** by the phase's
+last commit, `1bcce41`; the four source checks print nothing; `useState(` is 4;
+`toast-container` names one file. The line count is the single unmet expectation in the step, and
+it was the step's own named condition: the paragraph underneath is the branch that ran.
+
+**The ledger's own arithmetic is what makes the number explicable, and it was right.** The row
+below says the excess is "~36 of it is pure formatting" and "**Genuine structural excess is ~40,
+not 78**" — the phase ledger reached the same figure independently. Two levers were on the table:
+trim the import block, and move the four tournament-entry helpers. Neither was taken, because
+either would have been a further extraction rather than a completion of this one, and C26 was
+already six files. **That decision is real and defensible. What was missing was the sentence
+recording it**, which is why the corpus until now could be read as claiming the criterion held.
+It did not, at any commit, on this branch. See Global Constraint 6 for the measurement.
+
 **If `wc -l src/App.tsx` is still ≥ 400, here is the measured ledger of what is left, in this order of least risk.** The region inventory on HEAD is the budget (measured by removing each task's ranges from the 1,280-line file):
 
 | Residual region on HEAD | Lines | What it is | Lever if over budget |
@@ -3012,6 +3080,15 @@ git commit -m "docs: README, engine floor and node pin"
 ## Self-Review
 
 **1. Spec coverage.** Every ticket has a task: C21 → Task 1, C22 → Task 2, C23 → Task 3, C24 → Task 4, C25 → Task 5, C26 → Task 6, C27 → Task 7, C28 → Task 8, C29 → Task 9, C30 → Task 10. The spec's twelve acceptance criteria map to: 1 → T1.5, 2 → T2.6, 3 → T3.8, 4 → T6.12, 5 → T4.3/T5.3/T6.3, 6 → T3.4/T4.4/T5.4/T6.4, 7 → T7.7, 8 → T4.9/T5.7/T6.13/T7.8/T8.5, 9 → T9.9, 10 → T8.4, 11 → T10.4, 12 → T9.10. The spec's Out of Scope is not contradicted anywhere: no ESLint, no formatter, no coverage threshold, no `src/index.css` restructure, no component tests, no visual redesign, no `docs/FLOW.md` edit.
+
+**A mapping is not a pass, and one criterion was mapped and never met.** Every row above is a
+statement about which step covers which criterion, and each is correct. Criterion 4 is T6.12, and
+T6.12 ran — its `wc -l` printed 478, then 473 by the phase's last commit, against an expectation
+of below 400. **The criterion was never satisfied at any commit on this branch.** So this plan
+ends with eleven of the spec's twelve criteria met and one unmet and recorded rather than closed.
+Global Constraint 6 has the measurement and the arithmetic that does not close: removing the
+41-line residual still leaves **32 lines over target that no review accepted and no ticket scoped**,
+which is a second and separate finding from the abandoned criterion.
 
 **2. Placeholder scan.** No deferred-decision marker and no cross-task shorthand appears anywhere above: every code step carries real code, and the two places where a body is long and mechanical (Task 6's handler moves, Task 7's import body) state the exact source line range being moved and the exact substitutions, so the implementer copies and edits rather than invents. Grep the file for the skill's forbidden phrases: the only match is this sentence.
 

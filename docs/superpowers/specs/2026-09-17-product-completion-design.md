@@ -385,6 +385,34 @@ offline sentence and leaves a handoff note; D02 restores it because it is then t
 `toContainText(["proven minimum for a two-team split", "no signal", "stays on your device"])` —
 still exactly three rows.
 
+**CORRECTION (2026-09-30, after Task 12 shipped): the restore is a fourth row, the description is
+scoped rather than restored, and the row-1 string in the assertion above is now forbidden.** Every
+one of this paragraph's four predictions about the shape of the change was wrong, and the change
+that shipped is better on the axis this paragraph was aiming at. Kept verbatim because it is what
+this spec committed to, and the delta is the useful part.
+
+- **The row is appended, not substituted.** `index.html:210-213` carries the three true rows
+  untouched plus a fourth: *"Once comp3tive has run with a network, it opens and runs a tournament
+  with no signal."* `landing.spec.ts:93` asserts `toHaveCount(4)`. The count was 3 because there
+  were three true rows; swapping a true row out to hold the number would have deleted a claim
+  nobody asked to delete.
+- **The description is scoped, not restored.** Shipped `index.html:9` reads *"Works offline **after
+  one online run**."* rather than the bare `Works offline, ` — because that is the condition the
+  offline spec actually proves, and an unscoped sentence is the overclaim B14 existed to remove.
+- **B14's `not.toContainText("no signal")` guard was inverted, and this paragraph never mentioned
+  it.** Shipped `landing.spec.ts:112` asserts `toContainText("no signal")`. The guard is now the
+  receipt that the proof and the copy cannot drift apart: it fails if the claim is ever removed
+  again. **B14 was right while the promise was untrue and was deliberately superseded when it
+  became true.**
+- **Row 1's string is gone.** `landing.spec.ts:116` asserts the list does **not** contain
+  `"proven minimum"` at all, so the `"proven minimum for a two-team split"` string in the assertion
+  block above is one the suite now forbids. Two-team futsal pools of 32+ abort at `NODE_BUDGET`,
+  so the two-team scope did not hold at every two-team size either.
+
+The acceptance criterion this paragraph was written for is criterion 8, which was **unsatisfiable
+as written** — it required `toHaveCount(3)` and a fourth item's text at the same time. Its
+CORRECTION carries the full contradiction with B14 and which half of B14 died.
+
 ### D34 — The durability story
 
 **The trigger, decided** (the absorbed ticket's design question; this template has no `## Answer`
@@ -392,8 +420,61 @@ section, so it lives here and in the acceptance criteria). The nudge appears whe
 hold: (a) `persist()` was refused or `navigator.storage` is absent, (b) the roster holds at least
 5 players, and (c) no export has happened or the last was more than 14 days ago. Before 5 records
 there is nothing worth losing, so a prompt is noise; after a loss it is useless; and mid-session —
-on the split screen, getting teams onto a court — is the failure mode to avoid. So the nudge lives
+on the split screen, getting teams onto the court — is the failure mode to avoid. So the nudge lives
 on the Dashboard, a screen the organizer leaves.
+
+**CORRECTION (2026-09-30, after Task 14 landed): there are FOUR conditions, not three, and the
+dismissal is a snooze rather than a silence.** Both changes were made deliberately and survived
+review; the review that produced them is
+`.superpowers/sdd/2026-09-17-product-completion/task-14-report.md` §"the dismissal", and the
+shipped code carries the reasoning at each site. This correction points at that record rather than
+re-arguing it, because the arguments are already written down and are good.
+
+**The fourth condition is (d): no live dismissal covers the roster.** It is not a fifth thing
+bolted on — the shipped test names the gate as it stands: *"nudges only when all four hold:
+refused, big enough, stale, and not dismissed"* (`src/shell/useDurability.test.ts:312`). The
+decision is one pure function, `decideDurability` (`:313-315`), which is what makes the truth table
+provable without a browser.
+
+**What the plan stored, and why it could only ever be permanent.** The plan's design wrote the
+dismissal as the **literal string `"1"`**:
+`useState<boolean>(() => readPref(NUDGE_DISMISSED_KEY) === "1")`, and
+`writePref(NUDGE_DISMISSED_KEY, "1")`. **A key that can only say "yes" cannot say which roster the
+dismissal was about, and a dismissal with no subject has nothing to expire against** — so
+permanent was not a policy that was chosen, it was the only behaviour the shape permitted. That is
+the dismiss-at-5 / never-asked-at-50 defect: a user who closed the prompt at five players was never
+asked again, however much data they subsequently added, and no later export changed it.
+
+**What ships instead.** `dismissNudge` writes `{ at, playerCount }` — *when* the dismissal was made
+and *how big the roster was then* (`src/shell/useDurability.ts:400-404`) — and `covers()`
+(`:271-285`) lifts it on either of two conditions:
+
+- **Time.** `DISMISSAL_TTL_MS` is **30 days** (`:80`). Past that, the dismissal no longer covers.
+- **Size.** `playerCount >= dismissal.playerCount + MIN_PLAYERS_TO_NUDGE` — one more batch of
+  players and the dismissal does not apply (`:283`). The user closed a prompt about the roster they
+  had; that says nothing about the next batch, and the next batch is what makes this data worth
+  losing.
+
+Two more properties fell out of storing the record rather than a flag, and both are tested: a
+dismissal dated in the **future** is not a dismissal and mutes nothing (a restored profile, a
+hand-edited key, a machine whose clock was ahead), and an **export retires the dismissal in the
+same beat** (`recordExport` clears both keys, `useDurability.ts:406-414`) — the user did the one
+thing the prompt was asking for, so the snooze has nothing left to stand in for.
+
+**The cost, stated because it is the honest half and a record that omits it is a sales pitch.** A
+user who dismisses and comes back after 30 days **is asked again**, and that is a worse experience
+than a permanent silence for someone who has already answered the question. The shipped code says
+so in its own words: *"A dismissal is a snooze, never a silence. The user who closed the prompt has
+backed nothing up, so a dismissal that never expired would leave someone who dismissed at five
+players unasked for the rest of their life"* (`useDurability.ts:70-72`). The trade is deliberate
+and it is a trade: **one cycle of nagging in exchange for never training someone to dismiss the
+prompts that matter.** A month outlives one nudge cycle, so closing the prompt costs one cycle and
+not every cycle. The number that would change the decision is named beside it — whether real users
+read dismissals as "stop asking" — and if they do, the fix is a shorter gap between *asks*, not a
+permanent mute.
+
+**The risk-table row and criterion 9 below both still say "forever"; both are wrong in the same
+way, and both are corrected in place.**
 
 **New: `src/shell/useDurability.ts`** — exports `{ persisted, granted, lastExportAt, shouldNudge,
 dismissNudge }`. It calls `navigator.storage?.persist?.()` once, feature-detected; a refusal is
@@ -613,8 +694,80 @@ assertions stay green.
 5. **D31 proven:** the share spec grants `clipboard-read`/`clipboard-write`, clicks `share-copy-text`, and asserts `navigator.clipboard.readText()` returns text starting with the headline and containing each seeded team name. A second spec deletes `navigator.clipboard` in an init script, clicks the same button, and asserts `.share-status` reads `Copy failed. Select the text above and copy it.` with the textarea still populated.
 6. **D32 proven:** the image spec clicks `share-image`, reads `navigator.clipboard.read()`, and asserts the first item's type is `image/png` with a blob over 10,000 bytes. A second spec deletes `window.ClipboardItem` and asserts a download named `comp3tive-teams-YYYY-MM-DD.png`.
 7. **D33 proven:** a spec records every request on `/` and `/app/` and asserts no host other than the base origin; a spec loads `/app/`, waits for `navigator.serviceWorker.ready`, sets `context.setOffline(true)`, reloads, and asserts the shell renders; a second does the same for `/` and asserts the landing `<h1>`; a spec mutates the cached `sw.js`'s version, calls `registration.update()`, and asserts a new worker reaches `activated` and the old cache name is gone from `caches.keys()`.
-8. **D33's claim restored:** `landing.spec.ts` passes with trust assertions `toHaveCount(3)` and `toContainText(["proven minimum for a two-team split", "no signal", "stays on your device"])`, and the page contains no `fonts.googleapis.com` reference.
+8. **ORIGINALLY: D33's claim restored:** `landing.spec.ts` passes with trust assertions
+   `toHaveCount(3)` and `toContainText(["proven minimum for a two-team split", "no signal", "stays
+   on your device"])`, and the page contains no `fonts.googleapis.com` reference.
+
+   **CORRECTION (2026-09-30, after Task 12 shipped): this criterion is unsatisfiable as written, and
+   it is unsatisfiable because it contradicts Phase B's B14 — the two requirements cannot both
+   hold.** `toHaveCount(3)` and `"no signal"` name a three-item list containing a fourth item's
+   text. **A list cannot have three items and contain a fourth item's text**, and no implementation
+   satisfies both clauses.
+
+   **The contradiction, stated with the other side.** B14's acceptance criterion in
+   `docs/superpowers/specs/2026-09-17-honest-claims-design.md` requires "the trust list has exactly
+   three items and contains **no substring `no signal`**". B14 was correct while the offline
+   promise was untrue, and this criterion was written to honour B14's shape exactly — which is
+   what carried the impossibility across. **The resolution goes in the direction the code took, and
+   the reason is not a preference: B14's clause was a guard against claiming offline support the
+   app did not have. Task 12 proved a whole tournament plays with the network cut, and then made
+   the app able to keep the claim, so keeping B14's guard would forbid the truth.** B14 was
+   deliberately superseded at the moment it stopped being protective.
+
+   **Which half of B14 died, because the two halves are in different states and a reader needs
+   both.** The `no signal` half is **no longer a live requirement at all** — not narrowed, gone;
+   D02 flipped B14's own guard from asserting absence to asserting presence
+   (`e2e/tests/landing/landing.spec.ts:112`), so B14's rule was *chosen away*, not forgotten. The
+   "exactly three items" half is **superseded to four**.
+
+   **What shipped, against the three strings this criterion names** — one present as required, one
+   present in a form this spec now forbids, and one absent as a count:
+
+   | this criterion requires | shipped | where |
+   |---|---|---|
+   | `toHaveCount(3)` | `toHaveCount(4)` | `e2e/tests/landing/landing.spec.ts:93` |
+   | `"no signal"` | present, **scoped**: *"Once comp3tive has run with a network, it opens and runs a tournament with no signal."* | `index.html:213` |
+   | `"proven minimum for a two-team split"` | **forbidden** — the list must **not** contain `"proven minimum"` | `e2e/tests/landing/landing.spec.ts:116` |
+
+   The count went to four because the offline row was **appended, not swapped in**: the three rows
+   that were already true are all still there, and swapping one out to hold the number at 3 would
+   delete a claim nobody asked to delete. The count was 3 because there were three true rows, and
+   there are now four. The `"proven minimum"` string is gone for a measured reason, not a stylistic
+   one — two-team futsal pools of 32+ abort at `NODE_BUDGET`, so even the two-team claim did not
+   hold at every two-team size, and row 1 is now *"The screen says when the gap is the best it
+   found, not proven."*
+
+   **The criterion as it should be read:** the page contains no `fonts.googleapis.com` reference
+   (**holds**), the trust list carries the offline claim **scoped to the condition Task 12 proved**
+   (**holds, in a fourth row**), and the suite pins that scope whole rather than by keyword, so a
+   reword that drops "once comp3tive has run with a network" cannot pass on the strength of
+   `"no signal"` alone. The `toHaveCount(3)` clause is the part that is void, and it is void
+   because Phase B and Phase D each stated the same count for the same list and the list grew
+   between them.
 9. **D34 proven:** a spec seeds 6 players with no export record, asserts `.nudge` is visible, clicks `Dismiss`, reloads, and asserts `.nudge` is still absent; a second spec seeds 2 players and asserts `.nudge` never appears; a third asserts `.dashboard-stats .dashboard-stat` still has exactly 3 children. `navigator.storage` deleted in an init script produces no error and `persisted === null`.
+
+   **CORRECTION (2026-09-30, after Task 14 landed): every clause above holds, and the first one is
+   a weaker claim than it reads.** "Reloads and asserts `.nudge` is still absent" is a test of a
+   **snooze surviving a page load**, not of permanence — and permanence is not what shipped. The
+   shipped test says so in its own title: *"dismissing the nudge is the hook's snooze, not a hidden
+   row"* (`e2e/tests/dashboard/nudge.spec.ts:56`), and it asserts the stored record's **shape**,
+   not merely its presence:
+
+   ```ts
+   const dismissal = JSON.parse(String(stored)) as { at: number; playerCount: number };
+   expect(dismissal.playerCount).toBe(6);
+   expect(Number.isFinite(dismissal.at)).toBe(true);
+   ```
+
+   A `useState(false)` in the screen would pass a bare "still absent after reload" and lose the
+   snooze entirely, so the shape assertion is the part that carries the criterion. The unit tests
+   carry the rest of the contract this criterion does not name: that a dismissal lifts after 30
+   days, lifts when the roster grows by another batch, does **not** mute anything if its timestamp
+   is in the future, and is retired by an export
+   (`src/shell/useDurability.test.ts:339`, `:344`, `:362`, `:378`).
+
+   The `.dashboard-stat` clause is correct and is checked at `nudge.spec.ts:100`, not at the two
+   `dashboard.spec.ts` lines the risk row above cites — see that row's own correction.
 10. **D35 proven:** `src/data/round-robin.test.ts` enumerates n = 3, 4, 5, 6, 7, 8 and asserts every pair exactly once, no team twice per round, one bye per round for odd n, one bye per team across the schedule, and the round/match counts. A bracket test plays a full 4-team round robin and asserts `status` reaches `"complete"` and `champion()` returns the most-wins team and is not `null`. A spec creates a 3-team round-robin tournament, splits 3 teams into it, records every match and asserts the standings and champion render. **`src/tournament/bracket.test.ts`'s existing assertions are unmodified and green** — `git diff --stat src/tournament/bracket.test.ts` shows additions only.
 11. **D36 proven:** a spec imports a CSV whose second row has an unknown discipline, asserts `.import-skipped` contains that line number and the first player was created; a spec clicks `download-csv-template` and asserts a download named `comp3tive-players-template.csv`; a spec rates two filtered players via `BulkRateModal` and asserts the roster rows show the new values; `.import-hint` contains both documented strings.
 12. **D37 proven:** a spec asserts `.fairness` is visible on a seeded split, contains `Every team averages`, and contains none of the banned provenance substrings. `node scripts/capture-hero.mjs` still passes its own DOM and pixel verification.
@@ -622,7 +775,6 @@ assertions stay green.
 
 **CORRECTION (2026-09-29, after Task 7 landed): criterion 13 cannot be satisfied as written, and
 the round-robin risk row in the table below is corrected with it.** The diff to `bracket.ts` does
-modify a line belonging to another format — `requiredMatches`' `series` arm becomes
 `"round-robin" || "series"` — so "touches round-robin arms only" was true of the design and false
 of the change. The check that was reaching for is still worth running in its narrower form: **no
 `single-elim` and no `swiss` arm is modified**, which is what the `bracket.test.ts` diff in
@@ -644,8 +796,33 @@ is required — not because the arm is format-neutral.
 | `ClipboardItem` is unavailable or the write is rejected | The image feature silently does nothing for some users | Feature detection via `ClipboardItem.supports?.("image/png")`, a download fallback that always works, and never losing D31's text when the image fails |
 | D37's copy collides with B13's qualifier | Two provenance statements on one screen, one of them wrong | The banned-substring unit test and the em-dash check make the separation mechanical; D37 imports `gapProvenance` only if a branch truly needs the verdict |
 | D36 edits a Phase C-owned file, or D34 assumes the roster UI is still in `src/App.tsx` | Overlapping writes and a spec that cannot land | Both tickets name `src/shell/RosterScreen.tsx` and `src/shell/usePlayerImport.ts` explicitly; D touches no C-owned file |
-| Persistence is requested on every load and nags | The user is prompted repeatedly about something they cannot change | `persist()` is called once from a hook, a refusal is silent, and `shouldNudge` is gated on refusal **and** ≥5 players **and** no recent export; dismissal persists forever |
-| The nudge pushes the third stat card | `dashboard.spec.ts:114-118` and `:221-224` fail for an unrelated reason | The nudge renders between the stat cards and the teasers; the stat card markup is untouched; criterion 9 asserts exactly 3 `.dashboard-stat` children |
+| Persistence is requested on every load and nags | The user is prompted repeatedly about something they cannot change | `persist()` is called once from a hook, a refusal is silent, and `shouldNudge` is gated on refusal **and** ≥5 players **and** no recent export; dismissal persists forever — **the last clause is wrong, see the CORRECTION below** |
+| The nudge pushes the third stat card | the dashboard spec fails for an unrelated reason | The nudge renders between the stat cards and the teasers; the stat card markup is untouched; criterion 9 asserts exactly 3 `.dashboard-stat` children, and the shipped assertion is `nudge.spec.ts:100` — **not** at the `dashboard.spec.ts:114-118` / `:221-224` this row originally cited, which are a "switch to Beta" click and a seed record |
+
+**CORRECTION (2026-09-30, after Task 14 landed): "dismissal persists forever" is the wrong
+mitigation, and it was the wrong mitigation because the shape this spec designed could not be any
+other.** The rest of the row holds and was re-verified: `persist()` is called once, a refusal is
+silent, and the gate is `refusal ∧ ≥5 players ∧ no recent export`. **The gate is a fourth condition
+too** — no live dismissal covers the roster — and the shipped test names all four
+(`src/shell/useDurability.test.ts:312`).
+
+The plan's design stored the dismissal as the literal `"1"`, so permanence was not a policy but the
+only thing the shape allowed: a key that can only say "yes" cannot record which roster the
+dismissal was about, and so has nothing to expire against. That is the dismiss-at-5 /
+never-asked-at-50 defect. **Shipped**, `dismissNudge` writes `{ at, playerCount }` and `covers()`
+(`src/shell/useDurability.ts:271-285`) lifts the dismissal on a **month**
+(`DISMISSAL_TTL_MS`, `:80`) or on the roster growing by another batch (`:283`); an export retires it
+in the same beat (`:406-414`). The reasoning is in
+`.superpowers/sdd/2026-09-17-product-completion/task-14-report.md` and is not re-argued here.
+
+**The cost this row's original wording was chosen to avoid is now paid instead, and it is worth
+naming in a risk table rather than only in a report.** A user who dismisses and returns after 30
+days is asked again, which is a worse experience than a permanent silence for someone who has
+already answered. The risk this row names — being nagged about something you cannot change — did
+not disappear; it was traded down from "forever" to "once per thirty days, and never at all after
+you have exported". **That is a deliberate trade with a named losing side, not a fix**, and a
+reader deciding whether to reopen it needs both halves. The full statement, including what number
+would change the decision, is in the D34 design section above.
 
 **CORRECTION (2026-09-29, after Task 7 landed): the mitigation in the round-robin risk row above
 is half right, and the half that is wrong is the part that would have caught the bug.** The row
@@ -732,4 +909,43 @@ here rather than left implicit:
 - **Scope check:** this is one phase with seven tickets, which is what the roadmap assigns; it is not one implementation plan. The work is bounded by the tickets: two share modules, one PWA, one durability hook, one tournament format, one roster path, one copy line. Nothing here requires solving the solver, a backend, or another phase's file. Out of scope is an explicit table with a reason per row.
 - **Ambiguity check:** three places where the earlier drafts were genuinely ambiguous. (1) D32's dependency question — answered: canvas, zero dependencies, with the tradeoff written out and the reversal path named as an ADR. (2) D34's nudge trigger — answered with three conjunctive conditions and the reason each exists; the absorbed ticket asked for an `## Answer` section this template does not have, and the correction is recorded in ticket 34's comments. (3) D35's `roundsFor` — **this answer was wrong and has since been reversed.** It read "extended with a round-robin arm rather than bypassed, and `requiredMatches` explicitly needs no arm with a test asserting that"; neither half shipped. `roundsFor` gained no arm, and `requiredMatches` did gain one. Both reversals are recorded in the D35 CORRECTION above, and the shared-file table's `bracket.ts` row is corrected with them. Every remaining criterion names a file, a symbol, a string or a number.
 
+**CORRECTION (2026-09-30): the D34 answer in item (2) above is half stale — it is FOUR conjunctive
+conditions now, not three, and the fourth is the dismissal.** The shipped gate is
+`refusal ∧ ≥5 players ∧ no recent export ∧ no live dismissal`, and the shipped test names all four
+(`src/shell/useDurability.test.ts:312`). The three conditions this bullet lists are still the three
+the design decided and the reason each exists is unchanged; what was added is a gate on the
+dismissal itself, which is a decision the review took rather than one this section took. The
+dismissal's **shape** also changed — a snooze that expires rather than a permanent mute — which is
+recorded in full, with the cost stated, in the D34 design section above and in the risk-row
+CORRECTION. The three conditions are kept above because the reasons given for them are the part
+that still holds.
+
 **Result: the checklist passes, with the corrections in this file read as part of it.** The seven tickets and this spec are internally consistent, free of placeholders in their instructions, and scoped to one phase. They are no longer unambiguous at every decision point on their own: seven CORRECTIONs now sit in this spec, each recording a decision the body above still states the other way, and a reader who takes a body claim without its correction will implement something that was tried and reversed. The checklist passed against the tickets as drafted; it is the corrections, not a re-run, that make the spec match the code.
+
+**CORRECTION (2026-09-30): there are twelve CORRECTIONs in this file now, not seven, and one clause
+of the Internal consistency bullet above is false.** The count is stated in the sentence above and
+was true when written; five have landed since — the D02 restore shape, criterion 8's mutual
+exclusion with B14, the nudge dismissal's expiry, criterion 9's weaker-than-it-reads reload check,
+and the `dashboard.spec.ts` anchors in the stat-card risk row. A count that goes stale is a small
+thing; it is recorded because this file's whole argument is that a reader must be able to tell
+which body claims have been reversed, and a wrong count is one more claim that is quietly wrong.
+
+**The Internal consistency clause that no longer holds:** "D33 restores exactly one landing claim
+and B14's handoff note names the same three edits." Two problems. D33's restore was **appended,
+not substituted** — the trust list went from three rows to four, so "exactly one" understated the
+scope of the copy change rather than describing it. And B14's handoff named the wrong three: it
+said trust-list *row 3* becomes the offline sentence (it became a fourth row), that the meta
+description *regains* the bare `Works offline, ` (it was scoped to "after one online run"), and
+that the *third* trust assertion flips back to `"no signal"` (the count grew first). The handoff
+also said nothing about the `not.toContainText("no signal")` guard B14 had added, which is the
+omission that actually mattered, because D02 had to invert it. Both sides of that are recorded
+under D33's design and at acceptance criterion 8.
+
+**Two of the seven tickets ended in a state this section does not have a word for**, and naming
+them is more useful than a count. **D33 and D34 ran, and each produced something other than what
+this spec told it to produce — with the implementation right and the instruction the defect.** That
+is a third outcome distinct from the two the Result paragraph already distinguishes (met, and
+reversed-with-a-correction); nothing in this file's own vocabulary covers "the criterion was
+unsatisfiable and the code found the satisfiable version", and criterion 8 is the case where the
+two specs' requirements were literally mutually exclusive. The Plan's Self-Review now separates the
+three outcomes rather than reporting only the reversal.
