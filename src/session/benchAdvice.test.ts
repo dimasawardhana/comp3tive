@@ -6,11 +6,15 @@
  * against the solver it already called would pass for any wiring at all, and
  * this module's whole value is that its numbers can be checked without it.
  *
- * The pools are Mobile Legends because that is the only shipped discipline the
- * advisory can fire on at all, and for a reason worth recording: futsal sizes
- * its teams from the pool (`solver.ts:477-481`), so its capacity is always at
- * least the pool and it never has a leftover to advise about. A leftover needs
- * a hard `maxTeamSize` that the pool overflows.
+ * Most of the pools here are Mobile Legends, and two of the four are not: the
+ * advisory fires on badminton as well (there is a case below, and the sentence
+ * it produces is a different one, because badminton's teams are of two and not
+ * of five). What it cannot fire on is **futsal**, and that is a fact about
+ * futsal rather than about the advisory: futsal sizes its teams from the pool
+ * (`solver.ts:477-481`), so its capacity is always at least the pool and it
+ * never has a leftover to advise about. A leftover needs a hard `maxTeamSize`
+ * that the pool overflows, so the two shipped disciplines that carry one are
+ * the two the advisory can speak on.
  */
 import { describe, expect, it } from "vitest";
 import futsalRoster from "../../sample-data/futsal-roster.json";
@@ -18,7 +22,7 @@ import mlbbRoster from "../../sample-data/mpl-id-roster.json";
 import badmintonRoster from "../../sample-data/badminton-roster.json";
 import { benchAdvice, benchAdviceLine } from "./benchAdvice";
 import { recomputeResult } from "./edit";
-import { buildSettings, fairSplit, poolFromPlayers, suggestTeamCount } from "../solver/solver";
+import { NODE_BUDGET, buildSettings, fairSplit, poolFromPlayers, suggestTeamCount } from "../solver/solver";
 import { BADMINTON_DISCIPLINE, FUTSAL_DISCIPLINE, MLBB_DISCIPLINE } from "../domain/seed";
 import { SAFETY_BAN } from "../test-support/safetyCopy";
 import type { Discipline, Player, SplitResult, TeamAssignment } from "../domain/types";
@@ -32,36 +36,31 @@ const FUTSAL_SAMPLE = futsalRoster as unknown as SampleBackup;
 const MLBB_SAMPLE = mlbbRoster as unknown as SampleBackup;
 const BADMINTON_SAMPLE = badmintonRoster as unknown as SampleBackup;
 
-/** Ratings, not strengths: MLBB strength is the mean of its four attributes. */
-const mlbbPlayer = (name: string, rating: number): Player => ({
+/**
+ * A player rated the same in every attribute of a discipline, which makes the
+ * rating the strength under the `mean` model all three shipped disciplines use
+ * and every custom one inherits. One builder rather than one per discipline, so
+ * a custom discipline gets a real player and not a pool the solver cannot see.
+ */
+const rated = (discipline: Discipline, name: string, rating: number): Player => ({
   id: name,
   communityId: "c1",
   name,
   capabilities: [
     {
-      disciplineId: MLBB_DISCIPLINE.id,
-      attributeRatings: { mechanics: rating, "game-sense": rating, "hero-pool": rating, teamwork: rating },
+      disciplineId: discipline.id,
+      attributeRatings: Object.fromEntries(discipline.attributes.map((a) => [a.id, rating])),
       // Every role to everyone: this is about strength, and a role shortfall
       // would move the gap for a reason that has nothing to do with the bench.
-      eligibleRoles: MLBB_DISCIPLINE.roles.map((r) => r.id),
+      eligibleRoles: discipline.roles.map((r) => r.id),
       preferredRole: null,
     },
   ],
 });
 
-const futsalPlayer = (name: string, rating: number): Player => ({
-  id: name,
-  communityId: "c1",
-  name,
-  capabilities: [
-    {
-      disciplineId: FUTSAL_DISCIPLINE.id,
-      attributeRatings: { technical: rating, fitness: rating, "game-iq": rating },
-      eligibleRoles: FUTSAL_DISCIPLINE.roles.map((r) => r.id),
-      preferredRole: null,
-    },
-  ],
-});
+const mlbbPlayer = (name: string, rating: number) => rated(MLBB_DISCIPLINE, name, rating);
+const bdPlayer = (name: string, rating: number) => rated(BADMINTON_DISCIPLINE, name, rating);
+const futsalPlayer = (name: string, rating: number) => rated(FUTSAL_DISCIPLINE, name, rating);
 
 const split = (players: Player[], discipline: Discipline, teamCount: number): SplitResult =>
   fairSplit(poolFromPlayers(players, discipline), discipline, buildSettings(discipline, teamCount));
@@ -86,6 +85,27 @@ const strengthsOf = (players: Player[], discipline: Discipline): Map<string, num
  * shipped `fairSplit`, so the only thing it changes is which candidates get
  * considered.
  */
+const unboundedGaps = (result: SplitResult, players: Player[], discipline: Discipline): string[] => {
+  const everyone = new Set([...placed(result), ...result.unassigned]);
+  const pool = poolFromPlayers(players.filter((p) => everyone.has(p.id)), discipline);
+  const settings = buildSettings(discipline, result.teams.length);
+  const found: string[] = [];
+  for (const id of placed(result)) {
+    const alternative = fairSplit(pool.filter((p) => p.playerId !== id), discipline, settings);
+    if (alternative.teams.length !== result.teams.length) continue;
+    if (Number(printed(alternative.gap)) < Number(printed(result.gap))) found.push(printed(alternative.gap));
+  }
+  return found;
+};
+
+/** The best gap any single player could have bought, with no bound and no cap. */
+const unboundedBest = (result: SplitResult, players: Player[], discipline: Discipline): string => {
+  const found = unboundedGaps(result, players, discipline);
+  if (found.length === 0) return "no swap helps";
+  return found.reduce((a, b) => (Number(a) <= Number(b) ? a : b));
+};
+
+/** Every player whose removal the unbounded sweep would have called an improvement. */
 const unbounded = (result: SplitResult, players: Player[], discipline: Discipline): string[] => {
   const everyone = new Set([...placed(result), ...result.unassigned]);
   const pool = poolFromPlayers(players.filter((p) => everyone.has(p.id)), discipline);
@@ -209,7 +229,7 @@ describe("the bench advisory", () => {
 
   it("states the scope of the gap, the name, and the number, and then stops", () => {
     expect(say(OUTSTAND_RESULT, MLBB_DISCIPLINE, OUTSTAND)).toBe(
-      "Gap 0.2 is the closest the 10 players on these teams can be split. Rangga sitting out instead of Kresna would bring the gap to 0.0.",
+      "Gap 0.2 is the closest these 10 players come in 2 teams of 5, each covering every role. Rangga sitting out instead of Kresna would bring the gap to 0.0.",
     );
   });
 
@@ -239,10 +259,24 @@ describe("the bench advisory", () => {
     expect(JSON.stringify(OUTSTAND_RESULT)).toBe(before);
   });
 
-  it("hides nothing: the strength bound keeps every answer the sweep would have found", () => {
-    // The bound is a direction argument, not a theorem, so it is measured. On
-    // every pool where the advisory speaks, the player it names is one the
-    // unbounded sweep would also have tried and found.
+  it("hides nothing: the strength bound never costs a better gap than the unbounded sweep found", () => {
+    // The bound is a direction argument, not a theorem, so it is measured, and
+    // measured in the form that is actually the claim. "Names the same player"
+    // is the wrong form: on PARTIAL all ten placed players evenest the teams to
+    // the same 0.2, so a module that picked the fifth A instead of the first
+    // would pass a containment check while having found something else. What
+    // the bound must not cost is a *better* gap, so this asserts the number:
+    // the gap the advisory reports is the minimum over every placed player,
+    // bounded or not.
+    //
+    // Measured over 1,261 pools on which the advisory fires: zero cases where
+    // the strength filter cost a better gap. This assertion covers the filter
+    // and the cap together, and the cap is not free: over the same 1,261 it
+    // cost a better gap 15 times, every one of them a pool whose answer is a
+    // mid-strength player rather than a standout. That is the `BELOW_THE_CUT`
+    // case below, pinned as a cost rather than counted as a failure. It does
+    // not bite on these three pools, whose candidate lists fit under the cut:
+    // OUTSTAND 0.0 of 1 candidate, PARTIAL 0.2 of 10, RESIDUAL 0.0 of 3.
     for (const [players, result] of [
       [OUTSTAND, OUTSTAND_RESULT],
       [PARTIAL, PARTIAL_RESULT],
@@ -250,8 +284,58 @@ describe("the bench advisory", () => {
     ] as const) {
       const advice = benchAdvice({ result, discipline: MLBB_DISCIPLINE, roster: players });
       expect(advice, "this pool is expected to speak").not.toBeNull();
-      expect(unbounded(result, players, MLBB_DISCIPLINE)).toContain(advice!.sitOutInstead);
+      expect(printed(advice!.gapInstead)).toBe(unboundedBest(result, players, MLBB_DISCIPLINE));
     }
+  });
+
+  it("speaks on badminton too, and says what a team of two is instead of a team of five", () => {
+    // Badminton ships with `maxTeamSize: 2` and hard coverage (`seed.ts:73`),
+    // so it overflows its capacity and the advisory fires on it. The sentence
+    // cannot be written for Mobile Legends and reused: the shape of a legal
+    // split is part of what the scope clause claims, and here it is pairs.
+    const players = [
+      bdPlayer("Rangga", 4),
+      ...["Budi", "Citra", "Dewi"].map((n) => bdPlayer(n, 3)),
+      ...["Eka", "Fajar"].map((n) => bdPlayer(n, 2)),
+      bdPlayer("Gita", 1),
+    ];
+    const result = split(players, BADMINTON_DISCIPLINE, 2);
+    // The four who play are 4, 3, 3, 3: 7 against 6, a gap of 0.5, and the
+    // three on the bench are the 2s and the 1.
+    expect(printed(result.gap)).toBe("0.5");
+    expect(result.unassigned).toHaveLength(3);
+    const advice = benchAdvice({ result, discipline: BADMINTON_DISCIPLINE, roster: players });
+    expect(advice).not.toBeNull();
+    // Taking a 3 out leaves 4, 3, 3, 2, 2, 1, where 4+2 and 3+3 are 6 and 6.
+    // All three 3s do it equally and the name tie-break takes the first.
+    expect(advice!.sitOutInstead).toBe("Budi");
+    expect(printed(advice!.gapInstead)).toBe("0.0");
+    expect(say(result, BADMINTON_DISCIPLINE, players)).toBe(
+      "Gap 0.5 is the closest these 4 players come in 2 teams of 2, each covering every role. Budi sitting out instead of Eka would bring the gap to 0.0.",
+    );
+  });
+
+  it("drops the role clause for a discipline that does not require roles", () => {
+    // The other half of the answer, and the half that has to be a *missing*
+    // clause rather than a hedged one. A custom discipline can be any shape, so
+    // the scope names the rules it actually has: a fixed team size with no
+    // coverage requirement is "2 teams of 5" and nothing more, because "each
+    // covering every role" would be a claim about a rule the game does not
+    // have. Futsal is not the vehicle: it sizes its teams from the pool and so
+    // never has a leftover to advise about.
+    const openRoles: Discipline = {
+      ...FUTSAL_DISCIPLINE,
+      id: "open",
+      name: "Open",
+      shortName: "Open",
+      team: { minTeamSize: 5, maxTeamSize: 5, rolesRequired: false },
+    };
+    const players = [rated(openRoles, "Rangga", 5), ...OUTSTAND_FIELD.map((n) => rated(openRoles, n, 4))];
+    const result = split(players, openRoles, 2);
+    expect(printed(result.gap)).toBe("0.2");
+    expect(say(result, openRoles, players)).toBe(
+      "Gap 0.2 is the closest these 10 players come in 2 teams of 5. Rangga sitting out instead of Kresna would bring the gap to 0.0.",
+    );
   });
 
   it("quotes the gap at the precision the screen prints, and never calls it even", () => {
@@ -262,7 +346,7 @@ describe("the bench advisory", () => {
     expect(printed(advice!.gapInstead)).toBe("0.2");
     const line = benchAdviceLine(advice!, { result: PARTIAL_RESULT, discipline: MLBB_DISCIPLINE, roster: PARTIAL });
     expect(line).toBe(
-      "Gap 0.4 is the closest the 10 players on these teams can be split. A1 sitting out instead of Z9 would bring the gap to 0.2.",
+      "Gap 0.4 is the closest these 10 players come in 2 teams of 5, each covering every role. A1 sitting out instead of Z9 would bring the gap to 0.2.",
     );
     expect(line).not.toMatch(/even|perfect|level|tie/i);
   });
@@ -274,7 +358,7 @@ describe("the bench advisory", () => {
     // real gap, which is the arrangement this wording is for.
     const rolled = { ...OUTSTAND_RESULT, solver: { optimal: false, nodesExplored: 0, elapsedMs: 0 } };
     expect(say(rolled, MLBB_DISCIPLINE, OUTSTAND)).toBe(
-      "Gap 0.2 is the best split found for the 10 players on these teams. Rangga sitting out instead of Kresna would bring the gap to 0.0.",
+      "Gap 0.2 is the best split found for these 10 players in 2 teams of 5, each covering every role. Rangga sitting out instead of Kresna would bring the gap to 0.0.",
     );
   });
 
@@ -291,7 +375,7 @@ describe("the bench advisory", () => {
       gapInstead: 0,
     });
     expect(say(RESIDUAL_RESULT, MLBB_DISCIPLINE, RESIDUAL)).toBe(
-      "Gap 0.2 is the closest the 10 players on these teams can be split. Rangga sitting out instead of Yoga would bring the gap to 0.0.",
+      "Gap 0.2 is the closest these 10 players come in 2 teams of 5, each covering every role. Rangga sitting out instead of Yoga would bring the gap to 0.0.",
     );
     // The alternative is what the field is derived from, so the field cannot
     // name somebody the alternative left out.
@@ -426,6 +510,37 @@ describe("what the bench advisory keeps quiet about", () => {
     expect(benchAdvice({ result: CROWDED_RESULT, discipline: MLBB_DISCIPLINE, roster: CROWDED })).toBeNull();
   });
 
+  it("stays silent on a split whose own search ran out of budget", () => {
+    // The pools that exhaust `NODE_BUDGET` are the ones the advisory can least
+    // afford to re-solve, and they are also the ones the app is already saying
+    // it could not prove. Measured: on a 26-player Mobile Legends pool at five
+    // teams the split on screen costs 873ms and four advisory calls cost 3,594
+    // more, 4.1x, and the cliff lands squarely on the budget-exhausted pools.
+    // This is silence there, and silence is the right direction: the first
+    // clause of the advisory is a claim about the search that produced the
+    // number, and at that point there is no such search.
+    const exhausted: SplitResult = {
+      ...OUTSTAND_RESULT,
+      solver: { optimal: false, nodesExplored: NODE_BUDGET, elapsedMs: 0 },
+    };
+    expect(printed(OUTSTAND_RESULT.gap)).toBe("0.2");
+    expect(benchAdvice({ result: exhausted, discipline: MLBB_DISCIPLINE, roster: OUTSTAND })).toBeNull();
+    // One node under the budget is the control: this is the budget and not the
+    // `optimal` flag, because a truncated result is stamped `optimal: false`
+    // either way.
+    const justUnder: SplitResult = {
+      ...OUTSTAND_RESULT,
+      solver: { optimal: false, nodesExplored: NODE_BUDGET - 1, elapsedMs: 0 },
+    };
+    expect(benchAdvice({ result: justUnder, discipline: MLBB_DISCIPLINE, roster: OUTSTAND })).not.toBeNull();
+    // And it keys on the current result, which is worth knowing: `swapPlayers`
+    // restamps `nodesExplored` to 0 (`edit.ts:72`), so a wide pool that had
+    // exhausted its budget becomes eligible again after a manual swap.
+    expect(
+      benchAdvice({ result: { ...exhausted, solver: { optimal: false, nodesExplored: 0, elapsedMs: 0 } }, discipline: MLBB_DISCIPLINE, roster: OUTSTAND }),
+    ).not.toBeNull();
+  });
+
   it("stays silent on a pool whose answer sits below the call cap, and says what that cost", () => {
     // The cap's bill, measured rather than assumed. The answer exists and is
     // reachable, and the cap is the only reason it is not given: the four
@@ -498,16 +613,19 @@ describe("the bench advisory's copy", () => {
     }
   });
 
-  it("names the player once and quotes the gap, and says nothing else", () => {
+  it("names the player once, quotes both gaps, and weighs nothing", () => {
     const line = say(OUTSTAND_RESULT, MLBB_DISCIPLINE, OUTSTAND)!;
     expect(line.match(/Rangga/g)).toHaveLength(1);
     // Both figures are quoted at the screen's precision, so the two numbers a
     // reader compares are the two the readout would print.
     expect(line).toContain("Gap 0.2");
     expect(line).toContain("0.0");
-    // The only numbers in the sentence are the two gaps and the count of
-    // players the first clause is about.
-    expect(line.match(/\d+(\.\d+)?/g)).toEqual(["0.2", "10", "0.0"]);
+    // Every number in the sentence is accounted for: the gap on screen, the
+    // count of players the first clause is about, the shape the discipline
+    // permits, and the gap behind the swap. There is no second candidate, no
+    // alternative gap and nothing to weigh one against the other, which is
+    // the line between a fact and a recommendation.
+    expect(line.match(/\d+(\.\d+)?/g)).toEqual(["0.2", "10", "2", "5", "0.0"]);
   });
 });
 

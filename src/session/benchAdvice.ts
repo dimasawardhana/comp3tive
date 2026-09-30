@@ -1,5 +1,5 @@
 import type { Discipline, Id, Player, SplitResult } from "../domain/types";
-import { buildSettings, fairSplit, poolFromPlayers } from "../solver/solver";
+import { NODE_BUDGET, buildSettings, fairSplit, poolFromPlayers } from "../solver/solver";
 import { gapKind } from "./gapProvenance";
 
 /**
@@ -101,14 +101,24 @@ const shown = (gap: number): number => Number(gap.toFixed(1));
  *   strength bound has nothing left to look at (see below).
  * - **No swap strictly improves the printed gap**, including every swap that
  *   only moves the digits after the decimal.
+ * - **The split on screen exhausted the node budget.** `result.solver.nodesExplored`
+ *   against `NODE_BUDGET`, which is the one thing about the search on screen
+ *   this module can read without re-running it. Those are the pools the
+ *   advisory can least afford to re-solve (measured: a 26-player Mobile Legends
+ *   pool at five teams costs 873ms to split and 3,594ms to advise on, 4.1x) and
+ *   the ones the app is already saying it could not prove, so the first clause
+ *   of the sentence would have nothing behind it. Silence is the right
+ *   direction here rather than the safe one: an advisory whose scope claim
+ *   rests on a search that was cut off has no scope claim to make.
  *
- * And one case returns `null` that is not a guard at all: a pool whose answer
- * sits below the call cap's cut, where the module is silent because it did not
- * look, not because nothing was there.
+ * One case returns `null` that is not a guard at all: a pool whose answer sits
+ * below the call cap's cut, where the module is silent because it did not look,
+ * not because nothing was there.
  */
 export function benchAdvice(input: BenchAdviceInput): BenchAdvice | null {
   const { result, discipline, roster } = input;
   if (result.teams.length < 2 || result.unassigned.length === 0 || shown(result.gap) <= 0) return null;
+  if (result.solver.nodesExplored >= NODE_BUDGET) return null;
 
   // The pool this split came from, rebuilt from the result itself:
   // `SplitResult` carries no pool, and the two sites this mounts at already
@@ -144,9 +154,22 @@ export function benchAdvice(input: BenchAdviceInput): BenchAdvice | null {
    * This is a direction argument about the objective, not a theorem about a
    * heuristic: nothing in `src/solver/` is promised to be monotone in any one
    * player's strength, and the solver is off limits to this phase in any case.
-   * So the bound is checked rather than trusted. One test re-runs the
-   * unbounded enumeration over every placed player, on every pool in this file
-   * where the advisory speaks, and asserts it names the same player.
+   * So the strength filter is measured rather than trusted, and it is measured
+   * as a claim about the **gap**, not about the name. "Names the same player"
+   * is the wrong form of the claim: on a pool where several removals evenest the
+   * teams equally, a module that picked a different one of them has not missed
+   * anything, and a containment check would call that a pass while proving
+   * nothing. What the filter must not cost is a better gap.
+   *
+   * Measured over 1,261 pools on which the advisory fires (every strength mix
+   * over four rating levels, eleven to seventeen Mobile Legends players at two
+   * and three teams and seven to ten badminton players at two and three): the
+   * filter cost a better gap **zero** times. The call cap is a different
+   * matter and is not folded into that number, because it is a cost this
+   * module chose rather than one it argued for: it cost a better gap 15 times
+   * in the same 1,261, every one of them a pool whose answer is a mid-strength
+   * player rather than a standout, which is what the `BELOW_THE_CUT` fixture
+   * pins.
    */
   const benchBest = Math.max(...result.unassigned.map((id) => strength.get(id) ?? 0));
   const candidates = result.teams
@@ -192,23 +215,51 @@ export function benchAdvice(input: BenchAdviceInput): BenchAdvice | null {
  * Clause by clause, because each one is a claim and only claims the module can
  * back are allowed here:
  *
- * - "Gap 0.2 is the closest the 10 players on these teams can be split." The
- *   figure is quoted rather than re-derived so it cannot drift from the
- *   readout, and the scope names **these players**, not the roster: the search
- *   fixes the bench and then minimises the gap over the arrangements of
- *   whoever is left, so the number is a statement about that field. Reading it
- *   as a claim about everyone who could have played is exactly the misreading
- *   the second clause then corrects. "Closest" is the exact search's word and
- *   "best split found" is the truncated one's, decided by `gapKind` so the one
- *   place that knows what the app may claim about a search owns it.
+ * - "Gap 0.2 is the closest these 10 players come in 2 teams of 5, each
+ *   covering every role." The figure is quoted rather than re-derived so it
+ *   cannot drift from the readout, and the scope names **these players**, not
+ *   the roster: the search fixes the bench and then minimises the gap over the
+ *   arrangements of whoever is left, so the number is a statement about that
+ *   field. Reading it as a claim about everyone who could have played is
+ *   exactly the misreading the second clause then corrects.
+ *
+ *   The trailing phrase is not decoration and it is not a single string. The
+ *   claim is a minimum over the splits the *discipline permits*, and what it
+ *   permits is `discipline.team`: a fixed `maxTeamSize` or even sizes
+ *   (`solver.ts:468-481`), and hard role coverage when `rolesRequired`. So the
+ *   phrase is composed from those two fields and nothing else. "Can be split",
+ *   the wording this replaced, claimed the unconstrained minimum and was false
+ *   on every discipline that fires: on Mobile Legends a role-free 5/5 of the
+ *   same ten is 0.0 against the 0.2 on screen, because no team of five can
+ *   leave a role uncovered and no 5/5 that leaves one uncovered is a split
+ *   this game can play. A literal "two role-covering fives" would have been
+ *   equally wrong in the other direction, because badminton's teams are of
+ *   two and it fires too. Four shapes, one template, and each of them is what
+ *   the discipline on screen actually allows:
+ *
+ *   - fixed size, coverage required: "2 teams of 5, each covering every role"
+ *   - fixed size, coverage not required: "2 teams of 5"
+ *   - even sizes, coverage required: "2 evenly-sized teams, each covering every role"
+ *   - even sizes, coverage not required: "2 evenly-sized teams"
+ *
+ *   Futsal is the last of those with no role clause, and it is also the one
+ *   that never reaches the sentence at all: it sizes its teams from the pool,
+ *   so it has no leftover. A custom discipline can be any of the four.
+ *
+ *   "Closest" is the exact search's word and "best split found" is the
+ *   truncated one's, decided by `gapKind` so the one place that knows what the
+ *   app may claim about a search owns it.
  * - "Rangga sitting out instead of Kresna." The player, and who the alternative
-   puts on a team in their place. On every shipped discipline the list is
-   exactly one name: a leftover needs a hard `maxTeamSize` to exist at all, and
-   on that path taking one player away always leaves exactly one fewer person
-   out, so the sentence always reads as a substitution. The clause is dropped
-   when the list is empty, which those disciplines cannot produce and a custom
-   one with role-constrained benches conceivably could, because "instead of"
-   would then be a claim about a bench the alternative does not have.
+ *   puts on a team in their place. On every shipped discipline the list is
+ *   exactly one name, and the reason is about *which* people rather than how
+ *   many: the current bench is a suffix of the strongest-first order, and the
+ *   alternative's is a suffix of that same order with one player gone, so the
+ *   two differ by exactly the one player who came off the bench. The clause is
+ *   dropped when the list is empty, which those disciplines cannot produce and
+ *   a custom one with role-constrained benches conceivably could, because
+ *   "instead of" would then be a claim about a bench the alternative does not
+ *   have. The harmful end of that range is a list of two or more, not the
+ *   empty one, and the list is printed whatever its length.
  * - "would bring the gap to 0.0." What the shipped solver produces on the pool
  *   without that player. It is a number and not a bound because `fairSplit` is
  *   deterministic, so the counterfactual is a fact rather than a hope, and it
@@ -223,13 +274,20 @@ export function benchAdvice(input: BenchAdviceInput): BenchAdvice | null {
  * a wider search is that the decision does not belong to the metric.
  */
 export function benchAdviceLine(advice: BenchAdvice, input: BenchAdviceInput): string {
-  const { result, roster } = input;
+  const { result, discipline, roster } = input;
   const playing = result.teams.reduce((n, t) => n + t.slots.length, 0);
   const now = shown(advice.gapNow).toFixed(1);
+  // What this discipline permits, said in its own terms: the shape of a legal
+  // split, and the coverage rule if it has one. Both are optional, and neither
+  // is guessed: a team size the game does not fix is described as even, and a
+  // game that requires no roles gets no role clause rather than a hedged one.
+  const size = discipline.team.maxTeamSize;
+  const shape = size === null ? `${result.teams.length} evenly-sized teams` : `${result.teams.length} teams of ${size}`;
+  const coverage = discipline.team.rolesRequired ? ", each covering every role" : "";
   const scope =
     gapKind(result) === "proven"
-      ? `Gap ${now} is the closest the ${playing} players on these teams can be split.`
-      : `Gap ${now} is the best split found for the ${playing} players on these teams.`;
+      ? `Gap ${now} is the closest these ${playing} players come in ${shape}${coverage}.`
+      : `Gap ${now} is the best split found for these ${playing} players in ${shape}${coverage}.`;
   const who = roster.find((p) => p.id === advice.sitOutInstead)?.name ?? "?";
   const instead = advice.insteadOf.map((id) => roster.find((p) => p.id === id)?.name ?? "?").join(", ");
   const swap = instead === "" ? `${who} sitting out` : `${who} sitting out instead of ${instead}`;

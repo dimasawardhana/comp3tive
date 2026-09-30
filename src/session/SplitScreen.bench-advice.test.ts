@@ -186,7 +186,7 @@ describe("the bench advisory on the split screen", () => {
     // This result is stamped proven, which is the strongest claim the module
     // can make about the figure the sentence scopes.
     expect(line(html)).toBe(
-      "Gap 0.2 is the closest the 10 players on these teams can be split. Rangga sitting out instead of Kresna would bring the gap to 0.0.",
+      "Gap 0.2 is the closest these 10 players come in 2 teams of 5, each covering every role. Rangga sitting out instead of Kresna would bring the gap to 0.0.",
     );
     // `.readout` carries the gap's own provenance and is pinned as exact text
     // by `e2e/tests/split/gap-provenance.spec.ts`. The advisory is a sibling of
@@ -214,7 +214,7 @@ describe("the bench advisory on the split screen", () => {
     expect(html).toContain("team-stack");
     expect(html).not.toContain('class="scale"');
     expect(line(html)).toBe(
-      "Gap 0.2 is the closest the 15 players on these teams can be split. Rangga sitting out instead of Oscar would bring the gap to 0.0.",
+      "Gap 0.2 is the closest these 15 players come in 3 teams of 5, each covering every role. Rangga sitting out instead of Oscar would bring the gap to 0.0.",
     );
   });
 
@@ -228,7 +228,7 @@ describe("the bench advisory on the split screen", () => {
       false,
     );
     expect(line(TWO_TEAM.screen(rolled))).toBe(
-      "Gap 0.2 is the best split found for the 10 players on these teams. Rangga sitting out instead of Kresna would bring the gap to 0.0.",
+      "Gap 0.2 is the best split found for these 10 players in 2 teams of 5, each covering every role. Rangga sitting out instead of Kresna would bring the gap to 0.0.",
     );
   });
 
