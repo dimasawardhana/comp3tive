@@ -524,6 +524,25 @@
   opacity: 0.8;
   text-wrap: pretty;
 }
+/* The bench advisory sits under the same readouts as `.fairness` and wears the
+   same face, for the same reason: it is the split talking about itself, not a
+   control, and a second quieter size for a second quiet sentence would be a
+   style with one user. It quotes the readout's own figure ("Gap 0.2 is ...")
+   to bind the scope to the number it is scoping, which is the one way this
+   line could be misread as the figure itself; so it must not be set in the
+   readout's 15px display face, and it must stay a sibling of `.readout` and
+   never a child of it. `.fairness` already quotes numbers on this same
+   13px body type, so the pattern is not new to the screen. No margin, same
+   as `.fairness`: `.pitch`'s flex gap owns the spacing. */
+.bench-advice {
+  text-align: center;
+  font-family: var(--font-body);
+  font-weight: 500;
+  font-size: 13px;
+  line-height: 1.5;
+  opacity: 0.8;
+  text-wrap: pretty;
+}
 
 .flags {
   display: flex;

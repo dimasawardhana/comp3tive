@@ -553,6 +553,13 @@ body {
 .landing-hero .fairness {
   color: var(--text);
 }
+/* The bench advisory is the same kind of line on the same surface, one step
+   further down, and it inherits `--panel-text` from `.pitch` the same way, so
+   it needs the same correction. Without this the advisory is the one line on
+   the hero that renders in the dark panel's ink on warm paper. */
+.landing-hero .bench-advice {
+  color: var(--text);
+}
 
 @media (prefers-reduced-motion: reduce) {
   .landing-hero .team {

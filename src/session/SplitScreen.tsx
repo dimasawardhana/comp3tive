@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useMemo } from "react";
 import type { Capability, Discipline, Id, Player, Session, SplitResult, TeamAssignment } from "../domain/types";
 import { describeFlags, teamName } from "./flow";
 import { freshSplit, swapPlayers } from "./edit";
@@ -9,6 +10,7 @@ import { Breadcrumb } from "../nav";
 import { Modal } from "../ui/Modal";
 import { ShareSheet } from "../share/ShareSheet";
 import { explainFairness } from "../share/fairness";
+import { benchAdvice, benchAdviceLine } from "./benchAdvice";
 
 interface Props {
   session: Session;
@@ -144,6 +146,30 @@ function FairnessLine({ result, discipline, roster }: { result: SplitResult; dis
   );
 }
 
+/**
+ * What a different bench choice would have produced, under the readout that
+ * measures this one. `benchAdvice` has already decided whether there is
+ * anything to say, so this renders a sentence or renders nothing, and the
+ * sentence itself is `benchAdviceLine`'s, tested in the `node` suite without
+ * rendering.
+ *
+ * `useMemo` is not decoration. `benchAdvice` re-runs the shipped solver once
+ * per candidate, which is free on a pool nobody needs advising about and
+ * around a hundred milliseconds a call on a wide one, and this component sits
+ * inside the screen's render path where `result` keeps its identity across
+ * unrelated state changes. Memoised on `result`, the sweep runs once per split
+ * instead of once per keystroke of a re-roll.
+ */
+function BenchAdvisory({ result, discipline, roster }: { result: SplitResult; discipline: Discipline; roster: Player[] }) {
+  const advice = useMemo(() => benchAdvice({ result, discipline, roster }), [result, discipline, roster]);
+  if (!advice) return null;
+  return (
+    <p className="bench-advice">
+      {benchAdviceLine(advice, { result, discipline, roster })}
+    </p>
+  );
+}
+
 function GapMeter({ result, balanced, discipline, roster }: { result: SplitResult; balanced: boolean; discipline: Discipline; roster: Player[] }) {
   const gap = result.gap;
   const deg =
@@ -179,6 +205,7 @@ function GapMeter({ result, balanced, discipline, roster }: { result: SplitResul
         )}
       </div>
       <FairnessLine result={result} discipline={discipline} roster={roster} />
+      <BenchAdvisory result={result} discipline={discipline} roster={roster} />
     </>
   );
 }
@@ -401,6 +428,7 @@ export function SplitScreen({ session, discipline, roster, onPersistResult, onSu
             )}
           </div>
           <FairnessLine result={result} discipline={discipline} roster={roster} />
+          <BenchAdvisory result={result} discipline={discipline} roster={roster} />
           <div className="team-stack">{result.teams.map((t) => <TeamCard key={t.index} {...teamCardProps(t)} />)}</div>
         </div>
       ) : (
