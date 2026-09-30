@@ -4,7 +4,6 @@ import { SplitDeal } from "./landingDeal";
 import { MLBB_DISCIPLINE } from "./domain/seed";
 import { freshSplit } from "./session/edit";
 import type { Session, Player } from "./domain/types";
-import "./index.css";
 
 /**
  * The Landing Page's demonstrations (§ "every claim is a row").
@@ -50,7 +49,7 @@ function BracketPreview() {
   return (
     <section className="landing-tournament" aria-label="Tournament preview">
       <p className="landing-tournament-head">
-        Then run the tournament on the teams that are already fair.
+        Then run the tournament on the teams the split made.
       </p>
       <div className="landing-bracket">
         <div className="landing-bracket-column">
@@ -109,10 +108,10 @@ const DISCIPLINES = [
   },
   {
     name: "Badminton",
-    desc: "1v1 or doubles — the split still balances, whether it's singles or a pair.",
-    roles: ["Singles", "Doubles"],
+    desc: "Doubles on a badminton court — pairs balanced by strength, one at the front and one at the back.",
+    roles: ["Front court", "Rear court"],
     attributes: ["Technical", "Fitness", "Game IQ"],
-    teamSize: "1v1 or 2v2",
+    teamSize: "2 v 2",
   },
 ];
 
@@ -120,7 +119,8 @@ function DisciplineSection() {
   return (
     <section className="landing-disciplines" aria-label="Disciplines">
       <p className="landing-disciplines-head">
-        Every role and attribute is accounted for by the split.
+        The split reads every role and attribute, and names who is covering when a team runs
+        short one.
       </p>
       <div className="landing-discipline-grid">
         {DISCIPLINES.map((d) => (

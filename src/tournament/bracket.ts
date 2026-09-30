@@ -1,4 +1,5 @@
 import type { GameResult, Id, Tournament, TournamentMatch, TournamentTeam } from "../domain/types";
+import { roundRobinSchedule } from "../data/round-robin";
 
 /**
  * The tournament state machine (spec: docs/spec/0002-tournaments-v1.md).
@@ -13,6 +14,8 @@ import type { GameResult, Id, Tournament, TournamentMatch, TournamentTeam } from
  *   the 3rd-place match via `loserNext`.
  * - Swiss generates round 1 only; each subsequent round is created when the
  *   previous one completes, pairing same-record teams without rematches.
+ * - Round robin schedules every pairing up front from the circle method, by
+ *   team index; its matches feed no other match, and a bye becomes no match.
  */
 
 const majority = (seriesLength: number): number => Math.floor(seriesLength / 2) + 1;
@@ -49,8 +52,18 @@ function resolvedWinner(games: GameResult[], a: Id | null, b: Id | null, seriesL
   return null;
 }
 
-/** Round count for a format: single elim = log2(N); swiss = ceil(log2 N). */
-const roundsFor = (format: Tournament["format"], n: number): number =>
+/**
+ * Round count for the formats that complete on a frontier: single elim =
+ * log2(N), swiss = ceil(log2 N).
+ *
+ * Round robin is deliberately not answerable here. It books every fixture up
+ * front and has no frontier, so its round count is the schedule's own (n-1 on
+ * an even field, n on an odd one, where the extra round exists only to give the
+ * bye somewhere to sit) and this function has nothing to compute. Naming the
+ * two formats in the signature keeps a call site from asking the wrong
+ * question: there is no third arm to keep honest.
+ */
+const roundsFor = (format: "single-elim" | "swiss", n: number): number =>
   format === "single-elim" ? Math.log2(n) : Math.ceil(Math.log2(n));
 
 function emptyMatch(round: number, position: number): TournamentMatch {
@@ -115,6 +128,45 @@ export function buildBracket(tournament: Tournament): Tournament {
       const third = emptyMatch(rounds, 1);
       third.isThirdPlace = true;
       t.matches.push(third);
+    }
+    return { ...t, status: "active" };
+  }
+
+  if (t.format === "round-robin") {
+    // Seeding, and the one product decision this format makes here. Teams are
+    // already in seed order (strongest first, `consumeTeams`), the ring anchors
+    // its fixed slot to slot 0, and the bye is whatever meets the empty slot —
+    // so **seed 1 is the team that rests in round 1**, and the ring moves the
+    // bye round by round until every team has had exactly one. Accepted rather
+    // than moved: a bye here is not a walkover, it is no fixture at all, so it
+    // costs no points and every team still plays the same n-1 games; and the only
+    // way to give the first bye to the bottom seed is to seat it in the anchor
+    // instead, which costs the top two seeds their last-round meeting (measured:
+    // round 1 at 3 teams, round 2 at 5, round 3 at 7). The order is pinned by
+    // tests so it stays a decision rather than an artifact of the array.
+    //
+    // A bye becomes no row at all. `TournamentMatch` cannot say "this pairing
+    // does not exist" — `teamBId: null` already means "the other bracket has
+    // not delivered yet", and a row carrying one could never resolve, so it
+    // would sit in the bracket forever as an unplayable match. Dropping it here
+    // keeps the persisted bracket a list of games someone can actually record.
+    if (n < 2) return { ...t, status: "draft" };
+    const byRound = new Map<number, { teamA: number; teamB: number }[]>();
+    for (const pairing of roundRobinSchedule(n)) {
+      if (pairing.teamB === null) continue;
+      const round = byRound.get(pairing.round) ?? [];
+      round.push({ teamA: pairing.teamA, teamB: pairing.teamB });
+      byRound.set(pairing.round, round);
+    }
+    for (const round of [...byRound.keys()].sort((a, b) => a - b)) {
+      byRound.get(round)!.forEach((pairing, position) => {
+        const m = emptyMatch(round, position);
+        m.teamAId = t.teams[pairing.teamA].id;
+        m.teamBId = t.teams[pairing.teamB].id;
+        // winnerNext and loserNext stay null: round-robin matches are
+        // independent, so settle()'s downstream re-derivation is a no-op for them.
+        t.matches.push(m);
+      });
     }
     return { ...t, status: "active" };
   }
@@ -228,13 +280,19 @@ function pairRound(t: Tournament, recs: Map<Id, TeamRecord>, played: Set<string>
 }
 
 function requiredMatches(t: Tournament): TournamentMatch[] {
-  if (t.format === "series") return t.matches;
+  // Round robin books every fixture up front and has no frontier, so the last
+  // round is just the last column: "the last round is decided" would complete a
+  // tournament whose earlier rounds were never played. Every fixture is
+  // required, exactly as for a series.
+  if (t.format === "round-robin" || t.format === "series") return t.matches;
   if (t.format === "single-elim") {
     const finalRound = roundsFor(t.format, t.teams.length);
     const finals = t.matches.filter((m) => m.round === finalRound && !m.isThirdPlace);
     const third = t.matches.find((m) => m.isThirdPlace);
     return third ? [...finals, third] : finals;
   }
+  // Swiss, and Swiss only: a frontier exists, so the last round standing is the
+  // last of the work.
   const lastRound = t.matches.reduce((max, m) => Math.max(max, m.round), 0);
   return t.matches.filter((m) => m.round === lastRound);
 }
@@ -339,11 +397,13 @@ export function undoLastGame(tournament: Tournament): Tournament {
 
 
 /**
- * Swiss standings, crowned by play: series wins, then the head-to-head winner
- * when exactly two teams share a record (Swiss guarantees at most one meeting
- * per pair, so it is well defined there), then game difference, then game wins.
- * Those three keys read the played record, not the seed: seeding builds the
- * bracket, play decides the table.
+ * Standings for the two formats that crown by table — Swiss and round robin —
+ * ordered by play: series wins, then the head-to-head winner when exactly two
+ * teams share a record, then game difference, then game wins. Head-to-head is
+ * well defined in both, and for the same reason: neither format schedules a
+ * pair twice, Swiss by its rematch-free pairing and round robin because every
+ * pair meets exactly once. Those keys read the played record, not the seed:
+ * seeding builds the bracket, play decides the table.
  *
  * Ascending `team.id` is the deterministic last resort when all three tie, and
  * it is *not* seed-neutral: ids are handed out in strength order (`team-1` is
@@ -389,7 +449,10 @@ export function standings(tournament: Tournament): { teamId: Id; wins: number; g
 /** The tournament champion, or null if not decided yet. */
 export function champion(tournament: Tournament): TournamentTeam | null {
   if (tournament.status !== "complete") return null;
-  if (tournament.format === "swiss") {
+  if (tournament.format === "swiss" || tournament.format === "round-robin") {
+    // Round robin has no final to read: the champion is the standings leader,
+    // exactly as in Swiss. Both formats are standings tournaments; without this
+    // arm a completed round robin returned the winner of round 1's first match.
     const top = standings(tournament)[0];
     return tournament.teams.find((t) => t.id === top?.teamId) ?? null;
   }

@@ -1,6 +1,8 @@
 import type { Discipline, Session } from "../domain/types";
 import { PageHeader } from "../ui/PageHeader";
 import { Screen } from "../ui/Screen";
+import { relativeTime } from "../ui/format";
+import { ConfirmButton } from "../ui/ConfirmButton";
 
 interface Props {
   sessions: Session[];
@@ -8,17 +10,6 @@ interface Props {
   disciplines: Discipline[];
   onReopen: (session: Session) => void;
   onDelete: (id: string) => void;
-}
-
-function relativeTime(ts: number): string {
-  const mins = Math.floor((Date.now() - ts) / 60000);
-  if (mins < 1) return "just now";
-  if (mins < 60) return `${mins}m ago`;
-  const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  if (days < 7) return `${days}d ago`;
-  return new Date(ts).toLocaleDateString();
 }
 
 function formatTime(ts: number): string {
@@ -88,17 +79,24 @@ export function HistoryScreen({ sessions, loading, disciplines, onReopen, onDele
                 </div>
                 <span className="row-actions">
                   <span className="row-edit" aria-hidden="true">›</span>
-                  <button
-                    type="button"
-                    className="link danger"
-                    aria-label="Delete session"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (window.confirm("Delete this session?")) onDelete(s.id);
-                    }}
+                  {/* `.row-actions` is `flex: 0 0 auto` inside a row with no wrap,
+                    so an armed confirm — message, Cancel, and the danger button on
+                    one line — would push the row off a 390px screen. The cluster
+                    wraps inside a bounded box instead, and the message carries
+                    `.status-msg`, whose only rule is `.status-banner .status-msg`. */}
+                  <span
+                    onClick={(e) => e.stopPropagation()}
+                    style={{ display: "flex", flexWrap: "wrap", maxWidth: "14rem", justifyContent: "flex-end" }}
                   >
-                    Delete
-                  </button>
+                    <ConfirmButton
+                      className="link danger"
+                      label="Delete"
+                      ariaLabel="Delete session"
+                      confirmLabel="Delete session"
+                      message="Delete this session?"
+                      onConfirm={() => onDelete(s.id)}
+                    />
+                  </span>
                 </span>
               </li>
             );

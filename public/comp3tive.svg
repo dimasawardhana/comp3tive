@@ -3,14 +3,19 @@
   <desc id="comp3tive-d">Full brand wordmark: COMP(amber) 3(top-amber/bottom-stone) TIVE(stone)</desc>
   <defs>
     <style>
-      @font-face{font-family:'Outfit';src:url('https://fonts.gstatic.com/s/outfit/v15/QGYyz_MVcBeNP4NjuGObqx1XmO1I4e6yC4E.ttf') format('truetype');font-weight:600;font-display:swap}
+      /* Standalone document: no cascade, so no custom property and a relative URL. An
+         SVG used as an <img> is rendered in a sandbox that fetches nothing at
+         all, which is why the stack above is the deliberate fall-back rather
+         than a bare sans-serif. Relative, so it resolves from /comp3tive.svg
+         and from the file itself. */
+      @font-face{font-family:'Outfit';src:url('fonts/outfit-latin-6c18d579.woff2') format('woff2');font-weight:100 900;font-display:swap}
     </style>
     <clipPath id="wg">
-      <text x="209" y="128" text-anchor="start" style="font-family:'Outfit','Segoe UI',system-ui,sans-serif;font-weight:600;font-size:128px">3</text>
+      <text x="209" y="128" text-anchor="start" style="font-family:'Outfit',system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;font-weight:600;font-size:128px">3</text>
     </clipPath>
   </defs>
-  <text x="6" y="104" text-anchor="start" style="font-family:'Outfit','Segoe UI',system-ui,sans-serif;font-weight:600;font-size:64px;letter-spacing:.06em"><tspan fill="#C2410C">COMP</tspan></text>
-  <text x="209" y="128" text-anchor="start" fill="#57534E" style="font-family:'Outfit','Segoe UI',system-ui,sans-serif;font-weight:600;font-size:128px">3</text>
-  <text x="279.9" y="104" text-anchor="start" style="font-family:'Outfit','Segoe UI',system-ui,sans-serif;font-weight:600;font-size:64px;letter-spacing:.06em"><tspan fill="#57534E">TIVE</tspan></text>
+  <text x="6" y="104" text-anchor="start" style="font-family:'Outfit',system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;font-weight:600;font-size:64px;letter-spacing:.06em"><tspan fill="#C2410C">COMP</tspan></text>
+  <text x="209" y="128" text-anchor="start" fill="#57534E" style="font-family:'Outfit',system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;font-weight:600;font-size:128px">3</text>
+  <text x="279.9" y="104" text-anchor="start" style="font-family:'Outfit',system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;font-weight:600;font-size:64px;letter-spacing:.06em"><tspan fill="#57534E">TIVE</tspan></text>
   <rect x="0" y="0" width="450" height="81" fill="#C2410C" clip-path="url(#wg)"/>
 </svg>

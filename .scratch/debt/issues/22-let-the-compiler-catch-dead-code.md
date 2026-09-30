@@ -1,6 +1,6 @@
 # 22: Let the compiler catch dead code
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **What to build:** A half-finished refactor or a stale rename cannot sit in the tree
 unnoticed: `npm run build` fails and names the line. This is the only mechanism in the repo
@@ -61,3 +61,28 @@ the flag, resolve, re-run until clean. Record each pass in the Answer.
 - [ ] The second pass is recorded: deleting `effectiveTheme` also deletes `systemDark`, and auto-theme still resolves via the CSS media query
 
 **Blocked by:** 21 — both edit `src/App.tsx` and the two validator modules ticket 21 deletes.
+
+## Comments
+
+**Status re-checked 2026-09-30 against `feature/revamp` — shipped, and this is the one ticket in
+13–37 whose own acceptance command can be run and checked directly.**
+
+`tsconfig.app.json:18` reads `"noUnusedLocals": true` and nothing else in that file changed.
+Running this ticket's own baseline command:
+
+```
+$ npx tsc -p tsconfig.app.json --noUnusedLocals --noEmit
+(no output)
+exit 0
+```
+
+against the stated baseline of 19 findings. Every finding was resolved by removing the code, and
+`grep -rn "@ts-ignore\|void [a-zA-Z]*;" src/` returns **nothing** — no suppression comment, no
+`void x;` statement, no underscore-prefixed rename, so the flag is doing real work rather than
+being silenced.
+
+**The cascade this ticket described is the one that happened.** `effectiveTheme` and its only
+reader `systemDark` are both gone, and `auto` still resolves through the CSS media query: the
+tokens file defines its dark values under `prefers-color-scheme` and the surviving effect only
+writes or deletes `data-theme`. The three `TeamSlot` findings this ticket listed as "deleted by
+ticket 21" are indeed gone with those modules.

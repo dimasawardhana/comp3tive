@@ -1,6 +1,6 @@
 # 31: Share the result — copy the teams as text
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **What to build:** From the split screen, one control copies the finished teams into the
 clipboard as plain text a group chat can read: a headline, a block per team with each
@@ -17,10 +17,11 @@ $ grep -rn "navigator.clipboard\|window.print\|navigator.share\|toDataURL\|canva
 ```
 
 `package.json` `dependencies` is `{"react": "^19.1.0", "react-dom": "^19.1.0"}` — nothing
-else at runtime. The split screen's action bar at `src/session/SplitScreen.tsx:372`
-(`<div className="bar split-bar">`) holds exactly four controls: Back (`:374`), Save squad
-(`:383`), submit-tournament (`:398`, `data-testid="submit-tournament-squad"`), else Re-roll
-(`:401`). The result that would be shared already exists in full: `TeamAssignment.slots`,
+else at runtime. The split screen's action bar at `src/session/SplitScreen.tsx:396`
+(`<div className="bar split-bar">`) holds exactly four controls: Back (`:398`), Save squad
+(`:403`), Save teams to tournament (`:417` — its `data-testid="submit-tournament-squad"` was
+removed as dead rather than renamed, so a spec reaches it by role and label, not by testid),
+else Re-roll (`:426`). The result that would be shared already exists in full: `TeamAssignment.slots`,
 `.avgStrength` and `.index`, `SplitResult.gap`, and `SplitResult.solver` are all on screen
 (`src/session/SplitScreen.tsx:42-107` `TeamCard`).
 
@@ -40,7 +41,7 @@ verdict in both cases. A re-roll is not automatically unproven: `varietySplit` s
       `Team A · avg 3.8` followed by one `• Andi (4.2)` line per player, strongest first,
       players with no capability in the discipline listed last with no parenthesis; a blank
       line between team blocks; then the closing gap line.
-- [ ] The closing gap line is `Gap 0.4 — the proven minimum for this pool.` when `gapKind(result) === "proven"` and `Gap 0.4 — the smallest gap found. The search ended before proving it minimal.` when it is `"best-found"` — both cases covered by a unit test that constructs a `SplitResult` with `solver.optimal` true and false.
+- [ ] The closing gap line is `Gap 0.4 — the proven minimum for this pool.` when `gapKind(result) === "proven"` and `Gap 0.4 — the smallest gap known for this pool. A smaller one may exist.` when it is `"best-found"` — both cases covered by a unit test that constructs a `SplitResult` with `solver.optimal` true and false. The best-found sentence describes the *result*, not the search that produced it, so it is true of a budget-exhausted `fairSplit`, a `varietySplit`, and a `swapPlayers` result alike without a third provenance state.
 - [ ] When `result.unassigned` is non-empty the text ends with `Not playing: Name, Name`, and when it is empty that line is absent.
 - [ ] `src/session/SplitScreen.tsx`'s `.split-bar` (`:372`) renders a `Share` button (`data-testid="share-teams"`) only when a new optional prop `share?: { communityName: string }` is passed; `src/App.tsx` passes it, and `src/landing.tsx`'s mount at `:153` does not, so the landing hero gains no control — `e2e/tests/landing/landing.spec.ts:31-38` asserts the hero has no competing controls and must stay green unchanged.
 - [ ] Clicking Share opens `src/share/ShareSheet.tsx`, which renders inside C23's shared `<Modal onClose={…}>` from `src/ui/Modal.tsx` — the `.modal-overlay` / `.modal-card` skeleton already used by the other five modals — and shows the exact text in a read-only `<textarea className="share-preview">` plus a `Copy text` button (`data-testid="share-copy-text"`). No hand-rolled overlay.
@@ -50,3 +51,29 @@ verdict in both cases. A re-roll is not automatically unproven: `varietySplit` s
 - [ ] `npx vitest run` exits 0 with no failures and the new `src/share/share-text.test.ts` in the output; `npx tsc -b` exits 0.
 
 **Blocked by:** —
+
+## Comments
+
+**Status re-checked 2026-09-30 against `feature/revamp` — shipped. The split screen has a share
+control, the sheet shows the text before it is copied, and the honest fallback is in place.**
+
+`src/share/share-text.ts:65` exports `teamsAsText` as a pure function with no DOM and no React
+import. `closingLine` (`:58-63`) branches on **`gapKind`**, never on `gapQualifier() !== null`, and
+says so in the doc comment above it — including why the best-found sentence describes the *result*
+rather than the search, so it is true of a budget-exhausted `fairSplit`, a `varietySplit` and a
+`swapPlayers` result alike. `Not playing: …` is appended only when `result.unassigned` is non-empty.
+
+`SplitScreen` renders the `Share` button (`data-testid="share-teams"`) **only** when the optional
+`share` prop is passed (`src/session/SplitScreen.tsx:459`), so the landing hero gains no control —
+`src/landing.tsx:153` mounts with no `share` prop, and `e2e/tests/share/share.spec.ts` has a case
+named "the landing hero gains no share control" that pins it. The sheet renders inside the shared
+`<Modal>` from `src/ui/Modal.tsx`, shows the text in a read-only `.share-preview` textarea, and
+falls back to `Copy failed. Select the text above and copy it.` (`:18`) rather than throwing.
+
+**Three strings in this ticket's body no longer match the code, and the code is right.** The
+headline is `Futsal · Thursday Crew, 2 teams` rather than `Futsal · Thursday Crew — 3 teams`, and
+the two gap sentences use a full stop where this ticket wrote an em-dash:
+`Gap 0.4. The proven minimum for this pool.` and
+`Gap 0.4. The smallest gap known for this pool. A smaller one may exist.` `DESIGN.md:200` bans
+em-dashes in visible copy and `DESIGN.md:204` records this sweep specifically. Anyone implementing
+from this body alone would reintroduce three em-dashes.

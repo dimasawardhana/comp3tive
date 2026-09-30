@@ -1,6 +1,6 @@
 # 18: ADR-0002 is accepted, not proposed
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **What to build:** The architecture decision that shaped the whole tournament feature stops
 describing itself as a proposal. ADR-0002 is marked accepted with the date it was ratified, its
@@ -74,3 +74,62 @@ after the opening paragraph, so match `0005`'s layout: heading, opening paragrap
 - [ ] No other content in either ADR changes
 
 **Blocked by:** — (ticket 16 owns `docs/spec/0002`; this ticket owns only the two ADR files)
+
+## Comments
+
+Complete. `docs/adr/0002-tournament-first-flow.md` reads `**Status**: accepted` with
+`**Accepted**: 2026-09-17`, and its last consequence names `winnerNext` and `loserNext` with the
+3rd-place match carried by the loser slot. `docs/adr/0004-origin-aware-navigation.md` carries
+`**Status**: accepted` after its opening paragraph, matching `0005`'s layout; its body is
+untouched. `grep -L "Status" docs/adr/*.md` returns nothing.
+
+**Two acceptance rows read differently from what landed, both on purpose.**
+
+- "All **six** ADRs now state a status" — there are **eight**. `0001` was already carried as
+  `superseded by ADR-0007` before this ticket, and `0007` and `0008` were added since the
+  acceptance was written. The check that matters, `grep -L "Status" docs/adr/*.md` returning
+  nothing, passes for all eight.
+- `grep -rn "nextMatchId" docs/ src/` returning nothing cannot hold as written. No source file
+  has ever contained the field — `grep -rn "nextMatchId" src/` returns nothing — and every place
+  it appears is a document naming it as the thing being fixed. Six files still carry it, and
+  naming all six is the honest form of this check:
+  `docs/superpowers/plans/2026-09-17-honest-claims.md` (8),
+  `docs/superpowers/specs/2026-09-17-honest-claims-design.md` (3),
+  this ticket (7, six in its own evidence above and one here),
+  `COMP3TIVE_COMPREHENSIVE_ANALYSIS.md` (3, dated evidence),
+  `.scratch/debt/issues/16-reconcile-the-documents-that-contradict-the-code.md` (2) and
+  `.scratch/app-correctness/issues/06-reconcile-stale-docs.md` (1), the two tickets that
+  inherited the claim. `docs/spec/0002`, the only live document that stated the field as
+  current, was corrected by ticket 16.
+
+**ADR-0005 was corrected here, outside this ticket's file list, and the reason is recorded.**
+`docs/adr/0005-dashboard-first.md:9-10` asserted "five bottom-nav slots with the home button
+centered ... `[Roster] [Games] [Home] [History] [Squads]`". That is false of the shipped nav:
+`NAV_ITEMS` (`src/App.tsx:63-69`) is `[Home, Roster, Games, History, Squads]`, both renderers map
+it in order (`:815`, `:1300`), `src/index.css` has no `order` property anywhere, and commit
+`1702342` shipped Home first — a correction `.scratch/team-builder/dashboard/issues/03` had
+already recorded against its own acceptance. Because ADR-0001's supersession note showed the
+right shape for a kept-but-corrected decision, ADR-0005 now carries the same: a dated
+`> **Corrected 2026-09-28**` block under the offending paragraph and a status line reading
+`**Status**: accepted, with the nav order corrected above (Home ships first, not centred). The
+decision itself — five slots, the Home label and house glyph, the Dashboard h1 — is untouched
+and still ships.
+
+**Why this was not left to ticket 16.** `docs/FLOW.md:36-38` recorded the supersession, but that
+is a document; this ticket is the ADR record, and the phase report is scratch that gets deleted.
+An accepted ADR asserting a layout the app does not have is the exact drift the phase exists to
+remove, so the correction belongs beside the claim.
+
+**Status re-checked 2026-09-30 against `feature/revamp` — shipped.**
+
+`docs/adr/0002-tournament-first-flow.md:5-6` reads `**Status**: accepted` followed by
+`**Accepted**: 2026-09-17`, and its last consequence names `winnerNext` and `loserNext` rather
+than `nextMatchId`. `docs/adr/0004-origin-aware-navigation.md:8` carries `**Status**: accepted`
+after its opening paragraph. `grep -L "Status" docs/adr/*.md` returns **nothing** — all eight ADRs
+state a status, which is one more than this ticket's acceptance row predicted ("all six"); the
+ticket's own `## Comments` above already records why.
+
+`grep -rn "nextMatchId" docs/adr/ docs/spec/ src/` returns **nothing**. The six files that still
+carry the field are the plan, the spec, this ticket, its predecessor ticket, the dated analysis
+document and the ticket that inherited the claim — every one of them naming it as the thing being
+fixed, which is what the ticket's own `## Comments` argued is the honest form of that check.

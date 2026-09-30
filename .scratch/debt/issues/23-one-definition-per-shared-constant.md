@@ -1,6 +1,6 @@
 # 23: One definition per shared constant
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **What to build:** Changing a bib colour, a format label, or the wording of "3 days ago" is
 one edit in one file, and the five modals stop retyping the same overlay skeleton.
@@ -78,3 +78,22 @@ itself "Save squad". `src/ui/` is where the repo's shared primitives already liv
 
 **Blocked by:** 21 — ticket 21 may delete a module carrying one of these, and this ticket must
 not collide with it.
+
+## Comments
+
+**Status re-checked 2026-09-30 against `feature/revamp` — shipped. Each constant now has one
+definition, in the file this ticket named.**
+
+`grep -rn "const BIB\|const FORMAT_LABEL\|const STATUS_LABEL" src/` names exactly one file,
+`src/ui/constants.ts`, with three definitions at `:4`, `:7` and `:15`.
+`grep -rn "function relativeTime" src/` returns exactly one line, `src/ui/format.ts:2`. The five
+`modal-overlay` call sites all render `<Modal>` — the consumers are `DisciplineEditModal`,
+`PlayerEditModal`, `GamesScreen`, `TournamentScreen`, `SplitScreen`, plus `BulkRateModal` and
+`ShareSheet` added by Phase D — and no screen hand-rolls the overlay skeleton.
+
+**The `FORMAT_LABEL` type-reminder this ticket designed for actually fired.** The record is
+declared `Record<TournamentFormat, string>`, and when ticket 35 added `"round-robin"` to the union
+at `src/domain/types.ts:25` the object literal had to gain its key — `src/ui/constants.ts:11` — or
+the build would fail. The comment at `src/ui/constants.ts:6` names D16 as the ticket that does it,
+exactly as this ticket asked, and Phase D's own ledger entry (`fd69ca4c`) confirms the round-robin
+format landed as a real tournament format. The type did the reminding work it was specified to do.

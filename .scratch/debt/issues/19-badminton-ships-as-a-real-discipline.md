@@ -1,6 +1,6 @@
 # 19: Badminton ships as a real discipline
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **What to build:** Badminton becomes a discipline you can pick, with roles and team rules the solver
 actually supports, a sample roster, and a landing card that describes what ships. The landing page
@@ -139,3 +139,31 @@ badminton as in scope.
 **Blocked by:** 20 (the `badminton-roster.json` file). The seed constant, the fixture renames, and
 the landing-card strings are independent and can land first; the `sample-data.test.ts` catalog
 assertion and the registry entry need B20's file to exist.
+
+## Comments
+
+**Status re-checked 2026-09-30 against `feature/revamp` — shipped. Badminton is a discipline the
+app can actually pick, and the solver handles the shape this ticket specified.**
+
+`BADMINTON_DISCIPLINE` is at `src/domain/seed.ts:53` with the exact roles (`front-court`,
+`rear-court`), attributes (`technical`, `fitness`, `game-iq`), `strengthModel: { kind: "mean" }`
+and `team: { minTeamSize: 2, maxTeamSize: 2, rolesRequired: true }` this ticket prescribed, and
+`SEED_DISCIPLINES` at `:76` is `[FUTSAL_DISCIPLINE, MLBB_DISCIPLINE, BADMINTON_DISCIPLINE]` in
+that order.
+
+**Measured against the shipped solver**, using the shipped `sample-data/badminton-roster.json`:
+10 players, suggested team count 5, `teams=5`, `sizes=[2,2,2,2,2]`, `gap=0.000`, `optimal=true`,
+`flags=[]`, `unassigned=0`, and **every team covers both courts** — checked separately, 0 teams
+short of a role. That is acceptance rows 2 and 3, reproduced exactly.
+
+The landing card (`src/landing.tsx:110-115`) reads `roles: ["Front court", "Rear court"]` and
+`teamSize: "2 v 2"`, and the Roster rail's `Disciplines` fact reads `3` (`index.html:186`). The
+fixture collisions this ticket enumerated are fixed: `"padel"` is now the unknown-discipline id at
+`src/domain/validation.test.ts:42-44` and the custom-discipline fixture at
+`src/storage/migration.test.ts:170,176`, and `src/domain/seed.test.ts:6` asserts the three-seed
+catalog with badminton-specific cases at `:27,32,39`.
+
+**One thing this ticket could not have known.** Shipping a new discipline obliges a `DB_VERSION`
+bump and a `SEEDS_ADDED_IN` entry, or every existing install runs forever on the two-discipline
+catalog. That obligation is recorded in `contracts.md` and `IMPLEMENTATION_PLAN.md:151-156` as a
+Phase B lesson, and it shipped with the discipline rather than after it.

@@ -1,6 +1,6 @@
 # 34: The data has a durability story
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **What to build:** The app asks the browser to keep its data and stops being silent about it.
 Storage that will not be evicted is requested once on first run, the outcome is shown where the
@@ -60,3 +60,28 @@ preserved verbatim in the section above. One stale item: its final acceptance bo
 trigger to be recorded "in the ticket's Answer". The Phase D ticket template has no `## Answer`
 section, so the trigger decision is recorded in **What to build** and encoded in the acceptance
 criteria instead.
+
+**Status re-checked 2026-09-30 against `feature/revamp` — shipped. The app asks the browser to keep
+its data, shows the answer next to the export control, and nudges for a backup on a trigger rather
+than on a whim.**
+
+`src/shell/useDurability.ts:370` exports `useDurability`, and the three-state distinction this
+ticket was most careful about holds: it calls `navigator.storage?.persist?.()` once, keeps
+`persisted` as `null` both before the promise settles and on a browser with no Storage API, and
+treats a refusal as silent (`:376-380`). Dismissal persists under `tb-export-nudge-dismissed`
+(`:23`) and last-export under `tb-last-export` (`:25`), matching the `tb-` prefix.
+
+**The nudge is on the Dashboard, where this ticket said it must be** — `src/DashboardScreen.tsx:129-136`,
+rendered between the stat cards and the teasers, with a `Dismiss` button and no modal.
+`src/shell/RosterScreen.tsx:653` renders the `.durability-note` beside the `Export` control, with
+all three verdicts distinguished: reported persistent, reported not persistent, and could not
+confirm. The `Export` button's own markup and behaviour are unchanged, and the three
+`.dashboard-stat` cards are untouched, so the dashboard spec's assertions are unaffected.
+
+**The last row of this ticket still holds, and it is the row that matters most here.**
+`grep -rn "navigator.storage" src/` matches only `useDurability.ts` — there is no sync, no cloud
+backup, no account and no server anywhere in the tree. ADR-0007 later superseded ADR-0001 and
+opened an optional backend, but **none of it is built on this branch**: no `server/` directory, no
+fetch client, no auth, and the six backend tickets in `.scratch/backend/issues/01-06` all still read
+`ready-for-agent`. This ticket ships as the guest's durability story, which is exactly how ADR-0007
+describes it surviving, and its resolution is not a claim that the backend work is done.

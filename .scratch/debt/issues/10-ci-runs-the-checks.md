@@ -1,6 +1,6 @@
 # 10: CI runs the checks
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **What to build:** Every push and pull request runs typecheck, unit tests, build and the browser suite, and a red run blocks the change. The proof that the split is fair stops depending on someone remembering to run it.
 
@@ -61,3 +61,13 @@ run the unit and browser suites in separate jobs (the browser suite needs the bu
 same revision, and splitting them would duplicate the install).
 
 **Blocked by:** 01, 02, 09 — the workflow must be green on the tree it is added to, and it must not be written against the five specs that ticket 09 deletes
+
+## Comments
+
+Resolved by commit `c3d7cb4` ("ci: run typecheck, unit tests, build and the browser suite"), with `ac9050d` for formatting only.
+
+`.github/workflows/ci.yml` runs on `push` and `pull_request` (`:2`) on `ubuntu-latest` (`:5`) under node 22 with an npm cache (`:8-9`), in the frozen order `npm ci` -> `npx tsc -b` -> `npx vitest run` -> `npx vite build` -> `npx playwright install --with-deps chromium` -> `npm run e2e` (`:10-15`), with `vite build` and the browser suite in the same job so the `preview` web server has a `dist/` to serve. Grep for `continue-on-error`, `|| true`, `if: always()`, `coverage`, `eslint` and `deploy` returns zero matches; the single `if: failure()` is the `playwright-report` artifact upload (`:16-18`), which cannot mask a red step. `package.json:13` gains exactly the `e2e` script and nothing else — no `lint`, `type-check` or `coverage` alias.
+
+`tsconfig.json:1` references `./e2e/tsconfig.json`, so a misspelled hub in a spec is a compile error rather than a 30-second timeout. `workers: 1` and `retries: 0` are untouched (`e2e/playwright.config.ts:6-7`).
+
+Not observed: CI has not run on a GitHub runner — none is reachable from this workstation. The workflow's contents and step sequence were verified locally in order. Branch protection remains a one-line maintainer action.

@@ -1,8 +1,10 @@
 import { useState } from "react";
 import type { Discipline, GameResult, Id, Player, SavedSquad, Tournament, TournamentMatch, TournamentTeam } from "../domain/types";
+import { Breadcrumb } from "../nav";
 import { champion, standings } from "./bracket";
-import { teamName } from "../session/flow";
 import { PageHeader } from "../ui/PageHeader";
+import { BIB, FORMAT_LABEL, STATUS_LABEL } from "../ui/constants";
+import { Modal } from "../ui/Modal";
 
 interface Props {
   tournament: Tournament;
@@ -22,14 +24,6 @@ interface Props {
   /** Community roster: resolves player ids to names in review. */
   roster?: Player[];
 }
-
-const FORMAT_LABEL: Record<Tournament["format"], string> = {
-  series: "Series",
-  "single-elim": "Single elimination",
-  swiss: "Swiss",
-};
-
-const BIB = ["a", "b", "c", "d", "e"];
 
 function teamOf(t: Tournament, id: Id | null): TournamentTeam | null {
   return id ? t.teams.find((x) => x.id === id) ?? null : null;
@@ -104,12 +98,11 @@ function RecordMatchModal({
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-card" onClick={(e) => e.stopPropagation()}>
+    <Modal onClose={onClose}>
         <button type="button" className="modal-close" aria-label="Close" onClick={onClose}>
           &times;
         </button>
-        <h1 style={{ fontFamily: "Outfit", fontSize: 20, marginBottom: 4 }}>
+        <h1 style={{ fontFamily: "var(--font-display)", fontSize: 20, marginBottom: 4 }}>
           {match.winnerTeamId ? "Edit result" : "Record result"}
         </h1>
         <p className="lede" style={{ fontSize: 13, color: "var(--text-2)", marginBottom: 14 }}>
@@ -198,8 +191,7 @@ function RecordMatchModal({
             {saving ? "Saving\u2026" : "Save result"}
           </button>
         </div>
-      </div>
-    </div>
+    </Modal>
   );
 }
 
@@ -247,7 +239,6 @@ export function TournamentScreen({ tournament, disciplines, matchingSquads, rost
   const discipline = disciplines.find((d) => d.id === tournament.disciplineId);
   const champ = champion(tournament);
   const hasAnyGames = tournament.matches.some((m) => m.games.length > 0);
-  const canResplit = tournament.teams.length > 0 && !hasAnyGames;
   const eligibleCount = discipline
     ? (totalPlayers ?? tournament.teams.reduce((s, t) => s + t.players.length, 0))
     : 0;
@@ -260,13 +251,7 @@ export function TournamentScreen({ tournament, disciplines, matchingSquads, rost
   return (
     <>
       <PageHeader
-        crumbs={
-          <div className="breadcrumb">
-            <a href="#" onClick={(e) => { e.preventDefault(); onBack(); }}>Games</a>
-            <span className="sep">/</span>
-            <span>{tournament.name}</span>
-          </div>
-        }
+        crumbs={<Breadcrumb crumbs={[{ label: "Games", go: onBack }, { label: tournament.name }]} />}
         title={tournament.name}
         lede={
           <div className="tournament-subtitle">
@@ -289,7 +274,7 @@ export function TournamentScreen({ tournament, disciplines, matchingSquads, rost
         </div>
         <div className="tms-item" role="listitem">
           <span className="tms-label">Status</span>
-          <span className="tms-value">{tournament.status === "draft" ? "Draft" : tournament.status === "active" ? "In progress" : "Complete"}</span>
+          <span className="tms-value">{STATUS_LABEL[tournament.status]}</span>
         </div>
       </div>
 
@@ -350,13 +335,17 @@ export function TournamentScreen({ tournament, disciplines, matchingSquads, rost
               <button type="button" className="btn btn-ghost" onClick={() => void onUndo()}>
                 ↶ Undo last game
               </button>
-              {canResplit && (
-                <span className="status-msg">Re-split is locked after the first result.</span>
-              )}
             </div>
           )}
 
-          {tournament.format === "swiss" ? (
+          {/* Two tournaments, two views. A format that crowns by table renders the
+              table and its rounds; a format that crowns by one last match renders a
+              bracket. Round robin is the first kind — it has no final to play, and its
+              rounds are `Round 1..n` with the last of them no more a final than the
+              first — so it joins Swiss here. `BracketView` labels its last column
+              "Final", and a round robin shown in a bracket would carry that word over a
+              match that does not exist. */}
+          {tournament.format === "swiss" || tournament.format === "round-robin" ? (
             <StandingsView tournament={tournament} onMatch={setRecording} />
           ) : (
             <BracketView tournament={tournament} onMatch={setRecording} />

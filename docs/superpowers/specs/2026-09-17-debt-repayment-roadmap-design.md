@@ -1,11 +1,13 @@
 # comp3tive Debt Repayment Roadmap — 2026-09-17
 
-**Status:** accepted (decisions locked 2026-09-17)
+**Status:** accepted (decisions locked 2026-09-17; **amended 2026-09-28** to add Phase E and reverse
+the backend out-of-scope line — see Scope and D5)
 
 ## Problem Statement
 
 comp3tive's domain core is sound: a real exact-search fairness engine, a disciplined
-glossary, six recorded architecture decisions, and 114 passing unit tests. Everything
+glossary, eight recorded architecture decisions (six at the audit, two added 2026-09-28),
+and 114 passing unit tests. Everything
 around that core has drifted out of step with the product that actually shipped in the
 days after those decisions were written.
 
@@ -31,7 +33,7 @@ Four kinds of debt, each with a different cost:
 
 4. **The structure resists the next feature.** `src/App.tsx` is 1,280 lines with 14
    `useState`, 0 `useMemo`, nine view modes inline, and four copies of the
-   community-scoping rule. 318 lines of dead modules sit in the tree with a *second*
+   community-scoping rule. 415 lines of dead modules sit in the tree with a *second*
    definition of the tournament validation rules. No error boundary exists anywhere, so
    any render throw is a white screen.
 
@@ -43,16 +45,33 @@ satisfaction, in the only step that would bring new users in.
 ## Scope
 
 Everything found in the 2026-09-17 audit: broken behaviour, dishonest claims, stale
-documents, structural debt, and the missing capabilities that close the loop. 37 tickets
-across four phases.
+documents, structural debt, and the missing capabilities that close the loop. 43 tickets
+across five phases.
+
+**Amended 2026-09-28.** A fifth phase was added, and one out-of-scope line was reversed. The
+maintainer's decision: comp3tive keeps working exactly as it does today for a Guest — offline, no
+account, no network — and gains an **optional** Account that is the source of truth for whoever signs
+in, so a lost device, a cleared browser and a second device stop being unrecoverable. The offline
+promise is kept by separating authority from the read path: the server is authoritative, the device
+keeps a write-through cache, and no screen ever waits on the network. ADR-0007 supersedes ADR-0001;
+ADR-0008 fixes the identity model. The design and its decisions live in `.scratch/backend/spec.md`
+and its six tickets, which is where the detail belongs; this roadmap records the order and the
+boundary. The order is A (shipped), B, C, D, E.
 
 **Out of scope for this roadmap:**
 
 - **Extending the solver's proof reach** (making 4-team/20-player provable). Explicitly
   deferred as its own bet per the fairness decision below; it is uncertain work and must
   not block honesty. Tracked as a stretch ticket in Phase B notes.
-- **A backend of any kind.** ADR-0001 stands; this roadmap does not revisit it.
-- **Multi-user, sync, or accounts.** Out of scope per `PRODUCT.md`.
+- **A backend of any kind** — **reversed 2026-09-28.** Phase E is an optional backend, and a
+  signed-in Organizer's Account is the source of truth. No existing feature is withheld from a Guest,
+  and no screen waits on the network: the device keeps a write-through cache, so the offline promise
+  holds for a signed-in Organizer too. What stays out of scope is the row below.
+- **Real-time collaboration, Communities shared between Accounts, server-side aggregates, and a
+  shareable live-bracket link.** The direction is recorded in ADR-0007 ("feature gating is reach,
+  not capability"), but nothing is scheduled. Each needs its own design, and the first two
+  contradict decisions this roadmap already locked: one Account owns its data, and nothing is
+  normalized server-side.
 - **Landing Page visual redesign.** The Ledger composition is settled and its specs pass;
   this roadmap only corrects what it *claims*.
 - **ESLint and a formatter.** A first run against 9,300 lines is a large diff of its own;
@@ -60,8 +79,8 @@ across four phases.
 
 ## Locked Decisions
 
-Four decisions were taken by the maintainer on 2026-09-17. Every phase plan argues from
-these; none may reverse them.
+Five decisions were taken by the maintainer — four on 2026-09-17, D5 on 2026-09-28. Every phase
+plan argues from these; none may reverse them.
 
 | # | Decision | Consequence |
 |---|---|---|
@@ -69,20 +88,23 @@ these; none may reverse them.
 | **D2** | **Community is the noun — fix the UI.** `CONTEXT.md` is authoritative and already bans "squad" for the group, reserving it for Saved Squad. | Phase B3 renames UI strings to "Community". Saved Squad keeps its name. |
 | **D3** | **Add round robin for 3/5/6/7 teams.** | Phase D4 adds a fourth format. Casual nights with 3 or 5 teams can currently split but cannot run a tournament at all. |
 | **D4** | **Ship a real PWA — make the offline promise true.** Manifest + service worker caching both documents and assets, plus self-hosted fonts. | Phase D2 makes the existing claim true rather than removing it. |
+| **D5** | **Optional Account, authoritative for whoever signs in, with the Guest path untouched.** A signed-in Organizer's data lives on a server, so it survives the device; a Guest keeps everything local, and that path is where the funnel is. | Phase E adds an optional Account (ADR-0007, ADR-0008). No existing feature is gated behind signing in. **Authority is not the read path**: the server is the source of truth, but reads still come from IndexedDB, which becomes a write-through cache — so a signed-in Organizer on a court with no signal keeps working. A Community's collections are replaced wholesale, which is what `replaceAllPlayers` and its four siblings already do, and a stale write is rejected rather than merged. |
 
 ## Approach
 
-Four phases, executed in order. Each is an independent sub-project that ships working,
+Five phases, executed in order. Each is an independent sub-project that ships working,
 testable software on its own, and each follows this repo's own conventions: a spec in
 `docs/superpowers/specs/`, tickets in `.scratch/debt/issues/`, an implementation plan in
 `docs/superpowers/plans/`.
 
 ```mermaid
 graph LR
-  A["Phase A<br/>Truth and Trust<br/>12 tickets"] --> B["Phase B<br/>Honest Claims<br/>8 tickets"]
+  A["Phase A<br/>Truth and Trust<br/>12 tickets · SHIPPED"] --> B["Phase B<br/>Honest Claims<br/>8 tickets"]
   A --> C["Phase C<br/>Shell and Structure<br/>10 tickets"]
   B --> D["Phase D<br/>Product Completion<br/>7 tickets"]
   C --> D
+  D --> E["Phase E<br/>Account and Durability<br/>6 tickets"]
+  B -.->|"B14's frozen copy must not land false"| E
 ```
 
 **Why this order.**
@@ -96,7 +118,18 @@ graph LR
   1,280-line component before decomposing it would deepen the debt this roadmap exists to
   clear. D2 (the service worker) and D4 (round robin) touch `App.tsx` and
   `TournamentScreen.tsx` respectively, so C must land first.
-- **B does not block C.** They touch disjoint files; C may begin once A is green.
+- **B does not block C, but B and C are not file-disjoint.** The original wording here claimed they
+  touch disjoint files; that was wrong, and it is corrected 2026-09-28 after `contracts.md` was
+  written. They share `src/App.tsx` (B15's two strings sit inside the region C26 moves) and
+  `src/session/SplitScreen.tsx` (B13 and B15's edits against C26's and C28's). C may begin once A is
+  green, but **run B first**: C gains no critical-path time by starting early, because D is blocked
+  on C either way.
+
+- **E last, because every one of its tickets lands in a file a later phase creates or rewrites.**
+  E03 corrects copy that B14 freezes; E04–E06 add a sign-in surface, and after C that surface
+  belongs in `src/shell/`, not in a 1,315-line `App.tsx`; E05 depends on ticket 34's durability
+  story, which is a Phase D ticket. Sequencing E last satisfies all three without special-casing
+  any of them. The one true cross-phase edge — B's copy must not land false — is drawn above.
 
 **The ratchet.** This roadmap assumes the audit's measurements. If a phase discovers
 complexity the audit missed, the phase stops and says so rather than absorbing it
@@ -170,7 +203,7 @@ only after D lands. Measured baseline to beat: 20 players / 4 teams exhausts the
 **Exit criteria:**
 - `src/App.tsx` is under 400 lines and holds no navigation, scoping, or flow rules.
 - `noUnusedLocals` is on and the tree is clean under it.
-- The 318 lines of dead modules are gone, and exactly one definition of the tournament
+- The 415 lines of dead modules are gone, and exactly one definition of the tournament
   validation rules exists.
 - No native `alert`/`confirm` remains in the app.
 - The Landing Page loads neither the app's JS chunk nor its stylesheet.
@@ -215,6 +248,60 @@ opens on the court.
 | 36 | Roster fast entry: a visible CSV path and bulk rating | *new* |
 | 37 | Make the split defensible in words | *new* |
 
+## Phase E — Account and Durability
+
+**Goal:** the evening survives the device. A Guest is unchanged; an Organizer who signs in gets
+their roster on a second device, and gets it back after losing the first.
+
+**Exit criteria:**
+- Signing in adopts the data already on this device, behind a confirm when the local roster is
+  non-empty.
+- Signing out empties the local stores. An expired token never does.
+- A signed-in Organizer on a court with no signal keeps working: reads come from the local cache,
+  and a failed request degrades a write, never a screen.
+- An edit made offline is either pushed or **asked about** — a rejected write names the Community
+  and never disappears quietly.
+- A push from a second device is rejected when another device changed the data first, with a
+  message naming the conflict.
+- A custom Discipline survives export, import, and a move between devices.
+- **The guest suite is unchanged and green.** Every existing e2e spec runs with no account; any
+  spec that needs editing to accommodate one is evidence the Guest experience moved.
+
+**Tickets (`.scratch/backend/issues/`):**
+
+| # | Ticket | Absorbs |
+|---|---|---|
+| E01 | Backup v5 carries the discipline catalog | *new — a prerequisite, not a follow-up* |
+| E02 | `Player` gains a creation timestamp | *new — "recently added" is physical order today* |
+| E03 | The public claims stop promising no account | amends B14 |
+| E04 | An Account exists (a passkey or Google) | *new* |
+| E05 | Signing in moves the data; signing out clears it | *new* |
+| E06 | The Account stays authoritative across devices (server-first, versioned writes) | *new* |
+
+**Sequencing inside the phase:** E01 → E02 → E03 → E04 → E05 → E06. The first three are pure,
+local, and independently shippable; the feature is usable end to end only after E06.
+
+**Why E03 cannot land before B14.** E03 corrects four public statements that currently promise no
+account — `index.html:9`, `:183`, `:194` and `public/404.html:124` — but B14 freezes the trust row
+as `Your data stays on your device. No account, no server.` If E03 landed first, B14 would restore
+the promise the phase after it takes back. E is sequenced after D, which is after B, so this holds
+by construction.
+
+**The seam does not change shape, which is what makes the authority move affordable.** Writes go
+through the same six store interfaces (`src/storage/types.ts`): every `list*()` keeps taking no
+arguments, Community scoping stays a filter in the React layer, and the server learns which Account
+is asking from the token rather than from the payload. Zero `list*()` call sites change — the six
+stores become a cache's interface rather than the app's window onto the server. A signed-in
+Organizer's data is authoritative on the server; this device's copy is what the UI reads, and it is
+kept current server-first and refreshed on reconnect. The wire format is the backup format, one document per `(account, community)` —
+so there is no second schema, no merge algorithm, and no duplicated validation. Nothing is
+normalized server-side: Player deletion leaves dangling ids by design, and a relational schema
+would reject what the app deliberately does.
+
+**What E is not.** Ticket 34 — the Guest's durability story, the export nudge — stays in Phase D
+and lands before E05. Eviction is a Guest's failure mode; device loss is a signed-in Organizer's.
+The two are complementary, and E does not make 34 redundant.
+
 ## Testing Strategy
 
 The phases differ in how their work is proven, and each plan states its own approach.
@@ -230,6 +317,11 @@ Three rules apply throughout:
   a property of the algorithm, so the test enumerates team-count/round combinations);
   the service worker gets an offline-load assertion.
 
+- **Phase E's Guest path is proven by the suite it must not change.** The existing e2e suite runs
+  with no account and stays green and unmodified. The account lifecycle gets one new spec against
+  a test server, and the stale-push rejection gets a test of its own, because a silent overwrite is
+  the failure no one would report.
+
 ## Risks
 
 | Risk | Impact | Mitigation |
@@ -239,6 +331,7 @@ Three rules apply throughout:
 | The service worker (D2) serves stale assets | Users stuck on an old build — a worse failure than no offline support | Cache versioning keyed to the build hash, plus an explicit update path; assert a fresh deploy is picked up. |
 | Round robin (D4) breaks the existing bracket tests | Three formats' tests pin shared bracket behaviour | Add round robin as a new format branch; do not alter `single-elim` or `swiss` paths. All existing bracket tests stay green. |
 | Honesty work (B) reads as scope reduction | Stakeholder reads "stop claiming optimality" as a downgrade | The engine is unchanged and the proven case stays a strong claim. Provide the measured table. |
+| Phase E's sync silently overwrites an evening's work | Undetectable data loss, and the client carries no field that could detect it | The push is whole-Community and versioned; a stale push is rejected and the Organizer is shown what would be lost and asked, which carries its own test. A failed request is a degraded write, never a broken screen: reads still come from the cache, so the offline promise holds for a signed-in Organizer too |
 
 ## Files
 
@@ -254,16 +347,25 @@ Three rules apply throughout:
 | Create | `docs/superpowers/plans/2026-09-17-shell-and-structure.md` |
 | Create | `docs/superpowers/plans/2026-09-17-product-completion.md` |
 | Create | `.scratch/debt/issues/01-…` … `37-…` |
+| Create | `docs/adr/0007-optional-backend.md`, `docs/adr/0008-account-identity.md` |
+| Create | `.scratch/backend/spec.md`, `.scratch/backend/issues/01-…` … `06-…` |
+| Create | `docs/superpowers/plans/2026-09-28-account-and-durability.md` |
+| Create | `contracts.md` (the cross-phase authority the four specs and four plans cite; missing until 2026-09-28) |
+| Modify | `docs/adr/0001-client-only-first.md` (status: superseded by ADR-0007) |
+| Modify | `CONTEXT.md` (Organizer, Account, Credential, Guest, "On this device" / "In your Account") |
+
+The two ADRs, the backend spec, its six tickets, and the `CONTEXT.md` / ADR-0001 edits are
+authored and staged in the working tree but **not yet committed**; Phase E's plan is not written.
 
 ## Spec Self-Review
 
 - **Placeholders:** none — every ticket names its deliverable, every phase has exit
-  criteria, all four decisions are recorded with their consequences.
+  criteria, all five decisions are recorded with their consequences.
 - **Internal consistency:** the phase order matches the dependency graph; C is not blocked
   by B and is not written as if it were; B1 (provenance) is consistent with the solver
   being untouched, and its stretch note records the measured baseline rather than a wish.
-- **Scope check:** 37 tickets is far too much for one plan, which is why `writing-plans`
-  decomposes it into four plans. Each phase ships independently and has its own exit
+- **Scope check:** 43 tickets is far too much for one plan, which is why `writing-plans`
+  decomposes it into five plans. Each phase ships independently and has its own exit
   criteria.
 - **Ambiguity check:** "no spec edited" (C's refactor rule) is scoped to *behaviour*
   specs — Phase A may rewrite specs because re-anchoring is its whole deliverable. This is

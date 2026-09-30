@@ -1,6 +1,6 @@
 # 13: The split says whether its gap is proven
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **What to build:** The split screen states, in the product's voice, whether the gap it is showing
 was *proven* minimal or is the *best gap the search found* before it stopped — so a 5-team
@@ -105,3 +105,29 @@ today.
 - [ ] `npx vitest run` passes; `npm run e2e` passes with no spec edited
 
 **Blocked by:** —
+
+## Comments
+
+**Status re-checked 2026-09-30 against `feature/revamp` — shipped. `src/session/gapProvenance.ts`
+is the deliverable: `gapKind` at `:22` reads `result.solver.optimal` and nothing else, and
+`gapQualifier` at `:33` returns `null` for proven and `"Best gap found."` otherwise.**
+
+Both render sites changed as specified: `src/session/SplitScreen.tsx:170` (the 2-team pitch path)
+and `:392` (the 3+ team stack), with the qualifier riding inside the existing
+`<span className="fine">`. The proven path emits no provenance word. No solver file was modified —
+`git log -- src/solver/solver.ts` shows one commit, `45f2eed init commit`.
+
+**Measured with the shipped code** (`freshSplit` over the exact `ROSTER` in
+`src/landing.tsx:19-30`): **gap 0.10, `optimal: true`, 51 nodes, `gapKind` `proven`, qualifier
+`null`** — so acceptance row 3 holds and `index.html:120`'s `0.10` is the solver's real output. The
+best-found path is equally live: the shipped futsal sample at 25 players / 4 teams measures
+`optimal: false`, 4,000,001 nodes, `gapKind` `best-found`.
+
+**One row of this ticket is no longer measurable as written, and the reason is ticket 20.** The
+evidence table and acceptance row 4 measure the shipped MLBB sample at `optimal: false`,
+4,000,001 nodes, gap 0.350, and ask for `Gap 0.4 … Best gap found.`. The current
+`sample-data/mpl-id-roster.json` through the shipped solver gives **gap 0.000, `optimal: true`,
+2 nodes** — ticket 20 deliberately rebuilt that sample so the default split is fully provable. The
+shipped MLBB sample therefore no longer exercises the best-found path at all, and this ticket's
+acceptance row cannot be checked against it. The mechanism is intact and was verified against the
+futsal pool instead, as cited above.

@@ -1,6 +1,6 @@
 # 07: Swiss pairs without rematches and crowns by play
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **What to build:** A Swiss round never repeats a pairing when a legal alternative exists, and two teams on the same win record are separated by what they did in the tournament rather than by how strong they were before it started.
 
@@ -38,3 +38,11 @@ Taking first-fit strands the final pair. Fuzzing every legal outcome pattern: **
 **Blocked by:** —
 
 **Design reference:** the file header at `src/tournament/bracket.ts:3-15` states the conventions — teams in seed order, deterministic match ids `m-<round>-<position>`, round one generated at build time and subsequent rounds on completion. The fix must not disturb them.
+
+## Comments
+
+Resolved by commit `feb79b7` ("fix: swiss pairs without rematches and crowns by play") and completed by `39582a6` ("fix: state the standings residue and pin the last-resort pairing").
+
+`selectPairing` (`src/tournament/bracket.ts:168-198`) searches for a rematch-free pairing when one exists, and the last-resort branch carries its own explicit `null` handling and comment (`:210-218`). `roundsFor` and the seeding are untouched (`:52-54`). The crowning sort is now wins -> head-to-head (only when exactly two teams tie) -> game difference -> game wins -> id (`:373-384`); `team.strength` no longer appears in the comparator.
+
+`src/tournament/bracket.test.ts:302-375` enumerates the pattern exhaustively against an independent brute-force oracle (`:336-343`); `:377-412` is the three-way tie fixture. Two notes on the ticket's own text: the pattern counts it asks for (16/64/256) are unreachable for a 4-team Swiss, which runs `ceil(log2 4)` = 2 rounds, so the test correctly asserts 4/64/256; and the original `docs/spec/0002-tournaments-v1.md` lines that described the removed strength tiebreak are ticket 16's, not this one's — Phase A's ledger flags that they must be corrected there or B16 lands and the document still lies.

@@ -2,6 +2,26 @@
 
 comp3tive is a tool for managing a roster of players and assembling balanced teams from that roster across multiple activities (futsal, MLBB, badminton, and more to come).
 
+**Organizer**:
+The person who uses comp3tive: they own the roster, the communities and the results. One Organizer may hold several Communities. An Organizer is not a Player (the Player is on the roster, the Organizer runs it), and an Organizer may use the app with or without an Account.
+_Avoid_: user (reserved against Player), owner, admin, account holder
+
+**Account**:
+The Organizer's own record on the server, created on first sign-in and identified by an opaque id of its own. It owns that Organizer's Communities, and it is what makes their data survive a lost device, a cleared browser and a second device. An Account is optional: without one the app is unchanged and everything stays on the device. An email address is an attribute of an Account, used to find it and to reach its owner, never what an Account is keyed on.
+_Avoid_: profile (a Community is the profile), login, user (reserved against Player), email address (an attribute, not the identity)
+
+**Credential**:
+A way into an Account. Two kinds exist: a passkey, which the Organizer's device holds and the server records the public half of, and a linked Google identity. One Account may have several Credentials, and adding one to an existing Account is an explicit act by the Organizer who is already signed in, never inferred from a matching email address.
+_Avoid_: login method, sign-in option, password (there are none), provider
+
+**Guest**:
+An Organizer who has not signed in, or who has signed out. Their data lives only on the device, is never sent anywhere, and is exposed to browser eviction — which is why export is their durability story. Guest is a state of the data, not a lesser kind of person: every feature that does not need a server works identically.
+_Avoid_: anonymous user, free user, unregistered, visitor (a visitor is on the Landing Page and may never open the app)
+
+**On this device** / **In your Account**:
+The two states of an Organizer's data, and the words for the difference between them. "On this device" means local only, the guest state: this device holds the only copy and nothing is sent anywhere. "In your Account" means the Account's server holds the authoritative copy — the device keeps a cached copy for reading, which is why the app still opens on a court with no signal — so the data survives a lost device and appears on a second one. The distinction is where the data lives and who decides its contents, never what the tool can do.
+_Avoid_: local mode, cloud mode, synced, unsynced, online, offline (offline describes the network, not the data), cached (describes the device's copy, never the Account's)
+
 **Community**:
 A profile in the app with its own squad and history. Every player, session, tournament, and saved squad belongs to exactly one community; records are never shared across communities, and every screen that lists records shows only the active community's.
 _Avoid_: group, club, team, profile
@@ -11,7 +31,7 @@ The hub the app opens on. It shows the active community's state at a glance — 
 _Avoid_: home screen (the bottom-nav label is Home; the screen's h1 is Dashboard), overview, landing page (see Landing Page — the public page, not this one)
 
 **Recent Player**:
-One of the most recently added players on the active community's roster, surfaced as a Dashboard teaser (name + the disciplines they can play). "Recently added" means last in the roster's insertion order; a Player carries no creation timestamp.
+One of the most recently added players on the active community's roster, surfaced as a Dashboard teaser (name + the disciplines they can play). "Recently added" means the latest `Player.createdAt`, so a Player carries a creation timestamp even though nothing else about them is time-ordered.
 _Avoid_: newest player, latest player
 
 **Active Tournament**:
@@ -55,7 +75,7 @@ _Avoid_: position, lane, slot
 ### Sessions & teams
 
 **Tournament**:
-A competition container created before teams are split: it fixes a discipline, a format (Series, single elimination, Swiss), a series length, and a target team count. Teams from the split are submitted into it, and match results and progress are saved inside it.
+A competition container created before teams are split: it fixes a discipline, a format (Series, single elimination, Swiss, round robin), a series length, and a target team count. Teams from the split are submitted into it, and match results and progress are saved inside it.
 _Avoid_: room, game room, tourney, competition, bracket (bracket = the visual form, not the entity)
 
 **Match**:

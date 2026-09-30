@@ -1,6 +1,6 @@
 # 16: Reconcile the documents that contradict the code
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **What to build:** Every document a human or an agent reads states what the shipped app actually
 does. `docs/FLOW.md` is the worst offender because it calls itself "the contract"; `docs/spec/0002`
@@ -135,3 +135,148 @@ this ticket records the reasoning rather than silently dropping the row.
 
 **Not in scope:** `docs/adr/0002` and `docs/adr/0004` belong to ticket 18; `docs/design.md` belongs
 to ticket 17.
+
+## Comments
+
+**Document edits landed.** `docs/FLOW.md` is retitled, says five hubs with a five-row table in
+the shipped `NAV_ITEMS` order, and names the tournaments hub **Games** at all eleven occurrences
+(`:32`, `:48`, `:85`, `:87`, `:90`, `:129`, `:146`, `:147`, `:162`, `:176`, `:188`) — `grep -n
+"Tournaments" docs/FLOW.md` returns nothing, and the lowercase container noun survives (20
+occurrences). `docs/spec/0002-tournaments-v1.md` carries a status line, DB **v7**, backup v4, a
+Data Model matching `src/domain/types.ts` (`players: Id[]`, tournament-level `seriesLength`,
+`winnerNext`/`loserNext`, tournament-level `thirdPlace`), and the Games tab's real neighbours.
+`docs/superpowers/plans/2026-09-10-paper-pencil-redesign.md:9` no longer claims Tailwind.
+
+**Three corrections this ticket's evidence table did not anticipate.**
+
+1. **DB v6 → v7, not v5 → v6.** The evidence row cites `DB_VERSION = 6`
+   (`src/storage/indexed-db.ts:18`); the shipped constant is `7` (`:19`), bumped by the
+   badminton seed backfill. The spec was corrected to v7, not to the v6 the ticket assumed.
+2. **The hub is not centred.** The ticket and the plan both say "five hubs with **Home**
+   centred". `NAV_ITEMS` (`src/App.tsx:63-69`) is `[Home, Roster, Games, History, Squads]` and
+   both the rail (`:815`) and the bottom bar (`:1300`) render that array in order, with no CSS
+   `order` anywhere in `src/index.css`. Commit `1702342` shipped Home **first**;
+   `.scratch/team-builder/dashboard/issues/03` already records "the centering claim is
+   superseded". `docs/FLOW.md` §1 is therefore written in the shipped order and says so. The
+   Games tab's neighbours are **Roster and History**, not "Home and History".
+3. **The Games empty state is quoted wrong in the spec.** It read
+   `"No games yet. Create a tournament and split your teams."`; the screen renders
+   `"No games yet"` / `"Run a competition"` / `"Create a tournament, set the format, and split
+   your teams inside it."` (`src/tournament/GamesScreen.tsx:138-145`). Corrected, because the
+   alternative was to re-land a quote the code does not produce.
+
+**`DOMAIN_MODEL.md` moved; `IMPLEMENTATION_PLAN.md` did not.** `docs/archive/DOMAIN_MODEL.md`
+carries the superseded banner (292 lines: 289 plus the banner and its separating blank).
+`IMPLEMENTATION_PLAN.md` **stays at the repo root, unmodified.** It is not the frozen 2026-09-17
+artifact this ticket's table describes: it was rewritten on 2026-09-28 as the live current-state
+index of the whole five-phase programme and now carries the known-open items table, so a
+"superseded, describes work that has shipped" banner would be false of it. Recording the
+decision here rather than in the file.
+
+**Owner confirmation.** This ticket requires it for the two moves, and none was recorded in a
+`## Comments` section before the task ran — the ticket had none. `DOMAIN_MODEL.md` was moved on
+the phase owner's explicit ruling to archive that file alone; it is a move, not a deletion, and
+no content was lost. `IMPLEMENTATION_PLAN.md` and `COMP3TIVE_COMPREHENSIVE_ANALYSIS.md` were not
+touched. If a recorded owner answer is required for the record, it is still outstanding.
+
+**`COMP3TIVE_COMPREHENSIVE_ANALYSIS.md` deliberately unedited, per this ticket's disposition.**
+It still names `DOMAIN_MODEL.md` and `IMPLEMENTATION_PLAN.md` in its root-filesystem tree
+(`:132-133`, `:1391`) and its drift tables (`:1248`, `:1250`, `:1251`), which is the point of
+keeping a dated snapshot. Two of its statements are nevertheless now stale rather than merely
+historical: `:365` and `:1247` say "the current code is v6/v4" (it is v7/v4), and `:1245` says
+"Five hubs with Home centered" (Home is first). Flagged, not edited — the file is dated evidence
+and this ticket's table keeps it unchanged.
+
+**Breadcrumb rule left normative.** `:10` (P1) and `:77` ("Breadcrumbs are links") are
+unchanged. Two of the three hand-rolled crumb sites already navigate
+(`src/session/MatchScreen.tsx:41-45`, `src/tournament/TournamentScreen.tsx:263-269`); only
+`src/session/SplitScreen.tsx`'s is dead. §3 now carries a forward note naming that site and
+ticket 28, plus a sentence recording that every screen renders two segments, not the full chain.
+No follow-up edit is owed to either line.
+
+**Acceptance rows that are now stale, left as written.** "`docs/FLOW.md` §3 says breadcrumbs are
+labels and Back is the control" is **not** what landed, on purpose: that statement is false in
+the opposite direction. See the breadcrumb note above.
+
+**`docs/spec/0001-team-builder-v1.md:94`** already reads "the catalog is extensible, but only
+Futsal, MLBB and Badminton ship in v1" — corrected by ticket 19 in an earlier commit. Verified,
+left alone.
+
+**`docs/agents/*` verified unchanged**; `docs/agents/domain.md` points at `CONTEXT.md` and
+`docs/adr/`, both of which survive.
+
+### Review round 1 — prescribed sentences that were false of the shipped build
+
+The first pass followed the plan's wording wherever the wording was not itself wrong. It was
+wrong in four places, and holding "the brief said so" alongside "it is true of the code" is what
+found them. All four are corrected; the corrections are in the next commit.
+
+**1. `docs/FLOW.md` claimed a crumb string no screen renders.** The first pass wrote that "a
+tournament split shows `Games / Split result`". It does not. `SplitScreen`'s crumb block
+(`src/session/SplitScreen.tsx:316-320`) hardcodes `Match setup / Split result` whatever the
+source, so the sentence also contradicted its own rule one clause earlier — the last two
+segments of `Games / {name} / Match setup / Split result` *are* `Match setup / Split result`.
+Now: the three crumb sites and their exact separators are named (`:43`, `:318`, `:266`), the two
+leaves that render no breadcrumb are named, and the "Ticket 28 keeps the rendered depth at two"
+attribution is dropped, since ticket 28 says nothing about depth.
+
+**2. The Disciplines leaf was documented as a Roster child, and it is a Games one.** The file
+claimed Roster at five places (`:31`, `:50`, `:92`, `:106`, `:171`) while the previous commit's
+own new line in `docs/spec/0002:33` said Games — the file contradicted itself and one of the two
+contradicted the code. The only entry point is the Games hub's toolbar button
+(`src/tournament/GamesScreen.tsx:134-136` → `src/App.tsx:1175`); the Roster hub has no
+Disciplines control and `showDisciplines` (`src/App.tsx:695-697`) has no caller. `docs/FLOW.md`
+was the wrong one. All five sites corrected, and the Disciplines leaf's back target is now
+stated as the literal `Back` button it renders rather than a `Back / breadcrumb` row.
+
+**3. `COMP3TIVE_COMPREHENSIVE_ANALYSIS.md` gained one line and nothing else.** A dated
+snapshot note under the title, saying the findings are as-of 2026-09-11 and that several have
+since been fixed. This resolves the tension the previous pass recorded: the file is kept
+unchanged *as evidence*, and a reader can no longer mistake `:365`, `:1245` and `:1247` for
+live claims. Its body is untouched.
+
+**4. `docs/spec/0002:67` said backup v4 "adds" `tournaments[]`.** v3 added tournaments
+(`src/data/transfer.ts:6`); v4 carries both. Now "carries", with the v3 and v4 attributions
+stated.
+
+**Path drift this move created, in a later phase's plan.** `docs/superpowers/plans/2026-09-17-shell-and-structure.md`
+tests `-e DOMAIN_MODEL.md` in its smoke loop, which would have printed `MISSING PATH` during
+Phase C. Corrected to `docs/archive/DOMAIN_MODEL.md` in the loop (`:2997`) and in the knowledge
+table (`:2977`, which also said "Six numbered decisions" for `docs/adr/`; there are eight).
+Recorded here because the phase's own file list is otherwise silently wrong: `DOMAIN_MODEL.md`
+no longer exists at the root.
+
+**Also fixed, in documents this phase already touched.** `docs/FLOW.md` gained a `**Reconciled:**`
+date (`:4`); the §4 edge table gained the `### Home (hub)` table its heading's "complete" was
+promising, built from `DashboardScreen`'s real actions, so the two player-modal entries record
+the `gotoHub("roster")` hop the handlers actually make; the History and Squads empty states now
+quote their shipped copy, matching the standard the Games row was held to in the previous
+commit. And the dead-crumb note's reasoning was wrong: the first pass said the crumb is dead
+"because a `session` or `squad` split has no match-setup screen beneath it", which the code does
+not support — `SplitScreen` takes `onBack`, `src/App.tsx:1228` passes it, and a working `← Back`
+button renders at `:397-399`. The defect is the crumb, not a missing affordance, and the note now
+says that with the cites corrected (`:316-320` for the block; the old `:293-297` was stale).
+
+**Status re-checked 2026-09-30 against `feature/revamp` — shipped. Every document this ticket
+owned now states what the code does, and the two moves it gated on an owner were settled
+explicitly.**
+
+`docs/FLOW.md:1` is `# comp3tive · Page Flow` with no "(as-to-be)", `:27` says five bottom-nav
+hubs, and `grep -n "Tournaments" docs/FLOW.md` returns nothing — the hub is named **Games** at all
+eleven occurrences, matching `NAV_ITEMS` and `GamesScreen`'s own h1. `docs/spec/0002-tournaments-v1.md:3`
+carries a status line, `:67` states DB **v7** and backup v4 with the v3/v4 attributions, and its
+Data Model matches `src/domain/types.ts` (`players: Id[]`, tournament-level `seriesLength` and
+`thirdPlace`, `winnerNext`/`loserNext`). The Tailwind claim is gone from the paper-pencil plan.
+`docs/archive/DOMAIN_MODEL.md` carries the superseded banner, and `IMPLEMENTATION_PLAN.md` was
+deliberately left in place because it had been rewritten as the live index — the ticket's own
+`## Comments` above records that decision and that `DOMAIN_MODEL.md`'s move was made on the phase
+owner's explicit ruling.
+
+**Two acceptance rows read differently from what landed, and both were deliberate, as this
+ticket's own `## Comments` records.** The breadcrumb row was left normative rather than rewritten
+to "labels, not links" — landing ticket 28 first made the document's original claim true, so
+codifying the gap would have been the wrong fix. And `grep -rn "as-to-be\|Four bottom-nav\|DB v5\|
+Backup v3\|nextMatchId" docs/ *.md` does not return nothing, because the six files that still match
+are the plan, the spec, this ticket, its predecessor, the dated analysis document and the
+inheritance chain — every one naming the old text as the thing being corrected, which is the same
+argument ticket 18 makes about `nextMatchId`.

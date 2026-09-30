@@ -1,527 +1,527 @@
 {
   "version": 1,
-  "exportedAt": "2026-08-20T16:54:59.496Z",
+  "exportedAt": "2026-09-17T00:00:00.000Z",
   "players": [
     {
-      "id": "kairi",
-      "name": "Kairi",
-      "notes": "ONIC · Jungle",
+      "id": "mlbb-01",
+      "name": "Kiww",
+      "notes": "Ranked squad",
       "capabilities": [
         {
           "disciplineId": "mlbb",
           "attributeRatings": {
-            "mechanics": 5,
-            "game-sense": 5,
+            "mechanics": 2,
+            "game-sense": 3,
+            "hero-pool": 4,
+            "teamwork": 5
+          },
+          "eligibleRoles": [
+            "tank",
+            "mage"
+          ],
+          "preferredRole": "tank"
+        }
+      ]
+    },
+    {
+      "id": "mlbb-02",
+      "name": "Jendral",
+      "notes": "Ranked squad",
+      "capabilities": [
+        {
+          "disciplineId": "mlbb",
+          "attributeRatings": {
+            "mechanics": 3,
+            "game-sense": 4,
             "hero-pool": 5,
-            "teamwork": 4
+            "teamwork": 2
           },
           "eligibleRoles": [
             "assassin",
-            "fighter"
+            "marksman"
           ],
           "preferredRole": "assassin"
         }
       ]
     },
     {
-      "id": "cw",
-      "name": "CW",
-      "notes": "ONIC · Mid",
-      "capabilities": [
-        {
-          "disciplineId": "mlbb",
-          "attributeRatings": {
-            "mechanics": 5,
-            "game-sense": 4,
-            "hero-pool": 4,
-            "teamwork": 5
-          },
-          "eligibleRoles": [
-            "mage",
-            "tank"
-          ],
-          "preferredRole": "mage"
-        }
-      ]
-    },
-    {
-      "id": "butsss",
-      "name": "Butsss",
-      "notes": "ONIC · EXP",
+      "id": "mlbb-03",
+      "name": "Saber",
+      "notes": "Ranked squad",
       "capabilities": [
         {
           "disciplineId": "mlbb",
           "attributeRatings": {
             "mechanics": 4,
             "game-sense": 5,
-            "hero-pool": 4,
+            "hero-pool": 2,
+            "teamwork": 3
+          },
+          "eligibleRoles": [
+            "mage",
+            "fighter"
+          ],
+          "preferredRole": "mage"
+        }
+      ]
+    },
+    {
+      "id": "mlbb-04",
+      "name": "Lumos",
+      "notes": "Ranked squad",
+      "capabilities": [
+        {
+          "disciplineId": "mlbb",
+          "attributeRatings": {
+            "mechanics": 5,
+            "game-sense": 2,
+            "hero-pool": 3,
             "teamwork": 4
           },
           "eligibleRoles": [
-            "fighter",
+            "marksman",
             "tank"
+          ],
+          "preferredRole": "marksman"
+        }
+      ]
+    },
+    {
+      "id": "mlbb-05",
+      "name": "Renz",
+      "notes": "Ranked squad",
+      "capabilities": [
+        {
+          "disciplineId": "mlbb",
+          "attributeRatings": {
+            "mechanics": 2,
+            "game-sense": 3,
+            "hero-pool": 4,
+            "teamwork": 5
+          },
+          "eligibleRoles": [
+            "fighter",
+            "assassin"
           ],
           "preferredRole": "fighter"
         }
       ]
     },
     {
-      "id": "kiboy",
-      "name": "Kiboy",
-      "notes": "ONIC · Roam",
+      "id": "mlbb-06",
+      "name": "Vandal",
+      "notes": "Ranked squad",
       "capabilities": [
         {
           "disciplineId": "mlbb",
           "attributeRatings": {
-            "mechanics": 4,
-            "game-sense": 5,
-            "hero-pool": 4,
-            "teamwork": 5
+            "mechanics": 3,
+            "game-sense": 4,
+            "hero-pool": 5,
+            "teamwork": 2
           },
           "eligibleRoles": [
             "tank",
-            "fighter"
+            "mage"
           ],
           "preferredRole": "tank"
         }
       ]
     },
     {
-      "id": "drian",
-      "name": "Drian",
-      "notes": "ONIC · Gold",
+      "id": "mlbb-07",
+      "name": "Ozzy",
+      "notes": "Ranked squad",
       "capabilities": [
         {
           "disciplineId": "mlbb",
           "attributeRatings": {
-            "mechanics": 5,
-            "game-sense": 4,
-            "hero-pool": 5,
-            "teamwork": 4
-          },
-          "eligibleRoles": [
-            "marksman",
-            "assassin"
-          ],
-          "preferredRole": "marksman"
-        }
-      ]
-    },
-    {
-      "id": "cr1te",
-      "name": "Cr1te",
-      "notes": "RRQ · Jungle",
-      "capabilities": [
-        {
-          "disciplineId": "mlbb",
-          "attributeRatings": {
-            "mechanics": 5,
-            "game-sense": 4,
-            "hero-pool": 5,
-            "teamwork": 4
+            "mechanics": 4,
+            "game-sense": 5,
+            "hero-pool": 2,
+            "teamwork": 3
           },
           "eligibleRoles": [
             "assassin",
-            "fighter"
+            "marksman"
           ],
           "preferredRole": "assassin"
         }
       ]
     },
     {
-      "id": "lemon",
-      "name": "Lemon",
-      "notes": "RRQ · Mid",
+      "id": "mlbb-08",
+      "name": "Kenz",
+      "notes": "Ranked squad",
       "capabilities": [
         {
           "disciplineId": "mlbb",
           "attributeRatings": {
             "mechanics": 5,
-            "game-sense": 5,
-            "hero-pool": 4,
+            "game-sense": 2,
+            "hero-pool": 3,
             "teamwork": 4
           },
           "eligibleRoles": [
             "mage",
-            "tank"
+            "fighter"
           ],
           "preferredRole": "mage"
         }
       ]
     },
     {
-      "id": "albert",
-      "name": "Albert",
-      "notes": "RRQ · EXP",
+      "id": "mlbb-09",
+      "name": "Ryuu",
+      "notes": "Ranked squad",
       "capabilities": [
         {
           "disciplineId": "mlbb",
           "attributeRatings": {
-            "mechanics": 4,
+            "mechanics": 2,
+            "game-sense": 3,
+            "hero-pool": 4,
+            "teamwork": 5
+          },
+          "eligibleRoles": [
+            "marksman",
+            "tank"
+          ],
+          "preferredRole": "marksman"
+        }
+      ]
+    },
+    {
+      "id": "mlbb-10",
+      "name": "Taka",
+      "notes": "Ranked squad",
+      "capabilities": [
+        {
+          "disciplineId": "mlbb",
+          "attributeRatings": {
+            "mechanics": 3,
             "game-sense": 4,
             "hero-pool": 5,
-            "teamwork": 4
+            "teamwork": 2
           },
           "eligibleRoles": [
             "fighter",
-            "tank"
+            "assassin"
           ],
           "preferredRole": "fighter"
         }
       ]
     },
     {
-      "id": "vyn",
-      "name": "Vyn",
-      "notes": "RRQ · Roam",
+      "id": "mlbb-11",
+      "name": "Nori",
+      "notes": "Ranked squad",
       "capabilities": [
         {
           "disciplineId": "mlbb",
           "attributeRatings": {
             "mechanics": 4,
             "game-sense": 5,
-            "hero-pool": 5,
-            "teamwork": 5
+            "hero-pool": 2,
+            "teamwork": 3
           },
           "eligibleRoles": [
             "tank",
-            "fighter"
+            "mage"
           ],
           "preferredRole": "tank"
         }
       ]
     },
     {
-      "id": "r7",
-      "name": "R7",
-      "notes": "RRQ · Gold",
+      "id": "mlbb-12",
+      "name": "Zeke",
+      "notes": "Ranked squad",
       "capabilities": [
         {
           "disciplineId": "mlbb",
           "attributeRatings": {
             "mechanics": 5,
-            "game-sense": 4,
-            "hero-pool": 4,
-            "teamwork": 4
-          },
-          "eligibleRoles": [
-            "marksman",
-            "assassin"
-          ],
-          "preferredRole": "marksman"
-        }
-      ]
-    },
-    {
-      "id": "wannn",
-      "name": "Wannn",
-      "notes": "EVOS · Jungle",
-      "capabilities": [
-        {
-          "disciplineId": "mlbb",
-          "attributeRatings": {
-            "mechanics": 5,
-            "game-sense": 5,
-            "hero-pool": 5,
+            "game-sense": 2,
+            "hero-pool": 3,
             "teamwork": 4
           },
           "eligibleRoles": [
             "assassin",
-            "fighter"
+            "marksman"
           ],
           "preferredRole": "assassin"
         }
       ]
     },
     {
-      "id": "ferxiic",
-      "name": "Ferxiic",
-      "notes": "EVOS · Mid",
+      "id": "mlbb-13",
+      "name": "Panca",
+      "notes": "Ranked squad",
       "capabilities": [
         {
           "disciplineId": "mlbb",
           "attributeRatings": {
-            "mechanics": 5,
-            "game-sense": 4,
+            "mechanics": 2,
+            "game-sense": 3,
             "hero-pool": 4,
-            "teamwork": 4
+            "teamwork": 5
           },
           "eligibleRoles": [
             "mage",
-            "tank"
+            "fighter"
           ],
           "preferredRole": "mage"
         }
       ]
     },
     {
-      "id": "oura",
-      "name": "Oura",
-      "notes": "EVOS · EXP",
+      "id": "mlbb-14",
+      "name": "Vier",
+      "notes": "Ranked squad",
+      "capabilities": [
+        {
+          "disciplineId": "mlbb",
+          "attributeRatings": {
+            "mechanics": 3,
+            "game-sense": 4,
+            "hero-pool": 5,
+            "teamwork": 2
+          },
+          "eligibleRoles": [
+            "marksman",
+            "tank"
+          ],
+          "preferredRole": "marksman"
+        }
+      ]
+    },
+    {
+      "id": "mlbb-15",
+      "name": "Monz",
+      "notes": "Ranked squad",
       "capabilities": [
         {
           "disciplineId": "mlbb",
           "attributeRatings": {
             "mechanics": 4,
             "game-sense": 5,
-            "hero-pool": 5,
-            "teamwork": 4
+            "hero-pool": 2,
+            "teamwork": 3
           },
           "eligibleRoles": [
             "fighter",
-            "tank"
+            "assassin"
           ],
           "preferredRole": "fighter"
         }
       ]
     },
     {
-      "id": "clover",
-      "name": "Clover",
-      "notes": "EVOS · Roam",
+      "id": "mlbb-16",
+      "name": "Kuro",
+      "notes": "Ranked squad",
       "capabilities": [
         {
           "disciplineId": "mlbb",
           "attributeRatings": {
-            "mechanics": 4,
-            "game-sense": 5,
-            "hero-pool": 4,
-            "teamwork": 5
+            "mechanics": 5,
+            "game-sense": 2,
+            "hero-pool": 3,
+            "teamwork": 4
           },
           "eligibleRoles": [
             "tank",
-            "fighter"
+            "mage"
           ],
           "preferredRole": "tank"
         }
       ]
     },
     {
-      "id": "luminaire",
-      "name": "Luminaire",
-      "notes": "EVOS · Gold",
+      "id": "mlbb-17",
+      "name": "Kaze",
+      "notes": "Ranked squad",
       "capabilities": [
         {
           "disciplineId": "mlbb",
           "attributeRatings": {
-            "mechanics": 5,
-            "game-sense": 4,
-            "hero-pool": 5,
-            "teamwork": 4
-          },
-          "eligibleRoles": [
-            "marksman",
-            "assassin"
-          ],
-          "preferredRole": "marksman"
-        }
-      ]
-    },
-    {
-      "id": "udil",
-      "name": "Udil",
-      "notes": "Alter Ego · Jungle",
-      "capabilities": [
-        {
-          "disciplineId": "mlbb",
-          "attributeRatings": {
-            "mechanics": 5,
-            "game-sense": 4,
+            "mechanics": 2,
+            "game-sense": 3,
             "hero-pool": 4,
-            "teamwork": 4
+            "teamwork": 5
           },
           "eligibleRoles": [
             "assassin",
-            "fighter"
+            "marksman"
           ],
           "preferredRole": "assassin"
         }
       ]
     },
     {
-      "id": "celiboy",
-      "name": "Celiboy",
-      "notes": "Alter Ego · Mid",
+      "id": "mlbb-18",
+      "name": "Sora",
+      "notes": "Ranked squad",
       "capabilities": [
         {
           "disciplineId": "mlbb",
           "attributeRatings": {
-            "mechanics": 5,
-            "game-sense": 5,
-            "hero-pool": 4,
-            "teamwork": 4
+            "mechanics": 3,
+            "game-sense": 4,
+            "hero-pool": 5,
+            "teamwork": 2
           },
           "eligibleRoles": [
             "mage",
-            "tank"
+            "fighter"
           ],
           "preferredRole": "mage"
         }
       ]
     },
     {
-      "id": "nino",
-      "name": "Nino",
-      "notes": "Alter Ego · Roam",
+      "id": "mlbb-19",
+      "name": "Volt",
+      "notes": "Ranked squad",
       "capabilities": [
         {
           "disciplineId": "mlbb",
           "attributeRatings": {
             "mechanics": 4,
-            "game-sense": 4,
-            "hero-pool": 5,
-            "teamwork": 4
-          },
-          "eligibleRoles": [
-            "tank",
-            "fighter"
-          ],
-          "preferredRole": "tank"
-        }
-      ]
-    },
-    {
-      "id": "ahmad",
-      "name": "Ahmad",
-      "notes": "Alter Ego · Gold",
-      "capabilities": [
-        {
-          "disciplineId": "mlbb",
-          "attributeRatings": {
-            "mechanics": 4,
-            "game-sense": 4,
-            "hero-pool": 4,
-            "teamwork": 5
+            "game-sense": 5,
+            "hero-pool": 2,
+            "teamwork": 3
           },
           "eligibleRoles": [
             "marksman",
-            "assassin"
+            "tank"
           ],
           "preferredRole": "marksman"
         }
       ]
     },
     {
-      "id": "pai",
-      "name": "PAI",
-      "notes": "Alter Ego · EXP",
+      "id": "mlbb-20",
+      "name": "Refa",
+      "notes": "Ranked squad",
       "capabilities": [
         {
           "disciplineId": "mlbb",
           "attributeRatings": {
-            "mechanics": 4,
-            "game-sense": 4,
-            "hero-pool": 5,
+            "mechanics": 5,
+            "game-sense": 2,
+            "hero-pool": 3,
             "teamwork": 4
           },
           "eligibleRoles": [
             "fighter",
-            "tank"
+            "assassin"
           ],
           "preferredRole": "fighter"
         }
       ]
     },
     {
-      "id": "high",
-      "name": "High",
-      "notes": "Aura Fire · Jungle",
+      "id": "mlbb-21",
+      "name": "Tora",
+      "notes": "Ranked squad",
       "capabilities": [
         {
           "disciplineId": "mlbb",
           "attributeRatings": {
-            "mechanics": 5,
-            "game-sense": 4,
-            "hero-pool": 5,
-            "teamwork": 4
-          },
-          "eligibleRoles": [
-            "assassin",
-            "fighter"
-          ],
-          "preferredRole": "assassin"
-        }
-      ]
-    },
-    {
-      "id": "blustine",
-      "name": "Blustine",
-      "notes": "Aura Fire · Mid",
-      "capabilities": [
-        {
-          "disciplineId": "mlbb",
-          "attributeRatings": {
-            "mechanics": 4,
-            "game-sense": 5,
+            "mechanics": 2,
+            "game-sense": 3,
             "hero-pool": 4,
-            "teamwork": 4
-          },
-          "eligibleRoles": [
-            "mage",
-            "tank"
-          ],
-          "preferredRole": "mage"
-        }
-      ]
-    },
-    {
-      "id": "kabuki",
-      "name": "Kabuki",
-      "notes": "Aura Fire · Roam",
-      "capabilities": [
-        {
-          "disciplineId": "mlbb",
-          "attributeRatings": {
-            "mechanics": 4,
-            "game-sense": 5,
-            "hero-pool": 5,
             "teamwork": 5
           },
           "eligibleRoles": [
             "tank",
-            "fighter"
+            "mage"
           ],
           "preferredRole": "tank"
         }
       ]
     },
     {
-      "id": "facehugger",
-      "name": "FaceHugger",
-      "notes": "Aura Fire · Gold",
+      "id": "mlbb-22",
+      "name": "Wira",
+      "notes": "Ranked squad",
+      "capabilities": [
+        {
+          "disciplineId": "mlbb",
+          "attributeRatings": {
+            "mechanics": 3,
+            "game-sense": 4,
+            "hero-pool": 5,
+            "teamwork": 2
+          },
+          "eligibleRoles": [
+            "assassin",
+            "marksman"
+          ],
+          "preferredRole": "assassin"
+        }
+      ]
+    },
+    {
+      "id": "mlbb-23",
+      "name": "Yuki",
+      "notes": "Ranked squad",
+      "capabilities": [
+        {
+          "disciplineId": "mlbb",
+          "attributeRatings": {
+            "mechanics": 4,
+            "game-sense": 5,
+            "hero-pool": 2,
+            "teamwork": 3
+          },
+          "eligibleRoles": [
+            "mage",
+            "fighter"
+          ],
+          "preferredRole": "mage"
+        }
+      ]
+    },
+    {
+      "id": "mlbb-24",
+      "name": "Zenn",
+      "notes": "Ranked squad",
       "capabilities": [
         {
           "disciplineId": "mlbb",
           "attributeRatings": {
             "mechanics": 5,
-            "game-sense": 4,
-            "hero-pool": 4,
+            "game-sense": 2,
+            "hero-pool": 3,
             "teamwork": 4
           },
           "eligibleRoles": [
             "marksman",
-            "assassin"
+            "tank"
           ],
           "preferredRole": "marksman"
         }
       ]
     },
     {
-      "id": "varius",
-      "name": "Varius",
-      "notes": "Aura Fire · EXP",
+      "id": "mlbb-25",
+      "name": "Ari",
+      "notes": "Ranked squad",
       "capabilities": [
         {
           "disciplineId": "mlbb",
           "attributeRatings": {
-            "mechanics": 4,
-            "game-sense": 4,
+            "mechanics": 2,
+            "game-sense": 3,
             "hero-pool": 4,
             "teamwork": 5
           },
           "eligibleRoles": [
             "fighter",
-            "tank"
+            "assassin"
           ],
           "preferredRole": "fighter"
         }

@@ -1,14 +1,23 @@
 import "fake-indexeddb/auto";
 import { describe, expect, it } from "vitest";
 import {
+  DB_VERSION,
   createIndexedDbRosterStore,
   createIndexedDbSessionStore,
   createIndexedDbDisciplineStore,
   createIndexedDbTournamentStore,
 } from "./indexed-db";
 import type { Discipline, Player, Session, Tournament } from "../domain/types";
+import { FUTSAL_DISCIPLINE, MLBB_DISCIPLINE } from "../domain/seed";
 
 const player = (id: string, name: string): Player => ({ id, communityId: "c1", name, capabilities: [] });
+
+/**
+ * The schema version that shipped without badminton. A profile written at this
+ * version already has a discipline store, so the first-open seed never runs for
+ * it again and only the upgrade path can add a discipline shipped later.
+ */
+const PRE_BADMINTON_VERSION = 6;
 
 describe("indexed-db roster store (smoke)", () => {
   it("persists players across adapter instances (simulated reload)", async () => {
@@ -70,19 +79,64 @@ describe("indexed-db session store (smoke)", () => {
 
 describe("indexed-db discipline store (smoke)", () => {
   const custom: Discipline = {
-    id: "badminton-x",
-    name: "Badminton",
-    shortName: "Badminton",
-    roles: [{ id: "singles", name: "Singles" }],
+    id: "padel-x",
+    name: "Padel",
+    shortName: "Padel",
+    roles: [{ id: "right", name: "Right" }],
     attributes: [{ id: "skill", name: "Skill" }],
     strengthModel: { kind: "mean" },
     team: { minTeamSize: 2, maxTeamSize: null, rolesRequired: false },
   };
 
+  /**
+   * A database holding exactly these disciplines, written at `version`.
+   * Opened directly rather than through a store, because a store opens at the
+   * current version and would perform the upgrade itself - which is the thing
+   * under test.
+   */
+  const seedDisciplinesAt = (dbName: string, version: number, disciplines: Discipline[]): Promise<void> => {
+    const { promise, resolve, reject } = Promise.withResolvers<void>();
+    const request = indexedDB.open(dbName, version);
+    request.onupgradeneeded = () => {
+      const store = request.result.createObjectStore("disciplines", { keyPath: "id" });
+      for (const d of disciplines) store.put(d);
+    };
+    request.onsuccess = () => {
+      request.result.close();
+      resolve();
+    };
+    request.onerror = () => reject(request.error ?? new Error(`Could not seed ${dbName} at version ${version}`));
+    return promise;
+  };
+
+  /** A profile as it was before badminton shipped: two seeds and one custom row. */
+  const seedPreBadmintonProfile = (dbName: string): Promise<void> =>
+    seedDisciplinesAt(dbName, PRE_BADMINTON_VERSION, [FUTSAL_DISCIPLINE, MLBB_DISCIPLINE, custom]);
+
+  /** The stored discipline ids, read the way a page load reads them. */
+  const readStoredIds = (dbName: string): Promise<string[]> => {
+    const { promise, resolve, reject } = Promise.withResolvers<string[]>();
+    const request = indexedDB.open(dbName, DB_VERSION);
+    request.onsuccess = () => {
+      const db = request.result;
+      const all = db.transaction("disciplines", "readonly").objectStore("disciplines").getAll();
+      all.onsuccess = () => {
+        db.close();
+        // Key order, deliberately: this asserts the rows on disk, not display order.
+        resolve(all.result.map((d: Discipline) => d.id));
+      };
+      all.onerror = () => reject(all.error ?? new Error(`Could not read the disciplines in ${dbName}`));
+    };
+    request.onerror = () => reject(request.error ?? new Error(`Could not open ${dbName}`));
+    return promise;
+  };
+
   it("seeds the built-in disciplines on first open", async () => {
     const store = createIndexedDbDisciplineStore("comp3tive-test-disc-1");
     const list = await store.listDisciplines();
-    expect(list.map((d) => d.id).sort()).toEqual(["futsal", "mlbb"]);
+    // Order, not just membership: the store's key order is alphabetical, which
+    // would make badminton the app's default discipline.
+    expect(list.map((d) => d.id)).toEqual(["futsal", "mlbb", "badminton"]);
     expect(list.every((d) => d.builtIn)).toBe(true);
   });
 
@@ -94,7 +148,42 @@ describe("indexed-db discipline store (smoke)", () => {
     await store.deleteDiscipline(custom.id);
     const after = await store.listDisciplines();
     expect(after.some((d) => d.id === custom.id)).toBe(false);
-    expect(after.map((d) => d.id).sort()).toEqual(["futsal", "mlbb"]);
+    expect(after.map((d) => d.id)).toEqual(["futsal", "mlbb", "badminton"]);
+  });
+
+  it("upgrades a profile that predates badminton: it gains the seed, keeps its own rows", async () => {
+    // Without the versioned backfill this profile is stuck on two disciplines
+    // forever, no matter how many times it is reopened.
+    await seedPreBadmintonProfile("comp3tive-test-disc-3");
+    const store = createIndexedDbDisciplineStore("comp3tive-test-disc-3");
+
+    const ids = (await store.listDisciplines()).map((d) => d.id);
+    expect(ids).toEqual(["futsal", "mlbb", "badminton", "padel-x"]);
+  });
+
+  it("a current-version profile that lacks a seed is not given it back on the next launch", async () => {
+    // A v7 profile that deleted badminton. Nothing may put it back: the catalog
+    // is the user's to edit, and "ensure every seed exists" - the naive form of
+    // the backfill - would undo their deletion on every launch, forever.
+    await seedDisciplinesAt("comp3tive-test-disc-4", DB_VERSION, [FUTSAL_DISCIPLINE, MLBB_DISCIPLINE, custom]);
+
+    // The rows on disk, read the way a page load reads them: no upgrade fires.
+    expect(await readStoredIds("comp3tive-test-disc-4")).toEqual(["futsal", "mlbb", "padel-x"]);
+    // And through the app's own path, which is where a naive ensure-seeds would
+    // live if someone put it there instead of in the upgrade.
+    const store = createIndexedDbDisciplineStore("comp3tive-test-disc-4");
+    expect((await store.listDisciplines()).map((d) => d.id)).toEqual(["futsal", "mlbb", "padel-x"]);
+  });
+
+  it("upgrading adds the new seed without restoring one the user deleted", async () => {
+    // The same pre-badminton profile, except this one deleted futsal. The
+    // backfill is for seeds this version introduced, not for every seed the code
+    // knows: re-seeding everything here would resurrect futsal.
+    await seedDisciplinesAt("comp3tive-test-disc-5", PRE_BADMINTON_VERSION, [MLBB_DISCIPLINE, custom]);
+    const store = createIndexedDbDisciplineStore("comp3tive-test-disc-5");
+
+    const ids = (await store.listDisciplines()).map((d) => d.id);
+    expect(ids).toEqual(["mlbb", "badminton", "padel-x"]);
   });
 });
 

@@ -75,3 +75,39 @@ Vitest 3, Playwright 1.62 and `@types/node` 22.15 as declared in `package.json`.
 
 **Blocked by:** 29 — it is the last ticket, and the README describes the file layout the previous
 nine produce (`src/shell/**`, `src/ui/constants.ts`, `src/split.css`).
+
+## Comments
+
+**Status re-checked 2026-09-30 against `feature/revamp` — partial. Status left
+`ready-for-agent`.**
+
+**Shipped, verified:** `README.md` exists (9,317 bytes). `.nvmrc` contains `24.16.0`.
+`package.json` has an `engines.node` floor. The README states the browser suite's config lives at
+`e2e/playwright.config.ts` and that a bare `npx playwright test` finds nothing (`README.md:103-104`)
+— the ticket's most load-bearing row, and the one a newcomer hits first.
+
+**One row landed in a different spelling than specified.** The ticket asks that `jq -r
+'.engines.node' package.json` print `>=22.20 <23 || >=24.12`. It prints `^22.20 || ^24.12 || >=25`.
+The admitted range is the same set — `^22.20` is `>=22.20 <23`, and `^24.12 || >=25` is
+`>=24.12` — so the floor is equivalent, but the literal string is not the one prescribed.
+
+**Not shipped, and this is a live defect rather than a bookkeeping gap.** The README's "What this
+README does not claim" section (`README.md:141-151`) is now **false of the build it ships beside**:
+
+> *"There is no service worker, no web-app manifest and no installable app, so nothing here is
+> cached for offline use by the browser. Both documents load their two typefaces from a CDN …"*
+
+Every clause is contradicted by this branch. `public/sw.js` (12,894 B),
+`public/manifest.webmanifest`, `public/fonts/` (5 woff2 + 2 OFL) and `public/icons/` (3 PNG) all
+ship; `grep -rn "fonts.googleapis\|fonts.gstatic\|preconnect" index.html app/index.html
+public/404.html` returns nothing; and `e2e/tests/pwa/offline.spec.ts` proves offline for both
+documents in 7 cases. The README was **edited after** the PWA landed —
+`git merge-base --is-ancestor 229661a 2caa1da` confirms `sw.js` is an ancestor of the README's last
+commit — so this is not an ordering accident a later commit would have swept up. It is a document
+that was revisited during Phase D and kept a Phase-B-era denial.
+
+**Why the status row's own check did not catch it.** The row reads "returns only lines that
+explicitly deny the claim", and lines 143-144 do explicitly deny it. A false denial satisfies a
+grep written to exclude false claims, which is why this needed a human reading of the paragraph
+rather than the mechanical check. It is the same class of defect this programme exists to remove,
+in the one file a newcomer opens before any other, and it is why this ticket stays open.

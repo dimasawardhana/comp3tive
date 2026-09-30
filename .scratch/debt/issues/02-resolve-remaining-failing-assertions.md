@@ -1,6 +1,6 @@
 # 02: Resolve the remaining failing assertions
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **What to build:** The two e2e failures that are not caused by the rail each stop encoding markup that no longer exists — one by asserting the accessible name the app actually publishes, the other by asserting the behaviour that still matters instead of a CSS property that was removed.
 
@@ -37,3 +37,9 @@ The spec asserts `.app` has `padding-bottom >= 64px` to clear a **fixed** bottom
 - [ ] `npx playwright test --config=e2e/playwright.config.ts` reports no remaining `toHaveAttribute("aria-label"…)` or `padding-bottom` failure, with no other assertion weakened
 
 **Blocked by:** 01 — both fixed assertions use `hubButton`, and the two specs that pin 390×844 pin it through the same helper the re-anchor introduces (`.scratch/debt/issues/01`)
+
+## Comments
+
+Resolved by the same commit pair as ticket 01 — `bcf273e` and `6e682a7` — which decided against adding `aria-label` to the nav buttons (the accessible name is the visible label; `src/App.tsx:1301-1310` carries `aria-current` at `:1306` and no `aria-label`), replaced the dead `.app` `padding-bottom` assertion in `panel/no-overlap.spec.ts` with a real geometry check (last roster row's bottom <= sticky bar's top, `:31-38`), asserted `position: sticky` rather than the deleted `"fixed"` value, and corrected the dashboard spec's title to "fresh load lands on the Dashboard with the five hub tabs" (`:23`).
+
+No `toHaveAttribute("aria-label", ...)` survives anywhere in `e2e/**`. The suite's end state (43 passed / 0 failed / 0 skipped) is recorded in `.superpowers/sdd/2026-09-17-truth-and-trust/progress.md` and was not re-run for this closure.

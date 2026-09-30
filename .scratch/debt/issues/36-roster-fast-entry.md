@@ -1,6 +1,6 @@
 # 36: Roster fast entry — a documented CSV path and bulk rating
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **What to build:** Entering a roster stops being one player at a time by guesswork. The roster
 screen offers a downloadable CSV template whose column order the app states in plain sight, the
@@ -70,3 +70,33 @@ ticket touches neither `src/App.tsx`'s handlers nor the parser.
 - [ ] `npx vitest run` exits 0 with the new parser/template/bulk-rating tests in the output; `npx tsc -b` exits 0.
 
 **Blocked by:** 08 (A08 supplies `src/data/player-import.ts`; the template and the report panel render its `ImportSkip[]` shape), 26 (the roster UI and its import state must be in `src/shell/` before this ticket has a file to edit)
+
+## Comments
+
+**Status re-checked 2026-09-30 against `feature/revamp` — shipped. The column order is on the
+page, the report names the lines it skipped, and a filtered set can be rated in one discipline.**
+
+`src/data/csv-template.ts:52` exports `CSV_TEMPLATE` with the header `name,discipline,strength` —
+the parser's order, as this ticket's ownership boundary required — and
+`CSV_TEMPLATE_FILE_NAME` is `comp3tive-players-template.csv` (`:76`). The toolbar button is
+`src/shell/RosterScreen.tsx:647` with `data-testid="download-csv-template"`, and the contract is
+stated in the UI rather than only in the file at `:688`, including the quoting rule and the 1–5
+strength range with the blank-means-3 default.
+
+**The report is rendered from `lastReport`, not from a toast**, so it survives a later render and
+is replaced only by the next import: `src/shell/RosterScreen.tsx:743` renders the `.import-report`
+panel with the imported count and a per-line list. `usePlayerImport` (`:181`) returns `lastReport`
+(`:211`) and `pendingMerge` (`:200`), and the merge confirm is the hook's own state rather than a
+seventh `ConfirmButton`.
+
+Bulk rating is reachable from the roster: the `Rate selected` button is
+`src/shell/RosterScreen.tsx:817` and opens `src/roster/BulkRateModal.tsx`, which writes through
+`useRoster.savePlayer` rather than the raw store. **No `alert` and no `window.confirm` anywhere**,
+so this ticket's own vocabulary requirement holds alongside ticket 27's.
+
+`e2e/tests/roster/fast-entry.spec.ts` has 15 cases, including the three this ticket required — a
+partial import naming the row it did not import while still creating the first player, the template
+download firing with the right filename, and a rating written for a ticked set with the rest of the
+roster untouched — plus cases for the failure paths the first draft did not anticipate: an import
+where nothing could be read, a selection that does not survive a filter, a screen or a reload, and
+a player who does not play the discipline gaining it with every role open and no preference.

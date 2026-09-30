@@ -1,19 +1,5 @@
-import { useEffect, useRef, useState } from "react";
-import {
-  computeStrength,
-  type Community,
-  type Discipline,
-  type GameResult,
-  type Id,
-  type Player,
-  type SavedSquad,
-  type Session,
-  type SplitResult,
-  type TeamAssignment,
-  type Tournament,
-  type TournamentFormat,
-  type SeriesLength,
-} from "./domain";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { type Discipline, type Id, type Player } from "./domain";
 import {
   createIndexedDbCommunityStore,
   createIndexedDbRosterStore,
@@ -25,111 +11,29 @@ import {
 import { useRoster } from "./roster/useRoster";
 import { useDisciplines } from "./domain/useDisciplines";
 import { useCommunities } from "./domain/useCommunities";
-import { DisciplinesScreen } from "./domain/DisciplinesScreen";
-import { DisciplineEditModal } from "./domain/DisciplineEditModal";
-import { PlayerEditModal } from "./roster/PlayerEditModal";
-import { fairSplit, buildSettings, suggestTeamCount, poolFromPlayers } from "./solver/solver";
-import { MatchScreen } from "./session/MatchScreen";
-import { SplitScreen } from "./session/SplitScreen";
-import { HistoryScreen } from "./session/HistoryScreen";
 import { useSessions } from "./session/useSessions";
 import { useSavedSquads } from "./session/useSavedSquads";
-import { SquadsScreen } from "./session/SquadsScreen";
-import { DashboardScreen } from "./DashboardScreen";
-import { PageHeader } from "./ui/PageHeader";
-import { Screen } from "./ui/Screen";
-import { capabilityFor, teamName } from "./session/flow";
 import { useTournaments } from "./tournament/useTournaments";
-import { GamesScreen } from "./tournament/GamesScreen";
-import { TournamentScreen } from "./tournament/TournamentScreen";
-import { buildBracket, applyResult, undoLastGame } from "./tournament/bracket";
-import { serializeBackup, parseBackup } from "./data/transfer";
-import { assertImportSize, csvRowsToPlayers, parsePlayerCsv } from "./data/player-import";
-import { validatePlayer } from "./domain/validation";
-import { validateTeamParticipation } from "./tournament/team-participation-validator";
-import { validateTournamentSpec } from "./tournament/tournament-validation";
+import { serializeBackup } from "./data/transfer";
+import { useNavigation } from "./shell/useNavigation";
+import { useSplitFlow } from "./shell/useSplitFlow";
+import { useCommunityScope } from "./shell/useCommunityScope";
+import { usePlayerImport } from "./shell/usePlayerImport";
+import { AppChrome } from "./shell/AppChrome";
+import { ScreenSwitch } from "./shell/ScreenSwitch";
+import { AddCommunityForm } from "./shell/AddCommunityForm";
+import { useAddCommunity } from "./shell/useAddCommunity";
+import { useStoredPref, useMediaQuery } from "./shell/usePreferences";
+import { useDurability } from "./shell/useDurability";
+import { useToasts } from "./shell/useToasts";
+import { formatError } from "./ui/format";
+
 const communityStore = createIndexedDbCommunityStore();
 const rosterStore = createIndexedDbRosterStore();
 const sessionStore = createIndexedDbSessionStore();
 const disciplineStore = createIndexedDbDisciplineStore();
 const tournamentStore = createIndexedDbTournamentStore();
 const squadStore = createIndexedDbSavedSquadStore();
-
-type SplitSource = "ad-hoc" | "tournament" | "session" | "squad";
-
-type HubMode = "dashboard" | "roster" | "games" | "history" | "squads";
-
-/** The five hub destinations. Rendered twice: rail (desktop) and bottom nav (handheld). */
-const NAV_ITEMS = [
-  { mode: "dashboard", label: "Home", icon: "⌂" },
-  { mode: "roster", label: "Roster", icon: "◉" },
-  { mode: "games", label: "Games", icon: "▣" },
-  { mode: "history", label: "History", icon: "≡" },
-  { mode: "squads", label: "Squads", icon: "◇" },
-] as const satisfies ReadonlyArray<{ mode: HubMode; label: string; icon: string }>;
-
-type View =
-  | { mode: "roster" }
-  | { mode: "dashboard" }
-  | { mode: "games" }
-  | { mode: "tournament"; id: Id }
-  | { mode: "match"; source: SplitSource }
-  | { mode: "split"; session: Session; source: SplitSource }
-  | { mode: "history" }
-  | { mode: "disciplines" }
-  | { mode: "squads"; openId?: Id };
-
-interface MatchSetup {
-  disciplineId: Id;
-  selectedIds: Id[];
-  teamCount: number;
-  tournamentId: Id | null;
-  source: SplitSource;
-}
-
-const toggleId = (ids: Id[], id: Id): Id[] =>
-  ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id];
-
-/** Persisted preference (theme, layout) with a localStorage fallback. */
-function useStoredPref(key: string, initial: string) {
-  const [value, setValue] = useState<string>(() => {
-    try {
-      return localStorage.getItem(key) ?? initial;
-    } catch {
-      return initial;
-    }
-  });
-  const set = (v: string) => {
-    setValue(v);
-    try {
-      localStorage.setItem(key, v);
-    } catch {
-      /* ignore */
-    }
-  };
-  return [value, set] as const;
-}
-
-function useMediaQuery(query: string): boolean {
-  const [matches, setMatches] = useState<boolean>(() => window.matchMedia(query).matches);
-  useEffect(() => {
-    const mq = window.matchMedia(query);
-    const onChange = (e: MediaQueryListEvent) => setMatches(e.matches);
-    mq.addEventListener("change", onChange);
-    return () => mq.removeEventListener("change", onChange);
-  }, [query]);
-  return matches;
-}
-
-function strengthsFor(player: Player, disciplines: Discipline[]) {
-  return disciplines.flatMap((d) => {
-    const cap = player.capabilities.find((c) => c.disciplineId === d.id);
-    return cap ? [{ id: d.id, shortName: d.shortName, strength: computeStrength(d, cap) }] : [];
-  });
-}
-
-const badgeClass = (disciplineId: string) =>
-  disciplineId === "futsal" || disciplineId === "mlbb" ? `badge--${disciplineId}` : "badge--generic";
 
 export default function App() {
   const roster = useRoster(rosterStore);
@@ -138,47 +42,27 @@ export default function App() {
   const communities = useCommunities(communityStore, rosterStore, sessionStore, squadStore, tournamentStore);
   const tournaments = useTournaments(tournamentStore);
   const savedSquads = useSavedSquads(squadStore);
-  const [viewStack, setViewStack] = useState<View[]>([{ mode: "dashboard" }]);
-  const view = viewStack[viewStack.length - 1];
+  const { view, viewStack, pushView, goBack, resetTo } = useNavigation({ mode: "dashboard" });
   /** First load failure from any store. These were previously swallowed, which
    *  left a failed read looking identical to an empty app. */
   const loadError = communities.error ?? roster.error ?? sessions.error ?? catalog.error ?? tournaments.error ?? savedSquads.error;
 
-  const [setup, setSetup] = useState<MatchSetup | null>(null);
   const [tournamentPrefill, setTournamentPrefill] = useState<{ disciplineId: Id; teamCount: number } | null>(null);
   const [filterIds, setFilterIds] = useState<string[]>([]);
 
-  const pushView = (v: View) => setViewStack((s) => [...s, v]);
-  const goBack = () => setViewStack((s) => (s.length > 1 ? s.slice(0, -1) : s));
-  const gotoHub = (hub: HubMode) => {
-    setViewStack([{ mode: hub }]);
-    setSetup(null);
-  };
   const goDisciplines = () => pushView({ mode: "disciplines" });
 
-  const [communityName, setCommunityName] = useState("");
-  const [showAddCommunity, setShowAddCommunity] = useState(false);
-  const [showCommunityMenu, setShowCommunityMenu] = useState(false);
-  const [showSettings, setShowSettings] = useState(false);
-  const [toasts, setToasts] = useState<Array<{ id: string; text: string; type: "success" | "error" | "info" }>>([]);
-  const notify = (text: string, type: "success" | "error" | "info" = "info") => {
-    const id = crypto.randomUUID();
-    setToasts((prev) => [...prev, { id, text, type }]);
-    setTimeout(() => {
-      setToasts((prev) => prev.filter((t) => t.id !== id));
-    }, 3000);
-  };
-  const formatError = (err: unknown) => (err instanceof Error ? err.message : String(err));
+  const { toasts, notify } = useToasts();
   const [editingPlayer, setEditingPlayer] = useState<Player | null | "new">(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  /** One toast per record type, however many renders the failing write retries. */
+  const playerAdoptionWarned = useRef(false);
+  const sessionAdoptionWarned = useRef(false);
   const [themePref, setThemePref] = useStoredPref("tb-theme", "auto");
   const [layoutPref, setLayoutPref] = useStoredPref("tb-layout", "auto");
   /** Desktop rail shows labels, or collapses to icons only. */
   const [railPref, setRailPref] = useStoredPref("tb-rail", "expanded");
-  const systemDark = useMediaQuery("(prefers-color-scheme: dark)");
   const isWide = useMediaQuery("(min-width: 1024px)");
-  const effectiveTheme: "light" | "dark" =
-    themePref === "auto" ? (systemDark ? "dark" : "light") : (themePref as "light" | "dark");
   const effectiveLayout: "mobile" | "desktop" =
     layoutPref === "auto" ? (isWide ? "desktop" : "mobile") : (layoutPref as "mobile" | "desktop");
 
@@ -197,218 +81,151 @@ export default function App() {
   }, [themePref, layoutPref]);
 
   const disciplines = catalog.disciplines;
-  const disciplinesById = new Map(disciplines.map((d) => [d.id, d]));
-  const activeCommunity: Community | null =
-    communities.communities.find((c) => c.id === communities.activeId) ?? null;
-  const communityPlayers = activeCommunity
-    ? roster.players.filter((p) => p.communityId === activeCommunity.id)
-    : [];
-  // Community scoping (CONTEXT): every list shows only the active community's
-  // records — sessions (History) and tournaments (Games) follow the players
-  // and saved squads, which already filter by communityId here.
-  const communitySessions = activeCommunity
-    ? sessions.sessions.filter((s) => s.communityId === activeCommunity.id)
-    : [];
-  const communityTournaments = activeCommunity
-    ? tournaments.tournaments.filter((t) => t.communityId === activeCommunity.id)
-    : [];
-  const communitySquads = activeCommunity
-    ? savedSquads.squads.filter((q) => q.communityId === activeCommunity.id)
-    : [];
+  // The community-scoping rule itself lives in useCommunityScope; this is the
+  // app's single call site for it.
+  const {
+    activeCommunity,
+    disciplinesById,
+    players: communityPlayers,
+    sessions: communitySessions,
+    tournaments: communityTournaments,
+    squads: communitySquads,
+  } = useCommunityScope({
+    communities: communities.communities,
+    activeCommunityId: communities.activeId,
+    players: roster.players,
+    sessions: sessions.sessions,
+    tournaments: tournaments.tournaments,
+    squads: savedSquads.squads,
+    disciplines,
+  });
   const visiblePlayers = filterIds.length === 0
     ? communityPlayers
     : communityPlayers.filter((p) => p.capabilities.some((c) => filterIds.includes(c.disciplineId)));
-  const viewTournament =
-    view.mode === "tournament" ? tournaments.tournaments.find((t) => t.id === view.id) ?? null : null;
+  /**
+   * Storage durability, the one call site of the hook.
+   *
+   * Destructured field by field, and that is not a style preference: the hook
+   * hands back a fresh object literal on every render, so the returned value
+   * must never reach a dependency array. The only thing passed to the hook here
+   * is a number, and the only thing passed *on* is `dismissNudge`, which the
+   * hook keeps stable across renders by `useCallback`.
+   *
+   * `shouldNudge` is recomputed against `Date.now()` in the hook's render body,
+   * so it never flips on its own — a tab left open across the fortnight
+   * boundary keeps the answer it painted. That is accepted, not overlooked:
+   * every interaction this app has re-renders `App` (the nav keeps its state
+   * here, and every store refresh lands in state), so the stale window is
+   * exactly the stretch in which the user has touched nothing at all — and the
+   * first thing they do, on returning, corrects it. A timer would re-render
+   * the whole tree every tick for a case with nobody in it to warn.
+   */
+  const { persisted, shouldNudge, dismissNudge, recordExport } = useDurability({
+    playerCount: communityPlayers.length,
+  });
+  /** Null renders no row; the hook has already applied every other gate. */
+  const exportNudge = shouldNudge ? { onDismiss: dismissNudge } : null;
+  // The unscoped source is deliberate: `find` by id is already unique, and
+  // narrowing it is a behaviour change no ticket asks for.
+  const viewTournament = useMemo(
+    () =>
+      view.mode === "tournament"
+        ? tournaments.tournaments.find((t) => t.id === view.id) ?? null
+        : null,
+    [view, tournaments.tournaments],
+  );
 
   // Legacy data (pre-community) has no communityId: adopt it into the active community.
   useEffect(() => {
     if (!activeCommunity) return;
     for (const p of roster.players) {
       if (!p.communityId || !communities.communities.some((c) => c.id === p.communityId)) {
-        void roster.savePlayer({ ...p, communityId: activeCommunity.id });
+        void roster.savePlayer({ ...p, communityId: activeCommunity.id }).catch(() => {
+          if (!playerAdoptionWarned.current) {
+            playerAdoptionWarned.current = true;
+            notify("Some saved players could not be moved into this community.", "error");
+          }
+        });
       }
     }
     for (const s of sessions.sessions) {
       if (!s.communityId || !communities.communities.some((c) => c.id === s.communityId)) {
-        void sessionStore.saveSession({ ...s, communityId: activeCommunity.id });
+        void sessionStore.saveSession({ ...s, communityId: activeCommunity.id }).catch(() => {
+          if (!sessionAdoptionWarned.current) {
+            sessionAdoptionWarned.current = true;
+            notify("Some saved sessions could not be moved into this community.", "error");
+          }
+        });
       }
     }
   }, [activeCommunity, communities.communities, roster.players, sessions.sessions, roster, sessionStore]);
 
-  const startMatch = (source: SplitSource, tournamentId?: Id) => {
-    if (source !== "tournament" && (disciplines.length === 0 || communityPlayers.length === 0)) return;
-    const tournament = tournamentId
-      ? tournaments.tournaments.find((t) => t.id === tournamentId) ?? null
-      : null;
-    let disciplineId = tournament?.disciplineId ?? disciplines[0].id;
-    if (!tournament) {
-      // Default to the discipline the most present players can actually play.
-      let best = disciplines[0];
-      let bestCount = -1;
-      for (const d of disciplines) {
-        const n = communityPlayers.filter((p) => capabilityFor(p, d)).length;
-        if (n > bestCount) {
-          bestCount = n;
-          best = d;
-        }
-      }
-      disciplineId = best.id;
-    }
-    const discipline = disciplines.find((d) => d.id === disciplineId) ?? disciplines[0];
-    const eligible = communityPlayers.filter((p) => capabilityFor(p, discipline));
-    setSetup({
-      disciplineId,
-      selectedIds: communityPlayers.map((p) => p.id),
-      teamCount: tournament?.teamCount ?? suggestTeamCount(eligible.length, discipline),
-      tournamentId: tournamentId ?? null,
-      source,
-    });
-    pushView({ mode: "match", source });
-  };
-
-  const togglePlayer = (id: Id) => {
-    setSetup((s) => (s ? { ...s, selectedIds: toggleId(s.selectedIds, id) } : s));
-  };
-
-  const selectDiscipline = (id: Id) => {
-    setSetup((s) => {
-      if (!s || s.disciplineId === id) return s;
-      const discipline = disciplinesById.get(id);
-      if (!discipline) return s;
-      const pool = communityPlayers.filter((p) => s.selectedIds.includes(p.id) && capabilityFor(p, discipline));
-      return { ...s, disciplineId: id, teamCount: suggestTeamCount(pool.length, discipline) };
-    });
-  };
-
-  const changeTeamCount = (n: number) => {
-    setSetup((s) => (s ? { ...s, teamCount: Math.max(1, Math.min(n, 8)) } : s));
-  };
-
-  const split = async () => {
-    if (!setup) return;
-    const discipline = disciplinesById.get(setup.disciplineId);
-    if (!discipline) return;
-    const selected = communityPlayers.filter((p) => setup.selectedIds.includes(p.id));
-    const pool = poolFromPlayers(selected, discipline);
-    if (pool.length === 0) return;
-
-    const result = fairSplit(pool, discipline, buildSettings(discipline, setup.teamCount));
-    const session: Session = {
-      id: crypto.randomUUID(),
-      communityId: activeCommunity?.id ?? "",
-      disciplineId: discipline.id,
-      createdAt: Date.now(),
-      poolPlayerIds: pool.map((p) => p.playerId),
-      settings: { teamCount: setup.teamCount },
-      result,
-    };
-    // Persistence rules (FLOW): ad-hoc splits save a Session; tournament splits
-    // persist via the bracket only; session/squad re-splits are synthetic.
-    if (setup.source === "ad-hoc") {
-      try {
-        await sessionStore.saveSession(session);
-      } catch {
-        // Non-fatal: still show the split if persistence failed.
-      }
-    }
-    const source = view.mode === "match" ? view.source : "ad-hoc" as SplitSource;
-    pushView({ mode: "split", session, source });
-  };
-
-  const consumeTeams = async (tournamentId: Id, teams: TeamAssignment[]) => {
-    const tournament = tournaments.tournaments.find((t) => t.id === tournamentId);
-    if (!tournament) {
-      notify("Could not save: the tournament is no longer in this community's list.", "error");
-      return;
-    }
-    // A bracket needs a team count its format supports (single elim: 2/4/8;
-    // series: 2; swiss: even). Guard before building so a mismatch is a clear
-    // message, not a crash inside buildBracket.
-    const n = teams.length;
-    const bracketOk =
-      tournament.format === "swiss" ? n >= 2 && n % 2 === 0
-      : tournament.format === "single-elim" ? (n === 2 || n === 4 || n === 8)
-      : n === 2; // series
-    if (!bracketOk) {
-      notify(`Could not save: a ${tournament.format} bracket needs a supported number of teams (got ${n}).`, "error");
-      return;
-    }
-    const seeded = [...teams].sort((a, b) => b.avgStrength - a.avgStrength);
-    const next: Tournament = {
-      ...tournament,
-      teams: seeded.map((t, i) => ({
-        id: `team-${i + 1}`,
-        bibIndex: t.index,
-        name: teamName(t.index),
-        strength: t.avgStrength,
-        players: t.slots.map((s) => s.playerId),
-      })),
-    };
-    try {
-      const built = buildBracket(next);
-      await tournaments.saveTournament(built);
-      // Land on the tournament detail with the Games hub beneath it, so Back
-      // and the breadcrumb return to Games (FLOW P2: back to where you came from).
-      setViewStack([{ mode: "games" }, { mode: "tournament", id: built.id }]);
-      setSetup(null);
-    } catch (err) {
-      notify(`Could not save the tournament teams: ${formatError(err)}`, "error");
-    }
-  };
-
-  const recordResult = async (matchId: Id, games: GameResult[]) => {
-    if (!viewTournament) return;
-    const next = applyResult(viewTournament, matchId, games);
-    await tournaments.saveTournament(next);
-  };
-
-  const saveSquadFromSplit = async (name: string, result: SplitResult, disciplineId: Id) => {
-    if (!activeCommunity) return;
-    const poolPlayerIds = result.teams.flatMap((t) => t.slots.map((s) => s.playerId));
-    const squad: SavedSquad = {
-      id: crypto.randomUUID(),
-      communityId: activeCommunity.id,
-      name,
-      disciplineId,
-      createdAt: Date.now(),
-      poolPlayerIds,
-      settings: { teamCount: result.teams.length },
-      result,
-    };
-    await savedSquads.saveSquad(squad);
-  };
-
-  const reSplitSquad = (squad: SavedSquad) => {
-    const synthetic: Session = {
-      id: `squad-${squad.id}`,
-      communityId: activeCommunity?.id ?? "",
-      disciplineId: squad.disciplineId,
-      createdAt: Date.now(),
-      poolPlayerIds: squad.poolPlayerIds,
-      settings: squad.settings,
-      result: squad.result,
-    };
-    setSetup(null);
-    pushView({ mode: "split", session: synthetic, source: "squad" });
-  };
-
-  const useSquadInTournament = async (squad: SavedSquad, tournamentId: Id) => {
-    consumeTeams(tournamentId, squad.result.teams);
-  };
-
-  const newTournamentFromSquad = (squad: SavedSquad) => {
-    setTournamentPrefill({ disciplineId: squad.disciplineId, teamCount: squad.result.teams.length });
-    gotoHub("games");
-  };
-
-  const undoLastResult = async () => {
-    if (!viewTournament) return;
-    const next = undoLastGame(viewTournament);
-    await tournaments.saveTournament(next);
-  };
-
-
+  const flow = useSplitFlow({
+    disciplines,
+    // Unscoped on purpose, like `viewTournament` above: a split's bracket
+    // belongs to the tournament the split was started from, whatever the
+    // community is now. Narrowing this list would be a behaviour change.
+    tournaments: tournaments.tournaments,
+    disciplinesById,
+    players: communityPlayers,
+    viewTournament,
+    view,
+    activeCommunityId: activeCommunity?.id ?? null,
+    sessionStore,
+    saveTournament: tournaments.saveTournament,
+    saveSquad: savedSquads.saveSquad,
+    notify,
+    pushView,
+    resetTo,
+    setTournamentPrefill,
+  });
+  const {
+    setup,
+    activeSplit,
+    gotoHub,
+    startMatch,
+    openSession,
+    createTournament,
+    togglePlayer,
+    selectDiscipline,
+    changeTeamCount,
+    split,
+    consumeTeams,
+    recordResult,
+    undoLastResult,
+    saveSquadFromSplit,
+    reSplitSquad,
+    useSquadInTournament,
+    newTournamentFromSquad,
+  } = flow;
+  const importer = usePlayerImport({
+    activeCommunity,
+    disciplines,
+    communities: communities.communities,
+    players: roster.players,
+    sessions: sessions.sessions,
+    tournaments: tournaments.tournaments,
+    squads: savedSquads.squads,
+    savePlayer: roster.savePlayer,
+    saveCommunity: communityStore.saveCommunity,
+    saveSession: sessionStore.saveSession,
+    saveTournament: tournamentStore.saveTournament,
+    saveSquad: squadStore.saveSavedSquad,
+    // Communities before their own records, the rest after: the order the merge
+    // has always written in. Two handles, not one, so the merge reads each list
+    // once; both are memoised because the hook memoises on them.
+    refreshCommunities: useCallback(async () => {
+      await communities.refresh();
+    }, [communities]),
+    refreshRecords: useCallback(async () => {
+      await roster.refresh();
+      await sessions.refresh();
+      await tournaments.refresh();
+      await savedSquads.refresh();
+    }, [roster, sessions, tournaments, savedSquads]),
+    notify,
+    fileInputRef,
+  });
 
   const handleExport = async () => {
     const allSessions = await sessionStore.listSessions();
@@ -422,71 +239,30 @@ export default function App() {
     a.download = `comp3tive-backup-${new Date().toISOString().slice(0, 10)}.json`;
     a.click();
     URL.revokeObjectURL(url);
+    // Last, after the download has been triggered and its object URL released:
+    // the export is over from the app's point of view, and this is the
+    // bookkeeping. The browser exposes no way to learn whether the user then
+    // cancelled a save dialog, so what is recorded is "an export was
+    // triggered" — the distinction the hook already draws about this key when
+    // it says a file on disk is the backup.
+    //
+    // That is only survivable because `lastExportAt` is destructured out of the
+    // hook and never rendered: nothing in `src/` claims a backup exists, so a
+    // cancelled download costs the user a file and a warning, and never a
+    // sentence saying they are covered. This call also retires any live
+    // dismissal in the same beat, which is why a snooze is not left standing
+    // over a user who did the one thing it was asking for.
+    recordExport();
   };
 
-  const handleImport = async (file: File) => {
-    let data;
-    try {
-      data = parseBackup(await file.text(), disciplines);
-    } catch (err) {
-      notify(`Import failed: ${formatError(err)}`, "error");
-      return;
-    }
-    // Merge with existing data: add only new ids, never overwrite.
-    const existingCommunityIds = new Set(communities.communities.map((c) => c.id));
-    const existingPlayerIds = new Set(roster.players.map((p) => p.id));
-    const existingSessionIds = new Set(sessions.sessions.map((s) => s.id));
-    const existingTournamentIds = new Set(tournaments.tournaments.map((t) => t.id));
-    const existingSquadIds = new Set(savedSquads.squads.map((q) => q.id));
-    const newCommunities = data.communities.filter((c) => !existingCommunityIds.has(c.id));
-    const newPlayers = data.players.filter((p) => !existingPlayerIds.has(p.id));
-    const newSessions = data.sessions.filter((s) => !existingSessionIds.has(s.id));
-    const newTournaments = (data.tournaments ?? []).filter((t) => !existingTournamentIds.has(t.id));
-    const newSquads = (data.savedSquads ?? []).filter((q) => !existingSquadIds.has(q.id));
-    const totalNew =
-      newCommunities.length + newPlayers.length + newSessions.length + newTournaments.length + newSquads.length;
-    if (
-      totalNew === 0 ||
-      !window.confirm(
-        `Import ${newCommunities.length} new communit${newCommunities.length === 1 ? "y" : "ies"}, ${newPlayers.length} new player${newPlayers.length === 1 ? "" : "s"}, ${newSessions.length} session${newSessions.length === 1 ? "" : "s"}, ${newTournaments.length} tournament${newTournaments.length === 1 ? "" : "s"} and ${newSquads.length} saved squad${newSquads.length === 1 ? "" : "s"}? (Existing records with the same id are kept.)`,
-      )
-    ) {
-      return;
-    }
-    // parseBackup has already resolved every communityId — including adopting a
-    // record whose id is missing or unknown (the v1 case) into the first
-    // community — so each imported record keeps its own.
-    for (const c of newCommunities) await communityStore.saveCommunity(c);
-    // The hooks hold their own copies of the store's lists, and handleImport
-    // writes through the stores, so nothing below is on screen until re-read:
-    // an imported community would be absent from the dropdown and its records
-    // invisible. Communities come first, before the records whose communityId
-    // they explain — a player whose community is not yet in hook state is
-    // re-homed by the orphan-adoption effect above.
-    await communities.refresh();
-    for (const p of newPlayers) await roster.savePlayer(p);
-    for (const s of newSessions) await sessionStore.saveSession(s);
-    for (const t of newTournaments) await tournamentStore.saveTournament(t);
-    for (const q of newSquads) await squadStore.saveSavedSquad(q);
-    await roster.refresh();
-    await sessions.refresh();
-    await tournaments.refresh();
-    await savedSquads.refresh();
-  };
-
-
-
-  const createCommunity = async () => {
-    if (!communityName.trim()) return;
-    await communities.create(communityName.trim());
-    setCommunityName("");
-    setShowAddCommunity(false);
-  };
-
-  const cancelAddCommunity = () => {
-    setCommunityName("");
-    setShowAddCommunity(false);
-  };
+  const {
+    showAddCommunity,
+    setShowAddCommunity,
+    communityName,
+    setCommunityName,
+    createCommunity,
+    cancelAddCommunity,
+  } = useAddCommunity(communities.create);
 
   const savePlayer = async (player: Player) => {
     await roster.savePlayer(player);
@@ -522,122 +298,13 @@ export default function App() {
     setDownloadingId(disciplineId);
     try {
       const { downloadSampleData: download } = await import("./data/sample-data");
-      download(disciplineId);
+      await download(disciplineId);
     } catch {
       notify("Could not download sample data", "error");
     } finally {
       setDownloadingId(null);
     }
   };
-  const handlePlayerImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    try {
-      assertImportSize(file.size);
-      const text = await file.text();
-      const trimmed = text.trim();
-
-      // JSON branch
-      if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
-        let parsed: unknown;
-        try {
-          parsed = JSON.parse(trimmed);
-        } catch {
-          notify("That file is not valid JSON.", "error");
-          return;
-        }
-        if (!parsed || typeof parsed !== "object") {
-          notify("That JSON file does not contain a recognizable roster.", "error");
-          return;
-        }
-        const obj = parsed as Record<string, unknown>;
-        // Full backup file → route to the merge importer.
-        if (obj.version !== undefined) {
-          await handleImport(file);
-          return;
-        }
-        // Players-only JSON
-        if (Array.isArray(obj.players)) {
-          if (!activeCommunity) {
-            notify("Pick or create a community before importing a player file.", "error");
-            return;
-          }
-          let imported = 0;
-          const rejected: { name: string; reason: string }[] = [];
-          for (const raw of obj.players) {
-            if (!raw || typeof raw !== "object") continue;
-            const p = raw as Partial<Player> & { id?: string; name?: string };
-            if (!p.name) continue;
-            const player: Player = {
-              id: p.id ?? crypto.randomUUID(),
-              communityId: activeCommunity.id,
-              name: p.name,
-              notes: p.notes,
-              capabilities: Array.isArray(p.capabilities) ? p.capabilities : [],
-            };
-            const problems = validatePlayer(player, disciplines);
-            if (problems.length > 0) {
-              rejected.push({ name: player.name, reason: problems[0].message });
-              continue;
-            }
-            await roster.savePlayer(player);
-            imported++;
-          }
-          // A file that yielded no player must not report one: an all-rejected
-          // file, or one whose rows carry no name at all, would otherwise
-          // announce "Imported 0 players" in success styling.
-          if (imported > 0) {
-            notify(
-              `Imported ${imported} player${imported === 1 ? "" : "s"} into ${activeCommunity.name}.`,
-              "success",
-            );
-          } else {
-            notify(`No players imported into ${activeCommunity.name}.`, "error");
-          }
-          if (rejected.length > 0) {
-            notify(
-              `Skipped ${rejected.length} player${rejected.length === 1 ? "" : "s"}. First: "${rejected[0].name}" — ${rejected[0].reason}`,
-              "error",
-            );
-          }
-          return;
-        }
-        notify("That JSON file is not a recognized roster or backup.", "error");
-        return;
-      }
-
-      // CSV branch
-      if (!activeCommunity) {
-        notify("Pick or create a community before importing a CSV.", "error");
-        return;
-      }
-      const { rows, skipped: unparsed } = parsePlayerCsv(text);
-      const { players: imported, skipped: unresolved } = csvRowsToPlayers(rows, disciplines, activeCommunity.id);
-      for (const player of imported) await roster.savePlayer(player);
-      const skipped = [...unparsed, ...unresolved].sort((a, b) => a.line - b.line);
-      // Same rule as the JSON branch: a CSV of blank lines imports nothing and
-      // must not claim a success.
-      if (imported.length > 0) {
-        notify(
-          `Imported ${imported.length} player${imported.length === 1 ? "" : "s"} into ${activeCommunity.name}.`,
-          "success",
-        );
-      } else {
-        notify(`No players imported into ${activeCommunity.name}.`, "error");
-      }
-      if (skipped.length > 0) {
-        notify(
-          `Skipped ${skipped.length} row${skipped.length === 1 ? "" : "s"}. Line ${skipped[0].line}: ${skipped[0].reason}`,
-          "error",
-        );
-      }
-    } catch (err) {
-      notify(`Import failed: ${formatError(err)}`, "error");
-    } finally {
-      if (fileInputRef.current) fileInputRef.current.value = "";
-    }
-  };
-
   const deleteCommunity = async (id: Id) => {
     if (communities.communities.length <= 1) {
       notify("You need at least one community.", "error");
@@ -671,15 +338,6 @@ export default function App() {
     return parts.length > 0 ? ` This also permanently deletes ${parts.join(", ")}.` : "";
   };
 
-  const setActiveCommunity = (id: Id) => {
-    communities.setActiveId(id);
-  };
-
-  const randomPlayers = () => {
-    startMatch("ad-hoc");
-  };
-
-
   const filtersByDiscipline = (disciplineId: Id) => {
     setFilterIds(prev => prev.includes(disciplineId) ? prev.filter(id => id !== disciplineId) : [...prev, disciplineId]);
   };
@@ -688,17 +346,10 @@ export default function App() {
     setFilterIds([]);
   };
 
-  const showHistory = () => {
-    gotoHub("history");
-  };
-
-  const showDisciplines = () => {
-    goDisciplines();
-  };
-
   // Dashboard actions (ticket 04): every exit reuses an existing App flow —
-  // the roster "Split match" handler, the Games create flow, hub navigation,
-  // and the roster "+ Add Player" modal. Only the entry points differ.
+  // the same ad-hoc split handler Roster's "Split match" uses, the Games
+  // create flow, hub navigation, and the roster "+ Add Player" modal. Only
+  // the entry points differ.
   const showSquads = () => {
     gotoHub("squads");
   };
@@ -708,11 +359,10 @@ export default function App() {
     setEditingPlayer("new");
   };
 
+  /** Every non-tournament Split entry — Roster's "Split match" and the
+   *  Dashboard's — starts an ad-hoc split. Neither screen can be showing a
+   *  tournament, so there is nothing to scope it to. */
   const startAdHocSplit = () => {
-    if (view.mode === "tournament" && viewTournament) {
-      startMatch("tournament", viewTournament.id);
-      return;
-    }
     startMatch("ad-hoc");
   };
 
@@ -721,69 +371,18 @@ export default function App() {
     gotoHub("games");
   };
 
-  const createTournament = async (spec: {
-    name: string;
-    disciplineId: Id;
-    format: TournamentFormat;
-    seriesLength: SeriesLength;
-    teamCount: number;
-    thirdPlace?: boolean;
-  }) => {
-    const discipline = disciplinesById.get(spec.disciplineId);
-    if (!discipline) return;
-
-    // Validate tournament specification
-    const validation = validateTournamentSpec(spec, discipline);
-    if (validation.length > 0) {
-      console.error("Tournament validation failed:", validation);
-      alert(`Validation failed: ${validation.map(v => v.message).join('\n')}`);
-      return;
-    }
-
-    const tournament: Tournament = {
-      id: crypto.randomUUID(),
-      communityId: activeCommunity?.id ?? "",
-      disciplineId: spec.disciplineId,
-      name: spec.name,
-      format: spec.format,
-      seriesLength: spec.seriesLength,
-      teamCount: spec.teamCount,
-      thirdPlace: spec.thirdPlace ?? true,
-      createdAt: Date.now(),
-      status: "draft" as const,
-      teams: [],
-      matches: [],
-    };
-    await tournaments.saveTournament(tournament);
-    setViewStack([{ mode: "games" }, { mode: "tournament", id: tournament.id }]);
-    setSetup(null);
-  };
-
-
   const openTournament = (id: Id) => {
     pushView({ mode: "tournament", id });
   };
 
-  const enterMatchFlow = (tournamentId?: Id) => {
-    startMatch("tournament", tournamentId);
-  };
-
+  /** The bracket's own Split entry. This renders only inside a tournament view,
+   *  so the ad-hoc fallback the old copy carried was unreachable. */
   const startSplit = () => {
-    if (view.mode === "tournament" && viewTournament) {
+    if (viewTournament) {
       startMatch("tournament", viewTournament.id);
-      return;
     }
-    startMatch("ad-hoc");
   };
 
-  const finishSplit = (teams: TeamAssignment[]) => {
-    if (!setup?.tournamentId) return;
-    consumeTeams(setup.tournamentId, teams);
-  };
-
-  const recordTournamentResult = async (matchId: Id, games: GameResult[]) => {
-    await recordResult(matchId, games);
-  };
   const deleteTournament = async (id: Id) => {
     try {
       await tournaments.deleteTournament(id);
@@ -798,518 +397,118 @@ export default function App() {
       gotoHub("games");
     }
   };
-  const showTournamentView = (tournament: Tournament) => {
-    pushView({ mode: "tournament", id: tournament.id });
-  };
 
   return (
     <div className="app" data-layout={effectiveLayout} data-rail={railPref}>
-      <a className="skip-link" href="#main">Skip to content</a>
-
-      <aside className="rail" aria-label="Primary">
-        <div className="wordmark rail-brand">
-          <span className="sq" aria-hidden="true">●</span>
-          <span>comp3tive</span>
-        </div>
-        <nav className="rail-nav">
-          {NAV_ITEMS.map((item) => (
-            <button
-              key={item.mode}
-              type="button"
-              className={`rail-link ${viewStack[0].mode === item.mode ? "nav-active" : ""}`}
-              onClick={() => gotoHub(item.mode)}
-              aria-current={viewStack[0].mode === item.mode ? "page" : undefined}
-              title={railPref === "collapsed" ? item.label : undefined}
-            >
-              <span className="nav-icon" aria-hidden="true">{item.icon}</span>
-              <span className="rail-link-label">{item.label}</span>
-            </button>
-          ))}
-        </nav>
-        <button
-          type="button"
-          className="rail-toggle"
-          onClick={() => setRailPref(railPref === "collapsed" ? "expanded" : "collapsed")}
-          aria-expanded={railPref === "expanded"}
-          aria-label={railPref === "collapsed" ? "Show menu labels" : "Hide menu labels"}
-          title={railPref === "collapsed" ? "Show menu labels" : "Hide menu labels"}
-        >
-          <span className="nav-icon" aria-hidden="true">{railPref === "collapsed" ? "»" : "«"}</span>
-          <span className="rail-link-label">Hide labels</span>
-        </button>
-      </aside>
-
-      <div className="shell">
-      <header className="topbar-wrap topbar">
-        <div className="wordmark">
-          <span className="sq">●</span>
-          <span>comp3tive</span>
-        </div>
-        <div className="topbar-tools">
-          <div className="squad-switcher">
-            <span className="kicker">Community</span>
-            <div className="squad-dropdown">
-              <button
-                type="button"
-                className="squad-select"
-                onClick={() => setShowCommunityMenu((s) => !s)}
-                aria-haspopup="listbox"
-                aria-expanded={showCommunityMenu}
-                aria-label="Active community"
-              >
-                <span className="squad-select-value">{activeCommunity?.name ?? "— No community —"}</span>
-                <span className="squad-select-caret" aria-hidden="true">▾</span>
-              </button>
-              {showCommunityMenu && (
-                <>
-                  <div className="squad-menu-backdrop" onClick={() => setShowCommunityMenu(false)} />
-                  <div className="squad-menu">
-                    <div className="squad-menu-heading">Community</div>
-                    <ul className="squad-menu-list" role="listbox" aria-label="Communities">
-                      {communities.communities.map((c) => {
-                        const isActive = activeCommunity?.id === c.id;
-                        return (
-                          <li key={c.id}>
-                            <button
-                              type="button"
-                              className="squad-menu-item"
-                              onClick={() => { setActiveCommunity(c.id); setShowCommunityMenu(false); }}
-                              role="option"
-                              aria-selected={isActive}
-                            >
-                              <span className="squad-menu-name">{c.name}</span>
-                              {isActive && <span className="squad-menu-check" aria-hidden="true">✓</span>}
-                            </button>
-                          </li>
-                        );
-                      })}
-                    </ul>
-                    {activeCommunity && communities.communities.length > 1 && (
-                      <div className="squad-menu-footer">
-                        <button
-                          type="button"
-                          className="squad-menu-danger"
-                          onClick={() => {
-                            const warning = communityDeleteWarning(activeCommunity.id);
-                            setShowCommunityMenu(false);
-                            if (window.confirm(`Delete "${activeCommunity.name}"?${warning}`)) {
-                              void deleteCommunity(activeCommunity.id);
-                            }
-                          }}
-                        >
-                          Delete {activeCommunity.name}
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                </>
-              )}
-            </div>
+      <AppChrome
+        railPref={railPref}
+        onSelectCommunity={communities.setActiveId}
+        onToggleRail={() => setRailPref(railPref === "collapsed" ? "expanded" : "collapsed")}
+        viewStack={viewStack}
+        onGotoHub={gotoHub}
+        communities={communities.communities}
+        activeCommunity={activeCommunity}
+        onDeleteCommunity={deleteCommunity}
+        communityDeleteWarning={communityDeleteWarning}
+        showAddCommunity={showAddCommunity}
+        onToggleAddCommunity={() => setShowAddCommunity((s) => !s)}
+        themePref={themePref}
+        layoutPref={layoutPref}
+        onThemeChange={setThemePref}
+        onLayoutChange={setLayoutPref}
+        toasts={toasts}
+      >
+        {loadError && (
+          <div className="load-error" role="alert">
+            <strong>Couldn&apos;t load your saved data.</strong> {loadError} Reload the page to try again.
           </div>
-          <button
-            type="button"
-            className="icon-btn"
-            aria-label="New community"
-            title="New community"
-            onClick={() => { setShowAddCommunity((s) => !s); setShowCommunityMenu(false); }}
-          >
-            ✚
-          </button>
-        <div className="settings-trigger">
-          <button
-            type="button"
-            className="icon-btn"
-            aria-label="Settings"
-            title="Settings"
-            onClick={() => setShowSettings((s) => !s)}
-          >
-            ⚙
-          </button>
-          {showSettings && (
-            <div className="settings-popover" role="dialog" aria-label="Settings">
-              <div className="settings-section">
-                <div className="settings-label">Theme</div>
-                <div className="settings-options">
-                  <button type="button" className={`settings-chip ${themePref === "light" ? "active" : ""}`} onClick={() => setThemePref("light")}>Light</button>
-                  <button type="button" className={`settings-chip ${themePref === "dark" ? "active" : ""}`} onClick={() => setThemePref("dark")}>Dark</button>
-                  <button type="button" className={`settings-chip ${themePref === "auto" ? "active" : ""}`} onClick={() => setThemePref("auto")}>Auto</button>
-                </div>
-              </div>
-              <div className="settings-section">
-                <div className="settings-label">Layout</div>
-                <div className="settings-options">
-                  <button type="button" className={`settings-chip ${layoutPref === "auto" ? "active" : ""}`} onClick={() => setLayoutPref("auto")}>Auto</button>
-                  <button type="button" className={`settings-chip ${layoutPref === "mobile" ? "active" : ""}`} onClick={() => setLayoutPref("mobile")}>Mobile</button>
-                  <button type="button" className={`settings-chip ${layoutPref === "desktop" ? "active" : ""}`} onClick={() => setLayoutPref("desktop")}>Desktop</button>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-        </div>
-      </header>
-
-      <main id="main" className="shell-main">
-      {loadError && (
-        <div className="load-error" role="alert">
-          <strong>Couldn&apos;t load your saved data.</strong> {loadError} Reload the page to try again.
-        </div>
-      )}
-      {showAddCommunity && (
-        <div className="add-community">
-          <div className="form-label">New community</div>
-          <div className="form-row">
-            <input
-              type="text"
-              value={communityName}
-              onChange={(e) => setCommunityName(e.target.value)}
-              placeholder="e.g. Sunday League"
-              onKeyDown={(e) => {
-                if (e.key === "Enter") createCommunity();
-                if (e.key === "Escape") cancelAddCommunity();
-              }}
-              autoFocus
-            />
-            <button className="btn btn-primary" onClick={createCommunity}>Create</button>
-            <button className="btn btn-ghost" onClick={cancelAddCommunity} aria-label="Cancel">Cancel</button>
+        )}
+        {showAddCommunity && (
+          <AddCommunityForm
+            communityName={communityName}
+            onCommunityNameChange={setCommunityName}
+            onCreate={createCommunity}
+            onCancel={cancelAddCommunity}
+          />
+        )}
+        {communities.loading && <p className="status">Loading&hellip;</p>}
+        {!communities.loading && communities.communities.length === 0 && !showAddCommunity && (
+          <div className="empty">
+            <div className="kicker">First whistle</div>
+            <div className="big">No communities yet</div>
+            <p>Use ✚ in the topbar to create your first community.</p>
           </div>
-        </div>
-      )}
-      {communities.loading && <p className="status">Loading&hellip;</p>}
-      {!communities.loading && communities.communities.length === 0 && !showAddCommunity && (
-        <div className="empty">
-          <div className="kicker">First whistle</div>
-          <div className="big">No communities yet</div>
-          <p>Use ✚ in the topbar to create your first community.</p>
-        </div>
-      )}
+        )}
 
-      {view.mode === "dashboard" && (
-        <DashboardScreen
-          community={activeCommunity}
-          players={communityPlayers}
-          squads={communitySquads}
-          tournaments={communityTournaments}
+        <ScreenSwitch
+          view={view}
+          viewTournament={viewTournament}
+          setup={setup}
+          activeSplit={activeSplit}
+          activeCommunity={activeCommunity}
+          communityPlayers={communityPlayers}
+          communitySquads={communitySquads}
+          communityTournaments={communityTournaments}
+          communitySessions={communitySessions}
           disciplines={disciplines}
-          onSplitMatch={startAdHocSplit}
-          onNewTournament={openNewTournament}
-          onBrowseSquads={showSquads}
-          onAddPlayer={addPlayer}
-          onOpenPlayer={(player) => {
-            gotoHub("roster");
-            setEditingPlayer(player);
-          }}
-          onOpenTournament={(tournament) => openTournament(tournament.id)}
-        />
-      )}
-      {view.mode === "roster" && (
-        <Screen>
-          <PageHeader
-            kicker="Match sheet"
-            title="comp3tive"
-            lede={
-              activeCommunity && (
-                <>
-                  <strong>{activeCommunity.name}</strong> · {communityPlayers.length} player
-                  {communityPlayers.length === 1 ? "" : "s"} on the roster
-                </>
-              )
-            }
-          />
-          
-          {activeCommunity && (
-            <>
-              {/* Discipline filter chips */}
-              {disciplines.length > 0 && (
-                <div className="chips">
-                  {disciplines.map((d) => (
-                    <button
-                      key={d.id}
-                      type="button"
-                      className="chip"
-                      aria-pressed={filterIds.includes(d.id)}
-                      onClick={() => filtersByDiscipline(d.id)}
-                    >
-                      {d.shortName}
-                    </button>
-                  ))}
-                </div>
-              )}
-              {filterIds.length > 0 && (
-                <button className="btn btn-ghost" onClick={clearFilters}>Clear filters</button>
-              )}
-              
-              {/* Player actions */}
-              <div className="roster-toolbar">
-                <button
-                  className="btn btn-primary"
-                  onClick={() => setEditingPlayer("new")}
-                >
-                  + Add Player
-                </button>
-                <button
-                  className="btn btn-ghost"
-                  onClick={() => fileInputRef.current?.click()}
-                >
-                  Import players
-                </button>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept=".json,.csv,.txt"
-                  onChange={handlePlayerImport}
-                  style={{ display: "none" }}
-                />
-                <div className="roster-toolbar-spacer" />
-                <button className="btn btn-ghost" onClick={handleExport}>
-                  Export
-                </button>
-              </div>
-
-              {editingPlayer !== null && activeCommunity && (
-                <PlayerEditModal
-                  player={editingPlayer === "new" ? null : editingPlayer}
-                  disciplines={disciplines}
-                  communityId={activeCommunity.id}
-                  onClose={() => setEditingPlayer(null)}
-                  onSave={async (p) => {
-                    await savePlayer(p);
-                    setEditingPlayer(null);
-                  }}
-                  onDelete={async (id) => {
-                    await deletePlayer(id);
-                    setEditingPlayer(null);
-                  }}
-                />
-              )}
-              
-              {/* Player list */}
-              {communityPlayers.length === 0 ? (
-                <div className="empty">
-                  <div className="kicker">Empty bench</div>
-                  <div className="big">No players in this squad</div>
-                  <p>Add the first player manually, or import a JSON / CSV roster.</p>
-                  <button
-                    className="btn btn-primary"
-                    style={{ marginTop: 14 }}
-                    onClick={() => setEditingPlayer("new")}
-                  >
-                    + Add the first player
-                  </button>
-                </div>
-              ) : (
-                <div className="roster">
-                  {visiblePlayers.map((player, i) => {
-                    const primaryCap = player.capabilities[0];
-                    const primaryDiscipline = primaryCap ? disciplinesById.get(primaryCap.disciplineId) : null;
-                    const bibVar = primaryDiscipline?.shortName
-                      ? `var(--bib-${primaryDiscipline.shortName.toLowerCase().charAt(0)})`
-                      : "var(--text-2)";
-                    return (
-                      <div
-                        key={player.id}
-                        className="row row-clickable"
-                        style={{ "--stripe": bibVar } as React.CSSProperties}
-                        onClick={() => setEditingPlayer(player)}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter" || e.key === " ") {
-                            e.preventDefault();
-                            setEditingPlayer(player);
-                          }
-                        }}
-                        role="button"
-                        tabIndex={0}
-                        aria-label={`Edit ${player.name}`}
-                      >
-                        <span className="lineup-no">{String(i + 1).padStart(2, "0")}</span>
-                        <div className="who">
-                          <div className="name">{player.name}</div>
-                          {player.notes && (
-                            <div className="note">{player.notes}</div>
-                          )}
-                          <div className="badges">
-                            {player.capabilities.map(cap => {
-                              const discipline = disciplinesById.get(cap.disciplineId);
-                              if (!discipline) return null;
-                              const bibClass = `badge--${discipline.shortName.toLowerCase().charAt(0)}`;
-                              return (
-                                <span key={cap.disciplineId} className={`badge ${bibClass}`}>
-                                  {discipline.shortName}
-                                </span>
-                              );
-                            })}
-                          </div>
-                        </div>
-                        <span className="row-edit" aria-hidden="true">›</span>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-
-              <div className="cta-bar">
-                <div className="cta-label">
-                  Ready to play? <strong>Split the squad</strong> and check the balance.
-                </div>
-                <button
-                  type="button"
-                  className="btn btn-primary"
-                  onClick={randomPlayers}
-                  disabled={!activeCommunity || communityPlayers.length === 0}
-                >
-                  Split match
-                </button>
-              </div>
-            </>
-          )}
-        </Screen>
-      )}
-      {view.mode === "games" && (
-        <Screen>
-          <GamesScreen
-            tournaments={communityTournaments}
-            disciplines={disciplines}
-            onCreate={createTournament}
-            onOpen={openTournament}
-            onDelete={deleteTournament}
-            onManageDisciplines={() => goDisciplines()}
-            prefill={tournamentPrefill}
-            onPrefillConsumed={() => setTournamentPrefill(null)}
-            activeCommunity={activeCommunity}
-          />
-        </Screen>
-      )}
-      {view.mode === "tournament" && viewTournament && (
-        <Screen>
-          <TournamentScreen
-            tournament={viewTournament}
-            disciplines={disciplines}
-            matchingSquads={savedSquads.squads.filter(
-              (q) =>
-                q.communityId === activeCommunity?.id &&
-                q.disciplineId === viewTournament.disciplineId &&
-                q.result.teams.length === viewTournament.teamCount,
-            )}
-            roster={communityPlayers}
-            onBack={() => goBack()}
-            onSplit={() => startSplit()}
-            onUseSavedSquad={(squad) => useSquadInTournament(squad, viewTournament.id)}
-            onRecord={async (matchId, games) => { await recordResult(matchId, games); }}
-            onUndo={undoLastResult}
-            onDelete={() => deleteTournamentFromUI(viewTournament.id)}
-            onReroll={() => startMatch("tournament", viewTournament.id)}
-            totalPlayers={communityPlayers.length}
-          />
-        </Screen>
-      )}
-
-      {view.mode === "split" && view.session && (
-        <SplitScreen
-          session={view.session}
-          discipline={disciplines.find(d => d.id === view.session!.disciplineId) ?? disciplines[0]}
-          roster={communityPlayers}
-          onPersistResult={async (result) => {
-            // FLOW rule 3: only ad-hoc splits persist re-rolls/swaps to the
-            // Session log. Session/squad sources are synthetic — re-rolling a
-            // reopened History session must not mutate the archived raw log, and
-            // a squad re-split only persists when saved as a new squad.
-            // Tournament splits persist via the bracket (no Session pollution).
-            if (view.source === "ad-hoc") {
-              const updatedSession = { ...view.session!, result };
-              await sessionStore.saveSession(updatedSession);
-            }
-          }}
-          source={view.source}
-          onSubmitTournament={
-            view.source === "tournament" && setup?.tournamentId
-              ? (teams) => consumeTeams(setup.tournamentId!, teams)
-              : undefined
-          }
-          onSaveSquad={(name, result) => saveSquadFromSplit(name, result, view.session!.disciplineId)}
-          onBack={() => goBack()}
-        />
-      )}
-      {view.mode === "history" && (
-        <HistoryScreen
-          sessions={communitySessions}
-          loading={sessions.loading}
-          disciplines={disciplines}
-          onReopen={(session) => pushView({ mode: "split", session, source: "session" })}
-          onDelete={async (id) => {
-            try {
-              await sessions.deleteSession(id);
-            } catch (err) {
-              notify(`Could not delete the session: ${formatError(err)}`, "error");
-            }
-          }}
-        />
-      )}
-
-      {view.mode === "squads" && (
-        <SquadsScreen
-          squads={savedSquads.squads.filter((q) => q.communityId === activeCommunity?.id)}
-          loading={savedSquads.loading}
-          disciplines={disciplines}
-          roster={communityPlayers}
-          onBack={() => goBack()}
-          onReSplit={reSplitSquad}
-          onNewTournament={newTournamentFromSquad}
-          onDelete={async (id) => { await savedSquads.deleteSquad(id); }}
-        />
-      )}
-
-      {view.mode === "disciplines" && (
-        <DisciplinesScreen
-          disciplines={disciplines}
-          loading={catalog.loading}
-          onSave={saveDiscipline}
-          onDelete={deleteDiscipline}
-          onBack={() => goBack()}
-          onDownloadSample={downloadSampleData}
+          disciplinesById={disciplinesById}
+          visiblePlayers={visiblePlayers}
+          filterIds={filterIds}
+          editingPlayer={editingPlayer}
+          fileInputRef={fileInputRef}
+          tournamentPrefill={tournamentPrefill}
           downloadingId={downloadingId}
+          pendingMerge={importer.pendingMerge}
+          lastReport={importer.lastReport}
+          sessionsLoading={sessions.loading}
+          nudge={exportNudge}
+          persisted={persisted}
+          squadsLoading={savedSquads.loading}
+          disciplinesLoading={catalog.loading}
+          sessionStore={sessionStore}
+          notify={notify}
+          goBack={goBack}
+          gotoHub={gotoHub}
+          goDisciplines={goDisciplines}
+          setEditingPlayer={setEditingPlayer}
+          setTournamentPrefill={setTournamentPrefill}
+          startAdHocSplit={startAdHocSplit}
+          openNewTournament={openNewTournament}
+          showSquads={showSquads}
+          addPlayer={addPlayer}
+          openTournament={openTournament}
+          filtersByDiscipline={filtersByDiscipline}
+          clearFilters={clearFilters}
+          handleExport={handleExport}
+          savePlayer={savePlayer}
+          deletePlayer={deletePlayer}
+          deleteTournament={deleteTournament}
+          startSplit={startSplit}
+          deleteTournamentFromUI={deleteTournamentFromUI}
+          openSession={openSession}
+          deleteSession={sessions.deleteSession}
+          deleteSquad={savedSquads.deleteSquad}
+          saveDiscipline={saveDiscipline}
+          deleteDiscipline={deleteDiscipline}
+          downloadSampleData={downloadSampleData}
+          confirmMerge={importer.confirmMerge}
+          cancelMerge={importer.cancelMerge}
+          importFile={importer.importFile}
+          createTournament={createTournament}
+          startMatch={startMatch}
+          togglePlayer={togglePlayer}
+          selectDiscipline={selectDiscipline}
+          changeTeamCount={changeTeamCount}
+          split={split}
+          consumeTeams={consumeTeams}
+          recordResult={recordResult}
+          undoLastResult={undoLastResult}
+          saveSquadFromSplit={saveSquadFromSplit}
+          reSplitSquad={reSplitSquad}
+          useSquadInTournament={useSquadInTournament}
+          newTournamentFromSquad={newTournamentFromSquad}
         />
-      )}
-
-      {view.mode === "match" && setup && (
-        <MatchScreen
-          roster={communityPlayers}
-          disciplines={disciplines}
-          disciplineId={setup.disciplineId}
-          selectedIds={setup.selectedIds}
-          teamCount={setup.teamCount}
-          lockedDisciplineId={view.mode === "match" && view.source === "tournament" ? setup.disciplineId : undefined}
-          lockedTeamCount={view.mode === "match" && view.source === "tournament" ? setup.teamCount : undefined}
-          onTogglePlayer={togglePlayer}
-          onSelectDiscipline={selectDiscipline}
-          onTeamCountChange={changeTeamCount}
-          onSplit={split}
-          onBack={() => goBack()}
-        />
-      )}
-      </main>
-      </div>
-
-      <div className="toast-container" aria-live="polite">
-        {toasts.map((t) => (
-          <div key={t.id} className={`toast toast--${t.type}`} role="status">
-            {t.text}
-          </div>
-        ))}
-      </div>
-      <nav className="bottom-nav" aria-label="Primary">
-        {NAV_ITEMS.map((item) => (
-          <button
-            key={item.mode}
-            type="button"
-            className={`nav-link ${viewStack[0].mode === item.mode ? "nav-active" : ""}`}
-            onClick={() => gotoHub(item.mode)}
-            aria-current={viewStack[0].mode === item.mode ? "page" : undefined}
-          >
-            <span className="nav-icon" aria-hidden="true">{item.icon}</span>
-            <span>{item.label}</span>
-          </button>
-        ))}
-      </nav>
+      </AppChrome>
     </div>
   );
 }

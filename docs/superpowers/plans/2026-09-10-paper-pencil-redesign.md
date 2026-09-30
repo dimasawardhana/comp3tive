@@ -6,7 +6,7 @@
 
 **Architecture:** Update the design tokens in three layers: `DESIGN.md` (source of truth), `index.html` (font imports), `src/index.css` (CSS variables). Then update any hardcoded color references throughout the CSS to match the new palette. Fonts swap from Chakra Petch → Outfit (display) while keeping Familjen Grotesk for body.
 
-**Tech Stack:** TypeScript, React, Tailwind CSS, Vite, Vitest — no new dependencies required.
+**Tech Stack:** TypeScript, React, Vite, Vitest, hand-written CSS custom properties — no new dependencies required.
 
 **Spec:** `DESIGN.md` (rewrite tokens section)
 

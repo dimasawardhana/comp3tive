@@ -651,6 +651,15 @@ entry-point helpers, and one JSX block that composes `AppChrome` with a switch o
 Estimated 330–390 lines; the target is **under 400, measured as `wc -l src/App.tsx`**, and each
 of C24/C25/C26 states its own interim ceiling so a stalled extraction is visible.
 
+**CORRECTION (2026-09-30, after the whole branch was measured): the estimate was low and the
+target was never reached.** "Estimated 330–390" was this spec's arithmetic, not a measurement,
+and it was wrong by roughly a third: the file landed at **473**, its smallest value on any commit
+on this branch, and is 514 today. The target above is the target; it was not met. See the
+CORRECTION at acceptance criterion 4 for the method, the per-commit series, and why the phase
+stopped — including the arithmetic that does not close, since removing the accepted residual still
+leaves 32 lines over target. The two sentences above are kept as written because "the estimate was
+wrong" is only meaningful against the estimate that was actually made.
+
 The `useState` budget, stated so a stalled extraction is visible rather than discovered.
 Measured: `grep -c "useState(" src/App.tsx` → **13 call sites** (2 in the module-level
 `useStoredPref`/`useMediaQuery` helpers at `:94` and `:113`; 11 in the component body at `:140`,
@@ -846,6 +855,27 @@ derived from data it already has, matching the labels its own back button uses
 There is no match-setup screen beneath a `session` or `squad` split, so "Match setup" was
 wrong for those two sources as well as inert for all four. With `onBack` undefined the crumb
 renders as text, which is correct on the Landing Page.
+
+**CORRECTION (2026-09-30, measured): the consumer counts below were right when written and are
+now 9 and 9, and the roster screen is no longer rendered by `App.tsx`.** Both counts are
+**render sites** — one JSX call site each — and a call site is a consumer, so `SquadsScreen`
+counts twice. `src/ui/PageHeader.tsx`: **9** sites in 8 files — `DashboardScreen.tsx:91`,
+`DisciplinesScreen.tsx:22`, `GamesScreen.tsx:157`, `TournamentScreen.tsx:253`,
+`RosterScreen.tsx:563`, `MatchScreen.tsx:40`, `SquadsScreen.tsx:49` and `:104`,
+`HistoryScreen.tsx:22`. `src/ui/Screen.tsx`: **9** sites in 7 files — `DashboardScreen.tsx:90`,
+`DisciplinesScreen.tsx:21`, `ScreenSwitch.tsx:262` and `:277`, `RosterScreen.tsx:562`,
+`MatchScreen.tsx:39`, `SquadsScreen.tsx:48` and `:103`, `HistoryScreen.tsx:21`. `App.tsx` renders
+neither; it renders `ScreenSwitch` (`src/App.tsx:443`), and C26 moved the roster hub into
+`RosterScreen.tsx`. Its `crumbs` prop already accepted the shared component;
+`MatchScreen`, `TournamentScreen` and `SplitScreen` pass crumbs through it, and `SplitScreen`
+no longer keeps its own `.breadcrumb` div — it renders the shared `Breadcrumb`
+(`src/session/SplitScreen.tsx:348`), which is this ticket's deliverable and is the reason
+`src/nav.tsx`'s primitive has three consumers rather than zero.
+
+The paragraph below is kept as written because "seven screens plus the roster screen" is only
+meaningful against the seven that were named, and because the *method* it used — name the
+consumer, then count — is the part that still holds. Counting files would have said 8 and 7 and
+been right too, which is why the unit is stated rather than left implied.
 
 `src/ui/PageHeader.tsx` is rendered by seven screens (`DashboardScreen`, `DisciplinesScreen`,
 `HistoryScreen`, `MatchScreen`, `SquadsScreen`, `GamesScreen`, `TournamentScreen`) plus the
@@ -1055,12 +1085,83 @@ Every command runs from the repository root. "The suite" is
    `grep -rn "function relativeTime" src/` → exactly 1 line.
    `grep -rn "modal-overlay" src/ -l` → `src/ui/Modal.tsx` plus the five call sites' JSX
    unchanged in class names (verified by `git diff --stat src/index.css` being empty).
-4. **`src/App.tsx` is under 400 lines and holds no navigation, scoping, or flow rules.**
-   `wc -l src/App.tsx` → **less than 400**.
+4. **ORIGINALLY: `src/App.tsx` is under 400 lines and holds no navigation, scoping, or flow
+   rules.** `wc -l src/App.tsx` → **less than 400**.
    `grep -rn "communityId ===" src/App.tsx` → no output.
    `grep -c "new Map" src/App.tsx` → 0.
    `grep -c "useMemo" src/shell/useCommunityScope.ts` → at least 1.
    `grep -rn "useState<View\[\]>\|const pushView\|const goBack" src/App.tsx` → no output.
+
+   **CORRECTION (2026-09-30, after the whole branch was measured): the line-count half of this
+   criterion was never met, at any point, by any commit. It was not met and later grew.** The
+   distinction is the whole content of this correction, because the two claims send a reader to
+   opposite places: "was met, then drifted" means there is a commit to look at, and "was never
+   met" means there is not.
+
+   **The measurement, and the method, which is two commands and re-runnable:**
+
+   ```bash
+   for c in $(git log --format=%h -- src/App.tsx); do
+     printf "%s %s\n" "$c" "$(git show $c:src/App.tsx | wc -l)"
+   done
+   ```
+
+   Every commit on this branch that touched `src/App.tsx`, each one's line count at that commit.
+   **The smallest value in the whole series is 473, at `1bcce41`** — the last Phase C commit,
+   "fix(review): repoint the citations C11 broke, and stop the unsearched-optimal stamp", whose
+   own message ends that work with "App.tsx 478 -> 473". **It is 514 now.** The series runs
+   1,280 → … → 600 (Task 11's real starting point, 59 lines worse than the plan predicted) → 478
+   → **473** → 514. Nothing in it is under 400, and no intermediate commit dips below 473, so
+   the criterion is not a near miss that a later cleanup would have caught: the floor was set at
+   the moment the phase ended.
+
+   **Why it stopped there.** The plan's own ledger, `docs/superpowers/plans/2026-09-17-shell-and-structure.md`
+   Step 12, anticipated exactly this and printed the measured inventory of what would be left
+   "if `wc -l src/App.tsx` is still ≥ 400", ordering it by least risk. What is missing from this
+   spec and from that plan is any record of the moment the target was given up. The C26 ticket's
+   later re-check (`.scratch/debt/issues/26-the-flow-moves-out-of-the-shell.md`, "Not shipped,
+   verified: the headline target") points at a phase ledger outside this corpus,
+   `.superpowers/sdd/2026-09-17-shell-and-structure/progress.md:650`, whose ruling reads "accept
+   478 and record the shortfall; the closing extraction is not added here" — but the phase that
+   wrote this criterion and the reviews that accepted the residual left no such sentence in
+   either. **So: the criterion was written before the carve-outs were agreed, and the agreement
+   itself is not written down here.**
+
+   **What the accepted residual is, and the arithmetic that does not close — stated here because a
+   reader who does this subtraction and gets a different answer will stop trusting the paragraph
+   above.** Phase C ended at **473**, which is **73 over** the target. Phase D then added **41**
+   lines, which is why the file is 514 now. **473 − 41 = 432, which is still 32 over 400.** So the
+   residual is **not** an explanation of the gap; it is most of the distance from where the file
+   was to where it is now, and the phase stopped with a real shortfall that the later work did not
+   absorb. The 41 lines are a **38-line storage carve-out** (D34's `useDurability` call site and
+   its `recordExport()` call, with their comments) plus **3 import-handler props** D36 added
+   (`lastReport`, `nudge`, `persisted` on the roster screen) — counted from
+   `git diff 1bcce41 HEAD -- src/App.tsx`, which shows every one.
+
+   **A caution about the two "36"s in the record, because they are different numbers and adding
+   them is a mistake.** The ledger's "~36 of it is pure formatting" is a share of the **78-line**
+   gap measured at **478** — the phase's own framing, where the remaining ~40 was called genuine
+   structural excess. It is **not** a count of any block in the file, and it is not the same 36 as
+   anything here. The two framings do not compose: at 473 the gap is 73, and 73 is neither 78 nor
+   36-plus-anything.
+
+   **The 32 unclaimed lines are a different finding from the abandoned target, and the difference
+   matters.** The abandoned target was a decision, argued and minuted. **The 32 lines are
+   nobody's**: no review accepted them, no ticket scoped them, and the ledger's ~40-line
+   structural estimate was never re-derived against the 473 the phase actually reached. A reader
+   should treat "the target was knowingly given up" and "32 lines are unaccounted for" as two
+   separate items, and should not let the first stand in for the second — a documented decision
+   is a much easier thing to reopen than an unclaimed remainder nobody has looked at.
+
+   **The other four rows of this criterion are still true, and were re-run rather than assumed.**
+   `grep -c "new Map" src/App.tsx` → 0. `grep -c "useMemo" src/shell/useCommunityScope.ts` → 2.
+   `grep -rn "useState<View\[\]>\|const pushView\|const goBack" src/App.tsx` → no output. The
+   `communityId ===` row is the exception: it now returns **four** lines (`src/App.tsx:328-331`),
+   the four scoped counts in the community-delete handler. Those four are the **unclaimed 32** made
+   concrete — the rule itself is gone from the flow and only the counts that consume
+   `useCommunityScope`'s output stayed behind, which is exactly the shape the ledger called
+   "genuine structural excess" when it declined to count them as formatting. The criterion's second
+   half — "holds no navigation, scoping, or flow rules" — is met; its first half is not.
 5. **The three frozen modules exist with the frozen exports.**
    `grep -n "export function useNavigation\|export type View\|export type HubMode" src/shell/useNavigation.ts`
    → 3 lines; likewise `export function useCommunityScope` in `src/shell/useCommunityScope.ts`
@@ -1153,7 +1254,7 @@ Every command runs from the repository root. "The suite" is
 | Create | `src/split.css` |
 | Create | `README.md` |
 | Create | `.nvmrc` |
-| Modify | `src/App.tsx` (decomposition; 1,280 lines → under 400) |
+| Modify | `src/App.tsx` (decomposition; 1,280 lines → under 400 — **the target was never met; the file's smallest value on any commit is 473, at `1bcce41`**. See the CORRECTION at acceptance criterion 4) |
 | Modify | `src/landing.tsx` (drop `./index.css`) |
 | Modify | `src/landing.css` (import `split.css`; delete the dead `pulse-needle` declarations) |
 | Modify | `src/index.css` (import `split.css`; move the split and shared-kit rules out) |
@@ -1190,6 +1291,24 @@ Every command runs from the repository root. "The suite" is
   the roster screen, the chrome and the preference hooks to reach the under-400 criterion
   app-health/07 itself sets — says so in its own body and names the four files. Everything the
   phase deliberately does not do is listed under Out of Scope.
+
+  **CORRECTION (2026-09-30): this scope check describes an intention that did not survive the
+  phase, and it is the one place in this file where the shortfall is least visible.** Every
+  clause of it is true of what was planned; none of it is true of what shipped. C26 moved the
+  roster screen, the chrome and the preference hooks, and the file still landed at 473 — the
+  under-400 criterion app-health/07 sets was never met, by any commit, at any point. Ten tickets
+  green is not the same claim as the phase goal met, and this paragraph is where a reader would
+  have taken the first for the second. The full measurement is at acceptance criterion 4 — and it
+  carries a second finding this paragraph also does not mention: **32 lines above target that no
+  review accepted and no ticket scoped**, which is not the same as the abandoned criterion.
+
+  **A second thing in this section is also now false, and it was false when written rather than
+  since.** "Names the four files" and the sixth fix below — "the ticket says six files rather
+  than three" — disagree with each other, and the ticket is the one that is right: C26 creates
+  **six** files (the flow hook, the roster screen, the app chrome, the preferences hook, the
+  toasts hook, the toasts component), which the C26 design block above states correctly. This
+  spec contradicts itself in adjacent bullets, and the count a reader needs is six.
+
 - **Ambiguity check.** "No spec edited" is scoped to the e2e suite (`e2e/tests/**`), which is
   where C's behaviour net lives; unit tests may change where a real API change requires it
   (C29's async download), and that ticket lists every such edit. "Green" means the suite
@@ -1210,3 +1329,20 @@ Every command runs from the repository root. "The suite" is
   not 20; `PageHeader`/`Screen` have 7 and 5 consumers, not 4 each; `grep -c "useState("
   src/App.tsx` is 13, not the 14 the audit and the roadmap state; and `app-health/03`'s
   "different type spellings" is cosmetic, since the unions and values are identical.
+
+  **CORRECTION (2026-09-30, measured): two of this item's three numbers have since moved, and
+  the correction that fixed them in place could not have found them either.** `PageHeader` and
+  `Screen` are `src/ui/PageHeader.tsx` and `src/ui/Screen.tsx`, and each is rendered at **9 and
+  9** JSX call sites — 9 sites in 8 files, and 9 in 7. The full listing is at the CORRECTION
+  above C28. `grep -c "useState(" src/App.tsx` is **0**, not 13, because C27 moved the chrome
+  into `src/shell/AppChrome.tsx`; the same measurement at this phase's last commit, `1bcce41`,
+  is also 0, so "13" describes a state no commit on this branch reaches. `noUnusedLocals` is
+  left as 19 and is **not verified here** — it is a compiler count, and this round does not run
+  the build.
+
+  **Why an anchor audit passes this bullet.** "7 and 5" carries no `file:line`; it is a count of
+  call sites, and the only check that reaches it enumerates the tree. The paragraph it sits in
+  is a list of corrections *to* audit numbers, so it reads as measured — which is the trap. The
+  rule is the one Phase B's spec and plan now carry and the one already in Phase D's: **resolve
+  the symbol, not the number.** `<PageHeader` and `<Screen` are the symbols, they still exist,
+  and a grep for them is what returned 9 — the line audit had nothing to run against.

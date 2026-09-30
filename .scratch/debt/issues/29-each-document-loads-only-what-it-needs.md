@@ -1,6 +1,6 @@
 # 29: Each document loads only what it needs
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **What to build:** The Landing Page loads neither the app's JS chunk nor its stylesheet: it
 arrives with the tokens, its own rules, and the split screen it genuinely demonstrates — and the
@@ -114,3 +114,33 @@ record that the 22.6 kB of rosters ships with the app.
 
 **Blocked by:** 28 — C28 changes the crumb markup inside the hero and C27 changes the modal
 skeleton, both of which are in the CSS being moved.
+
+## Comments
+
+**Status re-checked 2026-09-30 against `feature/revamp` — shipped, verified from the built output
+in `dist/`. The Landing Page no longer downloads the app's stylesheet, and the rosters no longer
+ride in the app chunk.**
+
+`grep -rn 'import "./index.css"' src/landing.tsx` returns **nothing**. `dist/index.html` links
+`assets/landing-B9taTx0Y.css`, `assets/landing-Ba340byZ.js` and `assets/SplitScreen-BBzsWH4g.js` —
+**no `index-*.css` and no `app-*.js`**, so both asset greps in the acceptance list hold, and the
+47,834 bytes the page used to fetch for screens it cannot reach are gone. `src/split.css` (16,050 B)
+is imported by both `src/index.css:3` and `src/landing.css:8` after `tokens.css`, which is the
+membership rule this ticket specified.
+
+**The dead animation is gone**: `grep -c "pulse-needle" src/landing.css` and `grep -c "@keyframes"
+src/landing.css` are both **0**.
+
+**The `sample-data` seam split worked, and the rosters are genuinely on demand.**
+`src/data/sample-registry.ts` exists and `src/domain/useDisciplines.ts:3` imports from it, while
+`src/data/sample-data.ts:15-17` owns all three JSON imports behind dynamic `import()`. The built
+output has a separate chunk per roster — `dist/assets/mpl-id-roster-DaUoSKZ1.js` holds "Kiww" — so
+the laziness `App.tsx`'s `await import` was written for actually happened.
+
+**Two acceptance rows read differently than this ticket predicted, and both are improvements worth
+recording.** The row "`grep -c "Kairi" dist/assets/app-*.js` → 0" returns 1: the string is still in
+the app chunk, but not from the sample roster — it is the `e.g. Kairi` placeholder at
+`src/roster/PlayerEditModal.tsx:183` and `src/data/samplePlayers.ts:24`, both of which this ticket
+did not own. The roster itself moved out, which is what the row was for. And the warning count was
+not re-measured here, since no build was run for this re-check; the warning's cause is gone by
+construction.

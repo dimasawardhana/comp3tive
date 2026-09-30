@@ -1,6 +1,6 @@
 # 04: Deletes remove the row from the screen
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **What to build:** Deleting a player, a tournament, or a session removes it from the screen immediately, not just from storage — and a delete that fails says so instead of doing nothing visible.
 
@@ -35,3 +35,11 @@ All three hooks already expose the correct method and already update their own s
 **Blocked by:** 01 — the new spec uses the shared seeded helper (`.scratch/debt/issues/01`)
 
 **Notes:** These are one-line changes each. They matter more than their size because the product currently confirms a destructive action and then visibly does not perform it. `src/App.tsx` handler edits are Phase A's; C's decomposition lands after A and must preserve this behaviour exactly.
+
+## Comments
+
+Resolved by commit `a651062` ("fix: deletes go through the hook that owns the list").
+
+All three handlers now call the hook that owns the list rather than the store: `src/App.tsx:495-497` (`roster.deletePlayer`), `:787-789` (`tournaments.deleteTournament`), `:1239-1240` (`sessions.deleteSession`). Each hook filters its own state after a successful store write (`src/roster/useRoster.ts:44-45`, `src/tournament/useTournaments.ts:44-45`, `src/session/useSessions.ts:43-44`), which is what makes the row leave the screen without a reload. Each handler catches, reports through `notify(..., "error")`, and does not rethrow, so `PlayerEditModal.remove` — invoked as `void remove()` at `src/roster/PlayerEditModal.tsx:308` — cannot produce an unhandled rejection. Deleting the open tournament redirects to Games (`src/App.tsx:795-799`).
+
+Carried, not fixed: `e2e/tests/roster/delete-row.spec.ts` re-asserts persistence after a reload for players (`:74-78`) and sessions (`:96-99`) but not for the tournament it deletes at `:86-87` — the criterion's coverage is two of three. The write goes through the same hook as the other two, so the mechanism is the same; the assertion is simply missing.

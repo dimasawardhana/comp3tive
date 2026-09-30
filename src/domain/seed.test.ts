@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { FUTSAL_DISCIPLINE, MLBB_DISCIPLINE, SEED_DISCIPLINES } from "./seed";
+import { BADMINTON_DISCIPLINE, FUTSAL_DISCIPLINE, MLBB_DISCIPLINE, SEED_DISCIPLINES } from "./seed";
 
 describe("seed disciplines", () => {
-  it("seeds exactly Futsal and MLBB", () => {
-    expect(SEED_DISCIPLINES.map((d) => d.id)).toEqual(["futsal", "mlbb"]);
+  it("seeds exactly Futsal, MLBB and Badminton", () => {
+    expect(SEED_DISCIPLINES.map((d) => d.id)).toEqual(["futsal", "mlbb", "badminton"]);
   });
 
   it("futsal defines its roles and attributes", () => {
@@ -24,7 +24,23 @@ describe("seed disciplines", () => {
     expect(MLBB_DISCIPLINE.team).toEqual({ minTeamSize: 5, maxTeamSize: 5, rolesRequired: true });
   });
 
-  it("both disciplines own the mean strength model (pluggable per discipline)", () => {
+  it("badminton defines its court roles and attributes", () => {
+    expect(BADMINTON_DISCIPLINE.roles.map((r) => r.id)).toEqual(["front-court", "rear-court"]);
+    expect(BADMINTON_DISCIPLINE.attributes.map((a) => a.id)).toEqual(["technical", "fitness", "game-iq"]);
+  });
+
+  it("badminton: hard role coverage, exactly 2", () => {
+    // Two roles with rolesRequired needs exactly two players per team:
+    // `roleCoverPossible` requires `team.length >= roleIds.length` and
+    // `assignRoles` requires `players.length === roleIds.length`.
+    expect(BADMINTON_DISCIPLINE.team).toEqual({ minTeamSize: 2, maxTeamSize: 2, rolesRequired: true });
+  });
+
+  it("badminton owns the mean strength model", () => {
+    expect(BADMINTON_DISCIPLINE.strengthModel.kind).toBe("mean");
+  });
+
+  it("every seeded discipline owns the mean strength model (pluggable per discipline)", () => {
     for (const d of SEED_DISCIPLINES) {
       expect(d.strengthModel.kind).toBe("mean");
     }

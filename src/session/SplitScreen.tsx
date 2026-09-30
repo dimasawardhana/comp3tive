@@ -1,8 +1,16 @@
 import { useEffect, useRef, useState } from "react";
+import { useMemo } from "react";
 import type { Capability, Discipline, Id, Player, Session, SplitResult, TeamAssignment } from "../domain/types";
-type SplitSource = "ad-hoc" | "tournament" | "session" | "squad";
 import { describeFlags, teamName } from "./flow";
 import { freshSplit, swapPlayers } from "./edit";
+import { gapQualifier } from "./gapProvenance";
+import { rerollPool, type SplitSource } from "../shell/useSplitFlow";
+import { BIB } from "../ui/constants";
+import { Breadcrumb } from "../nav";
+import { Modal } from "../ui/Modal";
+import { ShareSheet } from "../share/ShareSheet";
+import { explainFairness } from "../share/fairness";
+import { benchAdvice, benchAdviceLine } from "./benchAdvice";
 
 interface Props {
   session: Session;
@@ -14,11 +22,16 @@ interface Props {
   onSaveSquad?: (name: string, result: SplitResult) => Promise<void> | void;
   /** Source of this split: drives header, breadcrumbs, persistence, forward action. */
   source: SplitSource;
+  /**
+   * Present only where sharing makes sense: the app, never the landing hero.
+   * It carries the community name rather than a bare flag, so "no share
+   * control" and "no community to share into" are one absent prop, not two.
+   */
+  share?: { communityName: string };
   /** Go back to the match setup screen to change the roster. */
   onBack?: () => void;
 }
 
-const BIB = ["a", "b", "c", "d", "e"];
 /** Team-membership signature, order-independent: used to detect a real re-roll. */
 function signature(result: SplitResult): string {
   return result.teams
@@ -113,7 +126,51 @@ function TeamCard({ team, discipline, roster, swapMode, pick, onPick }: TeamCard
   );
 }
 
-function GapMeter({ result, balanced }: { result: SplitResult; balanced: boolean }) {
+/**
+ * Why the teams came out even, under the readout that measures how far apart
+ * they are. `explainFairness` is a measurement, not a verdict, so this line is
+ * the same whichever gap provenance the result carries.
+ */
+function FairnessLine({ result, discipline, roster }: { result: SplitResult; discipline: Discipline; roster: Player[] }) {
+  const { averages, trade } = explainFairness({ result, discipline, roster });
+  // `trade` is empty on an even split, and empty is the module's way of saying
+  // there is no sentence: one number for the band already said it, and a
+  // sentence written to fill the space would name a higher and a lower side
+  // that an even split does not have. Nothing is rendered, not a placeholder.
+  if (!averages) return null;
+  return (
+    <p className="fairness">
+      {averages}
+      {trade && ` ${trade}`}
+    </p>
+  );
+}
+
+/**
+ * What a different bench choice would have produced, under the readout that
+ * measures this one. `benchAdvice` has already decided whether there is
+ * anything to say, so this renders a sentence or renders nothing, and the
+ * sentence itself is `benchAdviceLine`'s, tested in the `node` suite without
+ * rendering.
+ *
+ * `useMemo` is not decoration. `benchAdvice` re-runs the shipped solver once
+ * per candidate, which is free on a pool nobody needs advising about and
+ * around a hundred milliseconds a call on a wide one, and this component sits
+ * inside the screen's render path where `result` keeps its identity across
+ * unrelated state changes. Memoised on `result`, the sweep runs once per split
+ * instead of once per keystroke of a re-roll.
+ */
+function BenchAdvisory({ result, discipline, roster }: { result: SplitResult; discipline: Discipline; roster: Player[] }) {
+  const advice = useMemo(() => benchAdvice({ result, discipline, roster }), [result, discipline, roster]);
+  if (!advice) return null;
+  return (
+    <p className="bench-advice">
+      {benchAdviceLine(advice, { result, discipline, roster })}
+    </p>
+  );
+}
+
+function GapMeter({ result, balanced, discipline, roster }: { result: SplitResult; balanced: boolean; discipline: Discipline; roster: Player[] }) {
   const gap = result.gap;
   const deg =
     balanced || result.teams.length < 2
@@ -136,16 +193,19 @@ function GapMeter({ result, balanced }: { result: SplitResult; balanced: boolean
       </div>
       <div className="readout">
         {balanced ? (
-          <>Dead even. <span className="fine">Fair game.</span></>
+          <>Dead even. <span className="fine">{gapQualifier(result) ?? "Fair game."}</span></>
         ) : (
           <>
             Gap {gap.toFixed(1)}.{" "}
             <span className="fine">
               {leader ? teamName(leader.index) : "?"} leads.
+              {gapQualifier(result) ? ` ${gapQualifier(result)}` : ""}
             </span>
           </>
         )}
       </div>
+      <FairnessLine result={result} discipline={discipline} roster={roster} />
+      <BenchAdvisory result={result} discipline={discipline} roster={roster} />
     </>
   );
 }
@@ -163,8 +223,7 @@ function SaveSquadModal({
 }) {
   const [name, setName] = useState(defaultName);
   return (
-    <div className="modal-overlay" onClick={onCancel}>
-      <div className="modal-card" onClick={(e) => e.stopPropagation()}>
+    <Modal onClose={onCancel}>
         <button type="button" className="modal-close" aria-label="Close" onClick={onCancel}>
           &times;
         </button>
@@ -198,17 +257,17 @@ function SaveSquadModal({
             {saving ? "Saving\u2026" : "Save squad"}
           </button>
         </div>
-      </div>
-    </div>
+    </Modal>
   );
 }
 
-export function SplitScreen({ session, discipline, roster, onPersistResult, onSubmitTournament, onSaveSquad, source, onBack }: Props) {
+export function SplitScreen({ session, discipline, roster, onPersistResult, onSubmitTournament, onSaveSquad, source, share, onBack }: Props) {
   const [editable, setEditable] = useState<SplitResult>(session.result);
   const [swapMode, setSwapMode] = useState(false);
   const [pick, setPick] = useState<{ teamIndex: number; playerId: Id } | null>(null);
   const [rerollCount, setRerollCount] = useState(1);
   const [saveOpen, setSaveOpen] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [persistError, setPersistError] = useState<string | null>(null);
   const pitchRef = useRef<HTMLDivElement>(null);
@@ -230,6 +289,8 @@ export function SplitScreen({ session, discipline, roster, onPersistResult, onSu
   const flags = describeFlags(result, discipline, roster);
   const displayFlags =
     flags.length > 0 ? flags : balanced ? ["All roles covered. Fair game."] : [];
+  // One label for the crumb and the Back button, so they cannot drift apart.
+  const backLabel = source === "session" ? "History" : source === "squad" ? "Squad detail" : "Match setup";
 
   const commit = async (next: SplitResult) => {
     setEditable(next);
@@ -262,7 +323,7 @@ export function SplitScreen({ session, discipline, roster, onPersistResult, onSu
   const reroll = () => {
     // The pool is the session's own pool, not the teams on screen: a player who
     // sat out (an MLBB leftover, a futsal sub past capacity) is eligible again.
-    const pool = session.poolPlayerIds.filter((id) => roster.some((p) => p.id === id));
+    const pool = rerollPool(source, session.poolPlayerIds, result.teams).filter((id) => roster.some((p) => p.id === id));
     const settings = { teamCount: session.settings.teamCount };
     const before = signature(result);
     let next = result;
@@ -311,18 +372,19 @@ export function SplitScreen({ session, discipline, roster, onPersistResult, onSu
 
   return (
     <div className="screen split-screen">
-      <div className="breadcrumb">
-        <a href="#" onClick={(e) => { e.preventDefault(); /* back handled via app */ }}>Match setup</a>
-        <span className="sep">/</span>
-        <span>Split result</span>
-      </div>
+      <Breadcrumb
+        crumbs={[
+          { label: backLabel, go: onBack },
+          { label: "Split result" },
+        ]}
+      />
 
       <div className="split-head">
         <h2>Tonight&apos;s teams</h2>
         <div className="split-head-meta">
           <span className="badge badge--generic">{discipline.name}</span>
           <span className="badge badge--generic">{result.teams.length} teams</span>
-          {source === "tournament" && <span className="badge badge--generic badge--tournament">Tournament squad</span>}
+          {source === "tournament" && <span className="badge badge--generic badge--tournament">Tournament teams</span>}
           {rerollCount > 1 && <span className="badge badge--generic">Roll #{rerollCount}</span>}
         </div>
       </div>
@@ -332,7 +394,7 @@ export function SplitScreen({ session, discipline, roster, onPersistResult, onSu
           <span className="swap-banner-icon" aria-hidden="true">⇄</span>
           <span>
             {pick
-              ? `Now tap a player on the other team to swap with ${roster.find((p) => p.id === pick.playerId)?.name ?? "?"}.`
+              ? `Now tap a player on the other team to swap with ${roster.find((p) => p.id === pick.playerId)?.name ?? "?"}`
               : "Tap one player on each team to swap them."}
           </span>
         </div>
@@ -348,22 +410,25 @@ export function SplitScreen({ session, discipline, roster, onPersistResult, onSu
             </div>
             <TeamCard {...teamCardProps(result.teams[1])} />
           </div>
-          <GapMeter result={result} balanced={balanced} />
+          <GapMeter result={result} balanced={balanced} discipline={discipline} roster={roster} />
         </div>
       ) : result.teams.length > 2 ? (
         <div ref={pitchRef} className="pitch">
           <div className="readout">
             {balanced ? (
-              <>Dead even. <span className="fine">Fair game.</span></>
+              <>Dead even. <span className="fine">{gapQualifier(result) ?? "Fair game."}</span></>
             ) : (
               <>
                 Gap {result.gap.toFixed(1)}.{" "}
                 <span className="fine">
                   {teamName(result.teams.reduce((a, b) => (a.avgStrength > b.avgStrength ? a : b)).index)} leads.
+                  {gapQualifier(result) ? ` ${gapQualifier(result)}` : ""}
                 </span>
               </>
             )}
           </div>
+          <FairnessLine result={result} discipline={discipline} roster={roster} />
+          <BenchAdvisory result={result} discipline={discipline} roster={roster} />
           <div className="team-stack">{result.teams.map((t) => <TeamCard key={t.index} {...teamCardProps(t)} />)}</div>
         </div>
       ) : (
@@ -393,7 +458,7 @@ export function SplitScreen({ session, discipline, roster, onPersistResult, onSu
       <div className="bar split-bar">
         {onBack && !swapMode && (
           <button type="button" className="btn btn-ghost" onClick={onBack} data-testid="back-button">
-            ← {source === "session" ? "History" : source === "squad" ? "Squad detail" : "Match setup"}
+            ← {backLabel}
           </button>
         )}
         {onSaveSquad && !swapMode && (
@@ -406,6 +471,29 @@ export function SplitScreen({ session, discipline, roster, onPersistResult, onSu
             Save squad
           </button>
         )}
+        {/*
+          Gated on two or more teams, which is this screen's own definition of
+          "there is a split" — the teams ternary above is `=== 2`, then `> 2`,
+          else the "Solver failed" empty state, and the tournament button beside
+          this one is already `disabled={result.teams.length < 2}`. Anything
+          below that threshold renders the empty state, and `.split-bar` sits
+          outside that ternary, so the bar would otherwise offer to share a
+          screen the app is calling a failure. The text would say "0 teams" or
+          "1 teams", quote a gap verdict, and for a one-team result append a
+          "Not playing" line — a proven-minimum fairness claim about players
+          the app benched, pasted into a group chat. Re-roll is the only honest
+          action on that screen, and it is already here.
+        */}
+        {share && !swapMode && result.teams.length > 1 && (
+          <button
+            type="button"
+            className="btn btn-ghost"
+            onClick={() => setShareOpen(true)}
+            data-testid="share-teams"
+          >
+            Share
+          </button>
+        )}
         {swapMode ? (
           <button type="button" className="btn btn-primary" onClick={toggleSwapMode}>
             Done swapping
@@ -416,9 +504,8 @@ export function SplitScreen({ session, discipline, roster, onPersistResult, onSu
             className="btn btn-primary"
             disabled={result.teams.length < 2}
             onClick={() => onSubmitTournament(result.teams)}
-            data-testid="submit-tournament-squad"
           >
-            Save tournament squad →
+            Save teams to tournament →
           </button>
         ) : (
           <button type="button" className="btn btn-primary" onClick={() => void reroll()}>
@@ -433,6 +520,16 @@ export function SplitScreen({ session, discipline, roster, onPersistResult, onSu
           saving={saving}
           onCancel={() => setSaveOpen(false)}
           onSave={doSave}
+        />
+      )}
+
+      {shareOpen && share && (
+        <ShareSheet
+          communityName={share.communityName}
+          discipline={discipline}
+          result={result}
+          roster={roster}
+          onClose={() => setShareOpen(false)}
         />
       )}
     </div>

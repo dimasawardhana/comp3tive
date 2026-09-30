@@ -9,6 +9,7 @@ test-results/
 
 # Tool scratch — skill and machine session state, regenerated per run
 .impeccable/
+.omp/
 .omp_session/
 .superpowers/
 .scratch/review/

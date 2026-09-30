@@ -2,7 +2,10 @@ import { useState } from "react";
 import { PageHeader } from "../ui/PageHeader";
 import { Screen } from "../ui/Screen";
 import type { Discipline, Id, Player, SavedSquad } from "../domain/types";
-import { teamName } from "./flow";
+import { nameOf, teamName } from "./flow";
+import { BIB } from "../ui/constants";
+import { relativeTime } from "../ui/format";
+import { ConfirmButton } from "../ui/ConfirmButton";
 
 interface Props {
   /** Active community's saved squads, newest first. */
@@ -16,19 +19,6 @@ interface Props {
   /** Jump to the Games tab with the new-tournament modal prefilled for this squad. */
   onNewTournament: (squad: SavedSquad) => void;
   onDelete: (id: Id) => Promise<void>;
-}
-
-const BIB = ["a", "b", "c", "d", "e"];
-
-function relativeTime(ts: number): string {
-  const mins = Math.floor((Date.now() - ts) / 60000);
-  if (mins < 1) return "just now";
-  if (mins < 60) return `${mins}m ago`;
-  const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  if (days < 7) return `${days}d ago`;
-  return new Date(ts).toLocaleDateString();
 }
 
 function squadBadges(squad: SavedSquad, disciplines: Discipline[]) {
@@ -47,7 +37,6 @@ function squadBadges(squad: SavedSquad, disciplines: Discipline[]) {
 export function SquadsScreen({ squads, loading, disciplines, roster, onBack, onReSplit, onNewTournament, onDelete }: Props) {
   const [openId, setOpenId] = useState<Id | null>(null);
   const open = squads.find((s) => s.id === openId) ?? null;
-  const nameOf = (id: Id): string => roster.find((p) => p.id === id)?.name ?? "?";
   const disciplineName = (squad: SavedSquad): string =>
     disciplines.find((d) => d.id === squad.disciplineId)?.shortName ?? "Unknown";
   const gapOf = (squad: SavedSquad): string => squad.result.gap.toFixed(1);
@@ -76,14 +65,18 @@ export function SquadsScreen({ squads, loading, disciplines, roster, onBack, onR
               </div>
               <ul className="review-team-players">
                 {team.slots.map((slot) => (
-                  <li key={slot.playerId}>{nameOf(slot.playerId)}</li>
+                  <li key={slot.playerId}>{nameOf(roster, slot.playerId)}</li>
                 ))}
               </ul>
             </div>
           ))}
         </div>
 
-        <div className="bar">
+        {/* Four long controls in one line already overflowed a 390px screen
+            (632px of content in a 390px bar), and the armed confirm adds two
+            more. `.bar` is a non-wrapping flex row, so the wrap is set here
+            rather than in index.css, which this task does not touch. */}
+        <div className="bar" style={{ flexWrap: "wrap" }}>
           <button type="button" className="btn btn-ghost" onClick={() => setOpenId(null)}>
             ← Squads
           </button>
@@ -93,17 +86,13 @@ export function SquadsScreen({ squads, loading, disciplines, roster, onBack, onR
           <button type="button" className="btn btn-primary" onClick={() => onNewTournament(open)}>
             New tournament with these teams
           </button>
-          <button
-            type="button"
+          <ConfirmButton
             className="btn btn-danger-ghost"
-            onClick={() => {
-              if (window.confirm(`Delete "${open.name}"? Tournaments that used it keep their teams.`)) {
-                void onDelete(open.id);
-              }
-            }}
-          >
-            Delete
-          </button>
+            label="Delete"
+            confirmLabel="Delete squad"
+            message={`Delete "${open.name}"? Tournaments that used it keep their teams.`}
+            onConfirm={() => void onDelete(open.id)}
+          />
         </div>
       </Screen>
     );
@@ -165,19 +154,22 @@ export function SquadsScreen({ squads, loading, disciplines, roster, onBack, onR
                 </div>
                 <span className="row-actions">
                   <span className="row-edit" aria-hidden="true">›</span>
-                  <button
-                    type="button"
-                    className="link danger"
-                    aria-label={`Delete ${squad.name}`}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (window.confirm(`Delete "${squad.name}"? Tournaments that used it keep their teams.`)) {
-                        void onDelete(squad.id);
-                      }
-                    }}
+                  {/* Bounded and wrapping for the same reason as the History row:
+                    `.row-actions` cannot shrink, so the armed confirm would push
+                    the row off a narrow screen. */}
+                  <span
+                    onClick={(e) => e.stopPropagation()}
+                    style={{ display: "flex", flexWrap: "wrap", maxWidth: "14rem", justifyContent: "flex-end" }}
                   >
-                    Delete
-                  </button>
+                    <ConfirmButton
+                      className="link danger"
+                      label="Delete"
+                      ariaLabel={`Delete ${squad.name}`}
+                      confirmLabel={`Delete ${squad.name}`}
+                      message={`Delete "${squad.name}"? Tournaments that used it keep their teams.`}
+                      onConfirm={() => void onDelete(squad.id)}
+                    />
+                  </span>
                 </span>
               </li>
             );

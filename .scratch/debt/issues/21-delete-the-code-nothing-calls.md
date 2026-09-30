@@ -1,6 +1,6 @@
 # 21: Delete the code nothing calls
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **What to build:** A reader — human or agent — opening `src/` can trust that everything in it
 is live. Searching for the tournament validation rules returns exactly one answer, and no
@@ -52,3 +52,24 @@ import, and re-wiring a validator no screen asks for would be a feature, not thi
 - [ ] `git diff --stat src/index.css` is empty and no rendered string changes
 
 **Blocked by:** —
+
+## Comments
+
+**Status re-checked 2026-09-30 against `feature/revamp` — shipped. All three dead modules are
+gone and every duplicate is collapsed.**
+
+`grep -rn "split-module\|tournament-domain-fix\|team-participation-validator" src/ e2e/` returns
+**nothing** — the check this ticket said returns nothing today, and still does, because the files
+are deleted rather than merely unreferenced. `grep -rn "export function validateTournamentSpec"
+src/` returns exactly **one** line, `src/tournament/tournament-validation.ts:9`.
+`grep -rn "validateTeamParticipation" src/` returns **nothing**, and `grep -rn "Re-split is locked"
+src/` returns **nothing**.
+
+**The duplicate's four extra rules needed no porting, as this ticket predicted.** Each already had
+a live home: team size against the discipline's own bounds in the solver's `buildSettings` and
+`MatchScreen`'s seat check; format × discipline compatibility in the surviving `getValidTeamCounts`;
+`seriesLength ∈ {1,3,5}` in `GamesScreen`'s `BO: SeriesLength[]`; and name-required in rule 4 of
+the surviving validator. Nothing was copied back, and `src/index.css` is untouched by the deletion.
+
+`src/tournament/bracket.ts` and the live validation module are the only places tournament rules are
+defined, which is what "searching for the validation rules returns exactly one answer" asks for.

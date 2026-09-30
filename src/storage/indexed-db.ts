@@ -1,5 +1,5 @@
 import type { Community, Discipline, Id, Player, SavedSquad, Session, Tournament } from "../domain/types";
-import { SEED_DISCIPLINES } from "../domain/seed";
+import { BADMINTON_DISCIPLINE, SEED_DISCIPLINES, orderDisciplines } from "../domain/seed";
 import type {
   CommunityStore,
   DisciplineStore,
@@ -16,7 +16,18 @@ const DEFAULT_DB = "comp3tive";
  */
 const LEGACY_DB = "team-builder";
 /** The schema version of the app database. Exported so test support derives it. */
-export const DB_VERSION = 6;
+export const DB_VERSION = 7;
+/**
+ * Seeds added after a database version shipped, keyed by the version that
+ * introduced them. An install that already carries a discipline store predates
+ * them, so upgrading adds exactly these and nothing else: the catalog is the
+ * user's to edit, and "put back every seed the code knows" would resurrect a
+ * discipline they deliberately deleted. The next discipline added to
+ * `seed.ts` gets its own entry here and its own version bump.
+ */
+const SEEDS_ADDED_IN: Record<number, Discipline[]> = {
+  7: [BADMINTON_DISCIPLINE],
+};
 const COMMUNITY_STORE = "communities";
 const PLAYER_STORE = "players";
 const SESSION_STORE = "sessions";
@@ -32,8 +43,11 @@ const ALL_STORES = [...DATA_STORES, DISCIPLINE_STORE];
 function openAppDb(dbName: string): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
     const request = indexedDB.open(dbName, DB_VERSION);
-    request.onupgradeneeded = () => {
+    request.onupgradeneeded = (event) => {
       const db = request.result;
+      // The versionchange transaction is the only one open here, and the one
+      // that reverts the version bump if this handler throws.
+      const upgrade = request.transaction;
       if (!db.objectStoreNames.contains(COMMUNITY_STORE)) {
         db.createObjectStore(COMMUNITY_STORE, { keyPath: "id" });
       }
@@ -50,9 +64,19 @@ function openAppDb(dbName: string): Promise<IDBDatabase> {
         db.createObjectStore(SAVED_SQUAD_STORE, { keyPath: "id" });
       }
       if (!db.objectStoreNames.contains(DISCIPLINE_STORE)) {
+        // A first open: the whole catalog is ours to write.
         const store = db.createObjectStore(DISCIPLINE_STORE, { keyPath: "id" });
         // Seed the catalog on first open (config data, editable later).
         for (const discipline of SEED_DISCIPLINES) store.put(discipline);
+      } else if (upgrade) {
+        // An upgrade: only the seeds these versions introduced. An older install
+        // cannot have deleted one of those - it did not exist yet - so the put
+        // needs no existence check, while the seeds it does have are untouched.
+        for (let version = event.oldVersion + 1; version <= DB_VERSION; version++) {
+          for (const discipline of SEEDS_ADDED_IN[version] ?? []) {
+            upgrade.objectStore(DISCIPLINE_STORE).put(discipline);
+          }
+        }
       }
     };
     request.onsuccess = () => resolve(request.result);
@@ -331,7 +355,7 @@ export function createIndexedDbSavedSquadStore(dbName = DEFAULT_DB): SavedSquadS
 export function createIndexedDbDisciplineStore(dbName = DEFAULT_DB): DisciplineStore {
   const crud = createCrud<Discipline>(dbName, DISCIPLINE_STORE);
   return {
-    listDisciplines: crud.list,
+    listDisciplines: async () => orderDisciplines(await crud.list()),
     saveDiscipline: crud.save,
     deleteDiscipline: crud.remove,
   };

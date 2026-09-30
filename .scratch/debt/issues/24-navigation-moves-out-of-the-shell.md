@@ -1,6 +1,6 @@
 # 24: Navigation moves out of the shell
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **What to build:** Going back from a screen, and returning to a hub, are tested behaviour
 rather than three closures buried in a component that also renders nine screens.
@@ -93,3 +93,26 @@ change inside it has no test that can tell you which one broke.
 - [ ] ADR-0004 holds: no screen hard-codes its own back target; the split flow's `source` still travels on the view
 
 **Blocked by:** 22 — ticket 22 already edits `src/App.tsx` heavily and must land first.
+
+## Comments
+
+**Status re-checked 2026-09-30 against `feature/revamp` — shipped. Navigation is a module with its
+own tests, and the shell no longer declares any of it.**
+
+`src/shell/useNavigation.ts` exports `View` (`:5`), `HubMode` (`:16`), the four pure transitions
+`pushStack` (`:19`), `popStack` (`:25`), `hubStack` (`:30`) and `currentView` (`:34`), and
+`useNavigation` (`:38`) — the frozen shapes, in the file this ticket named.
+`grep -rn "useState<View\[\]>\|const pushView\|const goBack" src/App.tsx` returns **nothing**.
+`src/App.tsx` is 514 lines, well inside this ticket's interim ceiling of 1,240.
+
+`src/shell/navigation.test.ts` (68 lines) covers every case this ticket listed: a push/pop round
+trip that also proves the input is not mutated; `popStack` at the root returning the same stack,
+exhaustively across every reachable depth and every hub bottom; `hubStack` collapsing a depth-3
+stack; and the create-tournament sequence yielding `[games, tournament]` with Back returning to
+Games.
+
+**`gotoHub` still clears the match setup and `goBack` at the root still does nothing** — both now
+in `src/shell/useSplitFlow.ts:170`, where `gotoHub` is `resetTo({ mode }); setSetup(null)`, the
+two-line wrapper this ticket prescribed. The `source` still travels on the view, so ADR-0004's
+"no screen hard-codes its own back target" holds: the three crumb sites in `MatchScreen`,
+`TournamentScreen` and `SplitScreen` all navigate through handlers their host passes down.

@@ -1,6 +1,6 @@
 # 12: Ticket hygiene — close the tickets that are already shipped
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **What to build:** The ticket sets that describe shipped work stop reading as open work, so the next agent does not re-implement a delivered feature or double-track a defect this phase already owns. This ticket edits ticket files only; it touches no product code.
 
@@ -30,3 +30,11 @@ The dashboard set is the stale one: all seven are `ready-for-agent` with no chec
 **Blocked by:** — (this ticket can land at any point in the phase; it is independent of every other ticket)
 
 **Notes:** `docs/agents/issue-tracker.md` defines the convention used here — one file per ticket, a `Status:` line near the top, and conversation or outcome appended under a `## Comments` heading. The roadmap's Approach section records the same convention. This is the phase's last piece of bookkeeping and the cheapest way to stop the next agent from rebuilding a shipped feature.
+
+## Comments
+
+Resolved by commit `49d47a4` ("docs: close the ticket sets that already shipped"), and completed by the closure of tickets 01-12 themselves.
+
+It resolved the seven `.scratch/team-builder/dashboard/issues/` tickets with a `## Comments` line naming the delivering commit, recorded both dashboard corrections explicitly rather than papering over them (the title claiming a centered Home tab when the shipping commit put Home first; and that the suite had not been green since `681051d`), corrected `.scratch/app-correctness/issues/03` instead of closing it, and gave the eight absorbed originals a successor pointer in their `## Comments`.
+
+Its own subject — closing the already-shipped Phase A tickets — was deliberately deferred to the end of the phase rather than done mid-flight, on the reasoning that a ticket's status should reflect the reviewed and accepted state and the final whole-branch review was still open. That review has now run (`incorrect`, then `correct` after the final fix wave) and both blocking findings are closed, so the deferral's condition is discharged and tickets 01-12 carry their own `resolved` status and commit citations.

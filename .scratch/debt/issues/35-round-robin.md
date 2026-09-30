@@ -1,6 +1,6 @@
 # 35: Round robin for 3, 5, 6 and 7 teams
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **What to build:** `round-robin` becomes a tournament format: every team plays every other team
 exactly once, each round is a set of simultaneous matches, and an odd number of teams gives each
@@ -62,3 +62,34 @@ breaks silently.
 - [ ] `npx tsc -b` exits 0, `npx vite build` exits 0, and `npx vitest run` exits 0 with the new round-robin cases in the output.
 
 **Blocked by:** —
+
+## Comments
+
+**Status re-checked 2026-09-30 against `feature/revamp` — shipped. A 3-team and a 5-team night can
+run a tournament, and the champion is the standings leader rather than a null.**
+
+`src/domain/types.ts:25` is
+`export type TournamentFormat = "series" | "single-elim" | "swiss" | "round-robin";` and
+`src/ui/constants.ts:11` carries the `"round-robin"` key the explicit `Record<TournamentFormat,
+string>` type demanded — the signal this ticket predicted, and the type caught it.
+`src/data/round-robin.ts:68` exports `roundRobinSchedule(n)` as a pure function with no imports, and
+the doc comment names the circle method.
+
+**`champion()` is the change that mattered, and it is present with the failure it prevents named
+beside it** — `src/tournament/bracket.ts:452` reads
+`tournament.format === "swiss" || tournament.format === "round-robin"` and returns
+`standings(tournament)[0]`, with the comment "without this arm a completed round robin returned the
+winner of round 1's first match". `buildBracket` gets its round-robin arm at `:135` and the
+`requiredMatches` arm at `:287`. `getValidTeamCounts` returns `[3, 4, 5, 6, 7, 8]` for the format
+(`src/tournament/tournament-validation.ts:73`).
+
+**The mis-routing this ticket called out is fixed, and fixed in a way that cannot drift.**
+`src/tournament/GamesScreen.tsx:85` computes the prefill as
+`SELECTABLE_FORMATS.find((f) => TEAM_COUNTS[f].includes(n)) ?? "swiss"` — derived from the same
+`TEAM_COUNTS` table the validator reads, rather than the old hand-written chain that sent 3 and 5
+to Swiss and let validation reject them. The chips are likewise computed from the table
+(`:66`), so a count outside a format's list cannot become selectable. The team-count hint reads
+`Round robin: 3 to 8 teams, odd counts included.` (`:393`) and carries a second line explaining
+that a bye is not a loss, and the preview line reads `· {n} rounds · every team plays every other`
+(`:421`). `bracketSupports` in `src/shell/useSplitFlow.ts:79` is `n >= 3 && n <= 8` for the format,
+and `TournamentScreen.tsx:348` routes it to the standings view.

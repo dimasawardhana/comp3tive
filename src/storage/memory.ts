@@ -1,4 +1,5 @@
 import type { Discipline, Id, Player, SavedSquad, Session } from "../domain/types";
+import { orderDisciplines } from "../domain/seed";
 import type { DisciplineStore, RosterStore, SavedSquadStore, SessionStore } from "./types";
 
 /** In-memory stores: for tests and as a fallback when IndexedDB is absent. */
@@ -63,7 +64,8 @@ export function createMemoryDisciplineStore(initial: Discipline[] = []): Discipl
   const disciplines = new Map<Id, Discipline>(initial.map((d) => [d.id, structuredClone(d)]));
   return {
     async listDisciplines() {
-      return [...disciplines.values()].map((d) => structuredClone(d));
+      // Same display order as the IndexedDB store: seeds first, custom last.
+      return orderDisciplines([...disciplines.values()]).map((d) => structuredClone(d));
     },
     async saveDiscipline(discipline: Discipline) {
       disciplines.set(discipline.id, structuredClone(discipline));

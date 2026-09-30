@@ -1,6 +1,6 @@
 # 03: Re-roll produces a different fair split
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **What to build:** Clicking Re-roll returns a *different*, still-fair arrangement of the session's own pool — and the `Roll #N` badge counts only rolls that actually changed the teams.
 
@@ -45,3 +45,13 @@ const next = freshSplit(result.teams.flatMap((t) => t.slots.map((s) => s.playerI
 **Design reference:** `docs/design.md` — the split screen's live gap meter re-settles on re-roll.
 
 **Notes:** `VARIETY_TOLERANCE` is the knob that defines "fair but different". If two re-rolls legitimately return the same teams for a tiny pool (4 players, 2 teams, all equal strength), that is correct behaviour and the test must not demand a difference there. Phase A owns `reroll` only; B13 owns the gap copy at `:135` and `:339`.
+
+## Comments
+
+Resolved by commit `1e0d433` ("fix: re-roll returns a different fair split, from the session's own pool").
+
+`src/session/SplitScreen.tsx:265` rebuilds the pool from `session.poolPlayerIds` intersected with the roster; `:270-280` walks a bounded eight-counter variety range and skips any signature identical to the current teams; `:284` increments `rerollCount` only when the assignment actually changed, and the badge is gated on `rerollCount > 1` (`:326`) so a pool with one possible arrangement does not claim a roll it did not perform. `src/session/edit.ts` dispatches `freshSplit` to the variety solver whenever `options.variety` is defined.
+
+`src/session/edit.test.ts:97-125` pins different signatures, all ten players placed, and a gap within `VARIETY_TOLERANCE` of the fair split; `e2e/tests/split/reroll.spec.ts:72-97` drives two clicks and asserts the membership changed and the badge advanced. No file asserts `result.solver.optimal` — the single occurrence in the spec is the seed fixture's own `SplitResult` literal (`reroll.spec.ts:57`).
+
+The `src/solver/**` half of the final criterion is a diff claim; the Phase A ledger records `git diff f7986c4..a651062 --stat -- src/solver/ src/session/edit.ts` as empty.

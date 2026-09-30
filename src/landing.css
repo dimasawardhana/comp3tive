@@ -5,6 +5,7 @@
    narrow rail, the measured evidence in the wide field beside it. */
 
 @import "./tokens.css";
+@import "./split.css";
 
 * {
   box-sizing: border-box;
@@ -18,7 +19,7 @@ html {
 }
 
 body {
-  font-family: "Familjen Grotesk", system-ui, sans-serif;
+  font-family: var(--font-body);
   background: var(--surface);
   color: var(--text);
   line-height: 1.5;
@@ -40,15 +41,17 @@ body {
 }
 
 /* Focus: one visible ring, from the palette.
-   Scoped and specific because src/index.css (imported by the landing island)
-   carries a bare `:focus-visible` rule at specificity (0,1,0) that sets its own
-   outline and a 6px radius — a `:where()` selector here would lose to it. */
+   Scoped to .landing on purpose. The app's bare `:focus-visible` rule (its
+   `border-radius: 6px` is (0,1,0) and has to keep out-ranking two dozen
+   single-class radius rules) stays in src/index.css, which this page does not
+   load, so there is nothing here to out-specify — a `:where()` would be
+   equal, and equal is fine only by accident. Keep the scope. */
 .landing :is(a, button, [tabindex]):focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 3px;
 }
 
-/* The bare rule's 6px radius must not flatten the CTA pill or the wordmark. */
+/* The CTA keeps its pill radius on focus. */
 .landing .cta:focus-visible {
   border-radius: 999px;
 }
@@ -98,7 +101,7 @@ body {
 }
 
 .landing h1 {
-  font-family: "Outfit", sans-serif;
+  font-family: var(--font-display);
   font-weight: 600;
   font-size: clamp(38px, 6.4vw, 76px);
   line-height: 0.98;
@@ -142,7 +145,7 @@ body {
 }
 
 .landing-rail-label {
-  font-family: "Outfit", sans-serif;
+  font-family: var(--font-display);
   font-size: 13px;
   font-weight: 600;
   letter-spacing: 0.18em;
@@ -168,7 +171,7 @@ body {
 }
 
 .landing-fact dd {
-  font-family: "Outfit", sans-serif;
+  font-family: var(--font-display);
   font-size: clamp(20px, 2.4vw, 28px);
   font-weight: 600;
   letter-spacing: -0.02em;
@@ -191,7 +194,7 @@ body {
 }
 
 .landing-claim {
-  font-family: "Outfit", sans-serif;
+  font-family: var(--font-display);
   font-size: clamp(20px, 2.6vw, 30px);
   font-weight: 500;
   line-height: 1.3;
@@ -260,7 +263,7 @@ body {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-family: "Outfit", sans-serif;
+  font-family: var(--font-display);
   font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.12em;
@@ -388,7 +391,7 @@ body {
 
 .deal-control {
   flex-shrink: 0;
-  font-family: "Outfit", sans-serif;
+  font-family: var(--font-display);
   font-size: 13px;
   font-weight: 600;
   letter-spacing: 0.04em;
@@ -444,7 +447,7 @@ body {
 }
 
 /* The split screen is rendered as a React component by src/landing.tsx.
-   SplitScreen carries its own styles from src/index.css; these override the
+   SplitScreen carries its own styles from src/split.css; these override the
    dark panel to a warm notebook surface. */
 .landing-hero .pitch {
   background: var(--surface-2);
@@ -468,7 +471,7 @@ body {
 }
 
 .landing-hero .team .tname {
-  font-family: "Outfit", sans-serif;
+  font-family: var(--font-display);
   font-weight: 700;
   font-size: 13px;
   letter-spacing: 0.14em;
@@ -503,7 +506,7 @@ body {
 }
 
 .landing-hero .team .avg b {
-  font-family: "Outfit", sans-serif;
+  font-family: var(--font-display);
   font-weight: 700;
   font-size: 24px;
   letter-spacing: -0.02em;
@@ -532,7 +535,6 @@ body {
 
 .landing-hero .needle {
   background: var(--accent);
-  animation: pulse-needle 2.4s cubic-bezier(0.22, 1, 0.36, 1) infinite;
   box-shadow: 0 0 0 1px rgba(194, 65, 12, 0.12);
 }
 
@@ -545,11 +547,34 @@ body {
 .landing-hero .readout {
   color: var(--text);
 }
+/* The hero mounts the real split screen, so it inherits `.pitch`'s
+   `--panel-text`; the readout above is already corrected to ink on the hero's
+   warm paper, and this line sits directly under it. */
+.landing-hero .fairness {
+  color: var(--text);
+}
+/* The bench advisory is the same kind of line on the same surface, one step
+   further down, and it inherits `--panel-text` from `.pitch` the same way, so
+   it needs the same correction.
+
+   It matches nothing on the hero today. The demo roster is ten players in two
+   teams of five, nobody is left off, and `benchAdvice` answers `null` when
+   there is no bench to advise about, so the advisory is not on this page. The
+   rule is kept rather than deleted because the hero mounts the real
+   `SplitScreen` and not a picture of one: a roster with somebody spare on it
+   puts the line back on this surface, and without this it would arrive in the
+   dark panel's ink on warm paper.
+
+   Kept is not the same as held, so it is held:
+   `e2e/tests/split/bench-advice-visual.spec.ts` asserts the count is 0 here,
+   so nothing pretends the line renders, and then asks the browser what a
+   `.bench-advice` computes to inside the hero in both schemes. The demo roster
+   is a product decision and is not edited to make a colour override fire. */
+.landing-hero .bench-advice {
+  color: var(--text);
+}
 
 @media (prefers-reduced-motion: reduce) {
-  .landing-hero .needle {
-    animation: none;
-  }
   .landing-hero .team {
     transition: none;
   }
@@ -565,7 +590,7 @@ body {
 }
 
 .landing-features dt {
-  font-family: "Outfit", sans-serif;
+  font-family: var(--font-display);
   font-size: 17px;
   font-weight: 600;
   letter-spacing: -0.01em;
@@ -590,7 +615,7 @@ body {
 }
 
 .landing-tournament-head {
-  font-family: "Outfit", sans-serif;
+  font-family: var(--font-display);
   font-size: 30px;
   font-weight: 600;
   line-height: 1.18;
@@ -629,7 +654,7 @@ body {
 }
 
 .landing-bracket-round {
-  font-family: "Outfit", sans-serif;
+  font-family: var(--font-display);
   font-weight: 600;
   font-size: 11px;
   letter-spacing: 0.16em;
@@ -689,7 +714,7 @@ body {
 /* ---------- disciplines ---------- */
 
 .landing-disciplines-head {
-  font-family: "Outfit", sans-serif;
+  font-family: var(--font-display);
   font-size: 30px;
   font-weight: 600;
   line-height: 1.18;
@@ -721,7 +746,7 @@ body {
 }
 
 .landing-discipline-name {
-  font-family: "Outfit", sans-serif;
+  font-family: var(--font-display);
   font-size: 19px;
   font-weight: 600;
   letter-spacing: -0.01em;
@@ -748,7 +773,7 @@ body {
 }
 
 .landing-discipline-size {
-  font-family: "Outfit", sans-serif;
+  font-family: var(--font-display);
   font-size: 12px;
   font-weight: 600;
   letter-spacing: 0.1em;
@@ -801,7 +826,7 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 14px;
-  font-family: "Outfit", sans-serif;
+  font-family: var(--font-display);
   font-size: 16px;
   font-weight: 600;
   letter-spacing: 0.01em;

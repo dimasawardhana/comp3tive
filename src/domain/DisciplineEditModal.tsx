@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 import type { Attribute, Discipline, Id, Role } from "../domain/types";
+import { ConfirmButton } from "../ui/ConfirmButton";
+import { Modal } from "../ui/Modal";
 
 interface Props {
   discipline: Discipline | null; // null = new
@@ -29,7 +31,6 @@ export function DisciplineEditModal({
 }: Props) {
   const isEdit = discipline !== null;
   const isBuiltIn = discipline?.builtIn === true;
-  const isNew = discipline === null;
 
   const [name, setName] = useState(discipline?.name ?? "");
   const [shortName, setShortName] = useState(discipline?.shortName ?? "");
@@ -153,19 +154,22 @@ export function DisciplineEditModal({
 
   const remove = async () => {
     if (!discipline || !onDelete || isBuiltIn) return;
-    if (!window.confirm(`Delete discipline "${discipline.name}"? Players with capabilities in it will still have those ratings, but the discipline won't be available for splitting.`)) return;
     setSaving(true);
     try {
       await onDelete(discipline.id);
       onClose();
+    } catch {
+      // App's `deleteDiscipline` has already notified and rethrown, so the toast
+      // is the message. Swallowing it here is what keeps the rethrow from
+      // escaping `void remove()` as an unhandled rejection; `onClose()` sits
+      // after the await, so a failed delete leaves the modal open.
     } finally {
       setSaving(false);
     }
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-card" onClick={(e) => e.stopPropagation()}>
+    <Modal onClose={onClose}>
         <button type="button" className="modal-close" aria-label="Close" onClick={onClose}>
           &times;
         </button>
@@ -309,14 +313,13 @@ export function DisciplineEditModal({
 
         <div className="bar">
           {isEdit && onDelete && !isBuiltIn ? (
-            <button
-              type="button"
-              className="btn btn-ghost"
-              onClick={() => void remove()}
+            <ConfirmButton
               disabled={saving}
-            >
-              Delete
-            </button>
+              label="Delete"
+              confirmLabel="Delete discipline"
+              message={`Delete discipline "${discipline.name}"? Players with capabilities in it will still have those ratings, but the discipline won't be available for splitting.`}
+              onConfirm={() => void remove()}
+            />
           ) : (
             <button
               type="button"
@@ -338,7 +341,6 @@ export function DisciplineEditModal({
             </button>
           )}
         </div>
-      </div>
-    </div>
+    </Modal>
   );
 }

@@ -1,6 +1,6 @@
 # 25: Community scoping expressed once
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **What to build:** "No screen ever shows another community's records" is a rule with one home
 and its own tests, so a fifth list cannot quietly leak by omission — and the derived data stops
@@ -84,3 +84,29 @@ seam, and that would be a much larger change than this ticket promises.
 - [ ] `wc -l src/App.tsx` is below 1,220
 
 **Blocked by:** 24 — same file, and the first extraction should land clean.
+
+## Comments
+
+**Status re-checked 2026-09-30 against `feature/revamp` — shipped. The rule has one home and its
+own tests, which is what this ticket was for.**
+
+`src/shell/useCommunityScope.ts` exports `scopeCommunities` (`:37`) and `useCommunityScope` (`:71`),
+with the frozen input including the optional `disciplines` field this ticket added to close the
+contract gap. `grep -c "new Map" src/App.tsx` is **0** and `grep -c "useMemo" src/App.tsx` is
+**2**, with `useMemo` present in the hook — so the derived maps are no longer rebuilt every render,
+and `src/App.tsx` is 514 lines, inside this ticket's 1,220 ceiling.
+
+`src/shell/community-scope.test.ts` covers every case the ticket listed and one more: two
+communities each holding players, sessions, tournaments and squads, with every scoped list
+containing only the active community's records; the flip between them leaking nothing;
+`activeCommunityId: null` yielding a null community and four empty lists; a blank-`communityId`
+record kept out of scope; `disciplinesById` resolving a known id and returning `undefined` for an
+unknown one; and the hook not throwing when `disciplines` is omitted.
+
+**One thing this ticket's acceptance row reads differently now, for a reason worth recording.**
+The row asks that `grep -rn "communityId ===" src/App.tsx` return nothing. It returns **four**
+hits, all inside `communityDeleteWarning` (`src/App.tsx:328-331`) — the function that counts what
+deleting a community would take with it, so the confirm dialog can name it. That is not the scoping
+rule: it filters by an explicitly-passed `communityId` to describe a deletion, rather than narrowing
+every list to the active community. The rule itself is in the one file the ticket named, and no
+screen derives a list any other way. The grep is over-broad rather than the code being wrong.

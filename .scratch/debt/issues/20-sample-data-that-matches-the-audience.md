@@ -1,6 +1,6 @@
 # 20: Sample data that matches the audience
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **What to build:** The roster files a new organizer downloads look like the rosters `PRODUCT.md`
 names — a futsal night organizer's group, an MLBB squad — instead of a professional esports league,
@@ -115,3 +115,35 @@ files cannot break a spec.
 - [ ] `npx vitest run` passes
 
 **Blocked by:** — (ticket 19 consumes the badminton file; the other two files are independent)
+
+## Comments
+
+**Status re-checked 2026-09-30 against `feature/revamp` — shipped. Every measured row of this
+ticket's evidence reproduces exactly, verified by running the shipped solver and validator over the
+three shipped files.**
+
+| File | Players | `validatePlayer` issues | Suggested | Teams | Sizes | Gap | `optimal` | Flags |
+|---|---|---|---|---|---|---|---|---|
+| `futsal-roster.json` | 25 | **0** | 5 | 5 | `[5,5,5,5,5]` | **0.000** | **true** | `[]` |
+| `mpl-id-roster.json` | 25 | **0** | 5 | 5 | `[5,5,5,5,5]` | **0.000** | **true** | `[]` |
+| `badminton-roster.json` | 10 | **0** | 5 | 5 | `[2,2,2,2,2]` | **0.000** | **true** | `[]` |
+
+Unassigned is 0 in all three, and every team covers every one of its discipline's roles (checked
+separately: 0 teams short). The futsal file that **7 of 25 players failed** is now 0-for-25, which
+was the ticket's central complaint. `grep -c "ONIC\|RRQ\|EVOS\|Aura Fire\|Alter Ego"
+sample-data/*.json` is **0** in all three files. All three keep `"version": 1`, an `exportedAt`,
+`players` and `sessions: []`, and all three are registered for lazy load at
+`src/data/sample-data.ts:15-17`, so `hasSampleData("badminton")` is true as ticket 19 required.
+
+**Name discipline verified, with one deviation from the body.** The futsal and MLBB files share no
+player names, and none of the three collides with the landing hero's ten (`Budi … Joko`) — the
+acceptance row holds. The badminton roster's *specific* name list did not ship: this ticket
+specifies `Dimas, Sari, Rangga, Putri, Bayu, Ayu, Fikri, Nadia, Yoga, Intan` and the file has
+`Rizky, Sari, Dwi, Putri, Galih, Ayu, Arman, Nadia, Wisnu, Intan`. Three names differ. No
+acceptance row names them, and the collision requirement they existed to satisfy holds, so this is
+recorded rather than treated as a failure.
+
+**The Vite dynamic-import warning this ticket recorded but did not fix was fixed downstream**, by
+ticket 29's `src/data/sample-registry.ts` split. The built output now carries each roster in its
+own chunk (`dist/assets/mpl-id-roster-DaUoSKZ1.js` holds "Kiww"), which is what this ticket's
+"one honest follow-up ticket" predicted.

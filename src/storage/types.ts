@@ -27,6 +27,7 @@ export interface SessionStore {
 }
 
 export interface DisciplineStore {
+  /** The whole catalog in display order: seeds first, then custom entries (`orderDisciplines`). */
   listDisciplines(): Promise<Discipline[]>;
   saveDiscipline(discipline: Discipline): Promise<void>; // upsert by id
   deleteDiscipline(id: Id): Promise<void>;

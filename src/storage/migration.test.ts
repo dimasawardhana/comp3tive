@@ -167,13 +167,13 @@ describe("migrateDatabase", () => {
   });
 
   it("carries custom disciplines over while keeping the seeded catalog", async () => {
-    await seedDatabase("mig-src-4", { disciplines: [customDiscipline("badminton")] });
+    await seedDatabase("mig-src-4", { disciplines: [customDiscipline("padel")] });
 
     const result = await migrateDatabase("mig-src-4", "mig-dst-4");
 
     expect(result.migrated).toBe(true);
     const ids = (await storesFor("mig-dst-4").disciplineStore.listDisciplines()).map((d) => d.id);
-    expect(ids).toContain("badminton");
+    expect(ids).toContain("padel");
     // Seeded defaults survive alongside the custom entry.
     expect(ids).toContain("futsal");
     expect(ids).toContain("mlbb");
