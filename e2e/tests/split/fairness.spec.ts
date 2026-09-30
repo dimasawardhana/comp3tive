@@ -45,6 +45,7 @@
  */
 import { test, expect } from "@playwright/test";
 import type { Page } from "@playwright/test";
+import { expectBlendedContrast } from "../../support/contrast";
 import { gotoSeeded, type SeedWorld } from "../../support/seed";
 
 const ROLES = ["tank", "assassin", "mage", "marksman", "fighter"];
@@ -319,43 +320,27 @@ test.describe("the fairness line", () => {
     // Legibility, in this colour scheme and in the other one. The claim is that
     // the line is painted in the readout's own ink and stays legible on the
     // hero's paper, so it is measured on the 0.8-opacity blend rather than on
-    // the declared colour.
-    const channel = (c: number) => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4);
-    const luminance = ([r, g, b]: number[]) =>
-      0.2126 * channel(r / 255) + 0.7152 * channel(g / 255) + 0.0722 * channel(b / 255);
-    const rgb = (value: string) => {
-      const parts = (value.match(/[\d.]+/g) ?? []).slice(0, 3).map(Number);
-      // Readable in the failure message: a mistyped character class here once
-      // matched no digits at all and the ratio came out NaN, which reads as a
-      // failed threshold rather than as a broken helper.
-      expect(parts, `could not read three colour channels out of "${value}"`).toHaveLength(3);
-      expect(parts.every((c) => Number.isFinite(c)), `"${value}" parsed to ${JSON.stringify(parts)}`).toBe(true);
-      return parts as [number, number, number];
-    };
-
+    // the declared colour. The harness itself lives in `e2e/support/contrast.ts`
+    // — the bench advisory is a second line on this same surface and is measured
+    // by the same call rather than by a second copy of the maths.
     for (const scheme of ["light", "dark"] as const) {
       await page.emulateMedia({ colorScheme: scheme });
-      const painted = await line.evaluate((el) => {
-        const s = getComputedStyle(el);
-        return { color: s.color, opacity: Number(s.opacity) };
-      });
-      const paper = await hero.locator(".pitch").evaluate((el) => getComputedStyle(el).backgroundColor);
+      // Read per scheme, not once: `--text` and `--panel-text` swap between
+      // them, so a hoisted reading silently pins the light-scheme ink onto
+      // the dark iteration and fails on a colour that is correct on screen.
       const readoutInk = await hero.locator(".readout").evaluate((el) => getComputedStyle(el).color);
-      // Painted in the same ink as the readout directly above it. That is the
-      // claim; a contrast ratio is a proxy for it.
-      expect(painted.color, `in ${scheme} the line is ${painted.color} and the readout is ${readoutInk}`).toBe(readoutInk);
-      // The 0.8 the rule sets, asserted rather than assumed: the blend below is
-      // only the honest measurement while the opacity is the one in the sheet.
-      expect(painted.opacity, `in ${scheme} the line's opacity`).toBeCloseTo(0.8, 2);
-
-      const [fr, fg, fb] = rgb(painted.color);
-      const paperRgb = rgb(paper);
-      const blended = paperRgb.map((c, i) => painted.opacity * [fr, fg, fb][i]! + (1 - painted.opacity) * c) as [number, number, number];
-      const a = luminance(blended);
-      const b = luminance(paperRgb);
-      const ratio = (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
-      expect(Number.isFinite(ratio), `in ${scheme} the ratio came out ${ratio} for ${painted.color} on ${paper}`).toBe(true);
-      expect(ratio, `in ${scheme}: ${painted.color} at ${painted.opacity} on ${paper} blends to rgb(${blended.map(Math.round).join(", ")})`).toBeGreaterThan(4.5);
+      await expectBlendedContrast({
+        line,
+        panel: hero.locator(".pitch"),
+        scheme,
+        // Painted in the same ink as the readout directly above it. That is the
+        // claim; a contrast ratio is a proxy for it.
+        expectColor: readoutInk,
+        // The 0.8 the rule sets, asserted rather than assumed: the blend is
+        // only the honest measurement while the opacity is the one in the sheet.
+        expectOpacity: 0.8,
+        min: 4.5,
+      });
     }
     await page.emulateMedia({ colorScheme: null });
 

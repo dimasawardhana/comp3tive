@@ -524,21 +524,49 @@
   opacity: 0.8;
   text-wrap: pretty;
 }
-/* The bench advisory sits under the same readouts as `.fairness` and wears the
-   same face, for the same reason: it is the split talking about itself, not a
-   control, and a second quieter size for a second quiet sentence would be a
-   style with one user. It quotes the readout's own figure ("Gap 0.2 is ...")
-   to bind the scope to the number it is scoping, which is the one way this
-   line could be misread as the figure itself; so it must not be set in the
-   readout's 15px display face, and it must stay a sibling of `.readout` and
-   never a child of it. `.fairness` already quotes numbers on this same
-   13px body type, so the pattern is not new to the screen. No margin, same
-   as `.fairness`: `.pitch`'s flex gap owns the spacing. */
+/* The bench advisory is advice *about* the figures above it, and it shipped in
+   exactly the `.fairness` treatment: 13px, 500, body face, `opacity: 0.8`,
+   centred, in the same panel, one flex gap below. It therefore read as a third
+   clause of the gap readout rather than as a note on it, which is the one thing
+   it must not read as — its first five words quote the figure it is scoping.
+   Nothing in the suite had an opinion about this line's *register*, only about
+   its text, so every run stayed green; it took a person looking at the screen.
+
+   It now wears the register this panel already uses for an inset note: `.flags`
+   below it is a left-ruled block in the same ink. A left rule over a tint, for
+   two reasons. `--panel` is ink under *both* schemes, so a tint that separates
+   the line in one is not promised in the other, and colour is the one dimension
+   a variable theme can undo silently — which is the whole difficulty here, since
+   what makes this element hard to read is that it matches its neighbour in
+   everything. And a rule is a shape: it survives a palette swap, a
+   forced-colours mode and a print stylesheet, none of which a tint does.
+
+   The rule is mixed from `currentColor`, so it follows `.landing-hero`'s
+   existing correction of this line to `--text` on its own, and no second rule
+   has to be kept in step with the first.
+
+   What it costs, said plainly:
+   - `padding-left`, or the rule crowds the first letter.
+   - `max-width`: the advisory is a 150-character note and at 1280 it was one
+     1300px line. The cap is what lets the ruled block be narrow enough to read
+     as a note instead of as a paragraph that happens to be underlined.
+   - 12px rather than 13px, which is a step down and not up: this line carries
+     the only actionable suggestion on the screen. Contrast is size-independent,
+     so the step costs nothing measurable; 12px is the floor and matches the
+     smallest body copy the app already ships.
+   - `text-align: left` with `margin-inline: auto`, so the block keeps the
+     panel's centred rhythm while the text inside it is ragged to a rule.
+   Nothing vertical is added. A border and a padding-left cost no height, and
+   the smaller face gives a line back. */
 .bench-advice {
-  text-align: center;
+  max-width: 58ch;
+  margin-inline: auto;
+  text-align: left;
+  border-left: 2px solid color-mix(in srgb, currentColor 55%, transparent);
+  padding-left: 12px;
   font-family: var(--font-body);
   font-weight: 500;
-  font-size: 13px;
+  font-size: 12px;
   line-height: 1.5;
   opacity: 0.8;
   text-wrap: pretty;
