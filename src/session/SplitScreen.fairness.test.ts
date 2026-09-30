@@ -19,6 +19,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { SplitScreen } from "./SplitScreen";
 import { recomputeResult } from "./edit";
 import { FUTSAL_DISCIPLINE } from "../domain/seed";
+import { sitOuts } from "../test-support/sitOuts";
 import type { Player, Session, SplitResult, TeamAssignment } from "../domain/types";
 
 const ROLES = ["goalkeeper", "defender", "winger", "pivot"];
@@ -195,14 +196,13 @@ describe("the fairness line on the split screen", () => {
     // already uses, so the two halves of one line read as one hand.
     const text = line(screen(TWO_WITH_SITOUT)) ?? "";
     expect(text).toContain("Every team averages 3.0 to 4.2. Not playing: Lina, Mira");
-    // The run after the label, read forward as comma-separated names and
-    // stopped at the first character that cannot be part of a name. The stop is
-    // the whole claim: a reader ends the list on a mark, so any mark satisfies
-    // this and none is named here.
-    const run = text.slice(text.indexOf("Not playing: ") + "Not playing: ".length);
-    const end = run.search(/[^'\p{L}\p{N}, ]/u);
-    const entries = run.slice(0, end < 0 ? run.length : end).split(", ").map((piece) => piece.trim());
-    expect(entries).toEqual(["Lina", "Mira"]);
+    // The count a reader makes, read forward from the label and stopped at the
+    // first character that cannot be part of a name. The stop is the whole
+    // claim: a reader ends the list on a mark, so any mark satisfies this. The
+    // one mark the module cannot use is excluded by name rather than by the
+    // parse, two lines down: a full stop would print `?.` for an id the roster
+    // no longer holds, which is what the `Mira.` guard holds against.
+    expect(sitOuts(text)).toEqual(["Lina", "Mira"]);
     expect(text).not.toContain("Mira.");
     expect(text).not.toContain("?.");
   });

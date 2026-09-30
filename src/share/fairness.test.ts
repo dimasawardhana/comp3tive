@@ -5,6 +5,7 @@ import { explainFairness } from "./fairness";
 import { closingLine, teamsAsText } from "./share-text";
 import { FUTSAL_DISCIPLINE } from "../domain/seed";
 import { strengthOf } from "../session/flow";
+import { sitOuts } from "../test-support/sitOuts";
 import type { Player, SplitResult, TeamAssignment } from "../domain/types";
 
 /**
@@ -99,6 +100,12 @@ const WITH_A_STALE_ID = split([team(0, ["p1", "p6"]), team(1, ["p2", "p5"])], { 
  * the reader's last character.
  */
 const EVEN_WITH_A_STALE_ID = split(EVEN.teams, { unassigned: ["pX"] });
+/**
+ * The same unrated side with a sit-out list, which is the second of the two
+ * reasons `trade` is empty. `low === high` is false here, so nothing but the
+ * side itself makes the sentence absent.
+ */
+const UNRATED_SIDE_WITH_SITS = split(ONE_UNRATED_SIDE.teams, { unassigned: ["p4"] });
 const ONE_TEAM = split([team(0, ["p1", "p6"])]);
 const NO_TEAMS = split([]);
 
@@ -121,9 +128,6 @@ function copyWords(sentence: string): Set<string> {
   return new Set((sentence.toLowerCase().match(/[a-z]+/g) ?? []).filter((w) => w.length >= 5 && !names.has(w)));
 }
 
-/** The label the three surfaces anchor a sit-out list on. */
-const NOT_PLAYING = "Not playing: ";
-
 /**
  * The line a screen prints: `averages`, then `trade`, one space between, which
  * is how `FairnessLine` composes them. The two fields are half a sentence each
@@ -134,24 +138,6 @@ const composedLine = (result: SplitResult): string => {
   const { averages, trade } = explainFairness(input(result));
   return `${averages}${trade ? ` ${trade}` : ""}`;
 };
-
-/**
- * The sit-outs as a reader counts them: the run after the label, read forward
- * as comma-separated names and stopped at the first character that cannot be
- * part of a name or of the comma between two.
- *
- * The stop is the whole claim. A reader ends the list on a mark, and a list
- * that never ends goes on eating the sentence that follows it, so any mark
- * satisfies this and none is named. Naming one here would make the test a
- * restatement of the fix instead of a statement about the line.
- */
-function sitOuts(line: string): string[] {
-  const at = line.indexOf(NOT_PLAYING);
-  if (at < 0) return [];
-  const run = line.slice(at + NOT_PLAYING.length);
-  const end = run.search(/[^'\p{L}\p{N}, ]/u);
-  return run.slice(0, end < 0 ? run.length : end).split(", ").map((piece) => piece.trim());
-}
 
 const MODULE_AST = ts.createSourceFile(
   "fairness.ts",
@@ -328,6 +314,31 @@ describe("explainFairness", () => {
     const composed = composedLine(EVEN_WITH_SITS);
     expect(sitOuts(composed)).toEqual(["Dewi", "Citra"]);
     expect(composed).toMatch(/[\p{L}\p{N}']$/u);
+  });
+
+  it("reads a stale id as the entry it prints, not as an empty one", () => {
+    // The `?` is the name the module prints for an id the roster no longer
+    // holds, so a reader counts an entry there. A parse that treated it as the
+    // end of the list would report that entry as empty, and on the line where
+    // the unknown id is the whole list it would report an empty one: a
+    // maintainer reading the composed line to find out what is wrong with it
+    // would be sent after an entry that was never empty. Fails if `?` is read
+    // as a terminator instead of as part of a name.
+    expect(sitOuts(composedLine(EVEN_WITH_A_STALE_ID))).toEqual(["?"]);
+    expect(sitOuts(composedLine(WITH_A_STALE_ID))).toEqual(["?"]);
+  });
+
+  it("leaves no mark on the list when the empty trade is an unrated side, not an even split", () => {
+    // `trade` is empty for two distinct reasons, and this is the one that has
+    // no list of its own to hold it: the band has two ends here, so nothing but
+    // the weak side holding nobody the discipline rates makes the sentence
+    // absent. Fails if the closing mark is gated on `low === high` instead of on
+    // whether a trade follows, which would print "Not playing: Dewi;" on a
+    // sentence with nothing after it, and would leave this suite green.
+    const { averages, trade } = explainFairness(input(UNRATED_SIDE_WITH_SITS));
+    expect(trade).toBe("");
+    expect(averages).toBe("Every team averages 0.0 to 5.0. Not playing: Dewi");
+    expect(averages).toMatch(/[\p{L}\p{N}']$/u);
   });
 
   it("shows no not-playing clause when the split placed everyone", () => {
