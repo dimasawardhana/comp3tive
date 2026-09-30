@@ -1732,6 +1732,31 @@ Add the round-robin arm in `buildBracket` immediately **before** the Swiss fallt
   }
 ```
 
+**CORRECTION (2026-09-29, after Task 7 landed): `requiredMatches` does need an arm, and the one
+that shipped is not additive.** This section used to say it "needs **no arm** — its final
+fallthrough at `:199-200` returns every match in the last round, and for round robin the last
+round *is* the last set of matches". The last round is not the last set of matches: the schedule
+books every fixture up front, so a 5-team round robin has 5 rounds and 10 fixtures, and the
+fallthrough returns 2. `statusOf` completes a tournament when every required match has a winner,
+so the plan's version crowns a champion from the **last round alone**, with the other four
+rounds unplayed. That is not a wrong champion, it is an organizer who starts a night and finishes
+five fixtures into ten. `src/tournament/bracket.ts:287` now reads
+`if (t.format === "round-robin" || t.format === "series") return t.matches;`, and the comment
+above it is the argument: *"Round robin books every fixture up front and has no frontier, so the
+last round is just the last column."* Round robin and single-elim/Swiss differ in exactly this:
+the two frontier formats have a last round that means "the last of the work", and round robin has
+no frontier, so every fixture is.
+
+**The diff this produced is not additive, and the spec's "touches round-robin arms only" cannot
+be satisfied.** The previous line was `if (t.format === "series") return t.matches;` — a
+`series` line, belonging to another format — and widening it to `t.format === "round-robin" ||`
+modifies it. Commit `bc17fe7` is the whole record. Criterion 13 and the round-robin risk row in
+the design spec both say otherwise and are corrected there. What remains true, and is what
+criterion 13 was reaching for, is narrower: **no `single-elim` or `swiss` *arm* changed.** The
+`single-elim` arm below is byte-identical, and the Swiss fallthrough at the bottom is now labelled
+as Swiss-only — it was the fallthrough for everything, and that silence is what let the round-robin
+case reach it. `roundsFor` is the separate question, decided above and unchanged here.
+
 `requiredMatches` (`:191`) needs **no arm** — its final fallthrough at `:199-200` returns every match in the last round, and for round robin the last round *is* the last set of matches, so "all matches required" is the correct semantics. The test in Step 1 asserts this rather than assuming it.
 
 Extend `champion` at `:317-326`. The condition at `:319` becomes:
@@ -2267,6 +2292,24 @@ curl -sI http://localhost:4173/fonts/outfit-latin.woff2 | grep -i "content-type\
 ```
 Expected: `Content-Type: font/woff2` and `Content-Length: 32292`. Kill the preview afterwards.
 
+**CORRECTION (2026-09-29, after Task 9 landed): the `curl` in this step cannot run, because the
+committed font is not named `outfit-latin.woff2`.** The step fetches
+`/fonts/outfit-latin.woff2` and expects `Content-Length: 32292`, and the download block above
+writes that name. The file that shipped is `public/fonts/outfit-latin-6c18d579.woff2` — 32,292
+bytes, which is the same file, under the name `src/fonts.css:49` and both documents' `preload`
+hints actually reference. Every other fixed name in the plan is stale the same way, and the sizes
+line above is unaffected: the byte counts are right, the paths are not.
+
+**The fixed name is unwriteable, not merely wrong.** Task 9 content-hashes each subset after the
+download, naming it for the first 8 hex of its own sha256. That hash is what makes
+`/fonts/*.woff2 → 1yr immutable` safe at all, and it is why the same plan's Task 10 says
+`public/fonts/outfit-latin-*.woff2` is a **"glob, not a fixed name"** — the plan already knows
+this one line down. Writing a fixed name here would mean shipping a second, unhashed copy beside
+the hashed one, or renaming the file the stylesheet points at, and either one costs the property
+the cache header is buying. Assert the size against the hash: `wc -c public/fonts/outfit-latin-*.woff2`,
+or the per-face assertion `e2e/tests/pwa/offline.spec.ts` already makes — it reads the emitted
+precache list rather than typing a name, for exactly this reason.
+
 - [ ] **Step 7: Commit**
 
 ```bash
@@ -2455,6 +2498,25 @@ git commit -m "feat(pwa): a manifest with real icons drawn from the brand mark"
 
 Create `public/sw.js`. It is a classic worker: no imports, no bundler step, no workbox. The two placeholders are replaced by the build; each appears exactly once.
 
+**CORRECTION (2026-09-29, after Task 11 landed): there are three build-time placeholders, not
+two, and `DOCUMENTS` is one of them.** The file table at the top of this plan still says
+"two build-time placeholders" and the sentence above says "the two placeholders are replaced by
+the build"; the worker's own header comment repeats it. `public/sw.js:30` carries a third,
+`const DOCUMENTS = __PRECACHE_DOCUMENTS__;`, written at `vite.config.ts:111`. Step 2's
+`substitute` call and Step 3's `grep -c "__BUILD_VERSION__\|__PRECACHE_ASSETS__" dist/sw.js` both
+gain the third token; without it the count stays `0` while a placeholder is still in the emitted
+file, which is the exact failure the check exists to catch.
+
+**The list is generated because the literal above is a duplicate that nothing checks.** The
+`DOCUMENTS` array in the code block below is the worker's own copy of a list that also has to
+exist where the filesystem is. `vite.config.ts` keeps one `DOCUMENTS` of `[url, backing file]`
+pairs, and for every pair `closeBundle` throws if the file is not in `dist/` — so a URL with no
+document behind it fails the **build**, where it can be read, instead of failing
+`cache.addAll` on install on a user's phone, where nothing says so. The shipped list is also
+**six** URLs, not the four written here: `/`, `/index.html`, `/app/`, `/app/index.html`,
+`/404.html`, `/manifest.webmanifest`. The two additions are the two documents under the names the
+build emitted, so a pasted link that names the file still opens offline.
+
 ```js
 /**
  * comp3tive service worker — classic worker, no imports, no bundler, no workbox.
@@ -2542,6 +2604,28 @@ self.addEventListener("fetch", (event) => {
   }
 });
 ```
+
+**CORRECTION (2026-09-29, after Task 12 landed): both cache reads pass `{ ignoreVary: true }`, and
+this is the one defect in the whole phase that only a real browser could find.** The worker above
+reads `await caches.match(request)` in `cacheFirst` and in the navigation fallback, and that is
+the plan line; the shipped `public/sw.js` passes a hoisted `MATCH` constant to every read. Without
+it the app is **broken offline while every test in the plan passes.**
+
+`cache.match` honours `Vary`. `vite preview` sends `Vary: Origin` on everything it serves, and
+Chromium sends an `Origin` header on a document's subresources — so the entries `cache.addAll`
+stored from a request with *no* `Origin` stop matching the very page they were precached for.
+Offline, the app document is served from the precache, and then every subresource misses, falls
+through to `fetch`, and throws: `net::ERR_FAILED` on the app's CSS, its entry chunk, the
+`SplitScreen` chunk and both fonts. The page loads and renders nothing at all. Measured, not
+guessed, in `e2e/tests/pwa/offline.spec.ts` against Chromium (`b7c7c71`).
+
+`src/serviceWorker.test.ts` cannot catch this and was not extended: a fake `caches` keyed by URL
+alone cannot miss that it is keyed by URL alone. The reasoning is in the shipped comment above
+`MATCH`, and it generalises past the preview server — `Vary` asks whether a **proxy** would hand
+this object to a request with different headers, which is a question about revalidating somebody
+else's bytes, and this store answers yes by construction because every lookup is in its own cache
+under an exact, content-hashed or deliberately-precached URL. **An e2e spec is the only kind of
+check that can fail here, and this phase already had one.**
 
 - [ ] **Step 2: Write the build hook that fills it in**
 
@@ -2639,6 +2723,25 @@ Replace `public/_headers` with the three existing rules **byte-identical** plus 
 /sw.js
   Cache-Control: no-cache
 ```
+
+**CORRECTION (2026-09-29, after Task 11 landed): `/icons/*` is `no-cache`, not `immutable`.** The
+rule above is the plan's, and it is wrong for exactly one reason — **the icons are not
+content-hashed.** Every font is (`outfit-latin-6c18d579.woff2` and its four siblings), and that is
+the whole justification for `/fonts/* → 1yr immutable`: a changed font is a changed URL, so a
+browser holding the old one cannot be holding the new one, and no cache can serve a stale face.
+`icon-192.png` keeps its name across a redesign — `src/manifest.test.ts` pins it there — so an
+immutable year hides a redrawn icon from every returning visitor for a year. **The two assets
+differ in precisely the property that decides the header, which is why the two rules differ and
+no single rule covers both.** `public/_headers` carries the reason in full at its own `:29-33`;
+the cost of `no-cache` is three small revalidations per visit, and the worker's cache is what
+actually serves the icons afterwards.
+
+Two smaller changes ship in the same file, both from the same task and both noted here rather
+than left for a reader to find: the plan's fourth rule `/fonts/*` was **not** added — the shipped
+rule is `/fonts/*.woff2`, which additionally sets `Content-Type: font/woff2` (Pages sends
+`X-Content-Type-Options: nosniff`, and a font refused for its type fails silently) and leaves the
+two OFL texts to Cloudflare's own type; and the MIME type is stated rather than trusted only
+because a second `Content-Type` rule over the same path would be comma-joined, not overridden.
 
 `/sw.js`'s `no-cache` is the one that stops a new deploy from being pinned to an old worker: Workers parses this file from the static asset directory, and the three original rules are untouched.
 
@@ -3239,6 +3342,17 @@ Add it to the destructured parameters, and render it between the stat cards and 
           )}
 ```
 
+**CORRECTION (2026-09-29, after Task 14 landed): the nudge reads a different sentence, and the
+markup around it is a `<span className="nudge-msg">` with no `role="status"`.** Shipped
+(`src/DashboardScreen.tsx:131`): *"This browser does not promise to keep this app's data. Export a
+backup from Roster."* The plan's line was *"This browser can clear your data. Export a backup and
+it can't."* Both are refusals to promise safety, and the change was argued word by word in
+`.superpowers/sdd/2026-09-17-product-completion/task-14-report.md` §2.4 and reviewed there; it is
+recorded here, not re-argued. The one line worth keeping: "does not promise to keep" reports the
+absence of a guarantee, which is all a best-effort bucket is, and "from Roster" names where the
+control is, because the Dashboard has no Export button of its own. `e2e/tests/dashboard/nudge.spec.ts`
+pins the shipped string as `NUDGE_COPY`.
+
 - [ ] **Step 4: Show the persisted outcome beside the Export control**
 
 In `src/shell/RosterScreen.tsx`, add to its props:
@@ -3257,6 +3371,25 @@ and render the note inside `.roster-toolbar`, immediately before the `Export` bu
                   {persisted === null && "Storage protection unknown in this browser. Keep a backup."}
                 </span>
 ```
+
+**CORRECTION (2026-09-29, after Task 14 landed): all three sentences changed, and the arguments
+are in the task report rather than here.** Shipped (`src/shell/RosterScreen.tsx:654-656`):
+
+| `persisted` | shipped | this plan |
+|---|---|---|
+| `true` | *This browser reported persistent storage for this app on this visit. Keep a backup anyway.* | *Storage protected. Eviction unlikely.* |
+| `false` | *This browser reports this app's data is not stored persistently. Keep a backup.* | *Storage not protected. Keep a backup.* |
+| `null` | *This app could not confirm persistent storage here. Keep a backup.* | *Storage protection unknown in this browser. Keep a backup.* |
+
+Each word is defended in `.superpowers/sdd/2026-09-17-product-completion/task-14-report.md` §2.1,
+§2.2 and §2.3, and the shape is one rule rather than three: the line **reports what the browser
+said** and never predicts what will happen, which is why "protected" and "eviction unlikely" —
+claims about the world rather than about the report — are gone, and why "anyway" survives only on
+the one branch where a reader could mistake a measurement for permission to stop. Two unit tests
+also assert the shipped strings do **not** match `/safe|protect|guarantee|secure|never lose/i` and
+`/\bwill\b|lose|lost|delete/i`. Read that report for the reasoning and `nudge.spec.ts:146-175` for
+the assertions; note that the report's own §2.1 and §2.3 quote an **earlier** variant of two of
+these strings, so it is the record of the argument and not the table of the shipped copy.
 
 The `Export` button's markup and behaviour are unchanged.
 
@@ -4021,7 +4154,13 @@ git commit -m "feat(roster): rate a set of players at once, validated before it 
 **Three places the spec and the source disagreed, and what this plan follows.**
 
 1. **`champion()` does not return `null` — it returns the wrong team.** The spec and ticket 35 say round robin "finds no final for round robin and returns `null` **silently**". Measured against `src/tournament/bracket.ts:317-326`: for a completed 4-team round robin whose standings leader finished on two wins, `champion()` returned the team that won round 1's first match (one win). It returns `null` only when that round-1 match is itself unrecorded. **This plan follows the source**: Task 7 asserts the champion equals the standings leader, and adds a second case whose winner differs from the round-1 winner precisely so the null-only test cannot pass on the buggy code.
-2. **`requiredMatches` genuinely needs no arm**, as the spec says — confirmed by reading `bracket.ts:191-201` and by the passing status test in Task 7 Step 1, which drives a real tournament to `"active"` and then `"complete"`. Asserted, not assumed.
+2. **`requiredMatches` does need an arm** — the opposite of what this review concluded. It was
+   checked by reading `bracket.ts` and by the status test in Task 7 Step 1, and the conclusion was
+   wrong: the test drove a tournament to `"complete"` on a schedule whose *earlier* rounds were
+   blank, which is a real completion and not a proof. Round robin has no frontier, so the
+   last-round fallthrough returns the last **column**, not the last of the work; `bracket.ts:287`
+   now takes round robin with `"series"` and returns every fixture. See the CORRECTION at Task 7
+   Step 5, and commit `bc17fe7`.
 3. **Line anchors drift from the spec in three places**, because the spec's numbers were taken at audit baseline `d87ac7b` while these were read now: `src/domain/validation.ts` is `:14` and `:36` (spec says `:9`, `:35`); `src/session/flow.ts` is `:10` for `strengthOf` and `:16` for `teamName` (spec says `:29` and `:23`); `src/data/sample-data.ts`'s Blob precedent is `:40-54` (spec says `:52-60`). **This plan cites the numbers actually read.** The spec itself says to resolve the symbol, not the number, and every anchor here was confirmed by reading the line.
 
 **Two implementation defects found and fixed while writing this plan, both by running the code rather than reading it.** The first draft of `layoutShareImage` overflowed the 1080 px canvas (a long player name reached x=1147) and collided the two column averages. Task 3's implementation clips labels with `fit()` and aligns each block's average to its own right edge; the spec's own "keeps every glyph inside the poster" test now pins that.

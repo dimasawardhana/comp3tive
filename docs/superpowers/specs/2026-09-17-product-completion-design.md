@@ -278,6 +278,23 @@ worker cover **both** `/` and `/app/`.
 | `public/fonts/familjen-grotesk-latin.woff2` | 18,916 | `414d5dfe…` | latin |
 | `public/fonts/familjen-grotesk-latin-ext.woff2` | 15,468 | `c53f18ec…` | latin-ext |
 
+**CORRECTION (2026-09-29, after Task 9 landed): the four file names in the table above do not
+exist, and the byte counts are right.** The committed files are
+`outfit-latin-6c18d579.woff2`, `outfit-latin-ext-0f53d1c0.woff2`,
+`familjen-grotesk-latin-414d5dfe.woff2` and `familjen-grotesk-latin-ext-c53f18ec.woff2` — the
+same bytes under the first 8 hex of their own sha256, which is the `sha256 (prefix)` column this
+table already prints. A fifth file shipped (`familjen-grotesk-vietnamese-7c82a402.woff2`, 6,292 B,
+Familjen Grotesk only), so "four" is five, and "≈81 kB" is ≈88 kB.
+
+**The unhashed name is not a name the tree can carry, which is why no table here can quote it.**
+Content-hashing the subsets is the property that makes `/fonts/*.woff2 → 1yr immutable` correct
+and is asserted mechanically by `src/fonts.test.ts`; a fixed `outfit-latin.woff2` would have to
+mean a second, unhashed copy shipping beside the hashed one, or a rename the stylesheet and both
+documents' `preload` hints do not follow. Every assertion in this phase therefore reads the
+precache list or a glob (`public/fonts/outfit-latin-*.woff2`), never a typed name — including
+`e2e/tests/pwa/offline.spec.ts`, whose own comment says a hard-coded one "is a test that fails on
+an unrelated font edit and, worse, one that could name a file this build never cached."
+
 ≈81 kB total, plus `public/fonts/OFL.txt`. Both families are SIL OFL 1.1 (`google/fonts`
 METADATA.pb: Outfit `license: "OFL"`, copyright *The Outfit Project Authors*; Familjen Grotesk
 `license: "OFL"`, copyright *The Familjen Grotesk Project Authors*), so self-hosting is legally
@@ -339,6 +356,23 @@ rules stay byte-identical:
   Cache-Control: no-cache
 ```
 
+**CORRECTION (2026-09-29, after Task 11 landed): `/icons/*` ships `no-cache`, and the font rule is
+`/fonts/*.woff2` with a `Content-Type` beside it.** The block above is this spec's, and it is wrong
+for the icons on one property: **the icons are not content-hashed.** The fonts are, which is the
+entire justification for the `immutable` year two rules up; `icon-192.png` keeps its name across a
+redesign (`src/manifest.test.ts` pins it there), so an immutable year would hide a redrawn icon
+from every returning visitor for a year. **The two assets differ in exactly the property that
+decides the header, which is why no single rule covers both**, and the worker caches the icons
+afterwards regardless, so the cost of `no-cache` is three small revalidations per visit.
+
+The font rule also narrowed to `*.woff2` and gained `Content-Type: font/woff2`. Pages sends
+`X-Content-Type-Options: nosniff`, and a font refused for its type fails silently behind the
+page's fall-back stack, so the type is stated rather than trusted; the pattern matches `.woff2`
+and nothing else, so the two OFL licence texts beside them keep Cloudflare's own `text/plain` —
+a second `Content-Type` rule over the same path would be comma-joined onto this one, not
+override it. The record is `public/_headers` itself, whose `:1-5` and `:29-33` say this in the
+file.
+
 **Registration.** `src/main.tsx` registers the worker **additively and after** A05's error
 boundary, on `window`'s `load` event, with the promise's rejection handled so a failed
 registration is silent. The render call and the `<ErrorBoundary>` wrapper are unchanged.
@@ -378,6 +412,27 @@ not `alert`, not `window.confirm`. The persisted state is a `.durability-note` l
 `persisted === true` / `false` / `null`. **The stat cards are untouched** — still exactly three
 `.tournament-meta-card.dashboard-stat` children labelled `Players`, `Saved squads`, `Tournaments`
 — so `e2e/tests/dashboard/dashboard.spec.ts:114-118` and `:221-224` stay green unchanged.
+
+**CORRECTION (2026-09-29, after Task 14 landed): the nudge sentence and all three
+`.durability-note` sentences changed; the shapes did not.** Shipped
+(`src/DashboardScreen.tsx:131`, `src/shell/RosterScreen.tsx:654-656`):
+
+| place | shipped |
+|---|---|
+| `.nudge` | *This browser does not promise to keep this app's data. Export a backup from Roster.* |
+| note, `persisted === true` | *This browser reported persistent storage for this app on this visit. Keep a backup anyway.* |
+| note, `persisted === false` | *This browser reports this app's data is not stored persistently. Keep a backup.* |
+| note, `persisted === null` | *This app could not confirm persistent storage here. Keep a backup.* |
+
+Every word was argued and reviewed in
+`.superpowers/sdd/2026-09-17-product-completion/task-14-report.md` §2.1–§2.4; this is the record
+of the change, not a second argument. The rule the four sentences share is that the line **reports
+what the browser said** and never predicts what will happen — which is why "Storage protected.
+Eviction unlikely." is gone, and why the reassuring branch is the only one carrying "anyway."
+`e2e/tests/dashboard/nudge.spec.ts` pins all four, and two unit tests assert the shipped strings
+do not match `/safe|protect|guarantee|secure|never lose/i` or `/\bwill\b|lose|lost|delete/i`.
+Criterion 9 below is unaffected: it asserts the presence of the row and the count of stat cards,
+not the wording.
 
 No sync, no cloud, no file-system integration. Export/import is the whole mechanism (ADR-0001).
 
@@ -436,6 +491,25 @@ not modified. All existing bracket tests stay green with **no spec edited** —
 `src/tournament/bracket.test.ts:268` (Swiss tiebreak order) and `:254` (standings crown the
 leader) in particular, which A07 also has in flight. New coverage goes in a new
 `src/data/round-robin.test.ts` plus new `describe` blocks in `bracket.test.ts`.
+
+**CORRECTION (2026-09-29, after Task 7 landed): the `requiredMatches` read above is wrong, and the
+"untouched" claim above it holds for `single-elim` and `swiss` but not for `series`.** The bullet
+said `requiredMatches` (`:191`) "needs **no** arm — its final fallthrough already returns every
+match in the last round, and for round robin the last round is the last matches, so 'all matches
+required' is correct." It is the opposite. A round robin books every fixture up front, so the last
+round is a **column**, not the last of the work: a 5-team round robin is 5 rounds and 10 fixtures,
+the fallthrough returns 2, and `statusOf` completes a tournament the moment those 2 have winners.
+`src/tournament/bracket.ts:287` now reads
+`if (t.format === "round-robin" || t.format === "series") return t.matches;`.
+
+**Consequence for the two claims this section makes elsewhere.** "The `series`, `single-elim` and
+`swiss` paths in `bracket.ts` are not modified" is true of `single-elim` and `swiss` and false of
+`series` in this one function: the diff replaces `if (t.format === "series") return t.matches;`
+with the two-format condition, so a `series` line was edited rather than added beside. Everything
+else the section claims stands — the `single-elim` arm is byte-identical, the Swiss fallthrough is
+unchanged, and all existing bracket tests stayed green with no spec edited. Commit `bc17fe7` is
+the record; the round count named elsewhere in this phase is `roundRobinRounds(n)`, never
+`roundRobinSchedule(n).length`, which counts rows and byes.
 
 ### D36 — Roster fast entry
 
@@ -527,6 +601,16 @@ assertions stay green.
 12. **D37 proven:** a spec asserts `.fairness` is visible on a seeded split, contains `Every team averages`, and contains none of the banned provenance substrings. `node scripts/capture-hero.mjs` still passes its own DOM and pixel verification.
 13. `git diff --stat src/tournament/bracket.ts` touches round-robin arms only — no `single-elim` or `swiss` line is modified.
 
+**CORRECTION (2026-09-29, after Task 7 landed): criterion 13 cannot be satisfied as written, and
+the round-robin risk row in the table below is corrected with it.** The diff to `bracket.ts` does
+modify a line belonging to another format — `requiredMatches`' `series` arm becomes
+`"round-robin" || "series"` — so "touches round-robin arms only" was true of the design and false
+of the change. The check that was reaching for is still worth running in its narrower form: **no
+`single-elim` and no `swiss` arm is modified**, which is what the `bracket.test.ts` diff in
+criterion 10 asserts for the tests. `requiredMatches` is the single place round robin and an
+existing format share a line, and it shares it because they have the same answer — every fixture
+is required — not because the arm is format-neutral.
+
 ## Risks
 
 | Risk | Impact | Mitigation |
@@ -543,6 +627,18 @@ assertions stay green.
 | D36 edits a Phase C-owned file, or D34 assumes the roster UI is still in `src/App.tsx` | Overlapping writes and a spec that cannot land | Both tickets name `src/shell/RosterScreen.tsx` and `src/shell/usePlayerImport.ts` explicitly; D touches no C-owned file |
 | Persistence is requested on every load and nags | The user is prompted repeatedly about something they cannot change | `persist()` is called once from a hook, a refusal is silent, and `shouldNudge` is gated on refusal **and** ≥5 players **and** no recent export; dismissal persists forever |
 | The nudge pushes the third stat card | `dashboard.spec.ts:114-118` and `:221-224` fail for an unrelated reason | The nudge renders between the stat cards and the teasers; the stat card markup is untouched; criterion 9 asserts exactly 3 `.dashboard-stat` children |
+
+**CORRECTION (2026-09-29, after Task 7 landed): the mitigation in the round-robin risk row above
+is half right, and the half that is wrong is the part that would have caught the bug.** The row
+reads "`requiredMatches` needs no change and is asserted rather than assumed; criterion 13 checks
+the diff is additive." `requiredMatches` **does** change — see the CORRECTION in D35 and commit
+`bc17fe7` — and the assertion that was relied on passed anyway, because driving a tournament to
+`"complete"` on a schedule whose earlier rounds were blank is a real completion rather than a
+refutation. The row's first clause, "new arms only, never edits to existing arms", is the rule
+that had to bend, and it bent for a reason worth keeping: round robin shares its *answer* with
+`series`, and expressing that honestly means widening the condition on a `series` line. The test
+that now holds it records the **last round first**, reads `"complete"` before the fix, and only
+reaches `"complete"` on the full schedule after it.
 
 ## Files
 
