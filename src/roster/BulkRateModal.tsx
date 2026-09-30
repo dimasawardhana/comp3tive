@@ -381,7 +381,7 @@ export function BulkRateModal({ disciplines, players, defaultDisciplineId, onApp
               <p className="modal-banner modal-banner-info">
                 Every player you selected is set to the same number in each row, so they will all read
                 the same strength in this discipline. Players who do not play it yet are added to it,
-                with every role open and no preferred role — the same as a row from a CSV import.
+                with every role open and no preferred role, the same as a row from a CSV import.
               </p>
               <div className="rate-group">
                 {discipline.attributes.map((attribute) => {

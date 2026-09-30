@@ -118,7 +118,7 @@ const throughTheParsers = (csv: string, catalog: Discipline[] = CATALOG): Import
     .filter((r) => isTemplateExampleRow(r.name))
     .map((r) => ({
       line: r.line,
-      reason: `"${r.name}" — this app did not import it: the name starts with ${TEMPLATE_EXAMPLE_REASON_MARKER}.`,
+      reason: `This app did not import "${r.name}": the name starts with ${TEMPLATE_EXAMPLE_REASON_MARKER}.`,
     }));
   const { players, skipped: unresolved } = csvRowsToPlayers(kept, catalog, "c1");
   const skipped = [...unparsed, ...unresolved, ...examples].sort((a, b) => a.line - b.line);
@@ -392,7 +392,7 @@ describe("the import report's groups", () => {
     expect(unclosed).toContain("closed or taken out");
 
     const emptyName = text(panelFor("name,discipline,strength\n,futsal,4"));
-    expect(emptyName).toContain("a row with an empty one has no player in it");
+    expect(emptyName).toContain("an empty one means the row has no player in it");
     expect(emptyName).toContain("Put a name in the name column");
     const badStrength = text(panelFor("name,discipline,strength\nAndi,futsal,strong"));
     expect(badStrength).toContain("a number from 1 to 5 in the strength column");
@@ -609,7 +609,7 @@ describe("the template's example rows", () => {
     const html = panelFor(["name,discipline,strength", "Andi,futsal,4", "Example Player 1,mlbb,4", ""].join("\n"));
     expect(groupTitles(html)).toEqual(["Check these example-looking rows · 1 row"]);
     expect(skippedRows(html)).toEqual([
-      'Line 3: "Example Player 1" — this app did not import it: the name starts with the template\'s example marker.',
+      'Line 3: This app did not import "Example Player 1": the name starts with the template\'s example marker.',
     ]);
     expect(text(html)).toContain("Delete them from the file, or rename them if you meant them as real players.");
     expect(text(html)).not.toContain("is one of the example rows the CSV template ships");
@@ -626,8 +626,8 @@ describe("the template's example rows", () => {
     expect(untouched.imported).toBe(0);
     expect(untouched.skipped).toHaveLength(2);
     expect(skippedRows(renderRoster({ disciplines: CATALOG, lastReport: untouched }))).toEqual([
-      'Line 2: "Example Player 1" — this app did not import it: the name starts with the template\'s example marker.',
-      'Line 3: "Example Player 2, delete me" — this app did not import it: the name starts with the template\'s example marker.',
+      'Line 2: This app did not import "Example Player 1": the name starts with the template\'s example marker.',
+      'Line 3: This app did not import "Example Player 2, delete me": the name starts with the template\'s example marker.',
     ]);
     expect(headline(renderRoster({ disciplines: CATALOG, lastReport: untouched }))).toBe(
       "This app imported no players. All 2 player rows in the file were not imported, and are grouped below by what to change.",

@@ -155,7 +155,7 @@ const CAUSE_GROUPS: readonly SkipGroup[] = [
     id: "value",
     title: "Correct what one cell says in these rows",
     note: () =>
-      "The row has its three columns; one of them is not a value this app can read as that column. Put a name in the name column — a row with an empty one has no player in it — and a number from 1 to 5 in the strength column, or leave that blank and it is read as 3.",
+      "The row has its three columns; one of them is not a value this app can read as that column. Put a name in the name column, because an empty one means the row has no player in it. Put a number from 1 to 5 in the strength column, or leave that blank and it is read as 3.",
     matches: (reason) =>
       reason === "The name column is empty." || /^Strength ".*" is not a number\.$/.test(reason),
   },
@@ -686,7 +686,7 @@ export function RosterScreen(props: RosterScreenProps) {
           </p>
           <p className="import-hint">
             CSV columns, in this order: name, discipline, strength. Any value with a comma in it goes
-            in quotes &mdash; the last example row in the template shows one in the name column.
+            in quotes. The last example row in the template shows one in the name column.
           </p>
           <p className="import-hint">
             Strength is a number from 1 to 5. Leave it blank and it is read as 3; text there skips

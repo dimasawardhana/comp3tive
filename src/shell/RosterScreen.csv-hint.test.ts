@@ -27,7 +27,7 @@ import { renderRoster } from "../test-support/renderRoster";
 const WORKFLOW_COPY =
   "Fill the template in and save it, then press Import players and pick that file. Nothing here is read until you choose it.";
 const COLUMNS_COPY =
-  "CSV columns, in this order: name, discipline, strength. Any value with a comma in it goes in quotes — the last example row in the template shows one in the name column.";
+  "CSV columns, in this order: name, discipline, strength. Any value with a comma in it goes in quotes. The last example row in the template shows one in the name column.";
 const STRENGTH_COPY = "Strength is a number from 1 to 5. Leave it blank and it is read as 3; text there skips the row.";
 
 /** Every `.import-hint` paragraph, as one line of text each. */

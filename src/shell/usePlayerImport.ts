@@ -92,7 +92,7 @@ export const TEMPLATE_EXAMPLE_REASON_MARKER = "the template's example marker";
  * holds open, and a report is the last place a claim like that belongs.
  */
 const exampleRowReason = (name: string): string =>
-  `"${name}" — this app did not import it: the name starts with ${TEMPLATE_EXAMPLE_REASON_MARKER}.`;
+  `This app did not import "${name}": the name starts with ${TEMPLATE_EXAMPLE_REASON_MARKER}.`;
 
 /**
  * Why a row whose player the app failed to save is on the report.

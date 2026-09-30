@@ -220,7 +220,7 @@ test("the untouched template imports no ghost and says which rows it held back",
   ]);
   await expect(page.locator(".import-report")).toContainText("Most recent CSV import");
   await expect(page.locator(".import-skipped-row").first()).toContainText(
-    '"Example Player 1" — this app did not import it: the name starts with',
+    'This app did not import "Example Player 1": the name starts with',
   );
 
   // **And nothing is announced as a failure.** Importing the template back
