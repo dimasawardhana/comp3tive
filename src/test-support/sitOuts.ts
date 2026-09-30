@@ -45,10 +45,37 @@ const NAME_CHAR = /[^'\p{L}\p{N}, ?]/u;
  * stopped at the `?` would report that entry as empty: on the line where the
  * unknown id is the whole list, it returns `[""]` and a maintainer debugging the
  * composed line is sent after an entry that was never empty.
+ *
+ * **A line with no label throws, and that is the point.** A line carrying no
+ * label is not a line with no sit-outs. It is a line this cannot read, and
+ * answering with `[]` conflated the two: the parse found nothing, nothing found
+ * nothing, and no assertion anywhere failed. That is how a rename of the label
+ * would have turned every caller green while they quietly stopped parsing
+ * anything.
+ *
+ * A distinguishable return, `string[] | null`, was considered and rejected. The
+ * type would make each caller handle it, and the natural way to handle it,
+ * `sitOuts(line) ?? []`, is this bug restored in the shape of a fix. A throw has
+ * no expression that goes away quietly.
+ *
+ * `expect` inside the helper was rejected for the ordinary reason: it makes the
+ * helper's contract a testing artifact, it attributes a failure to this file
+ * rather than to the call site that chose to pass a line, and it cannot be
+ * handed a line to check without turning the check into a test. The throw
+ * carries the same two facts, the label it wanted and the line it was given, in
+ * one message.
+ *
+ * The cost, stated: a caller can no longer use this to ask whether a line
+ * carries a clause at all, because that line throws. That question is asked
+ * against the string, which is where it is asked today
+ * (`share-image.test.ts`, `share-text.test.ts`), and this is not the helper for
+ * it.
  */
 export function sitOuts(line: string): string[] {
   const at = line.indexOf(NOT_PLAYING);
-  if (at < 0) return [];
+  if (at < 0) {
+    throw new Error(`sitOuts: no "${NOT_PLAYING.trim()}" label to read a list from, in: ${line}`);
+  }
   const run = line.slice(at + NOT_PLAYING.length);
   const end = run.search(NAME_CHAR);
   return run
