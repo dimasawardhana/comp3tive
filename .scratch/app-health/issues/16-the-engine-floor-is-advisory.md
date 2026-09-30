@@ -1,5 +1,10 @@
 # 16 — The engine floor is advisory, and nothing says so
 
+> **Superseded.** This ticket's work shipped inside
+> [`debt/30`](../../debt/issues/30-project-hygiene.md) — the engine floor is one of its three
+> subjects. This file is history; see [`.scratch/app-health/README.md`](../README.md) for the
+> pairing of all sixteen.
+
 **What to build:** A decision about whether the Node floor in `package.json` should be enforced, made
 explicitly rather than left to the default — plus whatever enforcement that decision implies.
 
@@ -17,7 +22,7 @@ README now states this, but the decision behind it was never made.
 
 **Blocked by:** None. It is a decision, not a dependency — the floor exists and ships either way.
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 - [ ] The decision is recorded: enforce with `engine-strict`, or keep the floor advisory and say
       why
@@ -39,3 +44,32 @@ case against it is that the failure would be an `npm ci` refusal on a Node that 
 Deliberately *not* done in the change that added the floor: setting `engine-strict` would have
 converted a warning into a hard install failure for a constraint only one optional transitive
 package declares, and that call is not this task's to make silently.
+
+## Comments
+
+**Re-checked 2026-10-01 against `d98b95c`, against the code rather than against debt 30's
+status — this ticket's own decision shipped. Resolved. debt 30 stays open for something else.**
+
+- Row 1 holds: the decision is made and recorded. `README.md:64-69` — *"**The floor is advisory —
+  nothing enforces it.** This repo sets no `engine-strict`, so `npm ci` and `npm install` on an
+  unsupported Node print an `EBADENGINE` warning and install anyway."* The reasoning follows at
+  `:71-77`: the floor's only binding constraint is `@napi-rs/lzma-linux-x64-gnu`, an **optional**
+  linux-x64 native binding that macOS and Windows never fetch, which is precisely the case the
+  Notes weighed.
+- Row 2 is correctly inapplicable — the advisory branch was taken, so there is no enforcement
+  mechanism to state and no install path to name.
+- Row 3 holds, and this is the row the ticket cared about most. The README states the fact **in
+  prose**, not by pointing at this file: deleting
+  `.scratch/app-health/issues/16-the-engine-floor-is-advisory.md` would leave `README.md:64-77`
+  intact and true. The link at `README.md:68-69` is an extra, not the load-bearing part.
+- Row 4 holds. The derivation rule is written down where a newcomer will meet it
+  (`README.md:71`: the intersection of every `engines.node` in `package-lock.json`), and CI is
+  inside the floor — `.github/workflows/ci.yml:9` uses `node-version: 22`, which resolves to the
+  latest 22.x and so satisfies `^22.20`. There is no script that re-derives the value; it is a
+  documented procedure, not an automated one, and this ticket does not claim otherwise.
+
+**What is still open is not this ticket.** debt 30 carries the engine floor and two other
+subjects, and it is `ready-for-agent` because of the third: `README.md:143-147` still says there
+is no service worker, no manifest and no CDN fonts, which is false of this tree. That is a
+README defect, recorded on debt 30; it is not this ticket's ask, and ticket 13's resolution
+surfaced it without owning it.

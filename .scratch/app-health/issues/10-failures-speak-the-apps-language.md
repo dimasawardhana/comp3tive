@@ -1,5 +1,9 @@
 # 10 — Failures and confirmations speak the app's language
 
+> **Superseded.** The live copy of this ticket is
+> [`debt/27`](../../debt/issues/27-failures-and-confirmations-speak-the-apps-language.md). This file
+> is history; see [`.scratch/app-health/README.md`](../README.md) for the pairing of all sixteen.
+
 **What to build:** No operation blocks the thread with a native browser dialog; a rejected domain
 operation shows a message instead of vanishing into the console; and a write that fails is never
 silent.
@@ -26,7 +30,7 @@ silent.
 `src/App.tsx`'s handlers, and 03 adds validation at exactly the entry points this ticket rewrites.
 Land them first.
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 - [ ] No `alert()` or `window.confirm()` remains in `src/` — verified by search, not by reading the diff
 - [ ] Every current `alert()` becomes a toast or an inline message, keeping its existing text (the
@@ -50,3 +54,35 @@ around it.
 
 When converting dialogs, keep the *copy* — the confirms carry real warnings ("Tournaments that used
 it keep their teams.", the community cascade warning). None of them are throwaway.
+
+## Comments
+
+**Re-checked 2026-10-01 against `d98b95c`, against the code rather than against debt 27's
+status — shipped. Resolved.**
+
+- Row 1 holds by search, not by reading a diff: `grep -rn "alert(\|window.confirm(" src/` returns
+  **nothing**.
+- Row 3 holds. `src/ui/ConfirmButton.tsx` is the one in-app two-step primitive, used by all five
+  destructive paths this ticket enumerates — `src/domain/DisciplineEditModal.tsx`,
+  `src/roster/PlayerEditModal.tsx`, `src/shell/AppChrome.tsx:132` (the community delete),
+  `src/session/SquadsScreen.tsx:93,169`, `src/session/HistoryScreen.tsx`.
+- Row 7's copy survived the conversion, which the Notes asked for by name: `"Tournaments that used
+  it keep their teams."` is still the squad message (`src/session/SquadsScreen.tsx:93,169`), and
+  the community cascade warning still composes into the confirm body
+  (`src/shell/AppChrome.tsx:137`).
+- Row 4 holds and is now in the flow rather than in `App.tsx`: `recordResult`
+  (`src/shell/useSplitFlow.ts:305-312`) and `undoLastResult` (`:314-321`) wrap `applyResult` and
+  `undoLastGame` and surface `formatError(err)` — the sentence the throw already carried, not an
+  invented one. The frontier guard this ticket called reachable from two tabs is the one that
+  makes this wrap necessary.
+- Row 5 holds: the ad-hoc Session write now says so and still shows the split
+  (`src/shell/useSplitFlow.ts:253-260`, `"Your split wasn't saved to History."`), and the legacy
+  adoption effect carries a `.catch` on **both** writes — `src/App.tsx:143` and `:153`, once each
+  per category rather than per record, so a failing legacy record does not produce a toast storm.
+- Row 6 holds: `src/ui/Toasts.tsx:10` keeps `aria-live="polite"` on the container and `:12` keeps
+  `role="status"` on every toast, and `ConfirmButton` returns a fragment with no focus move.
+
+**Not verified here, and not claimed:** row 7, "the e2e suite passes with no spec edited". The
+e2e suite was not run for this re-check. Note also that the handlers this ticket rewrote have
+moved out of `src/App.tsx` into `src/shell/`, so this ticket's file list describes a tree that no
+longer exists; debt 27 records the same thing.

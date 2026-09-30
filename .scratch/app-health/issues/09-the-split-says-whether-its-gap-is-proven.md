@@ -1,5 +1,9 @@
 # 09 — The split says whether its gap is proven
 
+> **Superseded.** The live copy of this ticket is
+> [`debt/13`](../../debt/issues/13-the-split-says-whether-its-gap-is-proven.md). This file is
+> history; see [`.scratch/app-health/README.md`](../README.md) for the pairing of all sixteen.
+
 **What to build:** The split screen distinguishes a gap that was *proven* minimal from the best gap
 the solver found before it ran out of search — so the product's fairness claim is honest on a big
 pool instead of quietly rounding a guess up into a promise.
@@ -27,7 +31,7 @@ identically.
 
 **Blocked by:** None — can start immediately.
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 - [ ] The split screen states which of the two it is showing, in the product's voice — no jargon like
       "aborted" or "node budget"
@@ -50,3 +54,31 @@ It does not for this ticket: the user-visible question is "is this the best poss
 split is *never* a proven minimum. When `.scratch/app-correctness/01` lands, the qualifier has to
 stay true through a re-roll — coordinate the copy with that ticket rather than asserting the
 strong claim unconditionally.
+
+## Comments
+
+**Re-checked 2026-10-01 against `d98b95c`, against the code rather than against debt 13's
+status — shipped. Resolved.**
+
+- The screen says which of the two it is showing, in the product's voice: `gapQualifier`
+  (`src/session/gapProvenance.ts:33`) returns `"Best gap found."` or `null`, and no wire from
+  `src/solver/solver.ts` reaches it. `optimal` is read by `gapKind` (`:22`) and nothing else.
+- Row 2 holds: `optimal: false` reads as best-found and `optimal: true` renders no provenance
+  word at all (`gapProvenance.ts:22,33`), so the unproven case cannot be mistaken for the proven
+  one at a glance.
+- Row 3 holds, deliberately: the proven path emits nothing rather than a hedge — the qualifier is
+  `null`, not "probably the best we found". The file says so at `:29-32`.
+- Row 4 holds on **both** layouts: the two-team pitch (`:196,202`, inside `GapMeter`) and the
+  3+ team stack (`:419,425`). Each renders `gapQualifier(result) ?? "Fair game."` / appends it
+  inside the existing `<span className="fine">`.
+- Row 5 holds and is checkable: `git log --oneline -- src/solver/solver.ts` is one commit,
+  `45f2eed init commit`. This ticket surfaced a field that already existed.
+
+**A note on the evidence table above.** It was measured on sample rosters that have since
+changed, and the MLBB row in particular no longer describes the shipped sample: the current
+`sample-data/mpl-id-roster.json` splits to `optimal: true` in 2 nodes, so it exercises the
+proven path, not the best-found one. The mechanism is verified above against the code, not
+against a re-run of that table.
+
+**Not verified here, and not claimed:** row 6, "the e2e suite passes with no spec edited". There
+is a dedicated `e2e/tests/split/gap-provenance.spec.ts`; it was not run for this re-check.

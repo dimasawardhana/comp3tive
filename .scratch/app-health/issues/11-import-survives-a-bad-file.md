@@ -1,5 +1,9 @@
 # 11 — Import survives a bad file
 
+> **Superseded.** The live copy of this ticket is
+> [`debt/08`](../../debt/issues/08-import-survives-a-bad-file.md). This file is history; see
+> [`.scratch/app-health/README.md`](../README.md) for the pairing of all sixteen.
+
 **What to build:** The import path tells the truth about what it did. A quoted CSV field imports as
 one value, a discipline it does not recognise is reported rather than silently producing a player
 who cannot play anything, and a file too large to be sensible is refused before it is read into
@@ -57,3 +61,13 @@ one player named `Smith, John`), an unknown-discipline skip reported with its li
 Also absorbed into Phase A of the debt repayment effort as
 `.scratch/debt/issues/08-import-survives-a-bad-file.md`. Do not start that copy — this ticket's
 work has shipped.
+
+**Re-checked 2026-10-01 against `d98b95c`, against the code rather than against debt 08's
+status — the resolution above still holds. Resolved.**
+
+`src/data/player-import.ts` is still the single import path, with `assertImportSize` and its
+`MAX_IMPORT_BYTES` guard called on `file.size` before the file is read, and
+`src/data/player-import.test.ts` still covers the quoted field, the unknown discipline and the
+size refusal — rows 1, 2, 4 and 7 in one place. Row 6 ("existing imports still work") was not
+re-run here: `src/data/sample-data.test.ts` and `sample-roundtrip.test.ts` exist and were not
+executed for this re-check.

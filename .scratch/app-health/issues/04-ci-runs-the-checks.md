@@ -1,5 +1,9 @@
 # 04 — CI runs the checks
 
+> **Superseded.** The live copy of this ticket is
+> [`debt/10`](../../debt/issues/10-ci-runs-the-checks.md). This file is history; see
+> [`.scratch/app-health/README.md`](../README.md) for the pairing of all sixteen.
+
 **What to build:** Every push and pull request runs typecheck, unit tests, coverage and build, then
 the Playwright suite — and a red run blocks the change. The proof that the split is fair stops
 depending on someone remembering to run it.
@@ -46,3 +50,27 @@ Also absorbed into Phase A of the debt repayment effort as
 `.scratch/debt/issues/10-ci-runs-the-checks.md`. Do not start that copy — this ticket's work has
 shipped. One deviation from this ticket's acceptance: the coverage step and its artifact were
 deliberately dropped, per the successor's acceptance criteria.
+
+**Re-checked 2026-10-01 against `d98b95c`. The work is in the tree:**
+`.github/workflows/ci.yml` runs on `[push, pull_request]` with `node-version: 22` and
+`cache: npm`, then `npm ci` → `npx tsc -b` → `npx vitest run` → `npx vite build` →
+`npx playwright install --with-deps chromium` → `npm run e2e`, every check step bare — no
+`continue-on-error`, no `|| true`, no `if: always()` — and uploads `playwright-report/` under
+`if: failure()`. `package.json` carries `"e2e": "playwright test --config=e2e/playwright.config.ts"`.
+
+**Two of this ticket's six acceptance rows were never met, and neither was an oversight.** Both
+were rescoped by name in the successor — this comment previously named only the first:
+
+- Row 5, coverage as a build artifact: dropped. debt 10's own acceptance says so in as many
+  words — *"No coverage step and no threshold gate — the original ticket's coverage ask is
+  dropped: it would gate a number nobody has chosen a threshold for."* There is no coverage step
+  in `ci.yml`.
+- Row 4, *"Playwright workers are pinned to 2"*: never done. `e2e/playwright.config.ts:7` reads
+  `workers: 1`, and debt 10's acceptance says *"workers: 1 … is **not** changed here"* and hands
+  the question to debt 11, which measured `workers: 2` green three times and deliberately left it
+  at 1. The comment above did not record this row, which is why it needed saying now: a reader
+  checking this ticket's own acceptance would find row 4 unmet with nothing in the file to
+  explain it.
+
+The ticket stays `resolved` — the deliverable exists, is verified above, and there is no work
+left for anyone to do — but it does not get to read as "six rows, six passes".

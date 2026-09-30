@@ -1,5 +1,9 @@
 # 05 — Navigation moves out of the shell
 
+> **Superseded.** The live copy of this ticket is
+> [`debt/24`](../../debt/issues/24-navigation-moves-out-of-the-shell.md). This file is history; see
+> [`.scratch/app-health/README.md`](../README.md) for the pairing of all sixteen.
+
 **What to build:** Going back from a screen, and returning to a hub, are tested behaviour rather
 than three closures buried in a component that also renders nine screens.
 
@@ -12,7 +16,7 @@ Every feature so far has added to this file — the git history shows five conse
 
 **Blocked by:** 02 — both edit `src/App.tsx` heavily.
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 - [ ] The view stack and its three primitives live in a hook (`useNavigation` or equivalent) that a
       test can drive without rendering the app
@@ -31,3 +35,28 @@ deliberate decision, not an accident, and this extraction must preserve it.
 **Notes:** Pure extraction: behaviour identical, including the tournament-create path that replaces
 the stack so Back and the breadcrumb both return to Games. Do not "fix" anything on the way past —
 a refactor with a behaviour change inside it has no test that can tell you which one broke.
+
+## Comments
+
+**Re-checked 2026-10-01 against `d98b95c`, against the code rather than against debt 24's
+status — shipped. Resolved.**
+
+- `src/shell/useNavigation.ts` (48 lines) is the whole navigation surface: the `View` union at
+  `:5-14`, the four pure transitions `pushStack` `:19` / `popStack` `:25` / `hubStack` `:30` /
+  `currentView` `:34`, and the hook at `:38`. `src/App.tsx:45` consumes it and declares none of
+  the state itself — `grep "useState<View\[\]>" src/App.tsx` returns nothing.
+- Row 2's three transitions behave as before, and row 3's tests exist for them:
+  `src/shell/navigation.test.ts` covers the push/pop round trip *and* that the input array is not
+  mutated (`:9-14`), `popStack` at the root exhaustively across every reachable depth and every
+  hub bottom (`:18-40`), `hubStack` collapsing a depth-3 stack (`:44-46`), and the
+  tournament-create sequence yielding `[games, tournament]` with Back returning to Games
+  (`:58-65`).
+- Row 4 holds: `src/shell/ScreenSwitch.tsx` renders the screens from a switch, and
+  `src/App.tsx:443` hands the state to it.
+- Row 6 holds — ADR-0004's contract survives. The origin still travels on the view
+  (`{ mode: "match"; source: SplitSource }`), and all three crumb sites navigate through handlers
+  their host passes down rather than declaring a destination: `src/session/MatchScreen.tsx:41`,
+  `src/tournament/TournamentScreen.tsx:254`, `src/session/SplitScreen.tsx:376`.
+
+**Not verified here, and not claimed:** row 5, "the whole Playwright suite passes with no spec
+edited". The e2e suite was not run for this re-check.

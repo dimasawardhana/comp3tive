@@ -1,5 +1,9 @@
 # 08 — Swiss pairs without rematches, and crowns by play
 
+> **Superseded.** The live copy of this ticket is
+> [`debt/07`](../../debt/issues/07-swiss-pairs-without-rematches.md). This file is history; see
+> [`.scratch/app-health/README.md`](../README.md) for the pairing of all sixteen.
+
 **What to build:** A Swiss round never repeats a pairing when a legal alternative exists, and two
 teams on the same win record are separated by what they did in the tournament rather than by how
 strong they were before it started.
@@ -67,3 +71,13 @@ exhaustive pattern block and the 2–4 tie fixture.
 Also absorbed into Phase A of the debt repayment effort as
 `.scratch/debt/issues/07-swiss-pairs-without-rematches.md`. Do not start that copy — this ticket's
 work has shipped.
+
+**Re-checked 2026-10-01 against `d98b95c`, against the code rather than against debt 07's
+status — the resolution above still holds. Resolved.**
+
+`src/tournament/bracket.ts:214` states the search it shipped with — *"Choose a rematch-free,
+legal (|Δwins| <= 1) pairing of the whole field"* — and `:263` labels the only branch that can
+repeat a pairing as the last resort it was meant to be, so rows 1 through 3 are visible in the
+code rather than only in the commit message. `grep -rn "team.strength" src/tournament/bracket.ts`
+returns nothing on the crowning path, which is row 4. The exhaustive pattern block and the 2–4
+tie fixture named above are still in `src/tournament/bracket.test.ts`.

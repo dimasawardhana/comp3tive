@@ -1,5 +1,10 @@
 # 12 — The data has a durability story
 
+> **Superseded.** The live copy of this ticket is
+> [`debt/34`](../../debt/issues/34-durability-story.md), which absorbed this ticket's evidence
+> verbatim. This file is history; see [`.scratch/app-health/README.md`](../README.md) for the
+> pairing of all sixteen.
+
 **What to build:** The browser is asked to keep the data, and the user is nudged to keep their own
 copy — so a storage eviction is a recoverable event rather than an app that looks like it was never
 used.
@@ -20,7 +25,7 @@ makes the user use it:
 
 **Blocked by:** None — can start immediately.
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 - [ ] The app requests persistent storage on first run, and the request's outcome is handled — both
       granted and refused, with no error surfaced to the user for a refusal
@@ -45,3 +50,38 @@ on a court — is the failure mode to avoid.
 
 Do **not** invent a sync, a cloud backup, or a file-system integration. ADR-0001 explicitly chose
 export/import, and changing that is an ADR, not a ticket.
+
+## Comments
+
+**Re-checked 2026-10-01 against `d98b95c`, against the code rather than against debt 34's
+status — shipped. Resolved.**
+
+- Row 1 holds. `src/shell/useDurability.ts:370` exports `useDurability`; `probePersistence`
+  (`:238`) calls `navigator.storage?.persist?.()` once and keeps the three-state distinction this
+  ticket was most careful about — `persisted: null` before the promise settles and on a browser
+  with no Storage API, and a refusal treated as silence (`:256`), not as an error to show.
+- Row 2 holds by construction: every storage call is optional-chained behind a `StorageProbe`
+  interface (`:124-128`), so a browser without the API takes the `!storage.persist` branch at
+  `:245` and returns `{ persisted: known, granted: null }` rather than throwing.
+- Row 3 holds and the trigger is recorded, which row 7 asked for. It is a mix, and it is written
+  down where the code is: `MIN_PLAYERS_TO_NUDGE = 5` (`:48`), `NUDGE_AFTER_MS = 14 days` (`:66`),
+  and `decideDurability` (`:302-317`) requires the origin to be non-persistent **and** at least
+  five players **and** an export that is missing or older than a fortnight. The rationale —
+  browsers evict under pressure, never on a schedule, so this is a cadence rather than a risk
+  model — is at `:51-62`.
+- Row 4 holds: the nudge renders on the Dashboard between the stat cards and the teasers
+  (`src/DashboardScreen.tsx:129-137`) with a `Dismiss` button and no modal, and dismissal
+  persists under `tb-export-nudge-dismissed` (`src/shell/useDurability.ts:23`) — including the
+  rule that a roster growing past `dismissed.playerCount + 5` re-opens the question
+  (`:283`).
+- Row 6 holds: it is the app's toast/inline vocabulary, not a native dialog, and the whole
+  `grep -rn "navigator.storage" src/` footprint is `useDurability.ts` — no sync, no cloud backup,
+  no account, as the Notes require.
+- Row 5's placement holds: `src/shell/RosterScreen.tsx:653-656` renders `.durability-note`
+  beside the Export control and distinguishes all three verdicts — reported persistent, reported
+  not, could not confirm.
+
+**Not verified here, and not claimed:** row 7's own statement that the trigger decision belongs
+in the ticket's Answer. This ticket file has no `## Answer` section, so the answer is this block
+plus the constants at `src/shell/useDurability.ts:48,66`, which is where the next reader will
+look.
