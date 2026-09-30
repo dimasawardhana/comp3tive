@@ -757,6 +757,40 @@
   padding-bottom: 12px;
 }
 
+/* The split screen's own bar is the only one that can hold four actions, and at
+   390px the four labels do not fit on one line: 106 + 117 + 77 + 90 of min-content
+   plus three 10px gaps is 426 against 350 of content width. `.btn` is
+   `white-space: nowrap` and a flex item's `min-width` defaults to `auto`, so each
+   button is floored at its whole label, `flex: 1` cannot shrink it below that
+   floor, and the row hung 56px off the right edge. `min-width: 0` is not the fix
+   — it lets the boxes shrink and leaves the nowrap text spilling out of them,
+   the same overflow one level down.
+
+   So the bar wraps instead, and the wrap is the treatment rather than a
+   breakpoint: the line breaks where the labels stop fitting, so a state that
+   does fit stays one row. The bar holds one to four actions (Back, Save squad
+   and Share are each conditional, and the primary is one of three labels), so a
+   fix pinned to the four-action case would hold only on the day it was written.
+   At 390 the wrap is content-driven, and it is worth being exact about where it
+   falls, because the two four-action states break differently. Reopened from
+   History the labels are 106 + 117 + 77 + 90, so the three secondaries take the
+   first line and `Re-roll` takes the second alone at the full 350 — the shape a
+   bottom-bar primary should have anyway. From a tournament draft the labels are
+   wider and the primary is "Save teams to tournament →", and the bar breaks 2+2
+   with the primary sharing its line with `Share`. Neither is a label cut in
+   half: every action keeps its 52px target and its whole text, and the bar gets
+   taller rather than the buttons getting smaller. The three-action state still
+   fits on one line and does not pay the height at all.
+
+   Scoped to `.split-bar` on purpose. `.bar` and `.btn` are shared with every
+   modal's action row (`.modal-card .bar`, src/split.css:120), and the modal
+   suite only proves those rows still *exist* — it would not notice a modal that
+   got worse. `.match-bar` holds two actions that fit on one line at 390 and is
+   left alone. */
+.split-bar {
+  flex-wrap: wrap;
+}
+
 /* split deal-in: the one orchestrated moment */
 .pitch .team,
 .pitch .mid {
