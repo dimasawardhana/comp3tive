@@ -1,86 +1,113 @@
-# The solver never chooses who sits out, so a dominant player cannot be benched for a fair split
+# When a leftover is forced and one player outclasses the field, the solver benches someone else
 
 **Status:** ready-for-agent
 
 ## The finding
 
-A fair split can exist and the solver will not find it, because **the sit-out is a by-product of the
-arrangement rather than a choice the solver makes.**
+`fairSplit` optimises **who plays where** over a pool it is given. **Who sits out is an output of
+that arrangement, never an input** — there is no code path by which the solver can choose to bench a
+player. So when a team count forces a leftover *and* one player substantially outclasses the field,
+the solver benches a weaker player and the gap equals the standout's excess, when benching the
+standout would give a dead-even split.
 
-Eleven players, two teams of five, one player rated 5/5/5/5 and ten rated 1/1/1/1. The only
-arrangements with a gap of zero bench the dominant player and split the other ten 5/5. The solver
-instead reports:
+Eleven players, two teams of five, one player rated 5/5/5/5:
 
 ```
-benched=["p9"]  gap=0.80  optimal=true   |  p0+p5+p6+p7+p8  |  p1+p10+p2+p3+p4
+solver:      benched a weak player   gap 0.8   optimal=true
+best over
+every
+bench
+choice:      bench the standout      gap 0.0
 ```
 
-`optimal=true` is honest: given that `p0` must play, 0.80 **is** the best achievable split. The gap
-is eight times `VARIETY_TOLERANCE` (`src/solver/solver.ts:24`). Re-roll reproduces it every click,
-because every re-roll re-runs the same search.
+`optimal=true` is honest: given that the standout must play, 0.8 **is** the best achievable split.
+The gap is eight times `VARIETY_TOLERANCE` (`src/solver/solver.ts:24`), and every re-roll reproduces
+it, because every re-roll re-runs the same search.
 
-**The app's claims stay true throughout.** The screen reads `Gap 0.8. Team A leads. Best gap found.`
-— a measurement, an attribution and an honesty qualifier, and specifically *not* "proven". Nothing
-here is a lie. What is wrong is that the number on screen is not the best the pool can do, while the
-app's own metric is the gap.
+**The app's claims stay true.** The screen reads `Gap 0.8. Team A leads. Best gap found.` — a
+measurement, an attribution, and specifically not "proven". Nothing here is a lie; the number on
+screen is simply not the best the pool can do, and the app's own metric is the gap.
+
+## What the measurement actually found
+
+Sixteen pools measured with the shipped `fairSplit`, `poolFromPlayers` and `buildSettings`: the three
+**shipped** sample rosters at nine team counts, plus synthetic pools with one standout at four
+different margins.
+
+| pool | leftover | solver gap | best over every bench choice | recoverable |
+|---|---|---|---|---|
+| futsal 25 → 2 / 3 / 4 | 0 | 0.096 / 0.139 / 0.119 | — | n/a |
+| mlbb 25 → 2 / 3 / 4 | 5 / 10 / 5 | **0** | 0 | 0 |
+| badminton 10 → 2 / 3 | 6 / 4 | **0** | 0 | 0 |
+| 1 standout 5 vs field 4 · 11 → 2 | 1 | 0.2 | **0** | **0.2** |
+| 1 standout 5 vs field 3 · 11 → 2 | 1 | 0.4 | **0** | **0.4** |
+| 1 standout 5 vs field 2 · 11 → 2 | 1 | 0.6 | **0** | **0.6** |
+| 1 standout 5 vs field 1 · 11 → 2 | 1 | 0.8 | **0** | **0.8** |
+| 1 standout 5 vs field 4 · 15 → 3 | 0 | 0.2 | 0.2 | 0 |
+
+**Three things fall out of this, and the first two are the ticket.**
+
+1. **It requires a leftover.** Every row where a different bench choice would help has
+   `leftover = 1`. Where nobody sits out the question does not arise, and the recoverable amount is
+   0 by construction.
+2. **The recoverable gap is exactly the standout's excess, and the alternative is always a perfect
+   0.** 0.2 / 0.4 / 0.6 / 0.8 in step with the margin, and `bestIfDifferentBench = 0` in all four.
+   So the advisory can be exact rather than approximate: when it fires, it can name the player.
+3. **It never fires on any shipped roster.** Nine team counts across the three sample rosters, and
+   every one that forces a leftover solves to **gap 0**. The non-zero futsal gaps occur where nobody
+   sits out, so no bench choice would have helped.
 
 ## What this is not
 
-- **Not the re-roll defect from ticket 03.** That one is fixed and verified: re-roll changes the
-  teams, advances the badge only when they change, and restores the sit-out's eligibility.
-- **Not pool-order dependent.** I tested it: the same eleven players with the dominant player first
-  and last in the pool bench the *same* player and produce a byte-identical split. My first
-  hypothesis was that iteration order decided the sit-out; it does not, and the test is recorded
-  here so nobody repeats it.
-- **Not a crash or a wrong result.** It is a search that does not span a dimension.
+- **Not the re-roll defect from ticket 03.** That is fixed and verified: re-roll changes the teams,
+  advances the badge only when they change, and restores a sit-out's eligibility.
+- **Not pool-order dependent.** The same eleven players with the standout first and last bench the
+  *same* player and produce an identical split. My first hypothesis was iteration order, the test
+  disproved it, and it is recorded here so nobody repeats it.
+- **Not a wrong result, and not a crash.** It is a search that does not span one dimension.
 
 ## The mechanism
 
 `greedySplit` (`src/solver/solver.ts:157-217`) places each remaining player into the least-total
-team with room, and pushes whoever does not fit into `leftover` (`:208-210`). `fairSplit` then
-optimises the *arrangement* over that pool. Nothing anywhere takes "who is eligible to sit out" as
-an input, so **the pool is a given and the leftover is an output.** There is no code path by which
-`p0` could be benched.
+team with room and pushes whoever does not fit into `leftover` (`:208-210`). `fairSplit` then
+optimises the arrangement over that pool. Nothing takes "who is eligible to sit out" as an input.
 
-## Why it is a ticket and not a fix
+## Recommendation
 
-This is a product decision with two defensible answers, and picking one in a patch would bury it:
+**Do not widen the search. Add a non-acting advisory.**
 
-1. **Optimise the sit-out.** Search over which players are excluded, not only over who plays where.
-   Cost: the search space grows from arrangements to arrangements × exclusions, so `fairSplit`'s
-   node budget and its determinism guarantee both have to be re-argued. It would also bench good
-   players more often, which an organizer may not want.
-2. **Keep the current behaviour and say so.** The pool is the organizer's decision — they chose
-   eleven players for two teams — and a tool that silently drops their best player to win a metric
-   is doing something they did not ask for. The honest form of this answer is a sentence on the
-   roster or the split screen: *the gap is the fairest split of the players who fit, and who sits
-   out is not part of that number.*
+Widen the search means the space goes from *arrangements* to *arrangements × exclusions*, so the node
+budget, the determinism guarantee and `VARIETY_TOLERANCE` all need re-arguing — and it benches good
+players more often, which an organizer building a tournament does not want. The roster they selected
+*is* the pool, and dropping their best player to win a displayed number is the same failure class
+Phase B exists to remove: optimising a metric over what the person asked for.
 
-Option 2 costs a sentence. Option 1 costs a solver redesign. **The ticket exists because nobody has
-decided which, and the gap is only 0.8 in the pathological case** — with a normal pool the solver
-finds a dead-even split, which is what the app usually shows.
+The advisory keeps the pool the user's and their decision, and tells them what widening the search
+would have done: **when a leftover exists and a different bench choice would produce a smaller gap,
+say so, and name the player.** It is a local check, not a search — for each benched player and each
+placed player, swap and recompute. With one benched and ten placed that is ten evaluations.
+
+The measurement says it will be quiet: it fires on **zero** of the nine shipped-roster configurations,
+and only when someone is a material fraction stronger than the field. A cheap, exact, rarely-firing
+advisory is a good trade; a solver redesign for a case this rare is not.
 
 ## Acceptance
 
-- A decision is recorded: optimise the sit-out, or keep it and document it on the surface.
-- If option 2: the surface says what the gap covers and does not cover, and a test pins the wording.
-  Something like "the fairest split of the players who fit" — **not** "the fairest split", which is
-  what the current metric means and is false here.
-- If option 1: `fairSplit`'s node budget, its determinism guarantee and `VARIETY_TOLERANCE` are
-  re-argued, and the re-roll tolerance is re-checked against the widened search.
-- Either way, a test pins one pool where the fairest arrangement of the players who play is worse
-  than some other choice of who sits out, so the behaviour is recorded rather than rediscovered.
+- The advisory names a specific player and is silent when no bench choice would have been better.
+  Silence must be the default — a hint that cries wolf is worse than none.
+- A test pins one pool where the fairest arrangement of the players who play is worse than another
+  choice of who sits out, with the named player, so the behaviour is recorded not rediscovered.
+- A test pins the opposite: a pool where the solver's bench is already the best one, and the
+  advisory says nothing.
+- The three shipped sample rosters still split to **gap 0, proven, zero flags** at their suggested
+  counts — `src/data/sample-data.validation.test.ts` already asserts this and must stay green.
+- If the wording is added to the surface rather than the behaviour, it states the *scope* of the
+  number and does not use the word "fairest" of the pool as a whole.
 
 ## Evidence
 
-Measured with the shipped `fairSplit` and `poolFromPlayers` in a throwaway vitest run (since
-removed):
-
-| pool order | benched | gap | optimal |
-|---|---|---|---|
-| dominant first | `p9` | 0.80 | true |
-| dominant last | `p9` | 0.80 | true |
-
-In the browser, on the same pool, all eight re-roll clicks reported `Gap 0.8. Team A leads.`
+All figures from the shipped solver, in a throwaway vitest run (since removed). The browser check
+that prompted this: on the one-standout pool, all eight re-roll clicks reported
+`Gap 0.8. Team A leads.`
 
 ## Comments
