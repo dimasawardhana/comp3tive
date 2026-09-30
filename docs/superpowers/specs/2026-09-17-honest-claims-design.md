@@ -220,7 +220,8 @@ becomes:
 friendly chatter." The qualifier is three words of plain English. It contains no jargon — not
 "aborted", not "node budget", not "search", not "heuristic", not "exhaustive". "Best gap found"
 states what happened (the search ended and this was the best it found) without accusing the
-engine of failure. `docs/design.md:72` bans em-dashes in visible copy; the qualifier uses none.
+engine of failure. `DESIGN.md:200` bans em-dashes in visible copy; the qualifier uses none. (The
+rule moved here when `docs/design.md` was superseded on 2026-09-28.)
 
 **Both layouts.** `GapMeter` is rendered only in the 2-team branch (`:330`); the 3+ branch
 renders its own `.readout` (`:334-345`). The 1-team/0-team branch renders an `.empty` state with
@@ -572,7 +573,7 @@ Every change is specified; nothing is left to "update as needed".
 | `IMPLEMENTATION_PLAN.md` | 234 | **Move to `docs/archive/IMPLEMENTATION_PLAN.md`** with a superseded banner | Its "Critical Gaps Identified" are all closed (Sessions exist, formats are pinned, participation is implemented). It reads as a live plan next to `PRODUCT.md`, which is the actual brief. |
 | `COMP3TIVE_COMPREHENSIVE_ANALYSIS.md` | 1,463 | **Keep in the root, unchanged** | It is the source document for the app-health tickets and is dated and self-describing ("Generated: 2026-09-11"). It is a snapshot, not a claim about current state. Deleting it would destroy the provenance of the tickets already written from it. |
 | `DESIGN.md` | 202 | **Keep** — it is the surviving direction (B17) | — |
-| `docs/design.md` | 98 | **Delete** — B17 owns this | Competing direction, contradicted by the shipped CSS. |
+| `docs/design.md` | 1 | **Superseded 2026-09-28** — B17, owner-confirmed | Body replaced with a one-line pointer, the spec's own fallback. Was: competing direction, contradicted by the shipped CSS. |
 | `CONTEXT.md` | 91 | **Keep, unmodified** | The live vocabulary; the audit explicitly scopes it out. |
 | `PRODUCT.md` | 2,272 B | **Keep, unmodified** | Current brief. |
 
@@ -628,6 +629,18 @@ Paper & Pencil's numbers.
 
 **The survivor is `DESIGN.md`.** It is the direction that ships, it covers the Landing Page as
 well as the app, and it is cited as the source of truth by the code that implements it.
+
+> **CORRECTION (2026-09-28, after the owner confirmed): `docs/design.md` was superseded, not
+> deleted.** Its body is now one line — `Superseded by DESIGN.md (Paper & Pencil). See docs/adr/
+> for decisions.` — which is this spec's own fallback rather than its first option. The owner
+> confirmation the ticket kept recording as missing was given, and B17 is closed.
+>
+> **Every `docs/design.md:N` citation in this document is now historical**, and the quoted line
+> numbers no longer resolve — the file is one line long. They are left as they are because they
+> quote the *rejected* direction, which is the point of quoting it, but a reader following one will
+> find nothing. The two live rules that used to live only there are both in `DESIGN.md`: the
+> em-dash ban at `:200` and the accessibility floor at `:78`. Citations asserting them were
+> repointed; citations *describing* the loser were not.
 
 **What happens to the loser.** `docs/design.md` is deleted. Its whole content is a competing
 palette and type stack that appear nowhere in the build, and leaving a second "Design Direction"

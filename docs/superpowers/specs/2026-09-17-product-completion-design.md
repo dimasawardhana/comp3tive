@@ -706,7 +706,7 @@ is this fair?"* — what the number measures and where the strength sits. **D37'
 restate or contradict a provenance word.** The acceptance criteria make that checkable rather
 than a matter of taste: a unit test asserts neither returned string contains any of `proven`,
 `best gap`, `best-found`, `exact`, `minimum`, `optimal`, `solver`, `search`, `node`, `heuristic`
-or `aborted`, and that neither contains an em-dash (`docs/design.md` bans em-dashes in visible
+or `aborted`, and that neither contains an em-dash (`DESIGN.md:200` bans em-dashes in visible
 copy). If the sentence is identical in both provenance cases, D37 does not import
 `gapProvenance.ts` at all.
 

@@ -152,7 +152,7 @@ appear in the spec's per-ticket Files table but not in that list. The real set, 
 | `src/session/MatchScreen.tsx` | named region `:48` (B15) — claimed in the Files table, absent from the exclusive-set list |
 | `src/domain/seed.ts`, `src/session/gapProvenance.ts` (+ its test) | exclusive write |
 | `sample-data/*.json`, `sample-data/badminton-roster.json` | exclusive write |
-| `docs/FLOW.md`, `docs/spec/0002-tournaments-v1.md`, `DESIGN.md`, `docs/design.md` (deleted) | exclusive write |
+| `docs/FLOW.md`, `docs/spec/0002-tournaments-v1.md`, `DESIGN.md`, `docs/design.md` (superseded 2026-09-28) | exclusive write |
 | `docs/adr/0002-tournament-first-flow.md`, `docs/adr/0004-origin-aware-navigation.md` | exclusive write (B18) |
 | `docs/spec/0001-team-builder-v1.md` | exclusive write, **B19 only** — see §7 D1 |
 | `docs/superpowers/plans/2026-09-10-paper-pencil-redesign.md`, `docs/archive/` | B16 only — claimed in the Files table, absent from the exclusive-set list |

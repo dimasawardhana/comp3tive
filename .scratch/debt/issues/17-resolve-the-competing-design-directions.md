@@ -1,6 +1,6 @@
 # 17: Resolve the competing design directions
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **What to build:** One design direction survives and the other stops existing. `DESIGN.md` becomes
 the single source of truth, and the two live rules that only `docs/design.md` carried (the
@@ -139,3 +139,22 @@ owner; confirm the deletion before running it", and no confirmation is recorded 
 file. `IMPLEMENTATION_PLAN.md:182` lists the same item under Known-open. Resolving the ticket would
 close a file that still has to be either deleted or reduced to a pointer, and the residue would
 stop looking for it.
+
+## Comments
+
+**Owner confirmation, 2026-09-28 — the answer this ticket kept recording as missing.**
+
+The repeated note on this ticket was that no owner confirmation was ever recorded, and that the
+deletion therefore never ran. It has now been given, and the chosen option is this spec's **second**
+one, not its first: `docs/design.md`'s body is replaced with the one-line superseded pointer rather
+than the file being deleted. The reason is that `DESIGN.md` keeps a "What we rejected" section, and
+`design.md` is the record of what that section is rejecting; a banner stops a reader who opens the
+wrong file in one line, where deletion makes the file indistinguishable from never having existed.
+
+Both live rules it carried are in `DESIGN.md` — the em-dash ban at `:200`, the accessibility floor at
+`:78` — and every citation that asserted them has been repointed. Citations that *quote* the losing
+direction were left alone; they are quoting the thing that was beaten, which is why they quote it.
+
+The plan's own verify step — `grep -rn "Scoreboard|cobalt|Chakra" DESIGN.md docs/ src/ index.html
+app/index.html` printing no output — was **false when it was run** and is true now. That is the step
+this ticket's acceptance turns on, and the file it verified was not the one that was checked.

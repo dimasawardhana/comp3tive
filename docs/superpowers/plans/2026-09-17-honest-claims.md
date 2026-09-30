@@ -18,7 +18,7 @@ Every task's requirements implicitly include this section. Values are copied ver
 - **Exact copy, proven path (unchanged, must stay byte-identical):** balanced `Dead even. Fair game.` · otherwise `Gap {gap.toFixed(1)}. {Team} leads.`
 - **Exact copy, best-found path:** balanced `Dead even. Best gap found.` · otherwise `Gap {gap.toFixed(1)}. {Team} leads. Best gap found.`
 - **The qualifier is the three words `Best gap found.`** It rides inside the existing `<span className="fine">`. No new CSS, no new classes, no layout change.
-- **Banned from the qualifier's copy:** `aborted`, `node budget`, `heuristic`, `search`, `exhaustive`, and any em-dash (`docs/design.md:72`: "**No em-dashes in visible copy.**").
+- **Banned from the qualifier's copy:** `aborted`, `node budget`, `heuristic`, `search`, `exhaustive`, and any em-dash (`DESIGN.md:200`: "**No em-dashes in new visible copy.**").
 - **The one noun is Community.** `CONTEXT.md` is authoritative: Community is the group; **Saved Squad** keeps its name. Six preserved strings that genuinely mean Saved Squad must not change.
 - **Landing trust list is exactly three rows, in this order, verbatim:**
   1. `The gap is the proven minimum for a two-team split.`
@@ -77,7 +77,7 @@ Every task's requirements implicitly include this section. Values are copied ver
 | Modify | `docs/adr/0002-tournament-first-flow.md:5,16` | Status accepted + dated; `nextMatchId` consequence corrected |
 | Modify | `docs/adr/0004-origin-aware-navigation.md:8` | Gains its missing status line |
 | Modify | `DESIGN.md:195` | Absorbs `## Copy voice` and `## Accessibility & quality floor` |
-| Delete | `docs/design.md` | The losing direction (owner-confirmed, with a pointer fallback) |
+| Supersede | `docs/design.md` | The losing direction. **Done 2026-09-28**: body replaced with the one-line pointer. |
  | Modify | `docs/FLOW.md:1,26-34,43,74-86,120,137-138,153,167,174-175,179` | Five hubs with Home, the tournaments hub named Games, §3 records the rendered depth and the one dead crumb site |
 | Modify | `docs/spec/0002-tournaments-v1.md:4,31,46,48,52,54,63` | v6 / backup v4; Data Model matches `src/domain/types.ts` |
 | Modify | `docs/spec/0001-team-builder-v1.md:94` | Badminton ships in v1 |
@@ -1667,7 +1667,7 @@ Match carries winnerNext and loserNext today, and loserNext carries the
 
 **Files:**
 - Modify: `DESIGN.md:195`
-- Delete: `docs/design.md` (owner-confirmed)
+- Supersede `docs/design.md` with the one-line pointer (owner-confirmed, 2026-09-28)
 
 **Interfaces:**
 - Consumes: nothing.
