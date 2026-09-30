@@ -1,5 +1,5 @@
 import type { Discipline, Player, SplitResult, TeamAssignment, TeamSlot } from "../domain/types";
-import { strengthOf, teamName } from "../session/flow";
+import { namesOf, strengthOf, teamName } from "../session/flow";
 
 export interface FairnessInput {
   result: SplitResult;
@@ -76,10 +76,12 @@ export function explainFairness(input: FairnessInput): { averages: string; trade
 
   // The pool the band was measured over. A band printed on its own reads as a
   // claim about everyone in the room, so the people the split dropped are named
-  // here. It is lifted whole from `teamsAsText` and the poster, right down to
-  // the "?" an id no roster holds becomes, and a second wording here would be
-  // two answers to one fact. It belongs in `averages` and not in `trade`
-  // because this is the one field every reader is shown.
+  // here. The names come from the shared `namesOf`, so this is the same list
+  // `teamsAsText` and the poster print, right down to the "?" an id no roster
+  // holds becomes; only the label and the mark below are this surface's, and a
+  // second wording here would be two answers to one fact. It belongs in
+  // `averages` and not in `trade` because this is the one field every reader
+  // is shown.
   //
   // `averages` and `trade` are half a sentence each and every consumer prints
   // them as one line, so the list has to end somewhere. Left open, the trade's
@@ -96,7 +98,7 @@ export function explainFairness(input: FairnessInput): { averages: string; trade
   // whole line ends on a name rather than on a dangling mark.
   const sittingOut =
     result.unassigned.length > 0
-      ? ` Not playing: ${result.unassigned.map((id) => roster.find((p) => p.id === id)?.name ?? "?").join(", ")}${trade ? ";" : ""}`
+      ? ` Not playing: ${namesOf(roster, result.unassigned)}${trade ? ";" : ""}`
       : "";
   const averages = `${band}${sittingOut}`;
   return { averages, trade };

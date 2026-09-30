@@ -1,6 +1,7 @@
 import type { Discipline, Id, Player, SplitResult } from "../domain/types";
 import { NODE_BUDGET, buildSettings, fairSplit, poolFromPlayers } from "../solver/solver";
 import { gapKind } from "./gapProvenance";
+import { nameOf, namesOf } from "./flow";
 
 /**
  * What one different bench choice would have produced, when one would have
@@ -288,8 +289,8 @@ export function benchAdviceLine(advice: BenchAdvice, input: BenchAdviceInput): s
     gapKind(result) === "proven"
       ? `Gap ${now} is the closest these ${playing} players come in ${shape}${coverage}.`
       : `Gap ${now} is the best split found for these ${playing} players in ${shape}${coverage}.`;
-  const who = roster.find((p) => p.id === advice.sitOutInstead)?.name ?? "?";
-  const instead = advice.insteadOf.map((id) => roster.find((p) => p.id === id)?.name ?? "?").join(", ");
+  const who = nameOf(roster, advice.sitOutInstead);
+  const instead = namesOf(roster, advice.insteadOf);
   const swap = instead === "" ? `${who} sitting out` : `${who} sitting out instead of ${instead}`;
   return `${scope} ${swap} would bring the gap to ${shown(advice.gapInstead).toFixed(1)}.`;
 }

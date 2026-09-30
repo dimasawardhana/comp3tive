@@ -1,5 +1,5 @@
 import type { Discipline, Player, SplitResult } from "../domain/types";
-import { strengthOf, teamName } from "../session/flow";
+import { namesOf, strengthOf, teamName } from "../session/flow";
 import { BIB } from "../ui/constants";
 import { closingLine, orderedSlots } from "./share-text";
 
@@ -292,7 +292,7 @@ export function layoutShareImage(input: LayoutShareImageInput): { width: number;
    * decides its own line count: the closing sentence is wrapped, never clipped,
    * and the not-playing line only exists when somebody sat out.
    */
-  const notPlaying = result.unassigned.length > 0 ? `Not playing: ${result.unassigned.map((id) => roster.find((p) => p.id === id)?.name ?? "?").join(", ")}` : null;
+  const notPlaying = result.unassigned.length > 0 ? `Not playing: ${namesOf(roster, result.unassigned)}` : null;
   const footerLines = [...wrap(closingLine(result), BODY, column), ...(notPlaying ? wrap(notPlaying, BODY, column) : [])];
   const footerHeight = FOOTER_PAD * 2 + footerLines.length * ROW_HEIGHT;
 

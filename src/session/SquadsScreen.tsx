@@ -2,7 +2,7 @@ import { useState } from "react";
 import { PageHeader } from "../ui/PageHeader";
 import { Screen } from "../ui/Screen";
 import type { Discipline, Id, Player, SavedSquad } from "../domain/types";
-import { teamName } from "./flow";
+import { nameOf, teamName } from "./flow";
 import { BIB } from "../ui/constants";
 import { relativeTime } from "../ui/format";
 import { ConfirmButton } from "../ui/ConfirmButton";
@@ -37,7 +37,6 @@ function squadBadges(squad: SavedSquad, disciplines: Discipline[]) {
 export function SquadsScreen({ squads, loading, disciplines, roster, onBack, onReSplit, onNewTournament, onDelete }: Props) {
   const [openId, setOpenId] = useState<Id | null>(null);
   const open = squads.find((s) => s.id === openId) ?? null;
-  const nameOf = (id: Id): string => roster.find((p) => p.id === id)?.name ?? "?";
   const disciplineName = (squad: SavedSquad): string =>
     disciplines.find((d) => d.id === squad.disciplineId)?.shortName ?? "Unknown";
   const gapOf = (squad: SavedSquad): string => squad.result.gap.toFixed(1);
@@ -66,7 +65,7 @@ export function SquadsScreen({ squads, loading, disciplines, roster, onBack, onR
               </div>
               <ul className="review-team-players">
                 {team.slots.map((slot) => (
-                  <li key={slot.playerId}>{nameOf(slot.playerId)}</li>
+                  <li key={slot.playerId}>{nameOf(roster, slot.playerId)}</li>
                 ))}
               </ul>
             </div>

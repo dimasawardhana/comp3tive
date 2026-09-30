@@ -1,4 +1,4 @@
-import type { Capability, Discipline, Player, SplitResult } from "../domain/types";
+import type { Capability, Discipline, Id, Player, SplitResult } from "../domain/types";
 import { computeStrength } from "../domain/strength";
 
 /** A player's capability for a discipline, if they have one. */
@@ -18,11 +18,51 @@ export function teamName(index: number): string {
 }
 
 /**
+ * The name a roster prints for an id, or `?` when it holds nobody under it.
+ *
+ * The `?` is a **ghost**: a name-shaped hole standing in for a person the
+ * roster no longer holds, which is what a saved squad reopened after they
+ * left produces. It sits where a name goes, so it is a placeholder and not
+ * punctuation, and that is why a sentence mark after one prints `?.` and
+ * reads as a typo. `fairness.ts` closes its sit-out list with a semicolon for
+ * exactly that reason, and a surface that ends its sentence on a name must
+ * not add a mark.
+ *
+ * Nine places under `src/` wrote this lookup out, three of them as a local
+ * `nameOf` closure, and all nine were free to drift apart. The phase's
+ * standing rule is already written down on the one definition it made about
+ * (`contracts.md:410-413`, four duplicate `BIB` arrays removed and a fifth
+ * refused), so this is that rule applied to a lookup rather than an array.
+ *
+ * It lives here rather than in a share module because all three surfaces
+ * already import `strengthOf` and `teamName` from here, and because this
+ * module already held a private copy of it: promoting one is a smaller change
+ * than adding an edge. A measurement importing a name resolver out of the
+ * chat text's module would invert the direction `fairness.ts` is built on,
+ * which is that a measurement shares no verdict with a surface.
+ */
+export function nameOf(roster: Player[], id: Id): string {
+  return roster.find((p) => p.id === id)?.name ?? "?";
+}
+
+/**
+ * The same names in one line, in the order the ids come, and `""` for no ids.
+ *
+ * The list is the shape three surfaces share: the chat text, the poster
+ * footer, and the fairness band. Only the *names* are shared. Each surface
+ * keeps its own label and its own terminator, because the fairness copy is one
+ * clause inside a longer sentence while the other two are whole lines, and
+ * because only the fairness copy ends on a mark.
+ */
+export function namesOf(roster: Player[], ids: readonly Id[]): string {
+  return ids.map((id) => nameOf(roster, id)).join(", ");
+}
+
+/**
  * Render the solver's flags as referee-voice copy (design: "No keeper on pink.
  * Fitri is covering."). Best-fit covering is derived in the view layer.
  */
 export function describeFlags(result: SplitResult, discipline: Discipline, roster: Player[]): string[] {
-  const nameOf = (id: string): string => roster.find((p) => p.id === id)?.name ?? "?";
   const teamMembers = (index: number) =>
     result.teams.find((t) => t.index === index)?.slots.map((s) => s.playerId) ?? [];
 
@@ -50,7 +90,7 @@ export function describeFlags(result: SplitResult, discipline: Discipline, roste
         break;
       }
       case "leftover":
-        out.push(`${nameOf(flag.playerId)} sits out tonight.`);
+        out.push(`${nameOf(roster, flag.playerId)} sits out tonight.`);
         break;
       case "team-below-min":
         out.push(`${teamName(flag.teamIndex)} is short. Needs ${flag.minTeamSize} to play.`);

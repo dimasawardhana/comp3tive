@@ -176,3 +176,46 @@ it, and that the readout holds no paragraph at all, are asserted in
 `src/session/SplitScreen.bench-advice.test.ts`. `landing.css`'s hero override for the new class
 is sound by construction and **unexercised today**: the hero roster splits to gap 0.05 with no
 leftover, so nothing renders it.
+
+---
+
+## The name lookup behind the advisory, consolidated
+
+The follow-up the `contracts.md` amendment of 2026-09-30 names: eight copies of
+`roster.find((p) => p.id === id)?.name ?? "?"` became **two** exports in
+`src/session/flow.ts`, `nameOf(roster, id)` and `namesOf(roster, ids)`. Seven
+call sites moved. `src/solver/` is byte-identical and no sentence changed.
+
+**The ghost is the reason this was worth a ticket.** `?` is a name-shaped
+hole standing in for a person the roster no longer holds, so a full stop after
+one prints `?.` and reads as a typo. `fairness.ts:90-96` already works around
+that with a semicolon, locally and correctly. So is the point: the workaround
+was always going to be copied, and the copy that shipped is
+`SplitScreen.tsx:397`, which prints `...swap with ?.` for a saved squad
+reopened after a player was removed.
+
+**That line is not fixed here, and the reason is a contract, not a judgement.**
+`contracts.md` holds `SplitScreen.tsx` at **zero removed lines**, and
+`?.` lives inside a template literal on a single line. Any fix, including
+deleting the full stop to follow the rule `fairness.ts` states, is a `-` line
+in `git diff -U0`. It is reachable, not hypothetical: Squads, expand a saved
+squad, tap re-split, tap the stale row to start a swap. **Whoever holds that
+file fixes it; the fix is to drop the trailing full stop**, which is the
+unpunctuated shape the codebase's own rule chooses, and which is visible in
+`e2e/tests/split/` if a test is added with it.
+
+**Four of the eleven sites were deliberately left, and each for its own
+reason.** `SplitScreen.tsx:91` and `:397` (the zero-removed-lines rule).
+`TournamentScreen.tsx:490` resolves a tournament **team** out of a bracket, not
+a player out of a roster, and the same file already has a `nameOf` for teams
+with a different fallback (`"TBD"`), so collapsing it would be a false
+unification of two subjects. And `fairness.test.ts:304` is a test oracle: it
+must not build itself out of the helper it is checking.
+
+**The three not-playing copies share the list and nothing else.** The chat
+text, the poster footer and the fairness band all call `namesOf`, and each
+keeps its own label and its own terminator, because the fairness copy is a
+clause inside a longer sentence while the other two are whole lines. The
+sentence was not unified, and should not be.
+
+Report: `.scratch/review/name-resolver-consolidation-report.md`.

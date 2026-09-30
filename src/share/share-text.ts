@@ -1,6 +1,6 @@
-import type { Discipline, Id, Player, SplitResult, TeamSlot } from "../domain/types";
+import type { Discipline, Player, SplitResult, TeamSlot } from "../domain/types";
 import { gapKind } from "../session/gapProvenance";
-import { strengthOf, teamName } from "../session/flow";
+import { namesOf, strengthOf, teamName } from "../session/flow";
 
 export interface ShareTextInput {
   communityName: string;
@@ -64,8 +64,6 @@ export function closingLine(result: SplitResult): string {
 
 export function teamsAsText(input: ShareTextInput): string {
   const { communityName, disciplineName, discipline, result, roster } = input;
-  const nameOf = (id: Id): string => roster.find((p) => p.id === id)?.name ?? "?";
-
   const blocks = result.teams.map((team) => {
     const lines = orderedSlots(team.slots, roster, discipline).map(({ player }) => {
       const strength = strengthOf(player, discipline);
@@ -80,7 +78,7 @@ export function teamsAsText(input: ShareTextInput): string {
     closingLine(result),
   ];
   if (result.unassigned.length > 0) {
-    parts.push(`Not playing: ${result.unassigned.map(nameOf).join(", ")}`);
+    parts.push(`Not playing: ${namesOf(roster, result.unassigned)}`);
   }
   return parts.join("\n\n");
 }
