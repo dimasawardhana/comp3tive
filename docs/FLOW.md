@@ -165,7 +165,7 @@ which would be a visible redesign.
 | Action | To | Kind |
 |--------|----|------|
 | "Re-roll" | in-place (re-solve) | user |
-| swap mode | in-place | user |
+| (mode) "Swap" / "Done swapping" in the action bar — neither reachable below two teams | in-place (two picked players trade teams, gap recomputed) | user |
 | "Save as squad" | in-place + modal → new Squad row | user, auto row |
 | (ad-hoc) "Done" | source hub (History row exists) | user |
 | (tournament) "Submit to tournament" | the tournament (bracket seeded, review) | user + auto |

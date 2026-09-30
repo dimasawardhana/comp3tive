@@ -97,7 +97,7 @@ One button family, one height: **52px** (`src/split.css:123-172`). The box is th
 ### Split / match screen
 - The "split" is the hero: a dark panel with team cards in bib colors
 - **Gap meter** as a horizontal bar: teams as labels on either side, the needle in amber, the gap number in display type
-- Edit affordance: each card is a swap target
+- Edit affordance: a `Swap` ghost in the action bar enters swap mode and the primary, relabelled `Done swapping`, is its only exit (`src/session/SplitScreen.tsx:513-526`). While the mode is on, each **player row inside** a card is the swap target — `role="button"`, a tab stop, `Enter`/`Space`, click (`src/session/SplitScreen.tsx:76-88`) — and two picks on different teams trade those players and recompute the gap. Outside the mode the same rows carry none of it and the click is inert, so the card is never the target.
 
 ## The signature moment
 
@@ -193,7 +193,7 @@ One authored entry moment. The ledger is never animated decoratively.
 
 ### Focus
 
-- One ring, declared once for the whole page: `:where(a, button, [tabindex]):focus-visible` — a 2px `--accent` outline at 3px offset. Components never restate it.
+- One ring, declared once for the whole page: `.landing :is(a, button, [tabindex]):focus-visible` (`src/landing.css:49`) — a 2px `--accent` outline at 3px offset. Scoped to `.landing` and built with `:is()` rather than `:where()` on purpose, so it keeps both the scope and a specificity comparable to the app's bare `:focus-visible`, which lives in a stylesheet this page does not load (`src/landing.css:43-48`). The `[tabindex]` arm is what rings the split screen's swap rows, which are focusable only inside swap mode. Components never restate it.
 - The ring is the same amber as the one action and the one live measurement: focus, action, and urgency are deliberately one color.
 
 ### Tokens
