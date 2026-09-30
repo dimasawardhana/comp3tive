@@ -535,7 +535,7 @@ verdict. Recorded in `IMPLEMENTATION_PLAN.md`'s known-open table; it is a copy d
 
 | File | Phases | The rule |
 |---|---|---|
-| `src/session/SplitScreen.tsx` | A03 (`reroll`), B13 (gap copy), B15 (two strings), C26 + C28 (crumb block, pool expression), D31/D37 (additive) | Each phase edits one named region. D's edit is purely additive: one `share?` prop, one `Share` button, one `<p className="fairness">`. Verify with `git diff -U0 src/session/SplitScreen.tsx \| grep -E "^-[^-]" \| grep -v "^---"` → no output. |
+| `src/session/SplitScreen.tsx` | A03 (`reroll`), B13 (gap copy), B15 (two strings), C26 + C28 (crumb block, pool expression), D31/D37/D38 (additive) | Each phase edits one named region. D's edit is purely additive: one `share?` prop, one `Share` button, one `<p className="fairness">`. Verify with `git diff -U0 src/session/SplitScreen.tsx \| grep -E "^-[^-]" \| grep -v "^---"` → no output. **One named exception, 2026-09-30:** the swap-prompt line at `:397` may lose its **trailing full stop**, and nothing else about that line. See §5. |
 | `src/tournament/bracket.ts` | A07 (pairing, standings), D35 (round-robin arms) | D adds a `buildBracket` arm, a `roundsFor` arm, and extends `champion()` to also accept `"round-robin"`. The `series`, `single-elim` and `swiss` arms are not modified. |
 | `src/main.tsx` | A05 (error boundary), D33 (SW registration) | Registration is added on `window`'s `load`, outside `<ErrorBoundary>`, with the rejection handled so a failed registration is silent. The render call and A05's wrapper are unchanged. |
 | `src/App.tsx` | A (delete/import handlers), B15 (two strings), C (decomposition), E (sign-in) | Sequenced, never concurrent: A → B → C → E. |
