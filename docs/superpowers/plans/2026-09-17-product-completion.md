@@ -89,7 +89,7 @@ Copied verbatim from the spec. Every task's requirements implicitly include this
 - Consumes: `gapKind(result: SplitResult): GapKind` from `src/session/gapProvenance.ts` (B13); `strengthOf(player, discipline): number | null` and `teamName(index): string` from `src/session/flow.ts` (`:10`, `:16`).
 - Produces: `teamsAsText(input: ShareTextInput): string` and the exported `interface ShareTextInput { communityName: string; disciplineName: string; discipline: Discipline; result: SplitResult; roster: Player[] }`. Task 2 and Task 4 call it.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `src/share/share-text.test.ts`:
 
@@ -178,12 +178,12 @@ describe("teamsAsText", () => {
 });
 ```
 
-- [ ] **Step 2: Run the test to verify it fails**
+- [x] **Step 2: Run the test to verify it fails**
 
 Run: `npx vitest run src/share/share-text.test.ts`
 Expected: FAIL — `Failed to resolve import "./share-text"`.
 
-- [ ] **Step 3: Write the implementation**
+- [x] **Step 3: Write the implementation**
 
 Create `src/share/share-text.ts`:
 
@@ -251,17 +251,17 @@ export function teamsAsText(input: ShareTextInput): string {
 }
 ```
 
-- [ ] **Step 4: Run the test to verify it passes**
+- [x] **Step 4: Run the test to verify it passes**
 
 Run: `npx vitest run src/share/share-text.test.ts`
 Expected: PASS — 4 passed.
 
-- [ ] **Step 5: Type-check**
+- [x] **Step 5: Type-check**
 
 Run: `npx tsc -b`
 Expected: exit 0, no output.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src/share/share-text.ts src/share/share-text.test.ts
@@ -282,7 +282,7 @@ git commit -m "feat(share): render the finished teams as text with a true proven
 - Consumes: `teamsAsText(input)` from Task 1; `Modal` from `src/ui/Modal.tsx` (C23) with props `{ onClose: () => void; children: ReactNode }`; `hubButton`/`gotoSeeded`/`seedScript`/`SeedWorld` from `e2e/support/seed.ts` (A01/A11).
 - Produces: `SplitScreen` gains the optional prop `share?: { communityName: string }`; `SplitScreenProps.share` is what Task 5's render sites sit beside. `ShareSheet` gains the optional prop `imageControl?: ReactNode`, which Task 4 fills.
 
-- [ ] **Step 1: Write the failing e2e spec**
+- [x] **Step 1: Write the failing e2e spec**
 
 Create `e2e/tests/share/share.spec.ts`. This asserts the exact produced string, including the provenance clause.
 
@@ -382,7 +382,7 @@ test("the landing hero gains no share control", async ({ page }) => {
 });
 ```
 
-- [ ] **Step 2: Run the spec to verify it fails**
+- [x] **Step 2: Run the spec to verify it fails**
 
 Run:
 ```bash
@@ -390,7 +390,7 @@ npx vite build && npx playwright test --config=e2e/playwright.config.ts tests/sh
 ```
 Expected: FAIL — `expect(locator).toBeVisible()` on `getByTestId('share-teams')`, which resolves to 0 elements.
 
-- [ ] **Step 3: Write the share sheet**
+- [x] **Step 3: Write the share sheet**
 
 Create `src/share/ShareSheet.tsx`:
 
@@ -462,7 +462,7 @@ export function ShareSheet({ communityName, disciplineName, discipline, result, 
 }
 ```
 
-- [ ] **Step 4: Add the share button to the split screen, additively**
+- [x] **Step 4: Add the share button to the split screen, additively**
 
 In `src/session/SplitScreen.tsx`, add to the `Props` interface (the block ending at `:26`):
 
@@ -521,7 +521,7 @@ Add the sheet beside the existing `SaveSquadModal` mount (after the block ending
 
 **Every existing line in `SplitScreen.tsx` stays byte-identical.** A and B both landed before D (`contracts.md`: A before C, C before D), so this is an append to a quiescent file. Verify with the diff in Step 7.
 
-- [ ] **Step 5: Pass the prop from `src/App.tsx`**
+- [x] **Step 5: Pass the prop from `src/App.tsx`**
 
 In `src/App.tsx`, inside the `<SplitScreen …>` mount at `:1178`, add one prop after `source={view.source}`:
 
@@ -531,7 +531,7 @@ In `src/App.tsx`, inside the `<SplitScreen …>` mount at `:1178`, add one prop 
 
 `src/landing.tsx:151-161` is **not** touched. It passes no `share` prop, so the hero renders the split screen with no share control — which is what the third spec asserts and what `e2e/tests/landing/landing.spec.ts:31-38` and `:157-164` require.
 
-- [ ] **Step 6: Run the spec to verify it passes**
+- [x] **Step 6: Run the spec to verify it passes**
 
 Run:
 ```bash
@@ -539,7 +539,7 @@ npx vite build && npx playwright test --config=e2e/playwright.config.ts tests/sh
 ```
 Expected: PASS — 3 passed. (The two image specs from Task 4 are added to this file later; this run covers 3.)
 
-- [ ] **Step 7: Prove the `SplitScreen.tsx` edit is additive**
+- [x] **Step 7: Prove the `SplitScreen.tsx` edit is additive**
 
 Run:
 ```bash
@@ -548,7 +548,7 @@ git diff -U0 src/session/SplitScreen.tsx | grep -E "^-[^-]" | grep -v "^---"
 ```
 Expected: the second command prints **nothing** — no removed lines. Only `+` lines.
 
-- [ ] **Step 8: Type-check, then commit**
+- [x] **Step 8: Type-check, then commit**
 
 Run: `npx tsc -b`
 Expected: exit 0.
@@ -570,7 +570,7 @@ git commit -m "feat(share): a share sheet with the teams as copyable text"
 - Consumes: `capabilityFor(player, discipline): Capability | undefined` from `src/session/flow.ts` (`:5`).
 - Produces: `type DrawOp` (discriminated union `rect` / `roundRect` / `text`); `LayoutShareImageInput`; `layoutShareImage(input): { width: number; height: number; ops: DrawOp[] }`; `blockHeight(playerCount): number`; `renderShareImage(input): Promise<Blob>`. Task 4 calls `renderShareImage`.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `src/share/share-image.test.ts`:
 
@@ -682,12 +682,12 @@ describe("layoutShareImage", () => {
 });
 ```
 
-- [ ] **Step 2: Run the test to verify it fails**
+- [x] **Step 2: Run the test to verify it fails**
 
 Run: `npx vitest run src/share/share-image.test.ts`
 Expected: FAIL — `Failed to resolve import "./share-image"`.
 
-- [ ] **Step 3: Write the layout and the replay**
+- [x] **Step 3: Write the layout and the replay**
 
 Create `src/share/share-image.ts`:
 
@@ -869,12 +869,12 @@ export async function renderShareImage(input: LayoutShareImageInput): Promise<Bl
 }
 ```
 
-- [ ] **Step 4: Run the test to verify it passes**
+- [x] **Step 4: Run the test to verify it passes**
 
 Run: `npx vitest run src/share/share-image.test.ts`
 Expected: PASS — 9 passed.
 
-- [ ] **Step 5: Type-check, then commit**
+- [x] **Step 5: Type-check, then commit**
 
 Run: `npx tsc -b`
 Expected: exit 0.
@@ -899,7 +899,7 @@ git commit -m "feat(share): a branded poster laid out as pure draw ops"
 
 **Dependency cost: zero.** `dependencies` stays `{"react": "^19.1.0", "react-dom": "^19.1.0"}`. The poster is drawn by hand to `<canvas>`; a DOM-to-image library would add a third runtime dependency, ship a large bundle, and produce output the node test environment cannot test at all.
 
-- [ ] **Step 1: Write the failing specs**
+- [x] **Step 1: Write the failing specs**
 
 Append to `e2e/tests/share/share.spec.ts`:
 
@@ -949,7 +949,7 @@ test("downloads the poster when the browser cannot write an image to the clipboa
 });
 ```
 
-- [ ] **Step 2: Run the specs to verify they fail**
+- [x] **Step 2: Run the specs to verify they fail**
 
 Run:
 ```bash
@@ -957,7 +957,7 @@ npx vite build && npx playwright test --config=e2e/playwright.config.ts tests/sh
 ```
 Expected: FAIL — `getByTestId('share-image')` resolves to 0 elements in both new specs; the three Task 2 specs still pass.
 
-- [ ] **Step 3: Add the image action**
+- [x] **Step 3: Add the image action**
 
 In `src/share/ShareSheet.tsx`, extend the imports:
 
@@ -1025,7 +1025,7 @@ interface Props {
 }
 ```
 
-- [ ] **Step 4: Run the specs to verify they pass**
+- [x] **Step 4: Run the specs to verify they pass**
 
 Run:
 ```bash
@@ -1033,7 +1033,7 @@ npx vite build && npx playwright test --config=e2e/playwright.config.ts tests/sh
 ```
 Expected: PASS — 5 passed.
 
-- [ ] **Step 5: Type-check, then commit**
+- [x] **Step 5: Type-check, then commit**
 
 Run: `npx tsc -b`
 Expected: exit 0.
@@ -1059,7 +1059,7 @@ git commit -m "feat(share): render the teams as a PNG, clipboard first with a do
 
 **The boundary with B13, stated here and enforced by a test.** B13 owns *"is this proven?"*: `gapKind`, `gapQualifier`, and the `Best gap found.` suffix inside `.readout .fine`. D37 owns *"why is this fair?"*: what the number measures and where the strength sits. **D37's copy must not restate or contradict a provenance word**, and since the sentence is identical in both provenance cases, **D37 does not import `gapProvenance.ts` at all**. The banned-substring test below is the mechanical guarantee, not a matter of taste.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `src/share/fairness.test.ts`:
 
@@ -1142,12 +1142,12 @@ describe("explainFairness", () => {
 });
 ```
 
-- [ ] **Step 2: Run the test to verify it fails**
+- [x] **Step 2: Run the test to verify it fails**
 
 Run: `npx vitest run src/share/fairness.test.ts`
 Expected: FAIL — `Failed to resolve import "./fairness"`.
 
-- [ ] **Step 3: Write the implementation**
+- [x] **Step 3: Write the implementation**
 
 Create `src/share/fairness.ts`:
 
@@ -1204,12 +1204,12 @@ export function explainFairness(input: FairnessInput): { averages: string; trade
 }
 ```
 
-- [ ] **Step 4: Run the test to verify it passes**
+- [x] **Step 4: Run the test to verify it passes**
 
 Run: `npx vitest run src/share/fairness.test.ts`
 Expected: PASS — 6 passed.
 
-- [ ] **Step 5: Render it at both live sites, additively**
+- [x] **Step 5: Render it at both live sites, additively**
 
 In `src/session/SplitScreen.tsx`, add the import beside the Task 2 import:
 
@@ -1269,7 +1269,7 @@ Add the styling to `src/index.css`, reusing the `.readout` vocabulary rather tha
 }
 ```
 
-- [ ] **Step 6: Write the e2e spec and run it**
+- [x] **Step 6: Write the e2e spec and run it**
 
 Create `e2e/tests/split/fairness.spec.ts`:
 
@@ -1345,7 +1345,7 @@ npm run preview & sleep 3; node scripts/capture-hero.mjs
 ```
 Expected: landing spec passes unchanged (16 passed); `capture-hero.mjs` prints its report and exits 0, its bib-pixel check satisfied. Kill the preview afterwards.
 
-- [ ] **Step 8: Prove the `SplitScreen.tsx` edit is still additive, then commit**
+- [x] **Step 8: Prove the `SplitScreen.tsx` edit is still additive, then commit**
 
 Run:
 ```bash
@@ -1370,7 +1370,7 @@ git commit -m "feat(split): explain why the teams are fair, beside the gap that 
 - Consumes: nothing. The module pairs team **indices**, so it has no dependency on the domain types.
 - Produces: `roundRobinSchedule(n: number): RoundRobinPairing[]` and `interface RoundRobinPairing { round: number; teamA: number; teamB: number | null }`. Task 7's `buildBracket` arm consumes it.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `src/data/round-robin.test.ts`:
 
@@ -1436,12 +1436,12 @@ describe("roundRobinSchedule", () => {
 });
 ```
 
-- [ ] **Step 2: Run the test to verify it fails**
+- [x] **Step 2: Run the test to verify it fails**
 
 Run: `npx vitest run src/data/round-robin.test.ts`
 Expected: FAIL — `Failed to resolve import "./round-robin"`.
 
-- [ ] **Step 3: Write the implementation**
+- [x] **Step 3: Write the implementation**
 
 Create `src/data/round-robin.ts`:
 
@@ -1488,12 +1488,12 @@ export function roundRobinSchedule(n: number): RoundRobinPairing[] {
 }
 ```
 
-- [ ] **Step 4: Run the test to verify it passes**
+- [x] **Step 4: Run the test to verify it passes**
 
 Run: `npx vitest run src/data/round-robin.test.ts`
 Expected: PASS — 26 passed.
 
-- [ ] **Step 5: Type-check, then commit**
+- [x] **Step 5: Type-check, then commit**
 
 Run: `npx tsc -b`
 Expected: exit 0.
@@ -1524,7 +1524,7 @@ git commit -m "feat(tournament): a pure round-robin schedule by the circle metho
 1. **`roundsFor` is left alone, not bypassed and not extended.** `bracket.ts:53` is shared by `buildBracket` (`:91`), `requiredMatches` (`:194`) and `champion` (`:323`). This plan previously said round robin "needs a different round count (`n - 1` / `n`), so it gains an arm" — that arm was unreachable at all four call sites and has been deleted; the parameter is typed `("single-elim" | "swiss")` so `tsc` refuses the question. Round robin's round count is `roundRobinRounds(n)`, never `roundRobinSchedule(n).length`, which counts rows and a bye is a row. The evidence and the whole reversal are in the CORRECTION at Step 5.
 2. **`champion()` is a required change, and it fails silently in two distinct ways.** Today only `"swiss"` takes the standings branch (`:319`); everything else falls to the single-elim final lookup at `:323`, which computes `finalRound = 1` for a non-single-elim format and then reads `matches.find(m => m.round === 1 && !m.isThirdPlace)`. For round robin that is the **first round's first match**. Measured against this exact source: with a completed 4-team schedule whose standings leader finished on 2 wins, `champion()` returned `t4` — a team with 1 win that happened to win round 1's first match — and with a 3-team schedule whose last round was decided but whose round 1 was blank, it returned `null`. Both are wrong results, not crashes.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Append to `src/tournament/bracket.test.ts` (existing assertions are not touched). The `team`, `seeded`, `tourney`, `tourneyWith` and `game` fixtures at `:1-46` are reused as-is:
 
@@ -1637,12 +1637,12 @@ The file's import line at `:2` becomes:
 import { applyResult, buildBracket, champion, standings, undoLastGame } from "./bracket";
 ```
 
-- [ ] **Step 2: Run the tests to verify they fail**
+- [x] **Step 2: Run the tests to verify they fail**
 
 Run: `npx vitest run src/tournament/bracket.test.ts`
 Expected: FAIL, and specifically: `buildBracket: round robin` fails because the Swiss fallthrough builds `floor(n/2)` matches for a round-robin format, so the counts are wrong; and the `champion` test fails, either on the `t2` expectation or on `not.toBeNull()`, depending on which case runs first.
 
-- [ ] **Step 3: Add the format value and the label**
+- [x] **Step 3: Add the format value and the label**
 
 In `src/domain/types.ts:25`:
 
@@ -1664,7 +1664,7 @@ export const FORMAT_LABEL: Record<TournamentFormat, string> = {
 
 Also check the three other `FORMAT_LABEL` tables C23 removed. If C23 left a local copy anywhere (`grep -rn "Single elimination" src/`), the compiler will name it; add the key there too, or delete the copy in favour of the shared import if C23's consolidation is complete. Run `npx tsc -b` again and expect exit 0 before continuing.
 
-- [ ] **Step 4: Add the valid team counts**
+- [x] **Step 4: Add the valid team counts**
 
 In `src/tournament/tournament-validation.ts:58-63`:
 
@@ -1681,7 +1681,7 @@ function getValidTeamCounts(format: TournamentFormat): number[] {
 
 `isValidTeamCountForFormat` (`:66`) needs no change: it reads `getValidTeamCounts`.
 
-- [ ] **Step 5: Add the bracket arms**
+- [x] **Step 5: Add the bracket arms**
 
 In `src/tournament/bracket.ts`, add the import at the top:
 
@@ -1788,7 +1788,7 @@ export function champion(tournament: Tournament): TournamentTeam | null {
 
 The `series` and `single-elim` arms, and every line of the Swiss arm, are untouched.
 
-- [ ] **Step 6: Extend the split flow's guard**
+- [x] **Step 6: Extend the split flow's guard**
 
 In `src/shell/useSplitFlow.ts`, inside `consumeTeams`, the `bracketOk` expression (moved verbatim from `src/App.tsx:328-331` by C26) gains one arm. Everything else in the statement stays byte-identical, including the message:
 
@@ -1800,12 +1800,12 @@ In `src/shell/useSplitFlow.ts`, inside `consumeTeams`, the `bracketOk` expressio
       : n === 2; // series
 ```
 
-- [ ] **Step 7: Run the bracket tests to verify they pass**
+- [x] **Step 7: Run the bracket tests to verify they pass**
 
 Run: `npx vitest run src/tournament/bracket.test.ts`
 Expected: PASS — the pre-existing Swiss and single-elim tests (`:254`, `:268` among them) plus the new round-robin blocks.
 
-- [ ] **Step 8: Prove no existing bracket assertion or frozen arm changed**
+- [x] **Step 8: Prove no existing bracket assertion or frozen arm changed**
 
 Run:
 ```bash
@@ -1814,7 +1814,7 @@ git diff src/tournament/bracket.ts
 ```
 Expected: the first command prints **nothing** (additions only). The second shows the new `buildBracket` block and the widened `champion` condition. It does **not** show a `roundsFor` arm — there is none, per the CORRECTION above — and the hunks are not all additive: `requiredMatches`' `series` line is widened rather than added beside, per the CORRECTION in Step 5. No `single-elim` and no `swiss` line appears as a removal.
 
-- [ ] **Step 9: Run the whole unit suite, then commit**
+- [x] **Step 9: Run the whole unit suite, then commit**
 
 Run: `npx vitest run`
 Expected: exit 0, 0 failed.
@@ -1839,7 +1839,7 @@ git commit -m "feat(tournament): round robin as a real format, champion included
 
 **Reusing, not rebuilding.** `standings(tournament)` at `bracket.ts:303` is already format-agnostic: it reads only `records(tournament)` (`:136`), which walks `t.matches`. The `.standings` markup already ships. Round robin adds **no new table and no new CSS**.
 
-- [ ] **Step 1: Write the failing spec**
+- [x] **Step 1: Write the failing spec**
 
 Create `e2e/tests/tournament/round-robin.spec.ts`:
 
@@ -1952,7 +1952,7 @@ test("a 2-team round robin is still refused, with the format's own message", asy
 });
 ```
 
-- [ ] **Step 2: Run the spec to verify it fails**
+- [x] **Step 2: Run the spec to verify it fails**
 
 Run:
 ```bash
@@ -2040,7 +2040,7 @@ describe("team counts per format", () => {
 Run: `npx vitest run src/tournament/team-counts.test.ts`
 Expected: PASS — 6 passed. This is the assertion that the two copies agree, so a later edit to one fails here.
 
-- [ ] **Step 4: Stop mis-routing 3- and 5-team squads into Swiss**
+- [x] **Step 4: Stop mis-routing 3- and 5-team squads into Swiss**
 
 In `src/tournament/GamesScreen.tsx:62-65`, the prefill chain becomes:
 
@@ -2057,7 +2057,7 @@ In `src/tournament/GamesScreen.tsx:62-65`, the prefill chain becomes:
 
 Preserved exactly: 2 → `series`, 4 and 8 → `single-elim`, 6 → `swiss`.
 
-- [ ] **Step 5: Make 3 and 5 selectable, and explain byes**
+- [x] **Step 5: Make 3 and 5 selectable, and explain byes**
 
 In `src/tournament/GamesScreen.tsx:334`, the chip array stops being hard-coded and derives from the count table, so it cannot drift again:
 
@@ -2087,7 +2087,7 @@ The preview at `:374-378` gains the round count and the plain-language rule:
               {format === "round-robin" && ` · ${teamCount % 2 === 0 ? teamCount - 1 : teamCount} rounds · every team plays every other`}
 ```
 
-- [ ] **Step 6: Render the standings for round robin**
+- [x] **Step 6: Render the standings for round robin**
 
 In `src/tournament/TournamentScreen.tsx:359-363`:
 
@@ -2101,7 +2101,7 @@ In `src/tournament/TournamentScreen.tsx:359-363`:
 
 `StandingsView` (`:482-520`) is unchanged. It already renders whatever rounds the tournament has, and `standings(tournament)` is already format-agnostic, so a round-robin tournament renders three rows and one `.swiss-round` block per round with no new code and no new CSS.
 
-- [ ] **Step 7: Run the spec to verify it passes**
+- [x] **Step 7: Run the spec to verify it passes**
 
 Run:
 ```bash
@@ -2109,7 +2109,7 @@ npx vite build && npx playwright test --config=e2e/playwright.config.ts tests/to
 ```
 Expected: PASS — 2 passed.
 
-- [ ] **Step 8: Prove the existing tournament specs still pass, then commit**
+- [x] **Step 8: Prove the existing tournament specs still pass, then commit**
 
 Run:
 ```bash
@@ -2145,7 +2145,7 @@ git commit -m "feat(tournament): offer round robin for 3 to 8 teams, byes explai
 
 **Family names stay byte-identical**: `"Outfit"` and `"Familjen Grotesk"`. `e2e/tests/community/community.spec.ts:21-26` asserts the computed family contains `Familjen Grotesk` and the weight is `600`. No existing stylesheet declaration changes.
 
-- [ ] **Step 1: Download the four subsets and verify them**
+- [x] **Step 1: Download the four subsets and verify them**
 
 `public/` is not gitignored, so the files are committed. The `User-Agent` matters: Chrome is served woff2; a bot UA is served TTF.
 
@@ -2177,7 +2177,7 @@ Sizes: `familjen-grotesk-latin-ext.woff2` 15,468 B; `familjen-grotesk-latin.woff
 
 Any mismatch means Google has republished the file; stop and fetch the current URLs from `https://fonts.googleapis.com/css2?family=Outfit:wght@100..900&family=Familjen+Grotesk:wght@400..700&display=swap` with the Chrome UA, then update this step and the sizes in the plan.
 
-- [ ] **Step 2: Add the licence text**
+- [x] **Step 2: Add the licence text**
 
 Both families are SIL OFL 1.1 (`google/fonts` `METADATA.pb`: Outfit `license: "OFL"`, copyright *The Outfit Project Authors*; Familjen Grotesk `license: "OFL"`, copyright *The Familjen Grotesk Project Authors*), so self-hosting is legally clean and the licence ships alongside.
 
@@ -2189,7 +2189,7 @@ wc -c public/fonts/OFL.txt
 
 Expected: the head is `Copyright (c) <dates>, <Copyright Holder> (<URL|email>),` / `with Reserved Font Name <Reserved Font Name>.`; the file is 4,599 bytes.
 
-- [ ] **Step 3: Declare the faces**
+- [x] **Step 3: Declare the faces**
 
 Create `src/fonts.css`. Each file is **one** variable font covering its whole weight axis, so there is one rule per family per subset, two per family, four total. Outfit spans 100–900; Familjen Grotesk spans 400–700.
 
@@ -2238,7 +2238,7 @@ Create `src/fonts.css`. Each file is **one** variable font covering its whole we
 }
 ```
 
-- [ ] **Step 4: Reach both documents with one line**
+- [x] **Step 4: Reach both documents with one line**
 
 In `src/tokens.css`, add the import as the file's first statement, above the existing header comment's token block:
 
@@ -2257,7 +2257,7 @@ npx vite build && grep -o '/fonts/[a-z-]*\.woff2' dist/assets/*.css | sort -u
 ```
 Expected: four distinct `/fonts/*.woff2` URLs. Vite flattens the nested `@import` into the entry's stylesheet and leaves an absolute URL untouched.
 
-- [ ] **Step 5: Replace the three CDN blocks**
+- [x] **Step 5: Replace the three CDN blocks**
 
 In `index.html`, replace `:25-30` (the two `preconnect` hints and the `css2` link) with two preloads, so first paint does not regress: one `preconnect` is replaced one-for-one by one `preload`.
 
@@ -2286,7 +2286,7 @@ grep -rn "fonts.googleapis\|fonts.gstatic\|preconnect" index.html app/index.html
 ```
 Expected: **no output**.
 
-- [ ] **Step 6: Verify both documents load the faces and reach no third party**
+- [x] **Step 6: Verify both documents load the faces and reach no third party**
 
 Run:
 ```bash
@@ -2320,7 +2320,7 @@ the cache header is buying. Assert the size against the hash: `wc -c public/font
 or the per-face assertion `e2e/tests/pwa/offline.spec.ts` already makes — it reads the emitted
 precache list rather than typing a name, for exactly this reason.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add public/fonts src/fonts.css src/tokens.css index.html app/index.html public/404.html
@@ -2342,7 +2342,7 @@ git commit -m "feat(pwa): self-host Outfit and Familjen Grotesk, no third party 
   content-hashes every subset, and the hash changes whenever the file is re-downloaded.
 - Produces: `/manifest.webmanifest` and `/icons/*.png`, both of which Task 11's worker precaches.
 
-- [ ] **Step 1: Write the icon generator**
+- [x] **Step 1: Write the icon generator**
 
 `brand/3-icon.svg` carries a `@font-face` pointing at `fonts.gstatic.com`, so drawing it as-is with no network renders a system fallback glyph. The script swaps that rule for the self-hosted woff2 and **refuses to write a file if the face did not load**, so a fallback "3" can never ship.
 
@@ -2416,7 +2416,7 @@ try {
 }
 ```
 
-- [ ] **Step 2: Generate and verify the icons**
+- [x] **Step 2: Generate and verify the icons**
 
 Run: `node scripts/make-icons.mjs`
 Expected:
@@ -2431,7 +2431,7 @@ Verify the brand colours are actually painted, not an empty sheet. `scripts/anal
 Run: `node scripts/analyze-png.mjs public/icons/icon-512.png 40`
 Expected: the exact-colour list leads with `#faf8f5` at roughly 95% and includes `#c2410c` (the amber top half of the "3") and `#57534e` (the stone bottom half). If either brand colour is absent, the glyph did not render — re-check that `public/fonts/outfit-latin-*.woff2` exists and that the script's `document.fonts.check` guard did not throw.
 
-- [ ] **Step 3: Write the manifest**
+- [x] **Step 3: Write the manifest**
 
 Create `public/manifest.webmanifest`:
 
@@ -2455,7 +2455,7 @@ Create `public/manifest.webmanifest`:
 
 `scope` is `/` so one installation covers both `/` and `/app/`, matching the two-document layout `vite.config.ts`'s `appType: "mpa"` and `wrangler.jsonc`'s `not_found_handling: "404-page"` describe.
 
-- [ ] **Step 4: Link it from both documents**
+- [x] **Step 4: Link it from both documents**
 
 In `index.html` and `app/index.html`, add inside `<head>`:
 
@@ -2466,7 +2466,7 @@ In `index.html` and `app/index.html`, add inside `<head>`:
     <link rel="apple-touch-icon" href="/icons/icon-192.png" />
 ```
 
-- [ ] **Step 5: Verify the manifest resolves on both documents**
+- [x] **Step 5: Verify the manifest resolves on both documents**
 
 Run:
 ```bash
@@ -2480,7 +2480,7 @@ npx vitest run
 ```
 Expected: the manifest and three PNGs are present in `dist/`; the unit suite exits 0.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add scripts/make-icons.mjs public/icons public/manifest.webmanifest index.html app/index.html
@@ -2504,7 +2504,7 @@ git commit -m "feat(pwa): a manifest with real icons drawn from the brand mark"
 
 **Why the version is written by the build.** Cloudflare's static-assets default is `public, max-age=0, must-revalidate` plus a content-hash `ETag`, so a hashed `sw.js` would not be safely cached without an explicit rule — which is exactly why `/sw.js` gains `no-cache` below. The cache name is `comp3tive-<version>`, where `<version>` is a hash of the emitted precache list, so a deploy that changes any asset changes the string.
 
-- [ ] **Step 1: Write the worker**
+- [x] **Step 1: Write the worker**
 
 Create `public/sw.js`. It is a classic worker: no imports, no bundler step, no workbox. The two placeholders are replaced by the build; each appears exactly once.
 
@@ -2637,7 +2637,7 @@ else's bytes, and this store answers yes by construction because every lookup is
 under an exact, content-hashed or deliberately-precached URL. **An e2e spec is the only kind of
 check that can fail here, and this phase already had one.**
 
-- [ ] **Step 2: Write the build hook that fills it in**
+- [x] **Step 2: Write the build hook that fills it in**
 
 In `vite.config.ts`, the plugin array at `plugins: [react()]` becomes `plugins: [react(), serviceWorkerBuild()]`, and the plugin is defined above `defineConfig`. The `closeBundle` hook is the correct point: Vite copies `publicDir` into `outDir` in `prepareOutDir`, which runs **before** `bundle.write()`, so by `closeBundle` both the copied `sw.js` and the emitted hashed assets are on disk. This was verified against the installed Vite.
 
@@ -2694,7 +2694,7 @@ function serviceWorkerBuild() {
 
 `rollupOptions.input` and `appType: "mpa"` are **not** touched: this is one added entry in `plugins[]`.
 
-- [ ] **Step 3: Verify the build writes and the worker is valid**
+- [x] **Step 3: Verify the build writes and the worker is valid**
 
 Run: `npx vite build`
 Expected: exit 0, and a line like `sw.js  version <12 hex chars>  precache <n> urls`.
@@ -2707,7 +2707,7 @@ head -14 dist/sw.js | tail -4
 ```
 Expected: `0` (every placeholder replaced); `node --check` exits 0 (the emitted file is valid JavaScript); the four lines show `const VERSION = "<12 hex>";` and a JSON array of `/assets/*`, `/fonts/*` and `/icons/*` URLs.
 
-- [ ] **Step 4: Extend `_headers` coherently**
+- [x] **Step 4: Extend `_headers` coherently**
 
 Replace `public/_headers` with the three existing rules **byte-identical** plus four new ones:
 
@@ -2768,7 +2768,7 @@ curl -s http://localhost:4173/_headers | head -4
 ```
 Expected: `Content-Type: text/javascript` for the worker. Note that `vite preview` does **not** apply `_headers` (it is a Cloudflare/Sites convention), so the cache header itself is verified in production or by reading the file, not by curl against the preview server. Kill the preview afterwards.
 
-- [ ] **Step 5: Register the worker, additively**
+- [x] **Step 5: Register the worker, additively**
 
 In `src/main.tsx`, add the registration without touching the render call or A05's `<ErrorBoundary>` wrapper:
 
@@ -2866,7 +2866,7 @@ changed rather than the count being forced back to 3.** B14 requires the list to
 the contradiction and its resolution; the B spec's B14 section carries the same record from the
 other side, including which half of B14 died and why.
 
-- [ ] **Step 7: Verify the claim the page now makes**
+- [x] **Step 7: Verify the claim the page now makes**
 
 Run:
 ```bash
@@ -2874,7 +2874,7 @@ npx vite build && npx playwright test --config=e2e/playwright.config.ts tests/la
 ```
 Expected: PASS — the trust assertions read the three restored rows, and the page contains no `fonts.googleapis.com` reference.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add public/sw.js public/_headers vite.config.ts src/main.tsx index.html e2e/tests/landing/landing.spec.ts
@@ -2904,7 +2904,7 @@ therefore writes the file, which also means it needs a real build and must not r
 with another spec touching `dist/sw.js`; `workers: 1` in `e2e/playwright.config.ts` already
 guarantees that.
 
-- [ ] **Step 1: Write the spec**
+- [x] **Step 1: Write the spec**
 
 Create `e2e/tests/pwa/offline.spec.ts`:
 
@@ -3029,7 +3029,7 @@ test("a new deploy activates and purges the old cache", async ({ page, context }
 import { readFile, writeFile } from "node:fs/promises";
 ```
 
-- [ ] **Step 2: Run the spec**
+- [x] **Step 2: Run the spec**
 
 Run:
 ```bash
@@ -3039,7 +3039,7 @@ Expected: PASS — 5 passed.
 
 If the origin spec fails, a third-party host is still referenced; `grep -rn "https://" index.html app/index.html public/404.html src/` and remove it. If the offline specs fail, the precache list is missing a URL — read `dist/sw.js`'s `PRECACHE_ASSETS` and compare it against `ls dist/assets dist/fonts dist/icons`.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add e2e/tests/pwa/offline.spec.ts
@@ -3060,7 +3060,7 @@ git commit -m "test(pwa): prove both documents open offline and a deploy purges 
 
 **The trigger, decided:** the nudge appears when **all three** hold — (a) `persist()` was refused or `navigator.storage` is absent, (b) the roster holds at least 5 players, and (c) no export has happened or the last was more than 14 days ago. Before 5 records there is nothing worth losing, so a prompt is noise; after a loss it is useless; and mid-session, getting teams onto a court, is the failure mode to avoid.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `src/shell/useDurability.test.ts`:
 
@@ -3116,12 +3116,12 @@ describe("useDurability", () => {
 });
 ```
 
-- [ ] **Step 2: Run the test to verify it fails**
+- [x] **Step 2: Run the test to verify it fails**
 
 Run: `npx vitest run src/shell/useDurability.test.ts`
 Expected: FAIL — `Failed to resolve import "./useDurability"`.
 
-- [ ] **Step 3: Write the hook**
+- [x] **Step 3: Write the hook**
 
 Create `src/shell/useDurability.ts`:
 
@@ -3262,12 +3262,12 @@ five players unasked for the rest of their life"* — and names the number that 
 decision: whether real users read dismissals as "stop asking", in which case the fix is a shorter
 interval between *asks*, not a permanent mute.
 
-- [ ] **Step 4: Run the test to verify it passes**
+- [x] **Step 4: Run the test to verify it passes**
 
 Run: `npx vitest run src/shell/useDurability.test.ts`
 Expected: PASS — 6 passed.
 
-- [ ] **Step 5: Type-check, then commit**
+- [x] **Step 5: Type-check, then commit**
 
 Run: `npx tsc -b`
 Expected: exit 0.
@@ -3303,7 +3303,7 @@ with `test("the stat cards are untouched by the nudge", …)`, which is at
 this task could have disturbed rather than relying on a different file's incidental behaviour. The
 spec's risk row carried the same wrong citation and is corrected there.
 
-- [ ] **Step 1: Write the failing spec**
+- [x] **Step 1: Write the failing spec**
 
 Create `e2e/tests/dashboard/nudge.spec.ts`:
 
@@ -3434,7 +3434,7 @@ batch, `:362` a future-dated dismissal mutes nothing, `:378` the exact boundarie
 full reasoning — and what a 30-day snooze costs — is in the CORRECTION at Task 13 Step 3 above and
 in the spec's D34 section.
 
-- [ ] **Step 2: Run the spec to verify it fails**
+- [x] **Step 2: Run the spec to verify it fails**
 
 Run:
 ```bash
@@ -3442,7 +3442,7 @@ npx vite build && npx playwright test --config=e2e/playwright.config.ts tests/da
 ```
 Expected: FAIL — `.nudge` resolves to 0 elements in the first spec.
 
-- [ ] **Step 3: Render the nudge on the Dashboard**
+- [x] **Step 3: Render the nudge on the Dashboard**
 
 In `src/DashboardScreen.tsx`, add to the `Props` interface:
 
@@ -3478,7 +3478,7 @@ absence of a guarantee, which is all a best-effort bucket is, and "from Roster" 
 control is, because the Dashboard has no Export button of its own. `e2e/tests/dashboard/nudge.spec.ts`
 pins the shipped string as `NUDGE_COPY`.
 
-- [ ] **Step 4: Show the persisted outcome beside the Export control**
+- [x] **Step 4: Show the persisted outcome beside the Export control**
 
 In `src/shell/RosterScreen.tsx`, add to its props:
 
@@ -3518,7 +3518,7 @@ these strings, so it is the record of the argument and not the table of the ship
 
 The `Export` button's markup and behaviour are unchanged.
 
-- [ ] **Step 5: Wire it from `src/App.tsx` and record the export**
+- [x] **Step 5: Wire it from `src/App.tsx` and record the export**
 
 Add beside the other hook calls near the top of the component body:
 
@@ -3559,7 +3559,7 @@ Add the import:
 import { useDurability } from "./shell/useDurability";
 ```
 
-- [ ] **Step 6: Run the spec to verify it passes**
+- [x] **Step 6: Run the spec to verify it passes**
 
 Run:
 ```bash
@@ -3567,7 +3567,7 @@ npx vite build && npx playwright test --config=e2e/playwright.config.ts tests/da
 ```
 Expected: PASS — 6 passed.
 
-- [ ] **Step 7: Confirm the dashboard spec is untouched, then commit**
+- [x] **Step 7: Confirm the dashboard spec is untouched, then commit**
 
 Run:
 ```bash
@@ -3599,7 +3599,7 @@ git commit -m "feat(data): a proportionate export nudge and a visible storage ou
 
 **The boundary, kept.** A08 owns `src/data/player-import.ts` and its semantics: quoted-field parsing, `MAX_IMPORT_BYTES`, `assertImportSize`, unknown discipline to `skipped`, never a capability-less player. **D36 renders A08's `ImportSkip[]` and matches its column order: name, discipline, strength. D36 does not edit the parser.** The template is a separate, D-owned file tied to the parser by a test rather than by co-location.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `src/data/csv-template.test.ts`:
 
@@ -3638,12 +3638,12 @@ describe("CSV_TEMPLATE", () => {
 });
 ```
 
-- [ ] **Step 2: Run the test to verify it fails**
+- [x] **Step 2: Run the test to verify it fails**
 
 Run: `npx vitest run src/data/csv-template.test.ts`
 Expected: FAIL — `Failed to resolve import "./csv-template"`.
 
-- [ ] **Step 3: Write the template**
+- [x] **Step 3: Write the template**
 
 Create `src/data/csv-template.ts`:
 
@@ -3660,14 +3660,14 @@ Create `src/data/csv-template.ts`:
 export const CSV_TEMPLATE = ["name,discipline,strength", "Andi,futsal,4", "Budi,mlbb,3", ""].join("\n");
 ```
 
-- [ ] **Step 4: Run the test to verify it passes**
+- [x] **Step 4: Run the test to verify it passes**
 
 Run: `npx vitest run src/data/csv-template.test.ts`
 Expected: PASS — 4 passed.
 
 If the parser reports a stray blank row, drop the trailing `""` from the array; A08's parser filters blank lines, and this test is the authority on that.
 
-- [ ] **Step 5: Add the template button and the column hint**
+- [x] **Step 5: Add the template button and the column hint**
 
 In `src/shell/RosterScreen.tsx`, add the import:
 
@@ -3714,7 +3714,7 @@ Add the hint block directly after the `.roster-toolbar`'s closing `</div>`, and 
               </p>
 ```
 
-- [ ] **Step 6: Append the e2e specs and run them**
+- [x] **Step 6: Append the e2e specs and run them**
 
 Create `e2e/tests/roster/fast-entry.spec.ts`:
 
@@ -3754,7 +3754,7 @@ npx vite build && npx playwright test --config=e2e/playwright.config.ts tests/ro
 ```
 Expected: PASS — 1 passed.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add src/data/csv-template.ts src/data/csv-template.test.ts src/shell/RosterScreen.tsx e2e/tests/roster/fast-entry.spec.ts
@@ -3776,7 +3776,7 @@ git commit -m "feat(roster): a CSV template and the column order stated in the a
 
 **Import from one place.** `import type { ImportReport } from "./usePlayerImport";` — C27 exports both named types, so D36 declares neither.
 
-- [ ] **Step 1: Append the failing spec**
+- [x] **Step 1: Append the failing spec**
 
 Append to `e2e/tests/roster/fast-entry.spec.ts`:
 
@@ -3811,7 +3811,7 @@ test("a partial import reports the success count and the skipped line, and keeps
 });
 ```
 
-- [ ] **Step 2: Run the spec to verify it fails**
+- [x] **Step 2: Run the spec to verify it fails**
 
 Run:
 ```bash
@@ -3819,7 +3819,7 @@ npx vite build && npx playwright test --config=e2e/playwright.config.ts tests/ro
 ```
 Expected: FAIL — `.import-report` resolves to 0 elements.
 
-- [ ] **Step 3: Render the report**
+- [x] **Step 3: Render the report**
 
 In `src/shell/RosterScreen.tsx`, add to its props:
 
@@ -3855,7 +3855,7 @@ Render the panel after the `.import-hint` lines added in Task 15:
               )}
 ```
 
-- [ ] **Step 4: Pass the prop from `src/App.tsx`**
+- [x] **Step 4: Pass the prop from `src/App.tsx`**
 
 Where C27 destructures `usePlayerImport`, pass the report through. Add to the `<RosterScreen …>` mount:
 
@@ -3866,7 +3866,7 @@ Where C27 destructures `usePlayerImport`, pass the report through. Add to the `<
 using whatever binding C27's hook call assigned (C27's shape is
 `{ pendingMerge, confirmMerge, cancelMerge, lastReport, importFile }`).
 
-- [ ] **Step 5: Run the spec to verify it passes**
+- [x] **Step 5: Run the spec to verify it passes**
 
 Run:
 ```bash
@@ -3874,7 +3874,7 @@ npx vite build && npx playwright test --config=e2e/playwright.config.ts tests/ro
 ```
 Expected: PASS — 2 passed.
 
-- [ ] **Step 6: Confirm the existing import specs are untouched, then commit**
+- [x] **Step 6: Confirm the existing import specs are untouched, then commit**
 
 Run:
 ```bash
@@ -3904,7 +3904,7 @@ git commit -m "feat(roster): report what an import skipped instead of dropping i
 
 **Why the write goes through `onSavePlayer` and `validatePlayer`.** `.scratch/app-correctness/issues/03` claimed no production path calls `validatePlayer`; that is partially stale (`src/roster/PlayerEditModal.tsx:126` does). Only `parseBackup` and the JSON/CSV import paths still bypass it — which is precisely why this bulk write routes through it.
 
-- [ ] **Step 1: Append the failing spec**
+- [x] **Step 1: Append the failing spec**
 
 Append to `e2e/tests/roster/fast-entry.spec.ts`:
 
@@ -3957,7 +3957,7 @@ test("rates two filtered players at once, and cancelling writes nothing", async 
 });
 ```
 
-- [ ] **Step 2: Run the spec to verify it fails**
+- [x] **Step 2: Run the spec to verify it fails**
 
 Run:
 ```bash
@@ -3965,7 +3965,7 @@ npx vite build && npx playwright test --config=e2e/playwright.config.ts tests/ro
 ```
 Expected: FAIL — `getByRole("button", { name: "Rate selected" })` resolves to 0 elements.
 
-- [ ] **Step 3: Write the modal**
+- [x] **Step 3: Write the modal**
 
 Create `src/roster/BulkRateModal.tsx`:
 
@@ -4130,7 +4130,7 @@ export function BulkRateModal({ disciplines, players, defaultDisciplineId, onApp
 }
 ```
 
-- [ ] **Step 4: Wire the entry point and the `notify` prop**
+- [x] **Step 4: Wire the entry point and the `notify` prop**
 
 In `src/shell/RosterScreen.tsx`, add the imports:
 
@@ -4198,7 +4198,7 @@ In `src/App.tsx`, pass the two props at the `<RosterScreen …>` mount:
 
 `visiblePlayers` is whatever C26 already computed for the list; pass that same value.
 
-- [ ] **Step 5: Add the list styling**
+- [x] **Step 5: Add the list styling**
 
 In `src/index.css`, beside the `.roster-toolbar` rule at `:1343`, add the three small blocks this task and Task 15 need:
 
@@ -4226,7 +4226,7 @@ In `src/index.css`, beside the `.roster-toolbar` rule at `:1343`, add the three 
 }
 ```
 
-- [ ] **Step 6: Run the spec to verify it passes**
+- [x] **Step 6: Run the spec to verify it passes**
 
 Run:
 ```bash
@@ -4234,7 +4234,7 @@ npx vite build && npx playwright test --config=e2e/playwright.config.ts tests/ro
 ```
 Expected: PASS — 3 passed.
 
-- [ ] **Step 7: Run the whole gate, then commit**
+- [x] **Step 7: Run the whole gate, then commit**
 
 Run:
 ```bash

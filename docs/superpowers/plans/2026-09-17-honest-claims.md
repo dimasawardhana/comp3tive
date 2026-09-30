@@ -104,7 +104,7 @@ Every task's requirements implicitly include this section. Values are copied ver
 
 Phase D's share text (`src/share/**`) imports `gapQualifier` from this module. Keep the module free of React, DOM, and solver imports so it stays importable from a plain `.ts` unit test and from a worker-free share path.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `src/session/gapProvenance.test.ts`:
 
@@ -169,12 +169,12 @@ describe("gapQualifier", () => {
 });
 ```
 
-- [ ] **Step 2: Run the test to verify it fails**
+- [x] **Step 2: Run the test to verify it fails**
 
 Run: `npx vitest run src/session/gapProvenance.test.ts`
 Expected: FAIL — `Failed to resolve import "./gapProvenance"`.
 
-- [ ] **Step 3: Write the minimal implementation**
+- [x] **Step 3: Write the minimal implementation**
 
 Create `src/session/gapProvenance.ts`:
 
@@ -214,12 +214,12 @@ export function gapQualifier(result: SplitResult): string | null {
 }
 ```
 
-- [ ] **Step 4: Run the test to verify it passes**
+- [x] **Step 4: Run the test to verify it passes**
 
 Run: `npx vitest run src/session/gapProvenance.test.ts`
  Expected: PASS — 7 tests (4 `gapKind`, 3 `gapQualifier`).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/session/gapProvenance.ts src/session/gapProvenance.test.ts
@@ -244,7 +244,7 @@ budget is not predictable from pool size, so no size rule can be honest."
 
 **Scope discipline.** `contracts.md` scopes B13 to "gap copy only" in `SplitScreen.tsx`. Do not touch `reroll` (Phase A03 owns `:255-264`), the header, the badges, the deal animation, or the `SaveSquadModal`. The only edits are the two readout blocks. The `import` line gains one name.
 
-- [ ] **Step 1: Write the failing e2e test**
+- [x] **Step 1: Write the failing e2e test**
 
 `e2e/support/seed.ts` does not exist until Phase A01 lands. Even once it does, A01's `seedScript` normalises **every** player to one fixed all-rounder capability (`mechanics: 4, "game-sense": 4, "hero-pool": 4, teamwork: 4`, all five roles eligible). Verified by probe: that pool yields `gap=0`, `optimal=true`, `nodes=2` for 10/2, 25/2, 25/3, 25/4 and 25/5 — so it can produce the proven path but **never** the best-found path. This spec therefore seeds its own capabilities inline and does not use the shared helper. (Recorded as a cross-phase finding; it is not a defect in A01, which only needs shape, not varied strengths.)
 
@@ -431,7 +431,7 @@ test.describe("gap provenance", () => {
 });
 ```
 
-- [ ] **Step 2: Build and run the test to verify it fails**
+- [x] **Step 2: Build and run the test to verify it fails**
 
 ```bash
 npx vite build && npx playwright test --config=e2e/playwright.config.ts tests/split/gap-provenance.spec.ts
@@ -447,7 +447,7 @@ npx playwright test --config=e2e/playwright.config.ts tests/split/gap-provenance
 
 Expected: 3 failed, each with an error of the form `Expected: "…Best gap found." Received: "…"`.
 
-- [ ] **Step 3: Implement the 2-team site**
+- [x] **Step 3: Implement the 2-team site**
 
 In `src/session/SplitScreen.tsx`, add the import after line 5 (`import { freshSplit, swapPlayers } from "./edit";`):
 
@@ -490,7 +490,7 @@ with:
       </div>
 ```
 
-- [ ] **Step 4: Implement the 3+ team site**
+- [x] **Step 4: Implement the 3+ team site**
 
 Replace the readout block inside the `result.teams.length > 2` branch (currently `src/session/SplitScreen.tsx:334-345`):
 
@@ -529,7 +529,7 @@ with:
 
 Note the move of the full stop: the proven path emits `leads.` and the best-found path emits `leads. Best gap found.` — two sentences, both with terminal periods. No em-dash anywhere.
 
-- [ ] **Step 5: Prove the proven path is byte-identical**
+- [x] **Step 5: Prove the proven path is byte-identical**
 
 Run: `git diff --stat src/session/SplitScreen.tsx`
 Expected: one import line added and the two readout blocks changed; nothing else in the file. Then confirm the proven markup is unchanged by running the pre-existing landing spec, which mounts `SplitScreen` over the real hero roster and asserts the surrounding structure:
@@ -540,7 +540,7 @@ npx vite build && npx playwright test --config=e2e/playwright.config.ts tests/la
 
 Expected: PASS, 16 passed / 0 failed (unchanged from the audit's landing result — `landing.spec.ts` can be run whole because the file passes 16/16 today). The hero roster measures `optimal: true, nodesExplored: 51, gap 0.1`, so `gapQualifier` returns `null` there and the markup is byte-identical.
 
-- [ ] **Step 6: Run the new spec to verify it passes**
+- [x] **Step 6: Run the new spec to verify it passes**
 
 ```bash
 npx vite build && npx playwright test --config=e2e/playwright.config.ts tests/split/gap-provenance.spec.ts
@@ -548,12 +548,12 @@ npx vite build && npx playwright test --config=e2e/playwright.config.ts tests/sp
 
 Expected: PASS, 4 passed.
 
-- [ ] **Step 7: Run the unit suite**
+- [x] **Step 7: Run the unit suite**
 
 Run: `npx vitest run`
  Expected: PASS. The count rises from 114 by Task 1's 7 tests.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add src/session/SplitScreen.tsx e2e/tests/split/gap-provenance.spec.ts
@@ -608,7 +608,7 @@ Also already correct, verified, and unchanged: the switcher's kicker `Community`
 
 This spec (`e2e/tests/community/noun.spec.ts`) is therefore deliberately assertion-side only: it drives the running app to the Roster hub rather than locating a file, so it survives C26's move without an edit. That is why it uses `getByRole("button", { name: "Roster", exact: true })` rather than any class inside the roster screen.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `e2e/tests/community/noun.spec.ts`:
 
@@ -662,7 +662,7 @@ test("the roster calls the group a community, not a squad", async ({ page }) => 
 });
 ```
 
-- [ ] **Step 2: Build and run the test to verify it fails**
+- [x] **Step 2: Build and run the test to verify it fails**
 
 ```bash
 npx vite build && npx playwright test --config=e2e/playwright.config.ts tests/community/noun.spec.ts
@@ -670,7 +670,7 @@ npx vite build && npx playwright test --config=e2e/playwright.config.ts tests/co
 
 Expected: FAIL — `Expected: "No players in this community" / Received: "No players in this squad"`.
 
-- [ ] **Step 3: Apply the five string replacements**
+- [x] **Step 3: Apply the five string replacements**
 
 ```
 src/App.tsx:1061                       `No players in this squad`      -> `No players in this community`
@@ -692,7 +692,7 @@ And `src/session/MatchScreen.tsx:48` is a `lede` string prop:
         lede="Pick the game first, then the roster. Teams are sized to the game."
 ```
 
-- [ ] **Step 4: Prove the preserved uses are untouched**
+- [x] **Step 4: Prove the preserved uses are untouched**
 
 ```bash
 grep -rn "No players in this squad\|Split the squad\|then the squad\|Tournament squad\|Save tournament squad" src/
@@ -706,7 +706,7 @@ grep -rn "kicker=\"Squad bank\"\|← Squads\|Saved squads\|label: \"Squads\"\|Sa
 
 Expected: the six preserved strings still present — `src/App.tsx:67` (`label: "Squads"`), `:450` (`saved squad`), `src/session/SquadsScreen.tsx:88`, `:115`, `src/session/SplitScreen.tsx:375`, `:378`, `:385`, `:410`.
 
-- [ ] **Step 5: Run the new spec to verify it passes**
+- [x] **Step 5: Run the new spec to verify it passes**
 
 ```bash
 npx vite build && npx playwright test --config=e2e/playwright.config.ts tests/community/noun.spec.ts
@@ -714,7 +714,7 @@ npx vite build && npx playwright test --config=e2e/playwright.config.ts tests/co
 
 Expected: PASS, 1 passed.
 
-- [ ] **Step 6: Confirm no other spec regressed**
+- [x] **Step 6: Confirm no other spec regressed**
 
 ```bash
 npx playwright test --config=e2e/playwright.config.ts tests/community/ tests/squads/ tests/tournament/split-tourney.spec.ts
@@ -722,7 +722,7 @@ npx playwright test --config=e2e/playwright.config.ts tests/community/ tests/squ
 
 Expected: PASS. `saved-squad.spec.ts` exercises the save path (`#squad-name`, `save-squad-button`) and `split-tourney.spec.ts` the tournament context — both target preserved strings. If any fails, the cause is a replacement that reached a Saved Squad string; revert that one edit, do not adjust the spec.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add src/App.tsx src/session/MatchScreen.tsx src/session/SplitScreen.tsx e2e/tests/community/noun.spec.ts
@@ -770,7 +770,7 @@ No new name collides with the landing hero's roster (`Budi, Andi, Citra, Dewi, E
 
 **A correction to the spec's badminton name list.** The spec proposed `Dimas, Sari, Rangga, Putri, Bayu, Ayu, Fikri, Nadia, Yoga, Intan`, but `Dimas`, `Rangga`, `Bayu`, `Fikri`, and `Yoga` are all in the futsal list above, so it violates the spec's own acceptance criterion ("no shared names between files") and this task's test fails on it. Verified: `spec-badminton ∩ futsal = [Dimas, Rangga, Bayu, Fikri, Yoga]`, `∩ mlbb = []`, `∩ hero = []`. The corrected list above is disjoint from all three sets, has no internal duplicates, and keeps the alternating `front-court`/`rear-court` preference that gives both courts real coverage.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `src/data/sample-data.validation.test.ts`. This test reads the JSON off disk through the app's own registry, so it fails today on the futsal file and keeps failing until both replacements land.
 
@@ -890,12 +890,12 @@ describe("shipped sample data", () => {
 });
 ```
 
-- [ ] **Step 2: Run the test to verify it fails**
+- [x] **Step 2: Run the test to verify it fails**
 
 Run: `npx vitest run src/data/sample-data.validation.test.ts`
 Expected: FAIL — resolution error for `../../sample-data/badminton-roster.json` (the file does not exist yet), so fix that by moving to Step 3 rather than by commenting the import out. Once the badminton file exists, the validator test fails with 7 futsal issues, which is the defect this task exists to remove.
 
-- [ ] **Step 3: Generate the three files**
+- [x] **Step 3: Generate the three files**
 
 Create a throwaway generator at `scripts/generate-sample-rosters.mjs`, run it once, then delete it in Step 7:
 
@@ -1013,7 +1013,7 @@ node scripts/generate-sample-rosters.mjs
 
 Expected: `wrote three sample rosters`.
 
-- [ ] **Step 4: Run the test to verify it passes**
+- [x] **Step 4: Run the test to verify it passes**
 
 Run: `npx vitest run src/data/sample-data.validation.test.ts`
 Expected: PASS — 5 tests. Measured outcome of the generated data, on HEAD's solver:
@@ -1024,7 +1024,7 @@ mlbb      n=25 invalid=0 teams=5 sizes=[5,5,5,5,5] gap=0  optimal=true  nodes=2 
 badminton n=10 invalid=0 teams=5 sizes=[2,2,2,2,2] gap=0  optimal=true  nodes=2       flags=0
 ```
 
-- [ ] **Step 5: Confirm the JSON is what the app parses**
+- [x] **Step 5: Confirm the JSON is what the app parses**
 
 ```bash
 node -e "
@@ -1044,7 +1044,7 @@ mpl-id-roster version=1 players=25 sessions=0 ids=mlbb-01..mlbb-25
 badminton-roster version=1 players=10 sessions=0 ids=badminton-01..badminton-10
 ```
 
-- [ ] **Step 6: Confirm the type-check and build are unaffected**
+- [x] **Step 6: Confirm the type-check and build are unaffected**
 
 ```bash
 npx tsc -b && npx vite build
@@ -1052,7 +1052,7 @@ npx tsc -b && npx vite build
 
 Expected: exit 0; build succeeds. The one pre-existing warning (`src/data/sample-data.ts is dynamically imported by src/App.tsx but also statically imported by src/domain/useDisciplines.ts`) is **unchanged** — it is about the module, not the JSON, and this task does not fix it. `contracts.md` gives that fix to Phase C (it owns `vite.config.ts` and the shell decomposition); the ticket records it rather than silently leaving it. If Phase C declines it, it is a one-line follow-up ticket.
 
-- [ ] **Step 7: Delete the generator and commit**
+- [x] **Step 7: Delete the generator and commit**
 
 ```bash
 rm scripts/generate-sample-rosters.mjs
@@ -1088,7 +1088,7 @@ split clean at its suggested team count."
 
 **Why this shape, from the solver's rules rather than from taste.** `assignRoles` returns `null` unless `players.length === roleIds.length` (`src/solver/solver.ts:94`), and `consider()` rejects any team where `rolesRequired && !teams.every((t) => roleCoverPossible(t, roleIds))` (`src/solver/solver.ts:515`). `roleCoverPossible` requires `team.length >= roleIds.length` (`:81`). So a two-role discipline with `rolesRequired: true` needs exactly two players per team — which is why the landing card's old `Singles`/`Doubles` pair was incoherent (two formats, not two positions) and why 1v1 is not shippable: `suggestTeamCount` is `floor(pool / minTeamSize)` (`:37`), so a 10-player club with `minTeamSize: 1` is offered **10 teams**. Measured: `teams=10, sizes=[1×10], optimal=true`. Doubles it is.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Add to `src/domain/seed.test.ts` — first change the existing catalog assertion at `:6-8`:
 
@@ -1144,12 +1144,12 @@ and change the catalog assertion at `:17-23`:
   });
 ```
 
-- [ ] **Step 2: Run the tests to verify they fail**
+- [x] **Step 2: Run the tests to verify they fail**
 
 Run: `npx vitest run src/domain/seed.test.ts src/data/sample-data.test.ts`
 Expected: FAIL — `BADMINTON_DISCIPLINE` is not exported; `Expected: 3, Received: 2`; `hasSampleData("badminton")` is false.
 
-- [ ] **Step 3: Add the discipline**
+- [x] **Step 3: Add the discipline**
 
 In `src/domain/seed.ts`, insert above line 52 and replace that line:
 
@@ -1179,7 +1179,7 @@ Also update the file's header comment above `FUTSAL_DISCIPLINE` to name the thir
 
 **Hard coverage is deliberate.** On a degenerate pool — everyone eligible for front court only — hard coverage returns **zero teams** (measured: `teams=0`), because no pair can cover the rear court. MLBB already makes this tradeoff (`team.rolesRequired: true`), and the split screen already has the actionable state for it (`src/session/SplitScreen.tsx:349-352`: "Solver failed / Couldn't build teams / Not enough eligible players for this game. Adjust the pool or change the discipline."). Soft coverage would avoid the empty state but emit `role-uncovered` flags on a discipline whose whole point is having a player at the front and one at the back.
 
-- [ ] **Step 4: Register the sample roster**
+- [x] **Step 4: Register the sample roster**
 
 In `src/data/sample-data.ts`, add the import after line 3 and the entry in `SAMPLE_DATA`:
 
@@ -1197,12 +1197,12 @@ const SAMPLE_DATA: Record<string, string> = {
 
 The `fileName` derived by `getSampleDataInfo` becomes `badminton-roster.json`, which matches the file Task 4 created.
 
-- [ ] **Step 5: Run the tests to verify they pass**
+- [x] **Step 5: Run the tests to verify they pass**
 
 Run: `npx vitest run src/domain/seed.test.ts src/data/sample-data.test.ts`
 Expected: PASS.
 
-- [ ] **Step 6: Fix the fixtures that assumed two seeded disciplines**
+- [x] **Step 6: Fix the fixtures that assumed two seeded disciplines**
 
 Three fixtures use `"badminton"` as a **custom** (non-seeded) id. Once badminton is seeded, those assertions either pass vacuously or read as a lie about a shipped discipline. Rename them to `"padel"` — not shipped, not planned.
 
@@ -1244,12 +1244,12 @@ Then both seeded-catalog assertions — `:85` and `:97`:
 
 The `disciplines` fixture in that file is `[FUTSAL_DISCIPLINE, MLBB_DISCIPLINE]` built locally, so the assertion still passes either way — the rename is so the test says what it means.
 
-- [ ] **Step 7: Run the full unit suite**
+- [x] **Step 7: Run the full unit suite**
 
 Run: `npx vitest run`
 Expected: PASS. This is the sixth collision class the spec enumerated; every one is now handled.
 
-- [ ] **Step 8: Prove the constraint interaction with a solver test**
+- [x] **Step 8: Prove the constraint interaction with a solver test**
 
 Add to `src/solver/solver.test.ts`, after the existing MLBB coverage cases. This is the test the spec requires: the discipline's role rule interacts with `suggestTeamCount`, `roleCoverPossible`, and `assignRoles`, and the interaction must be pinned.
 
@@ -1296,12 +1296,12 @@ import { BADMINTON_DISCIPLINE, FUTSAL_DISCIPLINE, MLBB_DISCIPLINE } from "../dom
 import type { Discipline, Player, SplitResult } from "../domain/types";
 ```
 
-- [ ] **Step 9: Run the solver test**
+- [x] **Step 9: Run the solver test**
 
 Run: `npx vitest run src/solver/solver.test.ts`
 Expected: PASS, including the two new cases. Measured on the same shape: `teams=5, sizes=[2,2,2,2,2], gap=0, optimal=true, nodes=2, flags=[]`, every team `front-court+rear-court`.
 
-- [ ] **Step 10: Commit**
+- [x] **Step 10: Commit**
 
 ```bash
 git add src/domain/seed.ts src/data/sample-data.ts src/domain/seed.test.ts src/storage/indexed-db.test.ts src/storage/migration.test.ts src/domain/validation.test.ts src/data/sample-data.test.ts src/solver/solver.test.ts
@@ -1369,7 +1369,7 @@ That rule guards Phase C's behaviour-preserving refactors. B14 changes user-visi
 | "Works offline" in the meta (`index.html:9`) | **false** | removed |
 | "the fairest teams it can prove, for futsal nights, MLBB sessions" (`index.html:200`) | **overclaim as first written** — "fair teams" asserts the optimality the split screen refuses to assert when it prints "Best gap found." (`src/session/gapProvenance.ts:32`) | reworded 2026-09-28 to "it can prove"; keep the shipped string |
 
-- [ ] **Step 1: Write the failing spec assertions**
+- [x] **Step 1: Write the failing spec assertions**
 
 In `e2e/tests/landing/landing.spec.ts`, replace the trust block at `:57-63` with the corrected strings plus the new copy-pinning assertions:
 
@@ -1425,7 +1425,7 @@ created with Phase D's acceptance criterion 8.
 
 In the same test, leave `:47` (`"smallest strength gap"`), `:49-55` (the rail labels), `:46` (the wordmark accessible name), `:65` (the action note) and `:66` (the footer) unchanged.
 
-- [ ] **Step 2: Build and run the spec to verify it fails**
+- [x] **Step 2: Build and run the spec to verify it fails**
 
 ```bash
 npx vite build && npx playwright test --config=e2e/playwright.config.ts tests/landing/landing.spec.ts --grep "product's voice"
@@ -1433,7 +1433,7 @@ npx vite build && npx playwright test --config=e2e/playwright.config.ts tests/la
 
 Expected: FAIL — `toContainText` receives `proven minimum` where `proven minimum for a two-team split` was expected, and `not.toContainText("no signal")` fails against the live page.
 
-- [ ] **Step 3: Rewrite the trust list**
+- [x] **Step 3: Rewrite the trust list**
 
 Replace `index.html:180-184`:
 
@@ -1447,7 +1447,7 @@ Replace `index.html:180-184`:
 
 Row 1 is the claim made true by scoping it to where it holds (verified: 2-team pools return `optimal: true`, ≤ 443 nodes). Row 2 is true today, kept verbatim. Row 3 replaces the offline claim with the action note that already carried it (`index.html:194`), so the close still has three rows and the layout is unchanged. The offline sentence is **deleted**, not softened.
 
-- [ ] **Step 4: Rewrite the lede**
+- [x] **Step 4: Rewrite the lede**
 
 Replace `index.html:72-74`:
 
@@ -1456,7 +1456,7 @@ Replace `index.html:72-74`:
             every role along the way. Futsal, MLBB, badminton, then the tournament on those teams.
 ```
 
-- [ ] **Step 5: Drop the offline half of the meta description**
+- [x] **Step 5: Drop the offline half of the meta description**
 
 Replace `index.html:9`:
 
@@ -1464,7 +1464,7 @@ Replace `index.html:9`:
       content="comp3tive splits your group into balanced teams with the smallest possible strength gap, then runs the tournament. No account, no sign-up."
 ```
 
-- [ ] **Step 6: Correct the two remaining overclaims**
+- [x] **Step 6: Correct the two remaining overclaims**
 
 `index.html:122-123`:
 
@@ -1480,7 +1480,7 @@ Replace `index.html:9`:
               solver just balanced.
 ```
 
-- [ ] **Step 7: Correct the discipline count**
+- [x] **Step 7: Correct the discipline count**
 
 Replace `index.html:157`:
 
@@ -1490,7 +1490,7 @@ Replace `index.html:157`:
 
 This matches `SEED_DISCIPLINES.length` after Task 5. The `3+` was false even before B19 (two seeds).
 
-- [ ] **Step 8: Correct the badminton card**
+- [x] **Step 8: Correct the badminton card**
 
 Replace `src/landing.tsx:110-116`:
 
@@ -1506,7 +1506,7 @@ Replace `src/landing.tsx:110-116`:
 
 The `roles` and `attributes` strings match `BADMINTON_DISCIPLINE.roles[].name` and `.attributes[].name` from Task 5; `teamSize: "2 v 2"` matches `minTeamSize === maxTeamSize === 2`. If Task 5 changed either name, this card is wrong — re-read `src/domain/seed.ts` before editing.
 
-- [ ] **Step 9: Run the spec to verify it passes**
+- [x] **Step 9: Run the spec to verify it passes**
 
 ```bash
 npx vite build && npx playwright test --config=e2e/playwright.config.ts tests/landing/landing.spec.ts
@@ -1514,7 +1514,7 @@ npx vite build && npx playwright test --config=e2e/playwright.config.ts tests/la
 
 Expected: PASS — 16 passed, 0 failed (11 in the `Landing Page` describe, 5 in `Returning organizer redirect`; the file has no `test.skip`). Specifically still green and untouched: the rail-label assertion `["Split","Edit","Play","Roster","Open"]` (`:49-55`), the wordmark accessible name (`:46`), the CTA href/role assertions, the hero mount assertions, the whole deal-animation suite, the theme assertions (`:238-239` pin `rgb(250, 248, 245)` / `rgb(28, 25, 23)` — Paper & Pencil's numbers, unaffected by copy), and all five returning-organizer redirect specs.
 
-- [ ] **Step 10: Prove no false claim survives on the page**
+- [x] **Step 10: Prove no false claim survives on the page**
 
 ```bash
 npx vite build && npx playwright test --config=e2e/playwright.config.ts tests/landing/landing.spec.ts --grep "product's voice"
@@ -1528,7 +1528,7 @@ grep -n "Works offline\|no signal\|exact, not estimated\|the number that proves\
 
 Expected: no match for `Works offline`, `no signal`, `exact, not estimated`, `the number that proves`, or `just proved fair`. `Disciplines` matches once, at the `<dt>` whose `<dd>` now reads `3`.
 
-- [ ] **Step 11: Record the D02 handoff and commit**
+- [x] **Step 11: Record the D02 handoff and commit**
 
 Append to `.scratch/debt/issues/14-the-landing-page-claims-only-what-ships.md` under its existing `## Comments`:
 
@@ -1584,7 +1584,7 @@ edited, because B14 changes user-visible copy."
 
 **Precondition check.** The feature shipped and is a primary hub: `Tournament` carries `format`, `seriesLength`, `teamCount`, `thirdPlace`, `status`, `teams`, `matches` (`src/domain/types.ts:61-77`); the Games hub lists and creates tournaments (`src/tournament/GamesScreen.tsx`); the draft → split → bracket → results flow exists (`src/tournament/TournamentScreen.tsx`); and `docs/adr/0003-saved-squads.md:5` and `docs/adr/0005-dashboard-first.md:20` both build on ADR-0002 as settled. Every sibling reads `**Status**: accepted` (`0001:5`, `0003:5`, `0005:20`, `0006:5`) except `0004`, which has no status line at all.
 
-- [ ] **Step 1: Change the status line**
+- [x] **Step 1: Change the status line**
 
 `docs/adr/0002-tournament-first-flow.md:5`:
 
@@ -1595,7 +1595,7 @@ edited, because B14 changes user-visible copy."
 
 The second line is deliberate: the decision predates its own ratification, and a reader deserves to know it was ratified later rather than on the day it was written.
 
-- [ ] **Step 2: Correct the one wrong consequence**
+- [x] **Step 2: Correct the one wrong consequence**
 
 `docs/adr/0002-tournament-first-flow.md:16` currently reads:
 
@@ -1611,7 +1611,7 @@ Replace with:
 
 Reality: the Match carries both slots today (`src/domain/types.ts:55-56`), and `loserNext` is in active use for the 3rd-place match, which `docs/spec/0002-tournaments-v1.md` §4 describes as default-on (`thirdPlace: boolean`, `src/domain/types.ts:70`). `nextMatchId` does not exist in the type.
 
-- [ ] **Step 3: Give ADR-0004 the status line its siblings all carry**
+- [x] **Step 3: Give ADR-0004 the status line its siblings all carry**
 
 `docs/adr/0004-origin-aware-navigation.md:8` is the blank line after the opening paragraph, directly before `We decided to keep the flat View union…`. Insert:
 
@@ -1621,7 +1621,7 @@ Reality: the Match carries both slots today (`src/domain/types.ts:55-56`), and `
 
 This matches `0005`'s layout — heading, opening paragraph, then `**Status**: accepted` (`docs/adr/0005-dashboard-first.md:20`).
 
-- [ ] **Step 4: Verify the greps**
+- [x] **Step 4: Verify the greps**
 
 ```bash
 grep -rn "nextMatchId" docs/ src/
@@ -1641,7 +1641,7 @@ grep -n "Status" docs/adr/*.md
 
 Expected: six files, `0002` reading `accepted`, `0004` reading `accepted`.
 
-- [ ] **Step 5: Confirm nothing else in either file moved**
+- [x] **Step 5: Confirm nothing else in either file moved**
 
 ```bash
 git diff --stat docs/adr/
@@ -1649,7 +1649,7 @@ git diff --stat docs/adr/
 
 Expected: two files, 2 and 1 insertions respectively (plus the one replaced bullet line in 0002). If 0004 shows more than one insertion, the edit landed outside the intended position — the ADR's body must be untouched.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add docs/adr/0002-tournament-first-flow.md docs/adr/0004-origin-aware-navigation.md
@@ -1675,7 +1675,7 @@ Match carries winnerNext and loserNext today, and loserNext carries the
 
 **Verified before claiming the amber token.** `src/tokens.css:1` states `/* Design system: "Paper & Pencil" (per DESIGN.md). Warm paper, quiet ink, one amber accent for live action. */` and declares `--surface: #faf8f5` (`:10`), `--text: #1c1917` (`:13`), `--accent: #c2410c` (`:15`), `--whistle: #c2410c` (`:17`); the dark block re-declares `--surface: #1c1917` (`:42`) and `--accent: #ea580c` (`:47`). Those are Paper & Pencil's numbers. Against them, `docs/design.md:3` proposes "**Scoreboard.** … a single saturated cobalt accent" with `cobalt #2B6BFF` (`:15`) and a Chakra Petch type stack (`:33`) — and `grep -rn "2B6BFF\|Chakra\|cobalt" src/ index.html app/index.html public/` returns **no matches**. The landing page's own contract comment names the world "Inherited from DESIGN.md, unchanged" and gives `#FAF8F5`, `#1C1917`, `#C2410C` (`index.html:37-38`), and the landing spec pins the shipped tokens by rgb value (`e2e/tests/landing/landing.spec.ts:238-239`). The survivor is `DESIGN.md`.
 
-- [ ] **Step 1: Confirm the amber token before asserting it**
+- [x] **Step 1: Confirm the amber token before asserting it**
 
 ```bash
 grep -n "accent\|surface\|text:" src/tokens.css | head -20
@@ -1689,7 +1689,7 @@ grep -rn "2B6BFF\|Chakra\|cobalt" src/ index.html app/index.html public/
 
 Expected: no output, confirming the losing direction appears nowhere in the build.
 
-- [ ] **Step 2: Move the two live sections into DESIGN.md**
+- [x] **Step 2: Move the two live sections into DESIGN.md**
 
 `DESIGN.md:196` begins `## Things that don't change`. Insert the following immediately **before** it, so the two moved sections sit between the Landing Page's token section and the closing list. The text is moved, not paraphrased; the only restatement is the focus ring, retold in Paper & Pencil's terms (`--accent`, the amber at `DESIGN.md:15-24`) because the source named cobalt.
 
@@ -1708,7 +1708,7 @@ Mobile-first and thumb-friendly (bottom bar actions, 44px+ targets) · `min-heig
 
 Both rules are live and would be lost with the loser: the B13 qualifier obeys the em-dash ban, and the 44px figure matches the measured smallest visible button height at 390×844.
 
-- [ ] **Step 3: Confirm the sections landed in the right place**
+- [x] **Step 3: Confirm the sections landed in the right place**
 
 ```bash
 grep -n "^## " DESIGN.md
@@ -1716,7 +1716,7 @@ grep -n "^## " DESIGN.md
 
 Expected, in order: `Why this direction`, `Tokens`, `Layout`, `The signature moment`, `The Landing Page — "The Ledger"`, `Copy voice`, `Accessibility & quality floor`, `Things that don't change`. `Copy voice` and `Accessibility & quality floor` must both precede `Things that don't change`, and nothing else may have moved.
 
-- [ ] **Step 4: Confirm no design work happened**
+- [x] **Step 4: Confirm no design work happened**
 
 ```bash
 git diff --stat src/tokens.css src/index.css src/landing.css
@@ -1761,7 +1761,7 @@ npx vite build && npx playwright test --config=e2e/playwright.config.ts tests/la
 
 Expected: PASS — the shipped Paper & Pencil tokens still resolve to `rgb(250, 248, 245)` and `rgb(28, 25, 23)`.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add DESIGN.md docs/design.md
@@ -1787,7 +1787,7 @@ ban and the accessibility floor."
 
 **The four verified contradictions.** The title says "(as-to-be)" while `:4` says "Accepted — this document is the contract"; `:26` says "Four bottom-nav hubs" against five with Home centred; `:10` and `:74` say breadcrumbs are links while no screen renders `src/nav.tsx`'s `Breadcrumb` (zero consumers) and `src/session/SplitScreen.tsx:294` is a dead `<a href="#" onClick={…preventDefault}>`; and `:174-175` repeats the breadcrumb claim.
 
-- [ ] **Step 1: Retitle**
+- [x] **Step 1: Retitle**
 
 `docs/FLOW.md:1`:
 
@@ -1797,7 +1797,7 @@ ban and the accessibility floor."
 
 The doc's own `:4` already declares it accepted. The "(as-to-be)" title contradicted that.
 
-- [ ] **Step 2: Correct the hub count and table**
+- [x] **Step 2: Correct the hub count and table**
 
 `docs/FLOW.md:26`:
 
@@ -1823,11 +1823,11 @@ Add the source line beneath it:
 Source of truth: `NAV_ITEMS` at `src/App.tsx:62-68`; the centre slot is Home (ADR-0005).
 ```
 
-- [ ] **Step 3: Keep P1's rule as it is**
+- [x] **Step 3: Keep P1's rule as it is**
 
 **Do not change `docs/FLOW.md:10`.** It reads `- **P1** Every non-hub screen shows its path (breadcrumb of active links)`. The only wrong word is "active", and the correct fix is the one C28's ticket already commits to: **the rule stays normative and the code is brought up to it**. C28 exists to make every navigable crumb a real link. Leave P1's line exactly as written.
 
-- [ ] **Step 4: Keep §3's heading and intro as they are**
+- [x] **Step 4: Keep §3's heading and intro as they are**
 
 **Do not change `docs/FLOW.md:72` or `:74`.**
 
@@ -1845,7 +1845,7 @@ The rule also already has an owner: ticket 28 (`ready-for-agent`) makes the cont
 
 Leave both lines untouched. C28 needs no follow-up edit to either one.
 
-- [ ] **Step 5: Add a forward note naming the one dead site, and state what is actually rendered**
+- [x] **Step 5: Add a forward note naming the one dead site, and state what is actually rendered**
 
 Append to the paragraph that follows `docs/FLOW.md:74`'s sentence (the intro to the §3 table):
 
@@ -1859,7 +1859,7 @@ Then append this accuracy sentence at the foot of the same table, because the ta
 The chains above are the **path taken**, which is what P1 is about. Every screen renders the last two segments of it and no more: measured, each of the three crumb sites emits exactly one separator (`src/session/MatchScreen.tsx:44`, `src/session/SplitScreen.tsx:295`, `src/tournament/TournamentScreen.tsx:265`), so a tournament split shows `Games / Split result`, not the four-segment chain listed here. Ticket 28 keeps the rendered depth at two; expanding the crumbs to match the full chain would be a visible redesign no ticket asks for.
 ```
 
-- [ ] **Step 6: Reconcile §3's hub name with the shipped nav label**
+- [x] **Step 6: Reconcile §3's hub name with the shipped nav label**
 
 This goes beyond the spec's ten-claim list, and it is the same correction `:26` already makes: the hub is **Games**, not Tournaments (`src/App.tsx:65`, `{ mode: "games", label: "Games", icon: "▣" }`; the screen's own h1 is `Games`, `src/tournament/GamesScreen.tsx:123`). Leaving `:26` saying Games while §3 and the edge tables say Tournaments makes the file contradict itself, and §3 is the table ticket 28's acceptance criteria check the crumbs against ("Every crumb's destination matches `docs/FLOW.md` §3's table"). Replace the hub name `Tournaments` with `Games` at all eleven occurrences:
 
@@ -1879,7 +1879,7 @@ This goes beyond the spec's ten-claim list, and it is the same correction `:26` 
 
 Leave the lowercase noun "tournament" alone everywhere: a **Tournament** is the competition container (`CONTEXT.md`) and is correct in all 30-odd places it appears. The label in §3 pins `Squad detail` as the `squad`-source crumb, which is what `src/session/SplitScreen.tsx:375` already renders.
 
-- [ ] **Step 7: Correct §6's closing claim**
+- [x] **Step 7: Correct §6's closing claim**
 
 `docs/FLOW.md:174-175`:
 
@@ -1888,11 +1888,11 @@ Leave the lowercase noun "tournament" alone everywhere: a **Tournament** is the 
   covers navigation, and breadcrumbs name the path (ADR-0004).
 ```
 
-- [ ] **Step 8: Leave the already-correct section alone**
+- [x] **Step 8: Leave the already-correct section alone**
 
 `docs/FLOW.md:20-23` (Entry) is correct post-ADR-0006 and stays exactly as written.
 
-- [ ] **Step 9: Verify**
+- [x] **Step 9: Verify**
 
 ```bash
 grep -n "as-to-be\|Four bottom-nav" docs/FLOW.md
@@ -1924,7 +1924,7 @@ grep -c "tournament" docs/FLOW.md
 
 Expected: a non-zero count, confirming the container noun survived the hub rename intact.
 
-- [ ] **Step 10: Commit**
+- [x] **Step 10: Commit**
 
 ```bash
 git add docs/FLOW.md
@@ -1960,7 +1960,7 @@ a tournament split shows 'Games / Split result', not the section 3 chain.
 
 **The verified drift.** `DB_VERSION = 6` (`src/storage/indexed-db.ts:18`), backup `version: 4` (`src/data/transfer.ts:9`); `TournamentTeam.players: Id[]` (`src/domain/types.ts:36`); `seriesLength` is tournament-level (`:67`), not per-match; routing uses `winnerNext`/`loserNext` (`:55-56`), not `nextMatchId`; `thirdPlace: boolean` exists at tournament level (`:70`).
 
-- [ ] **Step 1: Add a status line**
+- [x] **Step 1: Add a status line**
 
 Insert under `docs/spec/0002-tournaments-v1.md`'s `# Tournaments v1 — Play the Split` title (before `## Problem Statement`):
 
@@ -1968,7 +1968,7 @@ Insert under `docs/spec/0002-tournaments-v1.md`'s `# Tournaments v1 — Play the
 **Status**: shipped (DB v6, backup v4)
 ```
 
-- [ ] **Step 2: Correct the Games-tab parenthetical**
+- [x] **Step 2: Correct the Games-tab parenthetical**
 
 `docs/spec/0002-tournaments-v1.md:31` — the phrase `(bottom nav, between History and Disciplines)` is stale. The five slots are Roster, Games, Home, History, Squads (`src/App.tsx:62-68`), and Disciplines is reached from the Games hub's own button (`src/tournament/GamesScreen.tsx:134`, `onManageDisciplines`). Replace the parenthetical with:
 
@@ -1976,7 +1976,7 @@ Insert under `docs/spec/0002-tournaments-v1.md`'s `# Tournaments v1 — Play the
 1. **Games tab** (bottom nav, between Home and History): the community's tournaments, newest first, each row showing name, discipline, format, series length, team count, status (Draft / In progress / Complete). Empty state: "No games yet. Create a tournament and split your teams." Disciplines are reached from this hub's own **Disciplines** button, not from the nav.
 ```
 
-- [ ] **Step 3: Correct the Data Model**
+- [x] **Step 3: Correct the Data Model**
 
 Replace `docs/spec/0002-tournaments-v1.md:40-59` (the fenced `Tournament { … }` block) with the block that matches `src/domain/types.ts`:
 
@@ -2002,7 +2002,7 @@ Tournament {
 
 Three concrete corrections inside it: `players: Id[]` with the comment `// player ids at submission; roles are not snapshotted` (roles are re-derived, not stored); `seriesLength` deleted from the match object; `nextMatchId?` replaced by the two real fields.
 
-- [ ] **Step 4: Correct the persistence line**
+- [x] **Step 4: Correct the persistence line**
 
 `docs/spec/0002-tournaments-v1.md:63`:
 
@@ -2010,7 +2010,7 @@ Three concrete corrections inside it: `players: Id[]` with the comment `// playe
 - Persistence: one document per tournament in IndexedDB (new `tournaments` store, DB v6), community-scoped. Backup v4 adds `tournaments[]` and `savedSquads[]`; v1–v3 imports migrate with empty lists.
 ```
 
-- [ ] **Step 5: Correct the v1 discipline claim**
+- [x] **Step 5: Correct the v1 discipline claim**
 
 `docs/spec/0001-team-builder-v1.md:94`, which the spec's sweep and Task 5 both point at:
 
@@ -2018,7 +2018,7 @@ Three concrete corrections inside it: `players: Id[]` with the comment `// playe
 - Disciplines beyond the three seeded — the catalog is extensible, and Futsal, MLBB, and Badminton ship in v1.
 ```
 
-- [ ] **Step 6: Drop the Tailwind claim**
+- [x] **Step 6: Drop the Tailwind claim**
 
 `docs/superpowers/plans/2026-09-10-paper-pencil-redesign.md:9`:
 
@@ -2026,7 +2026,7 @@ Three concrete corrections inside it: `players: Id[]` with the comment `// playe
 **Tech Stack:** TypeScript, React, Vite, Vitest, hand-written CSS custom properties — no new dependencies required.
 ```
 
-- [ ] **Step 7: Verify the closed set of ten claims**
+- [x] **Step 7: Verify the closed set of ten claims**
 
 ```bash
 grep -rn "as-to-be\|Four bottom-nav\|DB v5\|Backup v3\|nextMatchId\|only Futsal and MLBB ship\|Tailwind CSS" docs/ *.md
@@ -2034,7 +2034,7 @@ grep -rn "as-to-be\|Four bottom-nav\|DB v5\|Backup v3\|nextMatchId\|only Futsal 
 
 Expected: no output.
 
-- [ ] **Step 8: Verify docs/agents is untouched**
+- [x] **Step 8: Verify docs/agents is untouched**
 
 ```bash
 git diff --stat docs/agents/
@@ -2042,7 +2042,7 @@ git diff --stat docs/agents/
 
 Expected: no output. `docs/agents/domain.md` points at `CONTEXT.md` and `docs/adr/`, both of which survive; it names `CONTEXT-MAP.md` and `src/<context>/docs/adr/` as optional and instructs the reader to proceed silently when absent, which is the case here. It needs no edit.
 
-- [ ] **Step 9: Commit**
+- [x] **Step 9: Commit**
 
 ```bash
 git add docs/spec/0002-tournaments-v1.md docs/spec/0001-team-builder-v1.md docs/superpowers/plans/2026-09-10-paper-pencil-redesign.md
@@ -2111,7 +2111,7 @@ wc -l docs/archive/DOMAIN_MODEL.md docs/archive/IMPLEMENTATION_PLAN.md
 
 Expected: 289+2 and 234+2 lines — the original counts plus the two-line banner each, proving no content was lost in the move.
 
-- [ ] **Step 5: Confirm the surviving root documents are untouched**
+- [x] **Step 5: Confirm the surviving root documents are untouched**
 
 ```bash
 git diff --stat COMP3TIVE_COMPREHENSIVE_ANALYSIS.md CONTEXT.md PRODUCT.md DESIGN.md
@@ -2119,7 +2119,7 @@ git diff --stat COMP3TIVE_COMPREHENSIVE_ANALYSIS.md CONTEXT.md PRODUCT.md DESIGN
 
 Expected: no output.
 
-- [ ] **Step 6: Confirm no live document points at the old paths**
+- [x] **Step 6: Confirm no live document points at the old paths**
 
 ```bash
 grep -rn "DOMAIN_MODEL.md\|IMPLEMENTATION_PLAN.md" docs/ *.md | grep -v "docs/archive/"
@@ -2127,7 +2127,7 @@ grep -rn "DOMAIN_MODEL.md\|IMPLEMENTATION_PLAN.md" docs/ *.md | grep -v "docs/ar
 
 Expected: no output under `docs/` or the root. `COMP3TIVE_COMPREHENSIVE_ANALYSIS.md:1455` lists `DOMAIN_MODEL.md` as a design-token source; that line is inside the kept snapshot and is deliberately not edited, because the file is dated evidence rather than a claim about current state. Record that decision in the ticket.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add docs/archive .scratch/debt/issues/16-reconcile-the-documents-that-contradict-the-code.md

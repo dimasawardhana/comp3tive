@@ -148,7 +148,7 @@ are nobody's — is at Global Constraint 6.
 - Consumes: nothing.
 - Produces: `validateTournamentSpec` has exactly one definition (`src/tournament/tournament-validation.ts`); `validateTeamParticipation` has zero.
 
-- [ ] **Step 1: Prove the deletion is not a behaviour change**
+- [x] **Step 1: Prove the deletion is not a behaviour change**
 
 Run:
 ```bash
@@ -159,14 +159,14 @@ grep -rn "team-participation-validator" src/
 ```
 Expected, today: the first prints **one** line (`src/tournament/tournament-validation.ts`); the second prints **nothing**; the third prints exactly **one** line — `src/App.tsx:48:import { validateTeamParticipation } from "./tournament/team-participation-validator";`. That single line is this task's red state: the module loads and is never called.
 
-- [ ] **Step 2: Delete the two unreferenced modules**
+- [x] **Step 2: Delete the two unreferenced modules**
 
 ```bash
 git rm src/tournament/tournament-domain-fix.ts src/session/split-module.ts
 ```
 Expected: `rm 'src/session/split-module.ts'` and `rm 'src/tournament/tournament-domain-fix.ts'`.
 
-- [ ] **Step 3: Delete the third module and its only importer**
+- [x] **Step 3: Delete the third module and its only importer**
 
 Delete `src/App.tsx` line 48 in full:
 
@@ -178,7 +178,7 @@ import { validateTeamParticipation } from "./tournament/team-participation-valid
 git rm src/tournament/team-participation-validator.ts
 ```
 
-- [ ] **Step 4: Delete the notice that has never rendered**
+- [x] **Step 4: Delete the notice that has never rendered**
 
 `src/tournament/TournamentScreen.tsx:353-355` sits inside `{hasAnyGames && (…)}` at `:352`, while `canResplit` is `tournament.teams.length > 0 && !hasAnyGames` at `:250`. The two conditions are mutually exclusive, so the span is unreachable. Open `src/tournament/TournamentScreen.tsx` and delete the const and the span:
 
@@ -203,7 +203,7 @@ git rm src/tournament/team-participation-validator.ts
 
 The lock is enforced by the absent affordance (`onReroll` only renders in the pre-result branch at `:390-397`), not by this text. `hasAnyGames` has two other readers (`:250` before this edit) — re-run `grep -n "hasAnyGames" src/tournament/TournamentScreen.tsx` and keep the remaining uses.
 
-- [ ] **Step 5: Re-run the checks and the compiler**
+- [x] **Step 5: Re-run the checks and the compiler**
 
 ```bash
 grep -rn "split-module\|tournament-domain-fix\|team-participation-validator" src/ e2e/
@@ -214,14 +214,14 @@ npx tsc -b
 ```
 Expected: the first three print **nothing**; the fourth prints **exactly one** line in `src/tournament/tournament-validation.ts`; `tsc -b` exits **0**.
 
-- [ ] **Step 6: Run the unit suite**
+- [x] **Step 6: Run the unit suite**
 
 ```bash
 npx vitest run
 ```
 Expected: **114 passed / 12 files** (unchanged — no test covered the deleted modules; `grep -rn "tournament-domain-fix\|split-module" src/**/*.test.ts` returns nothing).
 
-- [ ] **Step 7: Record the finding, then commit**
+- [x] **Step 7: Record the finding, then commit**
 
 In the task's Answer, record per symbol which live check covers each rule the dead `validateTournamentSpec` encoded — team size against `discipline.team.minTeamSize`/`maxTeamSize` (the solver's `buildSettings` + `MatchScreen`'s seat check at `src/session/MatchScreen.tsx:24-32`), format × discipline compatibility (`getValidTeamCounts`/`TEAM_COUNTS` at `src/tournament/GamesScreen.tsx:34-40`), `seriesLength ∈ {1,3,5}` (`BO: SeriesLength[] = [1, 3, 5]` at `src/tournament/GamesScreen.tsx:34`), and the name check (the live validator). The dead `getValidTeamCounts("single-elim")` returned `[4, 2, 8]` where the live one returns `[2, 4, 8]` — the same set in a different order. **Nothing is copied back.**
 
@@ -247,7 +247,7 @@ git commit -m "refactor(shell): delete the tournament and split modules nothing 
 - Consumes: Task 1 removed four findings (`src/App.tsx:48`, `src/session/split-module.ts:7`, `src/tournament/team-participation-validator.ts:1`, `src/tournament/tournament-domain-fix.ts:13`).
 - Produces: `src/App.tsx` with no dead handler and no dead helper; `noUnusedLocals` clean.
 
-- [ ] **Step 1: Re-derive the findings — the flag is the source of truth**
+- [x] **Step 1: Re-derive the findings — the flag is the source of truth**
 
 The ticket's list is stale and its count of 20 was an absorbed ticket's bad count. **Measured on HEAD after Task 1**, this is what the flag reports. Run it and compare against this exact list:
 
@@ -276,7 +276,7 @@ Expected: **19 → 15 findings** after Task 1's deletions. The list to expect, v
 
 **If the printed list differs from this table in any way, the compiler wins.** Record the difference in the Answer before resolving it.
 
-- [ ] **Step 2: Delete the three dead helpers and the dead import**
+- [x] **Step 2: Delete the three dead helpers and the dead import**
 
 ```diff
 -import { DisciplineEditModal } from "./domain/DisciplineEditModal";
@@ -295,7 +295,7 @@ Expected: **19 → 15 findings** after Task 1's deletions. The list to expect, v
 -
 ```
 
-- [ ] **Step 3: Delete the six dead handlers**
+- [x] **Step 3: Delete the six dead handlers**
 
 Each is a whole function. Delete `showHistory` (`:666`), `showDisciplines` (`:670`), `enterMatchFlow` (`:742`), `finishSplit` (`:754`), `recordTournamentResult` (`:759`), `showTournamentView` (`:772`) in full. Delete the now-orphaned comment block that describes them:
 
@@ -307,7 +307,7 @@ Each is a whole function. Delete `showHistory` (`:666`), `showDisciplines` (`:67
 
 The Dashboard's live exits are `startAdHocSplit`, `openNewTournament`, `showSquads` and `addPlayer` — all still referenced at `:960-974`. If any of the six names is referenced anywhere after deletion, `tsc` says so; that is the check.
 
-- [ ] **Step 4: Delete `effectiveTheme` — then re-run, because it cascades**
+- [x] **Step 4: Delete `effectiveTheme` — then re-run, because it cascades**
 
 ```diff
 -  const systemDark = useMediaQuery("(prefers-color-scheme: dark)");
@@ -338,7 +338,7 @@ Expected: **the cascade appears** — `src/App.tsx:177` `systemDark` is now unus
 
 **The method is iterative: run the flag, resolve, re-run until clean.** Record each pass in the Answer.
 
-- [ ] **Step 5: Delete the five remaining findings outside `App.tsx`**
+- [x] **Step 5: Delete the five remaining findings outside `App.tsx`**
 
 ```diff
 # src/data/sample-data.ts:74
@@ -376,7 +376,7 @@ Expected: **the cascade appears** — `src/App.tsx:177` `systemDark` is now unus
 -import { teamName } from "../session/flow";
 ```
 
-- [ ] **Step 6: Turn the flag on and re-run until clean**
+- [x] **Step 6: Turn the flag on and re-run until clean**
 
 ```diff
 # tsconfig.app.json
@@ -394,7 +394,7 @@ grep -rn "void [a-zA-Z]*;\|@ts-ignore\|noUnusedLocals" src/
 ```
 Expected: the first two print nothing and exit **0**; the third prints nothing — no silencing anywhere in source.
 
-- [ ] **Step 7: Unit suite, then the browser suite**
+- [x] **Step 7: Unit suite, then the browser suite**
 
 ```bash
 npx vitest run
@@ -403,7 +403,7 @@ npm run e2e
 ```
 Expected: vitest **114 passed / 12 files**; the build succeeds; the browser suite **0 failed** with `git diff --stat e2e/tests` empty.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add -A
@@ -442,7 +442,7 @@ git commit -m "chore: enable noUnusedLocals and resolve its findings"
   export function Modal({ onClose, children }: { onClose: () => void; children: ReactNode }): JSX.Element;
   ```
 
-- [ ] **Step 1: Write the failing test for `relativeTime`**
+- [x] **Step 1: Write the failing test for `relativeTime`**
 
 Create `src/ui/format.test.ts`:
 
@@ -495,14 +495,14 @@ describe("relativeTime", () => {
 });
 ```
 
-- [ ] **Step 2: Run it to verify it fails**
+- [x] **Step 2: Run it to verify it fails**
 
 ```bash
 npx vitest run src/ui/format.test.ts
 ```
 Expected: FAIL — `Failed to resolve import "./format" from "src/ui/format.test.ts"` (the module does not exist yet).
 
-- [ ] **Step 3: Create `src/ui/format.ts`**
+- [x] **Step 3: Create `src/ui/format.ts`**
 
 This is the byte-identical body currently at `src/session/HistoryScreen.tsx:13-21` and `src/session/SquadsScreen.tsx:23-31`:
 
@@ -520,14 +520,14 @@ export function relativeTime(ts: number): string {
 }
 ```
 
-- [ ] **Step 4: Run the test to verify it passes**
+- [x] **Step 4: Run the test to verify it passes**
 
 ```bash
 npx vitest run src/ui/format.test.ts
 ```
 Expected: **5 passed**.
 
-- [ ] **Step 5: Create `src/ui/constants.ts`**
+- [x] **Step 5: Create `src/ui/constants.ts`**
 
 ```ts
 import type { TournamentFormat, TournamentStatus } from "../domain/types";
@@ -552,7 +552,7 @@ export const STATUS_LABEL: Record<TournamentStatus, string> = {
 
 Every moved value is byte-identical to the three copies it replaces (six label strings: `Series`, `Single elimination`, `Swiss`, `Draft`, `In progress`, `Complete`). The three existing `FORMAT_LABEL` declarations key off different type spellings (`Tournament["format"]` at `src/DashboardScreen.tsx:6` and `src/tournament/TournamentScreen.tsx:26`, `TournamentFormat` at `src/tournament/GamesScreen.tsx:27`); the spellings differ, the unions and the values do not. `FORMAT_LABEL` is an explicit `Record<TournamentFormat, string>` **on purpose**: when D16 adds `"round-robin"` to `src/domain/types.ts:25`, this literal fails the build until the key is added — the type is the reminder.
 
-- [ ] **Step 6: Create `src/ui/Modal.tsx`**
+- [x] **Step 6: Create `src/ui/Modal.tsx`**
 
 ```tsx
 import type { ReactNode } from "react";
@@ -580,7 +580,7 @@ export function Modal({ onClose, children }: Props) {
 }
 ```
 
-- [ ] **Step 7: Replace the eight duplicate definitions and the five modal skeletons**
+- [x] **Step 7: Replace the eight duplicate definitions and the five modal skeletons**
 
 Delete the local `BIB` at `src/session/SplitScreen.tsx:21`, `src/session/SquadsScreen.tsx:21` and `src/tournament/TournamentScreen.tsx:32`, and add to each file's imports:
 
@@ -648,7 +648,7 @@ and each closing pair loses one level:
 
 Each call site imports `import { Modal } from "../ui/Modal";`. No class name, DOM nesting or rendered string changes: the component emits exactly `<div class="modal-overlay"><div class="modal-card">…`.
 
-- [ ] **Step 8: Verify: one definition each, byte-identical CSS, green suites**
+- [x] **Step 8: Verify: one definition each, byte-identical CSS, green suites**
 
 ```bash
 grep -rc "const BIB\|const FORMAT_LABEL\|const STATUS_LABEL" src/
@@ -662,7 +662,7 @@ Expected: the first prints **one file** — `src/ui/constants.ts:3`; the second 
 
 The suite pins this surface: `.modal-card` appears in 12 spec files and `.badge--mlbb` at `e2e/tests/dashboard/dashboard.spec.ts:481`, so a renamed class fails a real assertion.
 
-- [ ] **Step 9: Run the browser suite, then commit**
+- [x] **Step 9: Run the browser suite, then commit**
 
 ```bash
 npm run build
@@ -710,7 +710,7 @@ git commit -m "refactor(ui): one definition per shared constant and one modal sk
   export const NAV_ITEMS: readonly { mode: HubMode; label: string; icon: string }[];
   ```
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `src/shell/navigation.test.ts`:
 
@@ -770,14 +770,14 @@ describe("the tournament-create sequence", () => {
 });
 ```
 
-- [ ] **Step 2: Run it to verify it fails**
+- [x] **Step 2: Run it to verify it fails**
 
 ```bash
 npx vitest run src/shell/navigation.test.ts
 ```
 Expected: FAIL — `Failed to resolve import "./useNavigation"`.
 
-- [ ] **Step 3: Create `src/shell/useNavigation.ts`**
+- [x] **Step 3: Create `src/shell/useNavigation.ts`**
 
 The four pure transitions are what make this testable at all: `environment: "node"` means no DOM and no renderer, so the hook itself cannot be rendered. They reproduce `src/App.tsx:150-156` exactly.
 
@@ -831,14 +831,14 @@ export function useNavigation(initial: View) {
 }
 ```
 
-- [ ] **Step 4: Run the test to verify it passes**
+- [x] **Step 4: Run the test to verify it passes**
 
 ```bash
 npx vitest run src/shell/navigation.test.ts
 ```
 Expected: **6 passed**.
 
-- [ ] **Step 5: Create `src/shell/nav-items.ts`**
+- [x] **Step 5: Create `src/shell/nav-items.ts`**
 
 Moved from `src/App.tsx:62-68`, unchanged in value — the labels are the accessible names Phase A's `hubButton` and the whole suite match on.
 
@@ -855,7 +855,7 @@ export const NAV_ITEMS = [
 ] as const satisfies ReadonlyArray<{ mode: HubMode; label: string; icon: string }>;
 ```
 
-- [ ] **Step 6: Wire `src/App.tsx` to the hook**
+- [x] **Step 6: Wire `src/App.tsx` to the hook**
 
 Delete `type SplitSource` (`:57`), `type HubMode` (`:59`), `NAV_ITEMS` (`:62-68`) and `type View` (`:70-79`); import the frozen names instead:
 
@@ -890,7 +890,7 @@ resetTo({ mode: "games" });
 pushView({ mode: "tournament", id: built.id });
 ```
 
-- [ ] **Step 7: Move the split session out of the view union**
+- [x] **Step 7: Move the split session out of the view union**
 
 The frozen `View` drops the `{ mode: "split"; session: Session }` payload (and also the dead `{ mode: "squads"; openId?: Id }`, which nothing ever pushed — `SquadsScreen` owns its own `openId` at `src/session/SquadsScreen.tsx:48`). The session is live, so it becomes its own state:
 
@@ -964,7 +964,7 @@ npx vitest run
 ```
 Expected: the first prints **nothing**; `grep -c "useState("` → **12** (HEAD's 13, minus `viewStack`); `wc -l src/App.tsx` is **below 1,240** (HEAD 1,280 − 31 moved lines − 6, net of the two-line wrapper and the `activeSplit` state); `tsc -b` exits 0; vitest **125 passed / 14 files**.
 
-- [ ] **Step 9: Run the browser suite, then commit**
+- [x] **Step 9: Run the browser suite, then commit**
 
 ```bash
 npm run build
@@ -1014,7 +1014,7 @@ git commit -m "refactor(shell): extract navigation into src/shell/useNavigation.
   export function useCommunityScope(input: CommunityScopeInput): CommunityScopeResult;
   ```
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `src/shell/community-scope.test.ts`:
 
@@ -1136,14 +1136,14 @@ describe("scopeCommunities", () => {
 });
 ```
 
-- [ ] **Step 2: Run it to verify it fails**
+- [x] **Step 2: Run it to verify it fails**
 
 ```bash
 npx vitest run src/shell/community-scope.test.ts
 ```
 Expected: FAIL — `Failed to resolve import "./useCommunityScope"`.
 
-- [ ] **Step 3: Create `src/shell/useCommunityScope.ts`**
+- [x] **Step 3: Create `src/shell/useCommunityScope.ts`**
 
 The pure selector is what makes the invariant testable in the `node` environment; the hook is one `useMemo` over it.
 
@@ -1208,14 +1208,14 @@ export function useCommunityScope(input: CommunityScopeInput): CommunityScopeRes
 }
 ```
 
-- [ ] **Step 4: Run the test to verify it passes**
+- [x] **Step 4: Run the test to verify it passes**
 
 ```bash
 npx vitest run src/shell/community-scope.test.ts
 ```
 Expected: **6 passed**.
 
-- [ ] **Step 5: Replace the four filters and the per-render `Map` in `src/App.tsx`**
+- [x] **Step 5: Replace the four filters and the per-render `Map` in `src/App.tsx`**
 
 Delete `:199` (`new Map`), `:200-216` (active community + four filters) and replace with one hook call:
 
@@ -1272,7 +1272,7 @@ Expected: the first prints **nothing**; `new Map` in `App.tsx` → **0**; `useMe
 
 **The memoisation itself is not unit-testable here** and this plan says so rather than pretending: the harness is `environment: "node"` with no DOM and no React renderer installed, `react-dom/server` cannot re-render, and `test.include` admits only `.ts`. Its evidence is structural (the two greps above) plus `e2e/tests/dashboard/dashboard.spec.ts`, which asserts community scoping with 84 assertions.
 
-- [ ] **Step 7: Run the browser suite, then commit**
+- [x] **Step 7: Run the browser suite, then commit**
 
 ```bash
 npm run build
@@ -1383,7 +1383,7 @@ git commit -m "refactor(shell): one community scope, memoised"
   export function AppChrome(props: AppChromeProps): JSX.Element;
   ```
 
-- [ ] **Step 1: Write the failing test for the two frozen rules**
+- [x] **Step 1: Write the failing test for the two frozen rules**
 
 Create `src/shell/split-flow.test.ts`:
 
@@ -1452,14 +1452,14 @@ describe("rerollPool", () => {
 });
 ```
 
-- [ ] **Step 2: Run it to verify it fails**
+- [x] **Step 2: Run it to verify it fails**
 
 ```bash
 npx vitest run src/shell/split-flow.test.ts
 ```
 Expected: FAIL — `Failed to resolve import "./useSplitFlow"`.
 
-- [ ] **Step 3: Create `src/shell/useSplitFlow.ts` — the two frozen rules first**
+- [x] **Step 3: Create `src/shell/useSplitFlow.ts` — the two frozen rules first**
 
 ```ts
 import type { Id, TeamAssignment } from "../domain/types";
@@ -1505,14 +1505,14 @@ export function rerollPool(
 }
 ```
 
-- [ ] **Step 4: Run the test to verify it passes**
+- [x] **Step 4: Run the test to verify it passes**
 
 ```bash
 npx vitest run src/shell/split-flow.test.ts
 ```
 Expected: **10 passed**.
 
-- [ ] **Step 5: Add the hook to the same file**
+- [x] **Step 5: Add the hook to the same file**
 
 The hook takes navigation primitives and store handles as dependencies so it re-derives neither:
 
@@ -1594,7 +1594,7 @@ and `consumeTeams`' guard keeps its exact characters (Global Constraint 9):
   };
 ```
 
-- [ ] **Step 6: Give `rerollPool` its real caller**
+- [x] **Step 6: Give `rerollPool` its real caller**
 
 `src/session/SplitScreen.tsx:255-264` today:
 
@@ -1633,7 +1633,7 @@ git diff --numstat src/session/SplitScreen.tsx
 ```
 Expected: after Task 6's other edits are excluded, the `reroll` hunk shows **one added, one removed** line.
 
-- [ ] **Step 7: Create `src/shell/usePreferences.ts`**
+- [x] **Step 7: Create `src/shell/usePreferences.ts`**
 
 Moved unchanged from `src/App.tsx:92-121`:
 
@@ -1672,7 +1672,7 @@ export function useMediaQuery(query: string): boolean {
 }
 ```
 
-- [ ] **Step 8: Create `src/shell/useToasts.ts` and `src/ui/Toasts.tsx`**
+- [x] **Step 8: Create `src/shell/useToasts.ts` and `src/ui/Toasts.tsx`**
 
 ```ts
 // src/shell/useToasts.ts
@@ -1734,7 +1734,7 @@ export function Toasts({ toasts }: Props) {
 }
 ```
 
-- [ ] **Step 9: Create `src/shell/RosterScreen.tsx`**
+- [x] **Step 9: Create `src/shell/RosterScreen.tsx`**
 
 The roster hub's markup, moved verbatim from `src/App.tsx:976-1137` (162 lines) inside the existing `<Screen>`/`<PageHeader>` wrapper. Props are the values and handlers it already closes over:
 
@@ -1828,7 +1828,7 @@ So `onDeletePlayer: (id: Id) => Promise<void>` receives A04's already-catching f
 
 **Phase B renames two strings inside the region this task moves, so move whatever B wrote — do not re-type from this plan.** B15 (D2, Community is the noun) changes `src/App.tsx:1061` `No players in this squad` → `No players in this community` and `src/App.tsx:1123` `Ready to play? <strong>Split the squad</strong> and check the balance.` → `…<strong>Split the roster</strong>…`. Both are inside `App.tsx:976-1137`, so if B has already landed they arrive already renamed and are copied across verbatim; if B has not landed, copy today's wording and let B's edit land in `src/shell/RosterScreen.tsx` instead. `contracts.md` D2 is explicit: **C must not rename independently — it reads B15's outcome.** The `Split match` button (`src/App.tsx:1131`) and the other three B15 strings (`MatchScreen.tsx:48`, `SplitScreen.tsx:304`, `:400`) are outside this region and untouched here.
 
-- [ ] **Step 10: Create `src/shell/AppChrome.tsx`**
+- [x] **Step 10: Create `src/shell/AppChrome.tsx`**
 
 Rail, topbar (community switcher with its delete confirm, ✚, settings popover), bottom nav, and the toast container, moved from `src/App.tsx:776-812` (the skip link and the rail `<aside>`), `:813-921` (the `<div className="shell">` and its `<header className="topbar">`), and `:1257-1263` (the `.toast-container`) plus `:1264-1277` (the bottom `<nav>`). It **owns its own transient chrome state** — the open community menu, the open settings popover, the add-community form and the community-name input — because nothing outside the chrome reads those four:
 
@@ -1891,7 +1891,7 @@ export function AppChrome(props: AppChromeProps) {
 }
 ```
 
-- [ ] **Step 11: Compose `src/App.tsx` from the new modules**
+- [x] **Step 11: Compose `src/App.tsx` from the new modules**
 
 ```ts
   const { toasts, notify } = useToasts();
@@ -1979,7 +1979,7 @@ It did not, at any commit, on this branch. See Global Constraint 6 for the measu
 
 Trim the import block first (it is mechanical), then move the four tournament-entry helpers. Both are inside C's ownership (`src/shell/**`, `src/App.tsx`) and neither changes a frozen name.
 
-- [ ] **Step 13: Run the browser suite — `saved-squad.spec.ts` is the acceptance test**
+- [x] **Step 13: Run the browser suite — `saved-squad.spec.ts` is the acceptance test**
 
 ```bash
 npm run build
@@ -1989,7 +1989,7 @@ git diff --stat e2e/tests
 ```
 Expected: `saved-squad.spec.ts` passes (it exercises save-from-split → list → use-in-tournament end to end, which is this flow); the whole suite **0 failed**; empty diff.
 
-- [ ] **Step 14: Commit**
+- [x] **Step 14: Commit**
 
 ```bash
 git add -A
@@ -2035,7 +2035,7 @@ git commit -m "refactor(shell): extract the split and tournament flow, chrome an
   };
   ```
 
-- [ ] **Step 1: Write the failing test — a native dialog actually blocks automation**
+- [x] **Step 1: Write the failing test — a native dialog actually blocks automation**
 
 Create `/tmp/probe-dialogs.mjs` (outside the repo, so it is not a repo file, and it does not touch `e2e/**`):
 
@@ -2084,7 +2084,7 @@ node /tmp/probe-dialogs.mjs
 ```
 Expected **today** (the red state): `dialogs` is `["confirm:Delete player \"Probe Player\"?"]` and `controls` is `[]` — the page's dialog handler is what released the click, so with no handler the click would have stalled until the 30 s timeout. That is the defect the audit reproduced live. After this task the same probe prints `dialogs: []`, `controls: ["Cancel", "Delete player"]` and `stillOpen: true`.
 
-- [ ] **Step 2: Create `src/ui/ConfirmButton.tsx`**
+- [x] **Step 2: Create `src/ui/ConfirmButton.tsx`**
 
 The precedent already ships at `src/tournament/TournamentScreen.tsx:245` (`deleteConfirm`) with its two-step at `:376-408`. Seven hand-rolled copies of that boolean would be worse than the dialogs, so the pattern becomes one primitive:
 
@@ -2146,7 +2146,7 @@ export function ConfirmButton({ label, confirmLabel, message, onConfirm, classNa
 
 It reuses three classes that already exist — `.btn-ghost` (`src/index.css:1163`), `.btn-danger-ghost` (`:1169`) and `.status-msg` — so `src/index.css` does not change. **One measured caveat the spec does not state:** `.status-msg`'s *only* rule is `.status-banner .status-msg` (`src/index.css:2751`), a descendant selector. `ConfirmButton`'s message span is therefore styled only where the caller already sits inside a `.status-banner`. At the modal `.bar` sites (`DisciplineEditModal`, `PlayerEditModal`) it renders unstyled and inherits the bar's typography — the copy is visible, correct and unstyled, which is why no CSS changes. A site that wants the muted treatment wraps its `ConfirmButton` in the existing `.status-banner` div; do not add a rule to `src/index.css` for this. Nothing traps focus; nothing sets `aria-modal`.
 
-- [ ] **Step 3: Replace the seven `window.confirm()` calls**
+- [x] **Step 3: Replace the seven `window.confirm()` calls**
 
 Six go through `ConfirmButton`, keeping their warning copy verbatim.
 
@@ -2260,7 +2260,7 @@ with `e.stopPropagation()` preserved the same way.
 
 The seventh confirm — the import merge at `src/App.tsx:449` — becomes `usePlayerImport`'s `pendingMerge` in Step 5, because its trigger is a file input rather than a button.
 
-- [ ] **Step 4: Replace the ten `alert()` calls with `notify`**
+- [x] **Step 4: Replace the ten `alert()` calls with `notify`**
 
 Every sentence is preserved. The types follow the two `notify` already distinguishes (`src/index.css:2835-2857`): guards and failures `error`, the two count reports `success`.
 
@@ -2278,7 +2278,7 @@ Every sentence is preserved. The types follow the two `notify` already distingui
 
 **The copy delta is exactly one joiner.** `:714`'s list is `join('\n')` today and a toast is a single inline paragraph, so it becomes `join("; ")`. Nothing else changes a character. Keep the `console.error("Tournament validation failed:", validation)` line above `:714` as it is.
 
-- [ ] **Step 5: Create `src/shell/usePlayerImport.ts`**
+- [x] **Step 5: Create `src/shell/usePlayerImport.ts`**
 
 **How `notify` reaches a deep component — the rule Phase D needs.** `useToasts()` holds its state internally and is called **once**, in `src/App.tsx`; `notify` then travels as a prop (`AppChrome` gets `toasts` only, because it renders the region; `useSplitFlow` and `usePlayerImport` get `notify` in their deps). A component that is not `App` must never call `useToasts()` itself: its own state would be a second list that nothing renders. Phase D's share sheet and bulk-rating modal therefore take `notify` as a prop from whatever mounts them. If Phase D ever needs a context instead, adding a `ToastProvider` is a change to `src/shell/useToasts.ts` and `src/App.tsx` — this phase deliberately does not introduce one, because the app has no React context anywhere today (`grep -rn "createContext\|useContext" src/` → no matches).
 
@@ -2375,7 +2375,7 @@ The copy and the merge semantics — **add only new ids, never overwrite** — a
 
 and keeps the hidden `<input type="file" accept=".json,.csv,.txt" onChange={(e) => { const f = e.target.files?.[0]; if (f) void importFile(f); }} style={{ display: "none" }} />`. The five-count sentence is byte-identical to the `window.confirm` string at `:450`.
 
-- [ ] **Step 6: Surface the throws and the swallowed writes**
+- [x] **Step 6: Surface the throws and the swallowed writes**
 
 `applyResult` and `undoLastGame` throw by design (`src/tournament/bracket.ts:252-289`) and neither handler wrapped the call; the frontier guard is reachable from two tabs on one tournament, so a rejected recording was an unhandled rejection. Both wrap and report — the throw already carries the user-readable message ("That match isn't ready to record: its teams aren't decided yet."), so nothing is invented:
 
@@ -2427,7 +2427,7 @@ The legacy-adoption effect gets a `.catch` on both writes that notifies **once**
 
 `SplitScreen`'s inline "This arrangement wasn't saved." stays as it is — that is the pattern, already correct. **Do not add a global error boundary here**: Phase A's A05 owns it.
 
-- [ ] **Step 7: Verify**
+- [x] **Step 7: Verify**
 
 ```bash
 grep -rn "alert(\|window.confirm(" src/
@@ -2439,7 +2439,7 @@ git diff --stat src/index.css
 ```
 Expected: the first prints **nothing**; `tsc -b` exits 0; vitest green; the probe prints `dialogs: []` and `controls: ["Cancel", "Delete player"]` — the click never stalls; `git diff --stat src/index.css` is **empty** (the two-step reuses the existing classes).
 
-- [ ] **Step 8: Run the browser suite, then commit**
+- [x] **Step 8: Run the browser suite, then commit**
 
 ```bash
 npm run e2e
@@ -2466,7 +2466,7 @@ git commit -m "fix(shell): replace native dialogs with toasts and inline confirm
 - Consumes: nothing.
 - Produces: `export interface Crumb { label: string; go?: () => void }` and `export function Breadcrumb({ crumbs }: { crumbs: Crumb[] }): JSX.Element` in `src/nav.tsx`.
 
-- [ ] **Step 1: Write the failing probe**
+- [x] **Step 1: Write the failing probe**
 
 Create `/tmp/probe-crumbs.mjs`. It drives the app to an ad-hoc split through the real UI, captures the crumb markup, clicks the first crumb, and reports what changed:
 
@@ -2521,7 +2521,7 @@ node /tmp/probe-crumbs.mjs
 ```
 Expected **today** (the red state): `crumb.links` is `["Match setup"]` and `crumb.spans` is `["/", "Split result"]`, with `navigated: false` — the link's own handler is a comment (`/* back handled via app */`), so the click does nothing. On a `session` or `squad` split the label claims "Match setup" where no match-setup screen exists beneath it. After this task: `crumb.links` is `["Match setup"]`, `crumb.spans` is `["/", "Split result"]` and `navigated: true`, and on a session split the first crumb reads `History`.
 
-- [ ] **Step 2: Rewrite `Breadcrumb` to emit exactly what the three copies emit**
+- [x] **Step 2: Rewrite `Breadcrumb` to emit exactly what the three copies emit**
 
 **Why this is a rewrite and not just a wire-up.** The existing `src/nav.tsx` component emits each crumb inside an extra wrapper `<span>` (`<span key={i}>…</span>`), so its live DOM is
 
@@ -2576,7 +2576,7 @@ export function Breadcrumb({ crumbs }: { crumbs: Crumb[] }) {
 
 **The key is `\`${i}-${c.label}\``, not `c.label`** — a tournament may legitimately be named `Games`, which would make `TournamentScreen`'s two crumbs `["Games", "Games"]` and give React duplicate keys in one list. The index prefix is stable here because a breadcrumb list is fixed-length for the lifetime of a screen, and index-alone is avoided so the key still changes if a label changes.
 
-- [ ] **Step 3: Render it at the three call sites**
+- [x] **Step 3: Render it at the three call sites**
 
 `src/session/MatchScreen.tsx:41-46` — the hand-rolled block becomes a prop:
 
@@ -2633,7 +2633,7 @@ import { Breadcrumb } from "../nav";
 
 (`src/nav.tsx` is at `src/`, so `../nav` from `src/session/` and `src/tournament/`.)
 
-- [ ] **Step 4: Verify in the DOM, not by reading the diff**
+- [x] **Step 4: Verify in the DOM, not by reading the diff**
 
 ```bash
 grep -rn "Breadcrumb" src/
@@ -2645,7 +2645,7 @@ Expected: the first matches `src/nav.tsx` plus `MatchScreen`, `TournamentScreen`
 
 Re-run the probe: clicking `Match setup` on an ad-hoc or tournament split returns to match setup; clicking `History` on a session split returns to History; the last (current) crumb is a `<span>`, not an `<a>`, and clicking it does nothing.
 
-- [ ] **Step 5: Run the suites, then commit**
+- [x] **Step 5: Run the suites, then commit**
 
 ```bash
 npx vitest run
@@ -2695,7 +2695,7 @@ git commit -m "fix(nav): the breadcrumb navigates, from one shared component"
   export async function downloadSampleData(disciplineId: string): Promise<void>;
   ```
 
-- [ ] **Step 1: Record the baseline the change is measured against**
+- [x] **Step 1: Record the baseline the change is measured against**
 
 ```bash
 npx vite build
@@ -2718,7 +2718,7 @@ Expected and **recorded as the baseline**, measured on HEAD:
 
 The Landing Page's CSS links are `index-CgrHkb71.css` **and** `landing-CJvxMLgK.css` because `src/landing.tsx:7` imports `./index.css`. It **already does not link `app-LNkAbv9g.js`** — the JS half of the roadmap's exit criterion already holds, and this task says so rather than claiming a change it did not make.
 
-- [ ] **Step 2: Write the failing test — the loader is async**
+- [x] **Step 2: Write the failing test — the loader is async**
 
 In `src/data/sample-data.test.ts`, change the import to the registry for the synchronous functions and await the four that became asynchronous:
 
@@ -2765,14 +2765,14 @@ In `src/data/sample-data.test.ts`, change the import to the registry for the syn
 
 The `vi.stubGlobal("document", …)` stub needs no change: the implementation reaches the real `URL.createObjectURL` under Node and the stubbed `document.createElement`, both of which the test already provides.
 
-- [ ] **Step 3: Run it to verify it fails**
+- [x] **Step 3: Run it to verify it fails**
 
 ```bash
 npx vitest run src/data/sample-data.test.ts
 ```
 Expected: FAIL — `Failed to resolve import "./sample-registry" from "src/data/sample-data.test.ts"`.
 
-- [ ] **Step 4: Split the module at its real seam**
+- [x] **Step 4: Split the module at its real seam**
 
 Create `src/data/sample-registry.ts` — the registry holds **no JSON**, so importing it statically pulls nothing. Move into it, unchanged, `SAMPLE_DATA`, `BLOB_URLS`, `hasSampleData`, `addSampleData`, `listDisciplinesWithSampleData`, `detectDisciplineFromSampleData`, `PLAYER_NAMES` and `autoGenerateSampleData` from `src/data/sample-data.ts` (after Task 2 deleted `ROLE_NAMES` at `:74`), plus:
 
@@ -2852,7 +2852,7 @@ and add one `await` in `src/App.tsx`'s already-`async` wrapper:
 +      await download(disciplineId);
 ```
 
-- [ ] **Step 5: Run the test to verify it passes**
+- [x] **Step 5: Run the test to verify it passes**
 
 ```bash
 npx vitest run src/data/sample-data.test.ts
@@ -2861,14 +2861,14 @@ npx tsc -b
 ```
 Expected: the sample-data file passes with its five awaited assertions; the whole unit suite green; `tsc -b` exits 0. **If the diff grows past the five edits listed**, revert to the one-line static import and record in the Answer that the 22.6 kB of rosters ships with the app.
 
-- [ ] **Step 6: Verify the warning is gone and the rosters moved**
+- [x] **Step 6: Verify the warning is gone and the rosters moved**
 
 ```bash
 npx vite build
 ```
 Expected: the build completes with **zero warnings** (baseline: 1), and `grep -c "Kairi" dist/assets/app-*.js` → **0**, with the string now in a new asset fetched only on demand.
 
-- [ ] **Step 7: Move the split region and the shared kit into `src/split.css`**
+- [x] **Step 7: Move the split region and the shared kit into `src/split.css`**
 
 The membership rule is decidable, not a guess: **a rule moves iff every selector in it is reachable from `SplitScreen`'s rendered subtree or from a primitive that subtree renders.** Measured against the shipped sheet, that is 110 rules / 14,095 bytes — 23% of the 60,908-byte `src/index.css` — in two disjoint groups. The two sets share zero selectors.
 
@@ -2894,7 +2894,7 @@ and `src/landing.tsx` stops importing the app sheet entirely:
 -import "./index.css";
 ```
 
-- [ ] **Step 8: Delete the animation that resolves to nothing**
+- [x] **Step 8: Delete the animation that resolves to nothing**
 
 `src/landing.css:535` declares `animation: pulse-needle 2.4s … infinite`, and `@keyframes pulse-needle` is defined **nowhere in the repository** (`grep -c "@keyframes" src/landing.css` → 0; `src/index.css`'s only keyframes are `@keyframes pulse` at `:327`). The declaration has never had an effect, and no spec asserts it (`grep -n "needle" e2e/tests/landing/landing.spec.ts` → no matches), so removing a declaration that resolves to nothing changes no pixel.
 
@@ -2914,7 +2914,7 @@ and `src/landing.tsx` stops importing the app sheet entirely:
    .landing-hero .team {
 ```
 
-- [ ] **Step 9: Verify the new sizes against the recorded baseline, then the rendered result**
+- [x] **Step 9: Verify the new sizes against the recorded baseline, then the rendered result**
 
 ```bash
 npx vite build
@@ -2928,7 +2928,7 @@ Expected, compared against Step 1's table: **zero build warnings**; `dist/index.
 
 A before/after `getComputedStyle` diff of the hero subtree at 1280×720 and 390×844 must match on every class name. Record both tables in the Answer in the baseline's format.
 
-- [ ] **Step 10: Run the suites and the hero capture, then commit**
+- [x] **Step 10: Run the suites and the hero capture, then commit**
 
 ```bash
 npx vitest run
@@ -2955,7 +2955,7 @@ git commit -m "build: the landing page stops downloading the app's stylesheet"
 - Consumes: the file layout Tasks 1–9 produce (`src/shell/**`, `src/ui/constants.ts`, `src/split.css`); A10's `npm run e2e` script.
 - Produces: nothing other phases import.
 
-- [ ] **Step 1: Derive the engine floor from the lockfile, not a guess**
+- [x] **Step 1: Derive the engine floor from the lockfile, not a guess**
 
 ```bash
 node -e "const l=require('./package-lock.json'); for (const k of ['node_modules/vite','node_modules/vitest','node_modules/@playwright/test','node_modules/@napi-rs/lzma-linux-x64-gnu']) { const p=l.packages[k]; console.log(k, p && p.version, JSON.stringify(p && p.engines)); } console.log('root engines:', JSON.stringify(l.packages[''].engines));"
@@ -2966,7 +2966,7 @@ Expected: `vite 6.4.3 {node:"^18.0.0 || ^20.0.0 || >=22.0.0"}`, `vitest 3.2.7 {n
 
 The intersection of the constraints enforced at install time is `>=22.20 <23 || >=24.12`: it excludes the 23.x and 24.0–24.11 ranges the installed native optional dependency refuses, while admitting the 22.20+ line and current 24.x.
 
-- [ ] **Step 2: Add the floor and the pin**
+- [x] **Step 2: Add the floor and the pin**
 
 ```diff
 # package.json — after "private": true, before "version" is also acceptable; keep the file's order
@@ -2983,7 +2983,7 @@ Create `.nvmrc` with exactly one line:
 24.16.0
 ```
 
-- [ ] **Step 3: Write `README.md`**
+- [x] **Step 3: Write `README.md`**
 
 It is the front door for a human or an agent. Every command and path in it must exist. Describe C's HEAD and nothing more: no service worker, no offline promise, no account, no backend.
 
@@ -3054,7 +3054,7 @@ There is no service worker, no offline support, no installable app and no backen
 Landing Page's offline claim is provisional and its restoration belongs to a later phase.
 ````
 
-- [ ] **Step 4: Check every command and path the README names**
+- [x] **Step 4: Check every command and path the README names**
 
 ```bash
 test -f README.md && test -f .nvmrc && echo "files ok"
@@ -3068,7 +3068,7 @@ npx tsc -b
 ```
 Expected: `files ok` and `engines ok` both print; `jq -r '.engines.node'` prints `>=22.20 <23 || >=24.12`; the two extracted lists match — the README names only scripts `package.json` defines (`dev`, `build`, `preview`, `test`, `test:watch`, `e2e`, `capture:hero`, plus the bare `install` that npm provides rather than a script entry); the path loop prints **nothing**; the `grep` returns only the lines that explicitly **deny** the claim (the "What this README does not claim" paragraph); `tsc -b` stays green.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add -A
