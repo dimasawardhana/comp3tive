@@ -555,8 +555,21 @@ body {
 }
 /* The bench advisory is the same kind of line on the same surface, one step
    further down, and it inherits `--panel-text` from `.pitch` the same way, so
-   it needs the same correction. Without this the advisory is the one line on
-   the hero that renders in the dark panel's ink on warm paper. */
+   it needs the same correction.
+
+   It matches nothing on the hero today. The demo roster is ten players in two
+   teams of five, nobody is left off, and `benchAdvice` answers `null` when
+   there is no bench to advise about, so the advisory is not on this page. The
+   rule is kept rather than deleted because the hero mounts the real
+   `SplitScreen` and not a picture of one: a roster with somebody spare on it
+   puts the line back on this surface, and without this it would arrive in the
+   dark panel's ink on warm paper.
+
+   Kept is not the same as held, so it is held:
+   `e2e/tests/split/bench-advice-visual.spec.ts` asserts the count is 0 here,
+   so nothing pretends the line renders, and then asks the browser what a
+   `.bench-advice` computes to inside the hero in both schemes. The demo roster
+   is a product decision and is not edited to make a colour override fire. */
 .landing-hero .bench-advice {
   color: var(--text);
 }
