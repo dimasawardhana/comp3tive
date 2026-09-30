@@ -207,6 +207,7 @@ two-step confirm); `src/domain/useDisciplines.ts`; `src/data/sample-data.ts` (lo
 | `src/shell/RosterScreen.tsx`, `src/shell/usePlayerImport.ts` | C's files, extended: `visiblePlayers`, `notify`, `lastReport` |
 | `src/shell/useSplitFlow.ts` | C's file: `consumeTeams` gains the round-robin guard |
 | `src/data/player-import.ts`, `src/session/gapProvenance.ts` | **reads, never writes** |
+| `src/session/flow.ts` | **amended by D's Task 38 follow-up** — see below |
 | `package.json` | plan-only Modify: no dependency added |
 | `src/tournament/team-counts.test.ts`, `e2e/tests/dashboard/nudge.spec.ts`, `e2e/tests/split/fairness.spec.ts`, `e2e/tests/share/*.spec.ts` | new coverage |
 
@@ -410,6 +411,26 @@ because the slot ordering calls `strengthOf(player, discipline)`; the D spec fro
   The hexes are keyed by BIB's own keys, so a sixth bib fails to compile rather than rendering an
   uncoloured stripe. This phase has already removed four duplicate definitions of exactly this kind
   of constant; a fifth is not added.
+
+**Amended by D's Task 38 follow-up, 2026-09-30 — `src/session/flow.ts` is now writable by D, to own
+one name resolver.** It appeared in **no** phase's ownership table, and its neighbour
+`gapProvenance.ts` is marked *reads, never writes*, so nothing had a claim on it.
+
+The reason is that **eight copies of the same fallback** — `roster.find(p => p.id === id)?.name ?? "?"`
+— live across `SplitScreen.tsx` (`:91`, `:397`), `SquadsScreen.tsx:40`, `benchAdvice.ts:291-292`,
+`flow.ts:25`, `share-image.ts:295` and `share-text.ts:67`, and `contracts.md:410` says a fifth
+duplicate of this kind is not added. **One of those eight renders a full stop straight after the
+question mark** (`SplitScreen.tsx:397`, `...swap with ?.`), so the rule at `fairness.ts:90-93` — that
+a full stop after the list prints `?.` — is a local patch on a global inconsistency, and the semicolon
+chosen for the fairness line was right *within its clause* and wrong about the codebase.
+
+`flow.ts` is the right home for one concrete reason rather than a tidy one: **all three surfaces
+already import `strengthOf` and `teamName` from it** (`fairness.ts:2`, `share-text.ts:3`,
+`share-image.ts:2`), and it **already holds a private `nameOf` at `:25` with the identical fallback**.
+So this promotes an existing private helper rather than adding an edge, and the alternative —
+putting it in `share-text.ts` — would invert the direction D established, where a measurement shares
+no verdict with a surface. **The label and the terminator stay per surface**; only the name list is
+shared, because only the fairness copy carries a mark.
 
 **D37 does not import `gapProvenance.ts` at all.** Its copy must not restate or contradict a
 provenance word: a unit test asserts neither returned string contains `proven`, `best gap`,
