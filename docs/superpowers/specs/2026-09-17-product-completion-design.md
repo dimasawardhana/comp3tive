@@ -301,9 +301,15 @@ codepoints. Remove that face and 87 of those codepoints — `U+0300`, `U+0301`, 
 `U+0309`, `U+0323`, and `U+1EA0`–`U+1EF1`, the Vietnamese additions in Latin Extended Additional —
 are covered by no other Familjen Grotesk face, so they move to whatever `--font-body`'s fallback
 stack finds. `src/fonts.test.ts:79` asserts `toHaveLength(5)` for exactly that reason. One
-number in this paragraph's own evidence does not check out and is in `src/`, so it is reported
-rather than repaired here: the comment at `src/fonts.css:69` calls it "fifteen codepoint
-ranges", and the declaration it describes has thirteen.
+number in this paragraph's own evidence did not check out, and it was in `src/` rather than here:
+the comment at `src/fonts.css:69` called it "fifteen codepoint ranges" when the declaration it
+describes carries thirteen, and — the larger error — counted *ranges* where only *codepoints*
+mean anything, since four of those thirteen overlap `latin-ext`. **Repaired, in `9f729d3`**, with
+the same 87-of-111 figure this paragraph uses, and with the overlap named so the two counts cannot
+be confused again. It went unrepaired through one review round because the comment sat in `src/`
+and every audit of this round was scoped to `docs/`. **That is the lesson worth keeping: a claim
+can be recorded as a known defect in the right words and still be the only false thing left in the
+tree, because fixing the record and fixing the thing are different acts.**
 
 **Why this one survived an audit that found nothing, and why the next one might too.** The
 sentence corrected above cited no `file:line` — this amendment does, but it did not when the
