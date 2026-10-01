@@ -410,7 +410,6 @@ export default function App() {
         activeCommunity={activeCommunity}
         onDeleteCommunity={deleteCommunity}
         communityDeleteWarning={communityDeleteWarning}
-        showAddCommunity={showAddCommunity}
         onToggleAddCommunity={() => setShowAddCommunity((s) => !s)}
         themePref={themePref}
         layoutPref={layoutPref}

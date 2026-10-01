@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useMemo } from "react";
 import type { Capability, Discipline, Id, Player, Session, SplitResult, TeamAssignment } from "../domain/types";
-import { describeFlags, teamName } from "./flow";
+import { describeFlags, nameOf, teamName } from "./flow";
 import { freshSplit, swapPlayers } from "./edit";
 import { gapQualifier } from "./gapProvenance";
 import { rerollPool, type SplitSource } from "../shell/useSplitFlow";
@@ -390,11 +390,11 @@ export function SplitScreen({ session, discipline, roster, onPersistResult, onSu
       </div>
 
       {swapMode && (
-        <div className="swap-banner">
+        <div className="swap-banner" role="status">
           <span className="swap-banner-icon" aria-hidden="true">⇄</span>
           <span>
             {pick
-              ? `Now tap a player on the other team to swap with ${roster.find((p) => p.id === pick.playerId)?.name ?? "?"}`
+              ? `Now tap a player on the other team to swap with ${nameOf(roster, pick.playerId)}`
               : "Tap one player on each team to swap them."}
           </span>
         </div>

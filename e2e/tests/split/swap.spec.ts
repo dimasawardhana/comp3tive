@@ -333,6 +333,55 @@ test("entering the mode hides the bar's other actions, and leaving restores all 
   ]);
 });
 
+test("the banner's text change is announced, because the element survives the change", async ({ page }) => {
+  // The browser half of a check a static render cannot make.
+  //
+  // `role="status"` announces a live region's *changes*, and it is inert when
+  // the region is inserted into the DOM with its text already inside it. That
+  // is why Task 4 removed a `role="status"` from the bench advisory
+  // (`src/DashboardScreen.nudge.test.ts:88-100`): the advisory is inserted once,
+  // with its sentence, and never changes afterwards.
+  //
+  // So the attribute is only worth having here if the banner behaves
+  // *differently*, and the difference is the whole justification. This test
+  // establishes it as a fact about the DOM rather than as an argument in a
+  // comment: it tags the banner node, taps a card, and then asserts that the
+  // node carrying the new sentence is **the same node it tagged**. A mutation
+  // of a mounted region is what a live region announces; a fresh node with the
+  // text already in it is what defeats one.
+  //
+  // If a later edit moves the `swapMode &&` guard inside the element, or
+  // re-mounts the banner per pick, this fails, and the reason is written here
+  // rather than left for the next person to rediscover.
+  await openSplit(page);
+  await page.getByTestId("swap-mode").click();
+
+  const banner = page.locator(".swap-banner");
+  await expect(banner).toContainText("Tap one player on each team to swap them.");
+
+  // The region exists before the change, which is the precondition for an
+  // announcement. Asserted rather than assumed: it is the fact the nudge lacks.
+  await expect(banner).toHaveAttribute("role", "status");
+  await banner.evaluate((node) => node.setAttribute("data-live-region", "tagged"));
+
+  await card(page, "Alfa").click();
+
+  // The change, and the identity. Both halves: the text is what a screen reader
+  // is given, and the tag is what proves the region was already there to give it.
+  await expect(banner).toContainText("Now tap a player on the other team to swap with Alfa");
+  await expect(page.locator('.swap-banner[data-live-region="tagged"]')).toContainText(
+    "Now tap a player on the other team to swap with Alfa",
+  );
+
+  // And it survives the third transition too: a completed swap clears the pick
+  // and the same node mutates back. A banner that were re-created per pick would
+  // pass the assertion above and fail this one.
+  await card(page, "Hotel").click();
+  await expect(page.locator('.swap-banner[data-live-region="tagged"]')).toContainText(
+    "Tap one player on each team to swap them.",
+  );
+});
+
 test("the solver-failure screen withholds Swap, because a swap needs two teams", async ({ page }) => {
   // A swap needs a team on each side. Below two teams the screen renders its
   // "Solver failed" empty state, and `Swap` is withheld on the same gate Share

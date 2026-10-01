@@ -591,6 +591,192 @@ them down. Naming one button, one label and one existing handler leaves the row 
 `grep -E "^-[^-]"` still answers *did this file lose anything*, and `data-testid="swap-mode"` names
 the one thing this amendment is about.
 
+### Amended by Day 2, R2, 2026-10-01 — three review findings, three separate grants
+
+This amendment is written **before** the code it governs, and it is **three amendments and not
+one**, because the three findings sit under three different rules. The first removes a prop from a
+file no rule holds; the second and third each rewrite one line of the file the row above holds, and
+they rewrite different lines for different reasons. One grant covering all three would make the
+zero-removed-lines check answer a question nobody asked, which is how the R1 row got a comment-only
+CSS exception nobody was looking for.
+
+#### (a) `AppChrome.showAddCommunity` — the declaration, the doc line and the call-site prop
+
+**What it grants, in full, and it is three deletions:** the `showAddCommunity` member of
+`AppChromeProps` at `src/shell/AppChrome.tsx:19-20`, its doc line, and the
+`showAddCommunity={showAddCommunity}` attribute at `src/App.tsx:413`. That is every occurrence
+outside `src/shell/useAddCommunity.ts`, where the flag is real and is the hook's own state.
+
+**Why the prop lies and the gate does not.** `AppChrome` destructures six props at `:41-48` and
+this is not one of them; the word does not appear again anywhere in the file. The one production
+call site passes it, and the one place it is actually read is `src/App.tsx:426`, where App gates
+`<AddCommunityForm>` on it, thirty lines away from the element that owns the button. **So the
+feature is not dead and the gate is not misplaced.** The defect is narrower and it is a naming
+defect: a boolean on the chrome's interface reads as *the chrome knows whether the form is showing*,
+and it does not, cannot, and has no way to act on the answer. A future reader who trusted it would
+reasonably add an `aria-expanded` or a `hidden` to the ✚ button from the prop, and that change
+would be wrong, because the chrome's ✚ has no idea which state the form is in. Nothing would fail.
+That is the whole cost, and it is the cost this grant pays off.
+
+**The doc survives, in a different form and on a different prop.** `AppChrome.tsx:19` says *the ✚
+form lives in App's `<main>`, so its visibility is App's to toggle*, and every clause of that is
+true and worth keeping. What made it a lie was the member it was attached to. It moves to
+`onToggleAddCommunity`, which **is** read (`:155`, the ✚ button) and which is the only half of the
+gate the chrome can hold, where it states the fact and names what the chrome does not know.
+
+**What it does not grant, and each is not reopened by it:**
+
+- **It grants no change to `src/App.tsx:426`**, to the `:435` empty-state condition that also reads
+  the flag, or to either `<AddCommunityForm>` prop. Those are App's gate and they stay App's.
+- **It grants no edit to `useAddCommunity.ts`.** That module's own doc at `:5-8` already explains
+  why the flag is not private to the form, and its `:12-14` explains why the setter is raw. Both
+  remain true after this change, so both are untouched.
+- **It grants no new prop to replace the old one**, and no callback that reports the form's
+  visibility back to the chrome. If the ✚ ever needs `aria-expanded`, that is a **second** named
+  amendment whose reason would be the missing announcement, not this one.
+
+**Why it is narrow.** The finding was not a dead feature, and a grant phrased as *make the ✚
+accessible* would have invited exactly the state-plumbing that was not asked for. Naming the
+declaration, the doc and the one attribute leaves a checkable residue: `grep showAddCommunity`
+returns the hook, App's gate and App's empty state, and nothing in `src/shell/AppChrome.tsx`.
+
+#### (b) the swap-prompt lookup at `SplitScreen.tsx:397`
+
+**What it grants, in full:** the one name in the template literal at `src/session/SplitScreen.tsx:397`
+is resolved by `nameOf(roster, pick.playerId)` instead of by the inline
+`roster.find((p) => p.id === pick.playerId)?.name ?? "?"`, and `nameOf` is added to the existing
+`./flow` import at `:4`. **Two lines are rewritten in place and no line is inserted or deleted.**
+
+**This grant is not additive, and it says so rather than claiming otherwise.** The verification in
+the §6 row is `git diff -U0 ... | grep -E "^-[^-]"` → no output. A line rewritten in place fails
+that check exactly as a deleted line would, so **this is the third named exception** to it: exactly
+two rewritten lines, `:4` and `:397`, and nothing else. It is a *replacement*, not an insertion,
+and the honest description of it is a removal of the inline lookup followed by an insertion of the
+call. The first named exception (2026-09-30, the trailing full stop on that same line) is
+**untouched and still narrow**: this grant neither widens nor reuses it. The full stop it took is
+already gone and stays gone.
+
+**Why this one and only this one converts.** Of the four surviving `?? "?"` sites this is the only
+one that is the same work in the same shape. `pick.playerId` is an `Id`, `roster` is a `Player[]`,
+and `nameOf`'s signature is `(roster, id)`: a character-for-character restatement of it, with the
+one behaviour difference that `nameOf` prints the same `?` ghost the inline form prints, so
+`ghostMark.test.ts` and the reachable-ghost test at `:134` are unaffected. `SplitScreen.tsx:4`
+already imports from `./flow`, so the edge exists and this adds no module to the graph.
+
+**What it does not grant, and each is not reopened by it:**
+
+- **It grants nothing at `SplitScreen.tsx:91`**, which looks convertible and is not, for the reason
+  recorded in (d) below. It also grants nothing at `TournamentScreen.tsx:490` or
+  `src/share/fairness.test.ts:304`.
+- **It grants no edit to `src/session/flow.ts`.** The resolver already exists at `:44` with this
+  exact fallback; it is a consumer here, not an author.
+- **It grants no change to the banner's copy, its punctuation, or the `⇄` icon.** The sentence it
+  produces is byte-identical before and after, which is what `e2e/tests/split/swap.spec.ts:199`
+  already asserts.
+- **It grants no second line of `:397`.** One expression, one import, one commit.
+
+#### (c) `role="status"` on the swap banner, and the check that `role="status"` would have worked
+
+**What it grants, in full:** one attribute on the existing element at
+`src/session/SplitScreen.tsx:393`, `<div className="swap-banner">` → `<div className="swap-banner"
+role="status">`. **One line rewritten in place, nothing inserted, nothing deleted.** Like (b) this
+is the **fourth named exception** to the §6 zero-removed-lines check, and it covers that one line
+and no other. It is not additive and it does not claim to be.
+
+**The finding.** The banner's text changes under the user's finger and nothing tells a screen
+reader. It reads *Tap one player on each team to swap them.* until a card is tapped, and *Now tap a
+player on the other team to swap with X* after, and that second sentence is the only place in the
+app that says **which player is now the one half of the swap that has happened**. A sighted user
+sees it in the same viewport as the tap. A non-sighted user gets no confirmation at all, and the
+next tap completes a swap of a player they cannot name. This predates the swap-mode bug, is outside
+every grant above including R1's, and is a real gap.
+
+**The check, which is the deliverable as much as the fix.** The obvious fix is `role="status"`,
+which is polite and is exactly right for a status sentence. **Before shipping it, the question is
+whether this element has the same shape as the bench advisory whose `role="status"` Task 4 removed**,
+because that removal's recorded reason (`src/DashboardScreen.nudge.test.ts:88-100`) is that the
+element is *inserted into the DOM with its text already inside it*, so a live region announces
+nothing and the attribute would be inert.
+
+**It is the same shape for one transition and not for the others, and the difference is the whole
+answer.** The advisory has exactly one transition: it is inserted once, with its sentence, and it
+never changes afterwards. The banner has four, and they are not alike:
+
+1. **`swapMode` false → true.** The div is inserted with *Tap one player on each team to swap them.*
+   already inside it. **This is the advisory's exact shape.** `role="status"` announces nothing
+   here, and no attribute would.
+2. **`pick` null → a player.** `swapMode` stays true, so the div is **already in the DOM** and only
+   the text of its child `<span>` mutates. **A live region announces this.** This is the transition
+   the finding names and the one that matters.
+3. **A completed swap clears `pick`.** Same mounted node, text mutates back. Announced.
+4. **`pick` → a different `pick`** (a second tap on the same team clears it; a tap on the other
+   team completes). Same mounted node, text mutates. Announced.
+
+So `role="status"` is not the plausible-looking attribute here; it is the correct one, because the
+transition that carries the information is a mutation of an already-present region and not an
+insertion. **`e2e/tests/split/swap.spec.ts` now pins that distinction as a fact about the DOM**
+rather than leaving it as an argument in a comment: it tags the banner node, taps a card, and
+asserts the tagged node is the one holding the new sentence. If a later edit moves the `swapMode &&`
+guard inside the element, or re-mounts the banner per pick, that test fails and the reason is
+written down rather than rediscovered.
+
+**The residual, stated rather than hidden.** Transition 1 is still silent, and this amendment does
+**not** fix it. Fixing it needs a live region that is permanently mounted and receives the banner
+later, which collides with two things this contract holds: `e2e/tests/split/swap.spec.ts:326`
+asserts `.swap-banner` has **count 0** when the mode is off, and `.swap-banner` is a styled hook in
+`src/split.css:636` that a permanent wrapper would redefine. Both are design decisions with a
+measurement behind them, not a repair, so the entry announcement is **recorded here as known-open**
+rather than smuggled in under a grant about the text change. It is a real gap and it is the next
+one on this surface.
+
+**What it does not grant, and each is not reopened by it:**
+
+- **It grants no `aria-live` on any other element of this screen**, and no `aria-live` on
+  `.split-head` or the `.pick` cards. One live region, on the one element whose text changes under
+  the user.
+- **It grants no declaration in any stylesheet.** `role="status"` carries no user-agent styling in
+  any browser this app targets, and `.swap-banner` at `src/split.css:636` is untouched, so the bar
+  and the banner measure exactly as R1 measured them.
+- **It grants no change to the banner's copy, its icon, or `aria-hidden` on the icon.** The icon
+  stays out of the announcement, which is correct: the announcement is the sentence, not the glyph.
+- **It grants no `aria-live="assertive"`**, no debounce, and no focus move. A swap is the user's own
+  tap being reflected back; interrupting them would be the wrong politeness.
+
+#### (d) the three sites that are **not** converted, and the reason each one is recorded
+
+The next sweep must not re-report these three. Each reason is recorded where the resolver's own
+contract is kept, in `src/session/flow.test.ts`'s header, which is the file whose stated subject is
+this decision; and each is restated here so the reason survives a test file being rewritten.
+
+- **`SplitScreen.tsx:91`, `{player?.name ?? "?"}`. Held, and the reason is *not* the one usually
+  given.** It is routinely reported as "resolves a `Player | undefined`, not an id", and that is
+  true of the *expression* but is not why the line is right. `player` is bound at `:71` as
+  `roster.find((p) => p.id === slot.playerId)` and is used again at `:73` for
+  `playerCapability(player, discipline)`. **The lookup has already been performed**, by the line
+  that needs the whole `Player`, and `nameOf(roster, slot.playerId)` would run it a second time over
+  the same array to reprint a value already in hand. So the site is not a duplicate that survived
+  the sweep; it is the sweep's own shape, and converting it would make the file do more work to say
+  the same thing. Leave it, and say so.
+- **`TournamentScreen.tsx:490`, `{team?.name ?? "?"}`. Held.** It resolves a tournament **`Team`**
+  through `teamOf(tournament, row.teamId)` at `:484`, out of the tournament rather than out of a
+  roster, and `nameOf`'s first parameter is a `Player[]`. There is no conversion that is not a cast.
+  Note that the `"TBD"` fallback sometimes attributed to this line belongs to a **different**
+  expression: the local `nameOf` closure at `TournamentScreen.tsx:479`, which resolves a
+  `TournamentMatch`'s `teamAId`/`teamBId` and is the one place a missing team is *expected* rather
+  than *ghosted*. That closure stays, and it is not one of the four `?? "?"` sites.
+- **`src/share/fairness.test.ts:304`. Held, and it cannot be anything else.** The line builds the
+  test's own oracle: `WITH_SITS.unassigned.map((id) => ROSTER.find((p) => p.id === id)?.name ?? "?")`,
+  compared against `sitOuts(composedLine(WITH_SITS))`. Writing it as `namesOf` or `nameOf` would
+  make the assertion compare the resolver against itself, and it would then pass for any wiring at
+  all, including the wiring this file exists to catch. Every expected string in
+  `src/session/flow.test.ts` is written out for the same reason.
+
+**What this sub-section does not grant.** It grants no edit to any of those three sites, and no
+fourth amendment may cite this paragraph as authority to edit them: each is a refusal with a
+reason, and changing one is a finding of its own.
+
+
+
 
 ---
 

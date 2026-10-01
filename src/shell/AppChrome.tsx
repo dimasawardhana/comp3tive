@@ -16,8 +16,12 @@ export interface AppChromeProps {
   onSelectCommunity: (id: Id) => void;
   onDeleteCommunity: (id: Id) => void;
   communityDeleteWarning: (id: Id) => string;
-  /** The ✚ form lives in App's `<main>`, so its visibility is App's to toggle. */
-  showAddCommunity: boolean;
+  /**
+   * The ✚ form lives in App's `<main>`, so its visibility is App's to toggle.
+   * This is the chrome's half of that gate and nothing more: the button asks
+   * App to flip the flag and the chrome never learns the answer, which is why
+   * the button carries no `aria-expanded`.
+   */
   onToggleAddCommunity: () => void;
   themePref: string;
   layoutPref: string;

@@ -3,22 +3,41 @@
  *
  * Eleven places under `src/` carried the ghost placeholder `?? "?"`. Nine of
  * them wrote the whole lookup, `roster.find((p) => p.id === id)?.name ?? "?"`,
- * and three of those nine were a local `nameOf` closure. Seven now call these
- * two functions.
+ * and three of those nine were a local `nameOf` closure. **Eight** now call these
+ * two functions: `SplitScreen.tsx:397` converted on 2026-10-01, which was the
+ * last of the eight that was genuinely the same work in the same shape.
  *
- * Four are held on purpose, and each for its own reason rather than as a
- * number: `SplitScreen.tsx:91`, which `contracts.md` holds at zero removed
- * lines; `SplitScreen.tsx:397`, whose one amendment (`contracts.md:538`) is
- * scoped to a single character and so leaves the lookup standing;
- * `TournamentScreen.tsx:490`, which resolves a tournament *team* and not a
- * player, out of a different collection with a different fallback; and
- * `fairness.test.ts:304`, which must not build its oracle out of the helper it
- * is testing.
+ * Three are held on purpose, and each for its own reason rather than as a
+ * number. These are recorded here because this file's subject is the decision,
+ * so that the next sweep reads the reason before it re-reports the site.
+ *
+ * **`SplitScreen.tsx:91`, `{player?.name ?? "?"}`.** The reason usually given
+ * is that it resolves a `Player | undefined` rather than an id, and that is true
+ * of the expression but is not why the line is right. `player` is bound at `:71`
+ * as `roster.find((p) => p.id === slot.playerId)` and is used again at `:73` for
+ * `playerCapability(player, discipline)`. **The lookup has already happened**, by
+ * the line that needs the whole `Player`, so `nameOf(roster, slot.playerId)`
+ * would scan the same array a second time to reprint a value already in hand.
+ * It is not a duplicate that survived the sweep; it is the shape the sweep
+ * produces.
+ *
+ * **`TournamentScreen.tsx:490`, `{team?.name ?? "?"}`.** It resolves a
+ * tournament `Team` via `teamOf(tournament, row.teamId)` at `:484`, out of the
+ * tournament rather than a roster, and `nameOf`'s first parameter is a
+ * `Player[]`. No conversion exists that is not a cast. The `"TBD"` fallback
+ * often attributed to this line belongs to the separate local `nameOf` closure
+ * at `TournamentScreen.tsx:479`, which resolves a `TournamentMatch`'s
+ * `teamAId`/`teamBId` and is the one place a missing team is *expected* rather
+ * than *ghosted*. That closure is not one of the `?? "?"` sites and stays.
+ *
+ * **`src/share/fairness.test.ts:304`.** It builds this repository's own oracle,
+ * the benched names compared against `sitOuts(composedLine(WITH_SITS))`. Written
+ * as `nameOf` or `namesOf` it would compare the resolver against itself and pass
+ * for any wiring at all, including the wiring the file exists to catch.
  *
  * Every expected string below is written out, never taken from these
- * functions, because a test that computed its oracle with the resolver would
- * pass for any wiring at all. The one thing being pinned is the shape of the
- * contract the other seven call sites now depend on.
+ * functions, for that same reason. The one thing being pinned is the shape of
+ * the contract the other eight call sites now depend on.
  */
 import { describe, expect, it } from "vitest";
 import { nameOf, namesOf } from "./flow";
