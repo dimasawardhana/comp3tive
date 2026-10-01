@@ -1,6 +1,6 @@
 # Swap mode has no entry point: a shipped feature cannot be started
 
-**Status:** ready-for-agent
+**Status:** resolved
 **Found:** 2026-09-30, while cleaning up a one-character copy fix. The character was unreachable too.
 
 ## The defect
@@ -98,3 +98,19 @@ flags, CSS-only states, or render gating outside `.tsx`. That is a different swe
 class turns out to be real, it is probably worth running.
 
 ## Comments
+
+
+## Verified 2026-10-01 — resolved, every row measured on master
+
+| Row | Measured |
+|---|---|
+| A reachable entry, in the bar's own shape | `src/session/SplitScreen.tsx:518` — a `Swap` ghost, `data-testid="swap-mode"`, last among the secondaries and gated on `result.teams.length > 1`, which is the gate `Share` already had. The root commit's shape, so the original label was restored rather than invented. A comment at `:499` names `36d32b6` and records that it dropped the button while keeping the handler. |
+| A test that enters the mode and performs a swap | `e2e/tests/split/swap.spec.ts`, 7 cases, all green. Against the pre-fix commit `497aa8b` all seven go red, four of them waiting for `swap-mode`. |
+| `swapPlayers` exercised through the UI | The same spec covers the two-step pick, the same-team clear, the live gap update (4.0 → 2.4), the provenance stamp, `Enter` and `Space`, `role="button"`/`tabIndex`, and the transitions in and out. `src/session/SplitScreen.swap-entry.test.ts` holds the markup-level claims. |
+| The four documents | **Met by the code, not by editing them.** `docs/spec/0001-team-builder-v1.md:45` and `:77` describe the feature and the feature now works, so they became true. `docs/FLOW.md:169` and `DESIGN.md:100` were rewritten in `781eb55` because they described it wrongly. |
+| `contracts.md:538` respected | The file was held to zero removed lines; a named exception was written **before** the code, granting one `Swap` ghost and refusing removal, a second control, and every edit to `:392-401`, `:497` and `:397`. |
+
+The catch, for whoever reads this next: **the bug lived between a correct function and a reachable
+control.** `swapPlayers` was unit-tested from Phase A and the card affordances never changed, so
+nothing covered the reaching. One assertion closes that — *a control which turns swap mode on is in
+the bar.*

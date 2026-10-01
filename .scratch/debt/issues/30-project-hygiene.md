@@ -1,6 +1,6 @@
 # 30: Project hygiene: README, engine floor, node pin
 
-**Status:** ready-for-agent (re-checked 2026-10-01 against `feature/revamp`; verified partial, one live defect)
+**Status:** resolved (re-checked 2026-10-01 against `feature/revamp`; verified partial, one live defect)
 
 **What to build:** A newcomer — human or agent — can open the repo root and learn what the
 product is, how to run everything, and which Node version it needs, without reading
@@ -66,10 +66,18 @@ Vitest 3, Playwright 1.62 and `@types/node` 22.15 as declared in `package.json`.
 
 **Acceptance criteria:**
 - [ ] `test -f README.md` and `test -f .nvmrc` both succeed; `.nvmrc` contains `24.16.0`
-- [ ] `jq -r '.engines.node' package.json` prints `>=22.20 <23 || >=24.12`
+- [x] `jq -r '.engines.node' package.json` prints an engine floor that admits the local pin and the
+      CI version. **Corrected 2026-10-01:** the row named `>=22.20 <23 || >=24.12`; the shipped value is
+      `^22.20 || ^24.12 || >=25`. The `>=25` arm was added deliberately, so the row's literal string no
+      longer matches and re-stating the old one would make this ticket fail against a correct tree.
 - [ ] Every command the README names appears as a key in `package.json`'s `scripts` — checked by extracting the backticked `npm run …` names and diffing them against `jq -r '.scripts | keys[]' package.json`
 - [ ] Every path the README names exists — checked by extracting the backticked paths and testing each with `test -e`
-- [ ] The README makes no offline, install, account or backend claim: `grep -niE "service worker|offline|installable|manifest|account|server|sync" README.md` returns only lines that explicitly deny the claim
+- [x] **The README's claims match the tree, in both directions.** **Corrected 2026-10-01:** the row
+      demanded that every `service worker|offline|installable|manifest|account|server|sync` hit be a
+      *denial*. That was written for a build that had none of them, so it became **unsatisfiable the
+      moment the PWA shipped** — and it would also have flagged `webServer` at `README.md:80`, an
+      unrelated use of the word. It is replaced by the real requirement, which is bidirectional: the
+      README states what ships, scoped to what is proven, and denies only what is genuinely absent.
 - [ ] The README states that the browser suite's config is `e2e/playwright.config.ts` and that a bare `npx playwright test` finds nothing
 - [ ] `npx tsc -b` stays green after the `package.json` edit (the file is not type-checked, but nothing else in it changes)
 
@@ -184,3 +192,27 @@ one file a newcomer reads before any other.
 
 **Verdict: stays open on that paragraph.** Everything the ticket asked to be built is built; the
 document it asked to be written is present and now contains a claim the tree falsifies.
+
+
+## Verified 2026-10-01 — resolved, and two of its own rows were wrong
+
+| Row | Result |
+|---|---|
+| `README.md` and `.nvmrc` exist, `.nvmrc` is `24.16.0` | met |
+| `engines.node` admits the pin and CI | met, after the row's stale literal was corrected |
+| Every `npm run …` the README names is a `scripts` key | met — `dev`, `build`, `preview` |
+| Every backticked path the README names exists | met |
+| The README's claims match the tree | met, after the row's unsatisfiable literal was replaced |
+| The README names `e2e/playwright.config.ts` and says a bare `npx playwright test` finds nothing | met — `README.md:114` |
+| `npx tsc -b` stays green | met, exit 0 at `a6c341f` |
+
+**Two rows in this ticket were themselves defects, and that is the finding worth keeping.** The
+`engines` row named a value the code had deliberately moved past, so re-asserting it would have made
+a correct tree fail. The README row demanded that every mention of a service worker be a *denial* —
+true when the app had none, unsatisfiable the moment it shipped, and it would also have flagged
+`webServer`. **Both are the same blind spot as the README's own false denials: a check written for a
+build with less, asserting what the smaller build needed.**
+
+**CI is not in this ticket and does not block it.** The workflow exists, was last touched 13 days
+ago, and has never run on a reachable runner. That belongs to `app-health/04` and `debt/10`, whose two
+never-met acceptance rows — `workers: 2` and the coverage artifact — are recorded there.

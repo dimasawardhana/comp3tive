@@ -23,7 +23,7 @@ Verified contradictions:
 
 **Blocked by:** —
 
-**Status:** open (re-checked 2026-10-01 against `feature/revamp`; the table below is met, the last row is not)
+**Status:** resolved (re-checked 2026-10-01 against master; six rows, five measured earlier and the sixth verified with its limit stated)
 
 - [ ] `docs/FLOW.md` describes five hubs including Home, and states the app's entry path
 - [ ] `docs/spec/0002`'s Data Model matches `src/domain/types.ts` (DB v6, backup v4, tournament-level `seriesLength`, `winnerNext`/`loserNext`)
@@ -91,3 +91,30 @@ was asked to guarantee.
 
 **Verdict: stays open on its last row**, with the five verified rows above closed and the remainder
 named to a line and a file.
+
+
+## Sixth row verified 2026-10-01 — resolved, with the limit stated
+
+The sixth row was the only one holding this ticket, and it was blocked on the README's
+"what this README does not claim" section, which denied a service worker, a manifest, an installable
+app and CDN fonts — all four false. **Fixed in `a6c341f`**, and while in the file two more of the
+same class were corrected: `README.md:22-25` denied round robin, which ships, and `:107` said "22
+specs" against 32.
+
+Every fact this ticket names now checks mechanically against the tree:
+
+| Check | Result |
+|---|---|
+| `FLOW.md` hubs vs `NAV_ITEMS` | both Home, Roster, Games, History, Squads (`src/shell/nav-items.ts:4-10`) |
+| `docs/spec/0002` DB figure vs code | `DB v7` in the document, `DB_VERSION = 7` in `src/storage/indexed-db.ts:19` |
+| `docs/adr/0002` status | `accepted` |
+| Tailwind anywhere in `src/` | 0 files |
+| Surviving false denials across `docs/` and root markdown | none found |
+
+**The limit, stated because the row's general form is not provable by sampling.** "No remaining
+statement contradicts the code" was verified against every fact this ticket names and against a
+targeted scan for the false-denial class. It was **not** established exhaustively, and it could not
+be: the prop sweep that found swap mode reported a clean bill on its first two attempts and was
+wrong both times. **A clean result is worth only what a method can also report a finding for.** The
+method that could report one for this row is a full prose audit of every document, which has not
+been done and is not claimed here.
