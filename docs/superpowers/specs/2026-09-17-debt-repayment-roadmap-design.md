@@ -56,7 +56,7 @@ promise is kept by separating authority from the read path: the server is author
 keeps a write-through cache, and no screen ever waits on the network. ADR-0007 supersedes ADR-0001;
 ADR-0008 fixes the identity model. The design and its decisions live in `.scratch/backend/spec.md`
 and its six tickets, which is where the detail belongs; this roadmap records the order and the
-boundary. The order is A (shipped), B, C, D, E.
+boundary. The order is A, B, C, D, E; which of them shipped is **Where each phase stands** below.
 
 **Out of scope for this roadmap:**
 
@@ -106,6 +106,56 @@ graph LR
   D --> E["Phase E<br/>Account and Durability<br/>6 tickets"]
   B -.->|"B14's frozen copy must not land false"| E
 ```
+
+### Where each phase stands
+
+**The order is A → B → C → D → E**, and the graph above is the only place it was written before
+2026-10-01 — there was no table, so "did B ship?" had to be answered by reading five ticket lists.
+This one answers it in three columns. **Shipped is measured against `.scratch/debt/issues/`, not
+against this file**, so the two can be checked independently: every row below was read from the
+`Status:` line of each ticket on 2026-10-01.
+
+| Phase | Owed | Tickets | Shipped | What is still open |
+|---|---|---|---|---|
+| **A** · Truth and Trust | 12 | 12/12 | **yes** | — |
+| **B** · Honest Claims | 8 | 8/8 | **yes** | — |
+| **C** · Shell and Structure | 10 | 8/10 | **partly** | 26 and 30 — see below |
+| **D** · Product Completion | 7 | 7/7 | **yes** | — |
+| **E** · Account and Durability | 6 | 0/6 | **no, not started** | all six |
+
+**A, B and D shipped in full. C did not, and the shortfall is one acceptance row.** C's headline
+criterion is "`src/App.tsx` is under 400 lines" and it is **513** (`wc -l src/App.tsx`). This is the
+criterion no review accepted and no ticket rescoped, and it is the same one
+`contracts.md:180` states — so it is a real unclosed row rather than a stale number in one
+ticket. Both open tickets name it:
+
+- **26** — everything else in it shipped (`splitFlowRule` and `rerollPool` at
+  `src/shell/useSplitFlow.ts:31`/`:51`, the rule's truth table pinned at
+  `src/shell/split-flow.test.ts:13-37`, `rerollPool` with a real caller at
+  `src/session/SplitScreen.tsx:326`). The line count is the row that did not.
+- **30** — README, `.nvmrc` and `engines` all ship. Its remaining row is CI, which is a gate only
+  the owner can pass. Its own `## Comments` records a **separate live defect**: the README's
+  "What this README does not claim" section (`README.md:141-151`) denies a service worker, a
+  manifest and CDN fonts, all three of which ship (`public/sw.js`, `public/manifest.webmanifest`,
+  `public/fonts/`).
+
+**Two tickets are not in the 43 and are not phased.** `38` (the solver's bench advisory) and `39`
+(swap mode's entry point) were found after the roadmap was written; both are Phase D work that
+shipped. `38`'s ticket records the decision that the search is **not** widened and an advisory is
+added instead; `39` was a shipped feature that had been unreachable for ten weeks.
+
+**The two not-started phases are the whole of what is left.** E is the optional Account
+(`.scratch/backend/spec.md`, six tickets, all `ready-for-agent`), and it is a separate iteration by
+design — not unfinished business inside this programme.
+
+**CORRECTION (2026-10-01, measured) — the `Files` table below, one stale sentence.** Its closing
+paragraph reads "The two ADRs, the backend spec, its six tickets, and the `CONTEXT.md` / ADR-0001
+edits are authored and staged in the working tree but **not yet committed**". They are committed:
+all of them land in `4a282cd` ("feat: an optional backend, with the Account authoritative for
+whoever signs in"), and ADR-0001's superseded status is at `docs/adr/0001-client-only-first.md:5`.
+One row above it, "`docs/superpowers/plans/2026-09-28-account-and-durability.md`" as a `Create`, is
+still true — the file does not exist and Phase E's plan is unwritten. That is a plan not written, not
+a claim about a file that moved.
 
 **Why this order.**
 

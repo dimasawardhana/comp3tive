@@ -1,6 +1,6 @@
 # 26: The split and tournament flow move out of the shell
 
-**Status:** ready-for-agent
+**Status:** ready-for-agent (re-checked 2026-10-01 against `feature/revamp`; verified partial, headline row still unmet)
 
 **What to build:** The rule that decides whether an edit is saved — *whether a mutation
 persists depends on where the split was entered from* — is testable on its own instead of being
@@ -133,3 +133,56 @@ But the ledger's own reason for not chasing it still stands: the remaining struc
 a 161-line handler block, and scoping a task to "close 114 lines" would over-scope it into a much
 larger refactor than the residual justifies. That judgement has not been made, and it is not this
 task's to make — `src/App.tsx` is untouched by this re-check.
+
+## Re-checked 2026-10-01 — the rule, and the row that is still open
+
+Run against the tree at `3297156`, every row re-read rather than taken from the entry above.
+
+**The named rule is real, exported, and pinned.** `src/shell/useSplitFlow.ts:31` exports
+`splitFlowRule`; its truth table is asserted for **all four** sources in
+`src/shell/split-flow.test.ts:14-28` — ad-hoc `{true,false,false}`, tournament `{false,true,false}`,
+session and squad `{false,false,true}` — plus `:30-36` asserts exactly one flag is true per source,
+which is the invariant the ticket's own wording implies and which no single row can check.
+`rerollPool` is at `:51` and **has a real production caller** at `src/session/SplitScreen.tsx:326`,
+which was this ticket's own stated reason for existing.
+
+**The other seven rows hold.**
+
+| Row | Measured |
+|---|---|
+| `grep 'source === "ad-hoc"\|source === "tournament"' src/App.tsx` | no output |
+| `rerollPool` returning the session pool when supplied | `split-flow.test.ts:41` |
+| …returning flattened teams when the pool is `null` or empty | `:53`, `:56` |
+| …including a player in no current team (the sat-out case) | `:45`, asserts the pool contains `p7` |
+| `consumeTeams` refuses an illegal count, same message | `useSplitFlow.ts:276-279`, message byte-identical to `src/App.tsx:325-335`; arms at `:76-81` |
+| the five extracted files exist; `toast-container` named in one file | `RosterScreen.tsx`, `AppChrome.tsx`, `usePreferences.ts`, `useToasts.ts`, `ui/Toasts.tsx`; `grep -rl toast-container src/` → `src/ui/Toasts.tsx` **and** `src/index.css`, so the row is off by one file — the stylesheet, which the ticket did not anticipate when it said "exactly one file" |
+| no `View`, `HubMode` or `NAV_ITEMS` in `App.tsx` | none |
+
+**Two of the ticket's own rows are stale and are corrected here rather than left to be re-failed.**
+
+- **`grep -c "useState(" src/App.tsx` → 4** is **now 4 again after being wrong**: the file holds
+  `tournamentPrefill` (`:50`), `filterIds` (`:51`), `editingPlayer` (`:56`) and `downloadingId`
+  (`:296`) — the four this row names, all of them still present. It was briefly reported as 0 by a
+  grep for `useState(` alone, which misses the four calls that write `useState<T>(`; the row is
+  right and the check was wrong.
+- **`git diff --numstat src/session/SplitScreen.tsx` shows one added and one removed line** is no
+  longer true and never will be again: `36d32b6` predates this ticket, and `eab22bf` (swap mode's
+  entry point) plus `3297156` have since added to the file. **The row has been satisfied by a
+  history it cannot see.** What it was really protecting — that this ticket moved the `reroll` pool
+  expression and nothing else — is true and is now what the row should say.
+
+**The headline row is still unmet, and it is the reason this stays open.** `wc -l src/App.tsx` is
+**513**, against a criterion of under 400. That is the same number the entry above recorded (514,
+before Phase D's own last line landed) and the same shortfall the phase ledger ruled on
+(`.superpowers/sdd/2026-09-17-shell-and-structure/progress.md:609`: "The under-400 goal was NOT met,
+and that is reported rather than chased"). It has since grown by Phase D's storage carve-out —
+`git diff --numstat 1bcce41 HEAD -- src/App.tsx` is **+41 / −1**, so 473 + 40 = 513 — and Phase C
+had already ended at 473, which is **73 over on its own**.
+
+**Why this is not being resolved by closing the ticket.** `contracts.md:180` and this roadmap both
+state the under-400 target, so it is one unclosed acceptance row shared by three documents, not a
+stale number in one file. The ledger's reason for not chasing it still stands — the remaining
+structural lines sit in a 161-line handler block, and scoping a task to "close 113 lines" would
+over-scope it into a larger refactor than the residual justifies. **That judgement is the owner's
+and has not been made.** This ticket stays open with the rule shipped and the number unmet, which
+is the only reading of its acceptance list that is true.

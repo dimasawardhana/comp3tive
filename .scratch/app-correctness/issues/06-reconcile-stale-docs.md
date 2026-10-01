@@ -23,7 +23,7 @@ Verified contradictions:
 
 **Blocked by:** —
 
-**Status:** open
+**Status:** open (re-checked 2026-10-01 against `feature/revamp`; the table below is met, the last row is not)
 
 - [ ] `docs/FLOW.md` describes five hubs including Home, and states the app's entry path
 - [ ] `docs/spec/0002`'s Data Model matches `src/domain/types.ts` (DB v6, backup v4, tournament-level `seriesLength`, `winnerNext`/`loserNext`)
@@ -35,3 +35,59 @@ Verified contradictions:
 **Design reference:** none.
 
 **Notes:** This is not cosmetic in this repo: `CLAUDE.md` and `docs/agents/domain.md` direct agents to read `CONTEXT.md` and `docs/adr/` before exploring, so stale ADRs and specs propagate into implementation work. A wrong "DB v5" is likely to be believed over the code.
+
+## Re-checked 2026-10-01 — what landed, and the remainder
+
+Every row below was measured on the tree at `3297156`. **Five of the six hold; the sixth is the
+reason this stays open**, and it is the one row no amount of table-ticking could have closed.
+
+| Row | Measured |
+|---|---|
+| `docs/FLOW.md` describes five hubs incl. Home, states the entry path | **holds** — `FLOW.md:20-23` (`/app`, ADR-0006), `:27-35` (five hubs); `NAV_ITEMS` at `src/shell/nav-items.ts:4-10` is Home, Roster, Games, History, Squads in that order |
+| `docs/spec/0002`'s Data Model matches `src/domain/types.ts` | **holds** — `docs/spec/0002-tournaments-v1.md:3` reads "shipped (DB v7, backup v4)", `:134-146` carries tournament-level `seriesLength` and `winnerNext`/`loserNext`; DB **v7** at `src/storage/indexed-db.ts:19`, backup v4 at `src/data/transfer.ts:6` |
+| `docs/adr/0002` has a status reflecting reality | **holds** — `docs/adr/0002-tournament-first-flow.md:5` reads `**Status**: accepted`, `:6` an acceptance date |
+| `DOMAIN_MODEL.md` and `IMPLEMENTATION_PLAN.md` are not left as authoritative-looking plans | **holds** — `DOMAIN_MODEL.md` is at `docs/archive/DOMAIN_MODEL.md` under a superseded banner; `IMPLEMENTATION_PLAN.md:3` now declares itself the live index and `:7-16` records what it used to be |
+| The Tailwind claim in the paper-pencil plan is corrected | **holds** — `docs/superpowers/plans/2026-09-10-paper-pencil-redesign.md:9` reads "TypeScript, React, Vite, Vitest, hand-written CSS custom properties — no new dependencies required" |
+| **No remaining statement in `docs/` or the root markdown contradicts the code on a fact a reader would act on** | **does not hold** — see below |
+
+**The corrections named in the body all landed, and the spec's own DB figure moved past what this
+ticket asked for.** The body predicted DB **v6**; the tree is at **v7** and
+`docs/spec/0002-tournaments-v1.md:271-272` records having caught and corrected its own v6 upward.
+`TournamentTeam.players: Id[]` is at `src/domain/types.ts:36` as the body predicted, and the
+three hand-rolled crumb blocks are now the shared `Breadcrumb` (`src/nav.tsx:16-29`) — the body said
+`src/nav.tsx` was unused and `SplitScreen`'s crumb was a dead `<a href="#">`; both were true then and
+neither is now. `docs/FLOW.md:89-102` carries the correction in place rather than a rewrite.
+
+**The roadmap spec's phase table did not exist, and now does.** D3 named this as a gap:
+"The roadmap spec's phase list greps empty… an authority that cannot be read is not one." Confirmed —
+`docs/superpowers/specs/2026-09-17-debt-repayment-roadmap-design.md` had five `## Phase` sections and
+a dependency graph but **no table**, so "which phases shipped" was unanswerable from the sequencing
+authority itself. It now carries **Where each phase stands**: order, owed, shipped, still open, with
+each row read from the tracker's `Status:` lines rather than from the document.
+
+### The remainder, precisely — the last row
+
+**`README.md:141-151` denies three capabilities that ship, in the first file a newcomer opens.**
+"What this README does not claim" says there is no service worker, no web-app manifest and no
+installable app, and that both documents load their typefaces from a CDN. All four clauses are
+falsified by the tree: `public/sw.js` (12,894 B), `public/manifest.webmanifest` (597 B),
+`public/icons/`, and `public/fonts/` — with `grep -c "fonts.googleapis\|fonts.gstatic"` over
+`index.html`, `app/index.html` and `public/404.html` returning **0, 0, 0**.
+`e2e/tests/pwa/offline.spec.ts` proves offline in 7 cases.
+
+**It is not a stale number in a document nobody opens.** It is the one sentence a person reads
+before any code, and it tells them a capability this build has is absent — which is the specific
+failure this ticket exists to remove. **It belongs to `.scratch/debt/issues/30-project-hygiene.md`,
+which owns it and stays open for it**, and this ticket stays open because that row is the one it
+was asked to guarantee.
+
+### Also recorded, not part of this ticket's rows
+
+- **`docs/ROADMAP.md` was itself stale** — it listed R1, R2 and D1 as to-do after all three landed.
+  Updated 2026-10-01 against the commits.
+- **Two a11y gaps were found while verifying** and are now `.scratch/debt/issues/40-*.md` (swap
+  mode's entry is never announced) and `41-*.md` (`AppChrome`'s ⚙ trigger has no `aria-expanded`).
+  Neither is a stale document, which is why they are new tickets rather than rows here.
+
+**Verdict: stays open on its last row**, with the five verified rows above closed and the remainder
+named to a line and a file.

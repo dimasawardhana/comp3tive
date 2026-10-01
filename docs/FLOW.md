@@ -1,7 +1,8 @@
 # comp3tive · Page Flow
 
 **Date:** 2026-09-08
-**Reconciled:** 2026-09-28
+**Reconciled:** 2026-09-28 (document-level: the pass that brought this file back to the shipped app).
+Row-level corrections carry their own dated `CORRECTION` note and do not move this stamp.
 **Status:** Accepted — this document is the contract. The app must conform to it.
 
 This is the target navigation architecture. It replaces the ad-hoc view switching that let
@@ -166,10 +167,31 @@ which would be a visible redesign.
 |--------|----|------|
 | "Re-roll" | in-place (re-solve) | user |
 | (mode) "Swap" / "Done swapping" in the action bar — neither reachable below two teams | in-place (two picked players trade teams, gap recomputed) | user |
-| "Save as squad" | in-place + modal → new Squad row | user, auto row |
-| (ad-hoc) "Done" | source hub (History row exists) | user |
-| (tournament) "Submit to tournament" | the tournament (bracket seeded, review) | user + auto |
+| "Save squad" | in-place + modal → new Squad row | user, auto row |
+| (ad-hoc) no forward control — the split is persisted as it is solved | a Session exists (History row) from the first solve; "Re-roll" is the primary | user |
+| (tournament) "Save teams to tournament →" | the tournament (bracket seeded, review) | user + auto |
 | Back / breadcrumb | see §2 source table | user |
+
+
+**CORRECTION (2026-10-01, measured) — the three rows above, verified against
+`src/session/SplitScreen.tsx`.** All three named controls that did not ship under those names.
+
+- **"Submit to tournament" is `Save teams to tournament →`** (`:534`), renamed from
+  `Save tournament squad →` by B15 — a rename `contracts.md:501-502` records. `data-testid` went with
+  it: the root commit's `submit-tournament-squad` no longer exists.
+- **"Save as squad" is `Save squad`** (`:471`), and always was: `git show 2e373b1` — the commit that
+  wrote this file — already renders `Save squad`. The Squads empty state quotes the same label
+  (`src/session/SquadsScreen.tsx:115`).
+- **There is no ad-hoc "Done."** The ad-hoc bar is `← Match setup`, `Save squad`, `Share`, `Swap`,
+  `Re-roll` (`:459-540`), so "Re-roll" is already the row above this one. What the old row was
+  reaching for is real and now stated as a fact rather than as a button: **an ad-hoc split is
+  persisted on every solve**, through `onPersistResult` (`ScreenSwitch.tsx:304-314`), so the History
+  row exists from the first split rather than on a confirmation. "Done" was once a real label — at
+  `45f2eed` it was the **swap mode's exit**, not an ad-hoc exit — which is the likeliest way the row
+  drifted into naming a control nobody can find.
+
+The two rows this correction does not touch are correct as written: `Re-roll` (`:537`) and
+`Back / breadcrumb` (`:460`, `:375-380`).
 
 ### Games (hub)
 

@@ -1,6 +1,6 @@
 # 30: Project hygiene: README, engine floor, node pin
 
-**Status:** ready-for-agent
+**Status:** ready-for-agent (re-checked 2026-10-01 against `feature/revamp`; verified partial, one live defect)
 
 **What to build:** A newcomer — human or agent — can open the repo root and learn what the
 product is, how to run everything, and which Node version it needs, without reading
@@ -111,3 +111,76 @@ explicitly deny the claim", and lines 143-144 do explicitly deny it. A false den
 grep written to exclude false claims, which is why this needed a human reading of the paragraph
 rather than the mechanical check. It is the same class of defect this programme exists to remove,
 in the one file a newcomer opens before any other, and it is why this ticket stays open.
+
+**The CI twin carries two acceptance rows that were never met, and neither is a defect.** CI's
+original copy is `.scratch/app-health/issues/04`, the twin of `.scratch/debt/issues/10`. Its six
+rows are not six passes:
+
+- **Row 4, "Playwright workers are pinned to 2" — never done.** `e2e/playwright.config.ts:7` reads
+  `workers: 1`. debt 10's acceptance says "*`workers: 1` … is **not** changed here*" and hands the
+  question to debt 11, which measured `workers: 2` green three times and deliberately left it at 1.
+- **Row 5, "coverage is produced and attached as a build artifact" — dropped by name.** debt 10's
+  acceptance says the coverage ask is dropped because it "would gate a number nobody has chosen a
+  threshold for". `ci.yml` has no coverage step; the only `upload-artifact` (`:17`) is
+  `playwright-report/`.
+
+So the CI half of this ticket is **shipped, and shipped at four of six rows on its original
+acceptance list.** That is recorded here because a reader checking `app-health/04`'s own boxes
+would otherwise find two unmet rows with nothing in this ticket explaining them.
+
+## Re-checked 2026-10-01 — shipped, and the one row that is a live defect
+
+**Shipped, measured on the tree at `3297156`:**
+
+- `README.md` exists, 9,317 bytes. `.nvmrc` contains `24.16.0`. `package.json` carries an
+  `engines.node` floor.
+- The browser-suite row holds and is the one a newcomer hits first: `README.md:103-104` says the
+  config lives at `e2e/playwright.config.ts` and that **a bare `npx playwright test` finds
+  nothing**. Confirmed against the tree: `playwright.config.ts` is at `e2e/`, not the root, and
+  `package.json` carries `"e2e": "playwright test --config=e2e/playwright.config.ts"`.
+- Every command the README names is a key in `scripts`, and every path it names exists.
+- **`npx tsc -b` exits 0** at this tree, so the row about the `package.json` edit holds.
+
+**Two rows are not as written, and neither blocks the ticket.**
+
+- The `engines.node` string is `^22.20 || ^24.12 || >=25`, not the prescribed
+  `>=22.20 <23 || >=24.12`. The admitted set is identical (`^22.20` is `>=22.20 <23`; the other two
+  are `>=24.12`), so the floor is right and only the spelling differs. Recorded in the entry above
+  and re-confirmed here.
+- The final row says "close 114 lines" in the sibling ticket's arithmetic; against this ticket's own
+  criterion the gap is **113** (`wc -l src/App.tsx` is 513). That number belongs to debt 26, which
+  stays open for it.
+
+**The remainder is CI, and CI is not this ticket's to close — but it is not the whole remainder
+either.** The workflow exists (`.github/workflows/ci.yml`, added by `c3d7cb4` and unchanged since)
+and it runs typecheck → unit → build → browser. **What has not happened is a run**: debt 10 records
+that CI has never executed on a GitHub runner, because none is reachable from this machine, and
+branch protection is still a one-line maintainer action. **That is a gate only the owner can pass,
+and it is recorded here so this ticket's remaining work is not mistaken for something an agent can
+do.**
+
+**The row that keeps it open is the README's own denial, and it is worse than a stale number: it is
+a false statement in the first file a newcomer opens.** `README.md:141-151` still says there is no
+service worker, no web-app manifest and no installable app, and that both documents load their
+typefaces from a CDN. Every clause is contradicted by the tree:
+
+| README says | Tree has |
+|---|---|
+| no service worker | `public/sw.js`, 12,894 bytes |
+| no web-app manifest | `public/manifest.webmanifest`, 597 bytes |
+| no installable app | the manifest above, plus `public/icons/` |
+| typefaces from a CDN | `public/fonts/` (5 woff2 + 2 OFL); `grep -c "fonts.googleapis\|fonts.gstatic"` over `index.html`, `app/index.html` and `public/404.html` returns **0, 0, 0** |
+
+`e2e/tests/pwa/offline.spec.ts` proves offline for both documents in 7 cases. So the README is
+denying a capability Phase D shipped and its own e2e suite tests. **This is a documentation ticket
+and the fix is one paragraph of prose** — which is exactly why it belongs here rather than in the
+owner's CI gate: nothing about it waits on anyone else.
+
+**The status-row check cannot find this, and that is worth knowing.** The row reads "returns only
+lines that explicitly deny the claim", and `README.md:143-144` do explicitly deny it. **A false
+denial satisfies a grep written to exclude false claims.** It needed reading the paragraph against
+the tree, not running the check — the same class of defect this programme exists to remove, in the
+one file a newcomer reads before any other.
+
+**Verdict: stays open on that paragraph.** Everything the ticket asked to be built is built; the
+document it asked to be written is present and now contains a claim the tree falsifies.

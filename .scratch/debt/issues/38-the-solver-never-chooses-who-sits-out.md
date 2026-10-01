@@ -1,6 +1,6 @@
 # When a leftover is forced and one player outclasses the field, the solver benches someone else
 
-**Status:** ready-for-agent
+**Status:** resolved (re-checked 2026-10-01 against `feature/revamp`; every acceptance row measured)
 
 ## The finding
 
@@ -219,3 +219,54 @@ clause inside a longer sentence while the other two are whole lines. The
 sentence was not unified, and should not be.
 
 Report: `.scratch/review/name-resolver-consolidation-report.md`.
+
+## Re-checked 2026-10-01 — the advisory shipped, and the search-widening question is answered
+
+**Verdict: resolved.** Every acceptance row below was measured on the tree at `3297156`, and the
+decision the ticket was waiting on is recorded rather than open.
+
+### The acceptance rows, one by one
+
+| Row | Where it is met |
+|---|---|
+| Names a specific player | `src/session/benchAdvice.ts`; `benchAdvice.test.ts:210` "names the one player whose absence would have evened these teams" |
+| **Silence is the default** | **nine** separate cases: `benchAdvice.test.ts:411` (nobody sitting out), `:424` (gap already 0.0), `:448` (nobody outranks the bench), `:468` (shapes with no gap), `:489` (a pool it cannot rebuild), `:502` (the solver's bench is already the best of every bench choice), `:513` (the search ran out of budget), `:388` (every shipped roster, every team count), `:354` (the scope is hedged when unproven) |
+| A test pins a pool the fairest arrangement cannot fix, with the named player | `benchAdvice.test.ts:139-241` — `OUTSTAND`, `PARTIAL`, `RESIDUAL`, `CROWDED`, `BELOW_THE_CUT`, each a hand-computed fixture, never the module's own output (`:4-8`) |
+| A test pins the opposite — the solver's bench is already best | `benchAdvice.test.ts:502` |
+| The three shipped rosters still split to gap 0, proven, zero flags | `benchAdvice.test.ts:633`, and `src/data/sample-data.validation.test.ts:104` asserts every `sample-data/*.json` player passes `validatePlayer` — both green |
+| The wording states the scope and never says "fairest" | `benchAdvice.test.ts:236` "claims no more about the figure it scopes than the search proved"; `:594` "carries no word that would turn a measurement into a promise"; `SplitScreen.bench-advice.test.ts:256` runs the shared copy ban against the rendered sentence |
+
+**The scope clause is built from the discipline, not written once.** `benchAdvice.ts` composes it
+from `discipline.team.maxTeamSize` and `rolesRequired`, which is what lets badminton say "in 2 teams
+of 2" and a role-free discipline drop the clause rather than hedge it
+(`benchAdvice.test.ts:291`, `:318`). A literal phrasing written for Mobile Legends would have been
+false on badminton — which fires too.
+
+**The search-widening decision, stated so it is not reopened as drift.** The ticket asked whether to
+widen the solver. **It was not widened, and the reason is recorded rather than deferred:** widening
+means the space goes from *arrangements* to *arrangements × exclusions*, so the node budget, the
+determinism guarantee and `VARIETY_TOLERANCE` all need re-arguing — and it benches good players
+more often, which is the same failure class Phase B exists to remove: optimising a metric over what
+the person asked for. The advisory keeps the pool the user's and their decision, and states what
+widening would have done. **`src/solver/` is untouched by this work.**
+
+### What the decision cost, measured — and the one thing it gives up
+
+- **The advisory is silent on `NODE_BUDGET` pools, deliberately** (`benchAdvice.ts:122`). The
+  guard is the render cliff: ~135ms per `fairSplit` call on a 25-player pool, so nineteen
+  candidates is 2.6 seconds, and the cliff lands exactly on the pools that exhaust `NODE_BUDGET`.
+  0ms on three 26-player pools against 3,594ms measured without it. **The trade is coverage for
+  cost and the coverage given up is the widest pools** — the ones the screen is already saying it
+  could not prove.
+- One residual, recorded: the guard reads the **current** result and `swapPlayers` restamps
+  `nodesExplored` to 0, so a wide pool becomes eligible again after a manual swap.
+- The strength filter cost a better gap **zero** times over 1,261 pools; the call cap cost one
+  **15 times (1.2%)**, always a mid-strength player at rank 4, 6 or 8, with one pinned as a fixture.
+- **Futsal can never fire, and that is futsal's doing** — it sizes teams from the pool
+  (`solver.ts:477-481`), so it never has a leftover. The advisory speaks on MLBB, on badminton, and
+  on any custom discipline with a hard `maxTeamSize` the pool overflows.
+
+**Not verified here.** No browser run and no build, per the assignment's constraints. That the
+sentence looks right is unproven by eye; that it is a sibling of the readout and never a child of
+it, and that the readout holds no paragraph, are asserted in
+`src/session/SplitScreen.bench-advice.test.ts:183`, `:209`, `:271`.

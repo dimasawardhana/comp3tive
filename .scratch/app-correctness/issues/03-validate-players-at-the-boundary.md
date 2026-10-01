@@ -16,7 +16,7 @@
 
 **Blocked by:** —
 
-**Status:** open
+**Status:** open (re-checked 2026-10-01 against `feature/revamp`; every entry point verified, two rows genuinely unmet)
 
 **Corrected, not closed.** The successor that delivers the remaining gap is
 `.scratch/debt/issues/05-validate-players-where-data-enters.md`; see `## Comments` below.
@@ -47,3 +47,70 @@ import branches) is delivered by
 Status left as `open`: this ticket's acceptance also covers the read-path decision and
 the per-entry-point rejection cases, and the Phase A copy is the one that owns them.
 Do not close this file; see the successor above.
+
+## Re-checked 2026-10-01 — every entry point, checked against the code
+
+The entry points this ticket names were **relocated** by Phase C before they were verified, so the
+`:515-620` anchors above no longer resolve. The functions are real; the paths moved to
+`src/shell/usePlayerImport.ts`. That is history and is left as written — `contracts.md:508-512`
+drews the rule this follows: **a citation describing a past state may name a line that has since
+moved.**
+
+| Entry point | Where it is now | Verdict |
+|---|---|---|
+| `PlayerEditModal` save | `src/roster/PlayerEditModal.tsx:141-146` | **validates**, refuses the write, renders inline |
+| full backup file | `src/shell/usePlayerImport.ts:251` → `parseBackup` | **validates** every player when the catalog is passed |
+| players-only JSON | `src/shell/usePlayerImport.ts:356-360` | **validates**, per player, naming the record |
+| CSV | `src/shell/usePlayerImport.ts:406` → `csvRowsToPlayers` | **does not call `validatePlayer`** — see below |
+| render-time throw | `src/main.tsx:15-17` → `src/ErrorBoundary.tsx` | **wrapped**, message + Reload |
+
+**The three JSON-shaped paths all reject, and each with a message that names the problem.**
+`parseBackup` throws ``Backup player "${p.name}" is invalid: ${problems[0].message}``
+(`src/data/transfer.ts:142-144`); the players-only branch pushes `{name, reason}` and reports
+`Skipped N players. First: "…" — …` (`usePlayerImport.ts:375-380`); the editor renders the issues as
+`.field-errors` and returns before `onSave` (`PlayerEditModal.tsx:141-146`, `:341-346`). **No
+malformed record reaches storage through any of the three.**
+
+**The acceptance row's specific cases are all pinned at the backup boundary**
+(`src/data/transfer.test.ts:135-239`): a missing rating (`:198-200`), a rating outside the scale
+(`:212`), an unknown role (`:215`), an empty eligibility list (`:236`), and a duplicate capability
+(`:239`). Valid fixtures still import cleanly — `sample-data.validation.test.ts:104` asserts every
+player in every `sample-data/*.json` passes `validatePlayer`.
+
+**The boundary works and `computeStrength`'s throw is intact.** `ErrorBoundary.tsx:30-46` renders
+the message and a Reload button; `src/domain/strength.ts:28-32` still throws on a missing rating,
+so the last line of defence was not weakened. `e2e/tests/shell/error-boundary.spec.ts:70-71`
+asserts a real render throw produces the boundary and surfaces the message.
+
+### What is genuinely unmet, and stays open
+
+**1. The read-path decision was never written.** This ticket's fifth bullet says: "*Decide the read
+path deliberately: validate on write, and either trust storage or validate defensively on read.
+Write your choice into the ticket's Answer.*" **There is no `## Answer` section in this file, and no
+choice is recorded anywhere in the tree** — grepping for the decision's own vocabulary finds only
+this line. Meanwhile `src/storage/indexed-db.ts:310` hands records back unvalidated
+(`listPlayers: crud.list`), so the de facto position is *validate on write, trust storage on read* —
+but it was arrived at by omission and has never been stated, which is what the bullet asked for.
+
+**2. The CSV branch bypasses `validatePlayer`.** `csvRowsToPlayers`
+(`src/data/player-import.ts:184-215`) writes no validation call, and `usePlayerImport.ts:406` does
+not add one. It is **structurally safer than the JSON branch** — a CSV row carries a name, a
+discipline and a strength, and the capability is *constructed* from the discipline's own attributes
+(`:207`) with every role eligible (`:208`) and `preferredRole: null`, so it cannot carry a missing
+rating, an unknown role or an out-of-range value. **But that is a property of how the record is
+built, not a check**, and the acceptance row says "*rejected at every entry point*". Two shapes
+defeat it: a discipline whose `attributes` list is empty produces an empty `attributeRatings`, and a
+discipline with no roles produces `eligibleRoles: []` — which `validateCapability:57-59` rejects
+outright. **No test pins either.**
+
+**The other two rows are ambiguous rather than unmet, and are left as they are.** "*Unit tests for
+the rejection cases at both entry points*" names two entry points and three validate, so which two
+was meant is not recoverable from the file. And the first row — "*rejected at save with an inline
+message, not persisted*" — is met in code (`:141-146` returns before `onSave`) but has **no test at
+any layer**: `PlayerEditModal.test.ts` covers the rating controls, not the refusal, and no e2e drives
+it. That is a coverage gap on a met behaviour, not a defect in it.
+
+**Verdict: stays open.** Three of the four entry points validate, the boundary is in place and
+proven, and `computeStrength` still throws. The two things missing are the decision this ticket
+explicitly asked to be written down, and a check on the one entry point that does not call the
+validator.
