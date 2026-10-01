@@ -19,8 +19,10 @@ Split a roster of rated players into balanced teams, then run a tournament on te
   `Dead even. Best gap found.` It never claims an arrangement is minimal when nobody searched for
   one. `src/session/gapProvenance.ts` documents the rule in its own header: *"no search ran, not
   this arrangement is minimal."*
-- **Formats.** Series, single elimination, or Swiss (`TournamentFormat` in
-  `src/domain/types.ts` also names round robin; it is not offered in the app yet).
+- **Formats.** Series, single elimination, Swiss and round robin — all four are chips in the
+  create modal (`SELECTABLE_FORMATS` in `src/ui/constants.ts:33-38`, rendered at
+  `src/tournament/GamesScreen.tsx:329`), and `TournamentFormat` in `src/domain/types.ts:25` names
+  exactly those four.
 - **Your data.** Rosters, Saved Squads, Sessions and Tournaments live in this browser's IndexedDB
   (`src/storage/indexed-db.ts`). Smaller things live in `localStorage`: which Community is active
   (`src/domain/useCommunities.ts`, which "drives every roster/session filter in the app"),
@@ -102,7 +104,7 @@ by design; anything that needs a real browser goes through `npm run e2e`.
 
 `npm run e2e` runs `playwright test --config=e2e/playwright.config.ts`. **A bare `npx playwright
 test` finds nothing**, because the config lives in `e2e/` — there is no `playwright.config.ts` at
-the repository root. The 22 specs are in `e2e/tests/`, and `testDir` is `./tests` relative to the
+the repository root. The 32 specs are in `e2e/tests/`, and `testDir` is `./tests` relative to the
 config, so one file is addressed as:
 
 ```bash
@@ -140,11 +142,54 @@ capture-and-verify tool; treat its output as a diagnostic, not an asset.
 
 ## What this README does not claim
 
-There is no service worker, no web-app manifest and no installable app, so nothing here is cached
-for offline use by the browser. Both documents load their two typefaces from a CDN, so a first
-visit with no signal renders in whatever fallback the browser picks — the app still functions, and
-that font gap is tracked in
-[`.scratch/app-health/issues/13-the-offline-promise-fonts.md`](.scratch/app-health/issues/13-the-offline-promise-fonts.md).
+Three of the four things this section used to deny ship, so they are stated first rather than
+removed:
 
-There is no backend and no account in this build, as above. The "no account, no server" line on
-the Landing Page describes what ships today, not what is planned.
+- **A service worker.** `public/sw.js` (12,894 B) — a classic worker, no imports, no workbox —
+  scoped to `/`, so one worker covers both documents. It precaches the hashed `/assets/*`, the
+  five `/fonts/*.woff2`, the three `/icons/*` and six URLs — `/`, `/index.html`, `/app/`,
+  `/app/index.html`, `/404.html`, `/manifest.webmanifest` (`vite.config.ts:22-29,93`) — under
+  `comp3tive-<12 hex>`. The hex is a sha256 over those files' paths *and bytes*, so a deploy that
+  changes anything precached renames the cache and the old one is deleted on activation.
+- **A web-app manifest, and so an installable app.** `public/manifest.webmanifest` (597 B):
+  `start_url: "/app/"`, `display: "standalone"`, three icons from `public/icons/`. Both documents
+  link it beside a `theme-color` and an `apple-touch-icon` (`index.html:55-58`,
+  `app/index.html:33-36`).
+- **Self-hosted typefaces.** Five `woff2` files and their two OFL licences in `public/fonts/`,
+  declared by five `@font-face` rules (`src/fonts.css:36-75`). `grep -c
+  "fonts\.googleapis\|fonts\.gstatic"` over `index.html`, `app/index.html` and `public/404.html`
+  returns **0, 0, 0**, and no `preconnect` is left in any of them — so no request leaves the origin
+  to render a glyph. The standalone `public/comp3tive.svg` has no cascade to route through, so it
+  declares its own face: the local `woff2`, on a relative URL, not a remote one.
+
+**The offline claim, scoped to what is actually proven.** `e2e/tests/pwa/offline.spec.ts` drives a
+real Chromium against a real `vite preview` and proves seven things: neither document reaches a
+host other than the origin; the app and the Landing Page each open with the network cut; a font and
+a module behind an `await import()` are served from the cache; a whole tournament runs; and a new
+build activates and purges the old cache. **No production deploy has happened**, so none of that has
+been shown against a deployed origin. `{ ignoreVary: true }` (`public/sw.js:171`) is the largest
+unverified assumption in the branch — `vite preview` sends `Vary: Origin` on everything it serves,
+and a real host may not (`docs/ROADMAP.md`, gates 2 and 3).
+
+Two conditions travel with the claim, and both are the ones the Landing Page's own restored
+sentence carries. **Only the app registers the worker** (`src/main.tsx:11`; `src/landing.tsx` never
+`register`), so a device that has only ever read the Landing Page has no worker and no cache at
+all — which is why `index.html:213` reads *"Once comp3tive has run with a network…"*. And the
+worker calls `skipWaiting` without `clients.claim()`, so the visit that installs it is not the
+visit it controls.
+
+What is genuinely still absent, read out of the tree rather than assumed:
+
+- **No backend, no account, no server**, as above. `wrangler.jsonc` is an assets-only Worker with no
+  Worker script and no `main`; `/api/*` is reserved for the planned backend and claimed by nothing
+  here. The "no account, no server" line on the Landing Page (`index.html:211`) describes what
+  ships today, not what is planned.
+- **No sync, no push, no background work.** `public/sw.js` registers exactly three listeners —
+  `install`, `activate`, `fetch` — and there is no `sync` or `periodicsync`. Nothing in `src/` opens
+  a network connection at all, so there is no telemetry, no error reporting, and no third-party
+  request of any kind at runtime.
+- **No install prompt.** The app is installable by manifest, but nothing in the tree listens for
+  `beforeinstallprompt` or `appinstalled`; the browser's own affordance is the only one, and the
+  app never asks.
+- **Nothing is cached before a first online visit.** A cache exists only once `/app/` has run with
+  a network — the same condition the offline sentence above is scoped to.

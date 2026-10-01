@@ -55,9 +55,11 @@ Both were verified against the code rather than against each other, and **neithe
   rows; stays open.
 - **`06-reconcile-stale-docs`** — five of its six rows verified true against the tree (FLOW's five
   hubs and `/app` entry; `spec/0002` reconciled to DB **v7**; ADR-0002 `accepted`; both root planning
-  artifacts superseded; the Tailwind claim corrected). **The sixth row is the one that cannot be
-  ticked**: `README.md:141-151` denies a service worker, a manifest and CDN fonts, all three of which
-  ship. Stays open, remainder named to a line.
+  artifacts superseded; the Tailwind claim corrected). **The sixth row was the one that could not be
+  ticked**: `README.md` denied a service worker, a manifest and CDN fonts, all three of which ship.
+  **Closed 2026-10-01** — the denial section was rewritten against the tree (`README.md:143-195`),
+  and the fourth false denial in the same sweep, "it is not offered in the app yet" for round robin,
+  went with it.
 
 ### D3 · Tickets 26, 30, 38 and the roadmap's own phase list — **all four acted on 2026-10-01**
 
@@ -69,10 +71,13 @@ Both were verified against the code rather than against each other, and **neithe
   against a criterion of under 400. That criterion is stated in `contracts.md:180` too, so it is one
   unclosed row in three documents rather than a stale number in one ticket.
 - **30** — verified: README (9,317 B), `.nvmrc` (`24.16.0`), `engines`, the browser-suite row, and
-  `npx tsc -b` exits 0. **Not closed, on a live defect**: `README.md:141-151` is false of the build
-  it ships beside. The `grep` this ticket's own acceptance row uses to check for false claims
-  **passes on it**, because a false denial explicitly denies the claim — it needed reading, not
-  running.
+  `npx tsc -b` exits 0. **The live defect is gone as of 2026-10-01** — `README.md:143-195` now
+  describes the service worker, manifest, self-hosted fonts and install surface that ship, and the
+  two other rows the same sweep falsified ("The 22 specs", now 32, and round robin being unoffered)
+  were corrected in the same pass. **What the fix does not close is the reason it was missed**,
+  which is written down below because it will outlive the paragraph. The `grep` this ticket's own
+  acceptance row uses to check for false claims **passes on a false denial**, because the denial
+  explicitly denies the claim — it needed reading, not running, and it will need reading again.
 - **38** — **closed.** `src/session/benchAdvice.ts` ships; nine separate cases pin silence as the
   default; the opposite case is pinned at `benchAdvice.test.ts:502`; the three shipped rosters still
   split to gap 0, proven, zero flags (`:633`). **The search-widening decision is recorded rather than
@@ -104,6 +109,44 @@ Both are in `.scratch/debt/issues/`, in the tracker's own shape, with evidence a
   (`:81`, `:105`). Found while removing the dead `showAddCommunity` prop, which invited a wrong
   `aria-expanded` on the ✚ button — the ticket records that the ✚ must **not** get one, because its
   form's visibility is App's and not the chrome's.
+
+### A note for the next audit — **a denial is a claim too**
+
+**Nothing mechanical in this repo can catch a false denial, and one shipped anyway.**
+`.scratch/debt/issues/30-project-hygiene.md`'s fifth acceptance row — *"The README makes no
+offline, install, account or backend claim: `grep -niE "service worker|offline|installable|
+manifest|account|server|sync" README.md` returns only lines that explicitly deny the claim"* —
+**passed on a paragraph in which every one of those words was a lie**, and it passes today too. The
+scan is built to find over-claiming: a promise the app cannot keep. *"There is no service worker"*
+contains no promise, so the scan has nothing to flag and the line never gets a vote. **The grep
+cannot fail, which is the same thing as saying it cannot pass.**
+
+**So every denial has to be read by hand, and read as a claim about the build.** The direction the
+scan does not cover is the one that costs a newcomer most, because a denial is the one sentence
+about the build a reader is most likely to act on: this one said there was nothing to install and
+nothing cached, ten lines above a `public/sw.js` and a manifest. **An audit of what this build
+claims reads denials in both directions** — the sentence, and the tree that falsifies it — before it
+calls a document clean. D2 and D3 above had to do exactly that, by hand, twice.
+
+The runtime guard has the same shape and no hole in this direction: the Landing Page's four trust
+rows are asserted **whole** at `e2e/tests/landing/landing.spec.ts:92-117`, scoped text and not
+keyword, precisely so a claim cannot be deleted or quietly widened without the assertion going red.
+That is the pattern the static scan cannot imitate — a test pins the exact sentence, a grep only
+notices when the word stops appearing.
+
+**That row is now wrong in the other direction too, and that is the second half of the lesson.**
+With the README repaired the grep returns **17** lines — ten of them inside the rewritten section,
+describing the service worker, the manifest and the install surface that actually ship, and the
+rest unrelated hits like `webServer` and "Vite dev server". So "returns only lines that explicitly
+deny the claim" **can no longer be satisfied by any honest document**: describing the PWA and
+denying it are the same words. The row was never a check; it was a description of the shape the
+false denial had.
+
+**Whoever owns `.scratch/debt/issues/30-project-hygiene.md` should delete the row rather than
+re-word it**, and replace it with the hand-read rule: every sentence in a document that asserts a
+capability — *and every sentence that denies one* — names the tree it was checked against, and the
+check was a reading. Nothing here was left to a third file on purpose: the ticket's own status is a
+records decision, not this fix's.
 
 ---
 
