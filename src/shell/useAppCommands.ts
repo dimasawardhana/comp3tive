@@ -54,6 +54,12 @@ export interface AppCommandsDeps {
   exportCommunities: Community[];
   exportTournaments: Tournament[];
   exportSquads: SavedSquad[];
+  /**
+   * The whole catalog, unscoped like the other three export lists: an export
+   * carries every community and every discipline the device knows, so a restore
+   * onto a fresh device gets the custom entries its players' capabilities name.
+   */
+  exportDisciplines: Discipline[];
   deleteTournament: (id: Id) => Promise<void>;
   sessionStore: SessionStore;
   recordExport: () => void;
@@ -95,6 +101,7 @@ export function useAppCommands(deps: AppCommandsDeps): AppCommands {
     exportCommunities,
     exportTournaments,
     exportSquads,
+    exportDisciplines,
     deleteTournament: deleteTournamentFromStore,
     sessionStore,
     recordExport,
@@ -196,7 +203,16 @@ export function useAppCommands(deps: AppCommandsDeps): AppCommands {
   const handleExport = useCallback(async () => {
     const allSessions = await sessionStore.listSessions();
     const blob = new Blob(
-      [serializeBackup(players, allSessions, exportCommunities, exportTournaments, exportSquads)],
+      [
+        serializeBackup(
+          players,
+          allSessions,
+          exportCommunities,
+          exportTournaments,
+          exportSquads,
+          exportDisciplines,
+        ),
+      ],
       { type: "application/json" },
     );
     const url = URL.createObjectURL(blob);
@@ -212,7 +228,7 @@ export function useAppCommands(deps: AppCommandsDeps): AppCommands {
     // triggered" — the distinction `useDurability` already draws about this key
     // when it says a file on disk is the backup.
     recordExport();
-  }, [sessionStore, players, exportCommunities, exportTournaments, exportSquads, recordExport]);
+  }, [sessionStore, players, exportCommunities, exportTournaments, exportSquads, exportDisciplines, recordExport]);
 
   const deleteTournament = useCallback(
     async (id: Id) => {

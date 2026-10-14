@@ -174,6 +174,7 @@ export default function App() {
     saveCommunity: communityStore.saveCommunity,
     saveSession: sessionStore.saveSession,
     saveTournament: tournamentStore.saveTournament,
+    saveDiscipline: catalog.saveDiscipline,
     saveSquad: squadStore.saveSavedSquad,
     // Communities before their own records, the rest after: the order the merge
     // has always written in. Two handles, not one, so the merge reads each list
@@ -223,6 +224,7 @@ export default function App() {
     exportCommunities: communities.communities,
     exportTournaments: tournaments.tournaments,
     exportSquads: savedSquads.squads,
+    exportDisciplines: catalog.disciplines,
     deleteTournament: tournaments.deleteTournament,
     sessionStore,
     recordExport,

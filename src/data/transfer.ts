@@ -1,39 +1,54 @@
 import type { Capability, Community, Discipline, Player, SavedSquad, Session, Tournament } from "../domain/types";
+import { orderDisciplines, SEED_DISCIPLINES } from "../domain/seed";
 import { validatePlayer } from "../domain/validation";
 
 /**
  * The exported backup shape. Bump `version` when the format changes.
- * v2 added `communities`; v3 added `tournaments`; v4 added `savedSquads`.
- * Older versions import migrated: v1 -> Default community, no tournaments/squads.
+ * v2 added `communities`; v3 added `tournaments`; v4 added `savedSquads`;
+ * v5 added `disciplines`.
+ * Older versions import migrated: v1 -> Default community, no tournaments or
+ * squads. A file predating `disciplines` imports against the code's built-in
+ * catalog, which is where a v1-v4 device's disciplines came from anyway.
  */
 export interface BackupData {
-  version: 4;
+  version: 5;
   exportedAt: string;
   communities: Community[];
   players: Player[];
   sessions: Session[];
   tournaments: Tournament[];
   savedSquads: SavedSquad[];
+  disciplines: Discipline[];
 }
 
 const DEFAULT_COMMUNITY_ID = "community-default";
 
-/** Serialize everything portable into the backup format (ADR-0001). */
+/**
+ * Serialize everything portable into the backup format (ADR-0001).
+ *
+ * `disciplines` is last although the shape puts it last-but-one-in-spirit: the
+ * parameter order predates the shape's and has differed from it since v3, so a
+ * new argument is appended rather than threaded into the middle. Every
+ * parameter is a whole collection, so a caller cannot pass them in the wrong
+ * order without a type error.
+ */
 export function serializeBackup(
   players: Player[],
   sessions: Session[],
   communities: Community[],
   tournaments: Tournament[],
   savedSquads: SavedSquad[],
+  disciplines: Discipline[],
 ): string {
   const data: BackupData = {
-    version: 4,
+    version: 5,
     exportedAt: new Date().toISOString(),
     communities,
     players,
     sessions,
     tournaments,
     savedSquads,
+    disciplines,
   };
   return JSON.stringify(data, null, 2);
 }
@@ -99,6 +114,57 @@ function isTournament(v: unknown): v is Tournament {
 }
 
 /**
+ * The fields a merged discipline is actually read through: `orderDisciplines`
+ * matches on `id`, and `DisciplineEditModal`, `computeStrength` and the solver
+ * dereference the rest. Checked before the merge so a malformed element fails
+ * with this module's own message rather than as a half-written catalog.
+ */
+function isDiscipline(v: unknown): v is Discipline {
+  return (
+    isRecord(v) &&
+    typeof v.id === "string" &&
+    typeof v.name === "string" &&
+    typeof v.shortName === "string" &&
+    Array.isArray(v.roles) &&
+    Array.isArray(v.attributes) &&
+    isRecord(v.strengthModel) &&
+    isRecord(v.team)
+  );
+}
+
+/**
+ * The catalog a parsed file yields: the code's built-ins, plus the file's own
+ * entries, merged by id.
+ *
+ * **The code wins for a built-in's id, and this is the whole rule.** A built-in
+ * is immutable by construction — `builtIn: true` exists so it cannot be edited
+ * (`DisciplineEditModal` disables every field and refuses the delete), and
+ * `src/domain/seed.ts` is the only authority for its roles and attributes. A
+ * file authored by a newer build, or hand-edited, must not be able to redefine
+ * futsal. So the merge is by id and not a filter: taking the file's list
+ * wholesale would let it redefine a built-in, and filtering the file's entries
+ * out would let it *delete* one by omitting it.
+ *
+ * **A discipline the code does not know is taken as written.** That is the
+ * entire point of the field: a custom catalog entry is not something the build
+ * can reconstruct, so its definition comes from the file, every field of it.
+ *
+ * Ordering follows `orderDisciplines`, the same function both stores apply, so
+ * a parsed catalog is in the order the app displays and `disciplines[0]` — the
+ * new-tournament default — is the same before and after a restore.
+ */
+function mergeDisciplines(fromFile: Discipline[]): Discipline[] {
+  const merged = new Map<string, Discipline>();
+  for (const seed of SEED_DISCIPLINES) merged.set(seed.id, seed);
+  for (const d of fromFile) {
+    // `has` rather than an overwrite: a built-in key is already the code's and
+    // stays the code's, whatever the file says.
+    if (!merged.has(d.id)) merged.set(d.id, d);
+  }
+  return orderDisciplines([...merged.values()]);
+}
+
+/**
  * Parse and validate a backup file. Throws a specific, user-readable error on
  * any problem (invalid JSON, unsupported version, malformed records).
  * Records missing a communityId are adopted into the first community.
@@ -112,7 +178,7 @@ export function parseBackup(text: string, disciplines?: Discipline[]): BackupDat
   }
   if (!isRecord(data)) throw new Error("That file is not a comp3tive backup.");
   if (data.version === undefined) throw new Error("That file is not a comp3tive backup.");
-  if (data.version !== 1 && data.version !== 2 && data.version !== 3 && data.version !== 4) {
+  if (data.version !== 1 && data.version !== 2 && data.version !== 3 && data.version !== 4 && data.version !== 5) {
     throw new Error(`Unsupported backup version: ${String(data.version)}.`);
   }
   if (!Array.isArray(data.players)) throw new Error("Backup has no players list.");
@@ -156,6 +222,11 @@ export function parseBackup(text: string, disciplines?: Discipline[]): BackupDat
     if (!isSavedSquad(q)) throw new Error("Backup contains a malformed saved squad.");
   }
 
+  const rawDisciplines = Array.isArray(data.disciplines) ? (data.disciplines as unknown[]) : [];
+  for (const d of rawDisciplines) {
+    if (!isDiscipline(d)) throw new Error("Backup contains a malformed discipline.");
+  }
+
   const players = data.players as Player[];
   const sessions = data.sessions as Session[];
 
@@ -173,7 +244,7 @@ export function parseBackup(text: string, disciplines?: Discipline[]): BackupDat
     typeof communityId === "string" && known.has(communityId) ? communityId : fallbackId;
 
   return {
-    version: 4,
+    version: 5,
     exportedAt: typeof data.exportedAt === "string" ? data.exportedAt : "",
     communities,
     players: players.map((p) => ({ ...p, communityId: adopted(p.communityId) })),
@@ -186,5 +257,6 @@ export function parseBackup(text: string, disciplines?: Discipline[]): BackupDat
       ...q,
       communityId: adopted(q.communityId),
     })),
+    disciplines: mergeDisciplines(rawDisciplines as Discipline[]),
   };
 }
