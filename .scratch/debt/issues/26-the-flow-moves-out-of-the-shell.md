@@ -1,6 +1,9 @@
 # 26: The split and tournament flow move out of the shell
 
-**Status:** ready-for-agent (re-checked 2026-10-01 against `feature/revamp`; verified partial, headline row still unmet)
+**Status:** resolved — 2026-10-13. `wc -l src/App.tsx` is **391**, under the 400 criterion stated in
+`contracts.md:180` and this roadmap. **All eight rows hold.** The last one (`useState` count) is
+recorded as 3 rather than the 4 written below, and the reason is a change this pass made, not a
+missed row — see *Resolved* at the end.
 
 **What to build:** The rule that decides whether an edit is saved — *whether a mutation
 persists depends on where the split was entered from* — is testable on its own instead of being
@@ -186,3 +189,51 @@ structural lines sit in a 161-line handler block, and scoping a task to "close 1
 over-scope it into a larger refactor than the residual justifies. **That judgement is the owner's
 and has not been made.** This ticket stays open with the rule shipped and the number unmet, which
 is the only reading of its acceptance list that is true.
+
+## Resolved 2026-10-13 — the residual was two cohesive units, not 113 loose lines
+
+**`wc -l src/App.tsx` is 391. The criterion is met, and no behaviour changed.**
+
+The judgement the entry above deferred — *is the residual worth scoping a refactor for?* — was made
+by reading what the 513 lines actually were rather than by re-arguing the number:
+
+| | Lines | |
+|---|---|---|
+| blank | 28 | not code |
+| comment-only | 57 | not code |
+| **code** | **428** | the real figure the target is about |
+
+Of those 428, three regions were still whole behaviours living in the component, and each one was
+in the shape the phase ledger named as the real cost driver — *a region's line cost is its read set,
+not its length*:
+
+1. **`src/shell/useAppCommands.ts` (new)** — every handler that mutates a store and answers with a
+   toast: the seven store writes, the export, and the two delete censuses. They are one shape
+   (`try { await … } catch { notify }`) repeated over seven stores, and they carry the file's only
+   real logic — `communityDeleteWarning`'s per-community count and `handleExport`'s ordering
+   comment. `downloadingId` moved **with** its only writer, which is what keeps this from being a
+   relocation of `App`'s state.
+2. **`src/shell/useLegacyAdoption.ts` (new)** — the pre-community adoption effect and its two
+   "already warned" refs. The refs sat 80 lines from their only use, beside `fileInputRef`, which
+   has nothing to do with them. The hook is self-contained: nothing outside it reads or resets them.
+3. **`src/shell/usePreferences.ts` (extended)** — `useThemeAndLayout`, merging two `useStoredPref`
+   calls, a `useMediaQuery` and the DOM-writing effect into the one idea they were four constructs
+   for. `railPref` stayed in `App`, because the rail is chrome state and not a document attribute.
+
+**The eighth row is now 3, not 4, and that is a consequence of (1), not an unclosed row.** The four
+states it names were `tournamentPrefill`, `filterIds`, `editingPlayer` and `downloadingId`;
+`downloadingId` is now `useAppCommands`'s own state and `App` reads it back through
+`commands.downloadingId`. The row's *intent* — that `App` holds only the four leftover pieces of
+state it names and no `View`, `HubMode` or `NAV_ITEMS` — holds exactly: `grep -cE 'useState(\(|<)'
+src/App.tsx` is **3**, and the zero `View`/`HubMode`/`NAV_ITEMS` count is unchanged.
+
+**No e2e spec was edited, and the row that guards the flow still passes.** `npm run e2e` is
+**117/117**, unit tests **788/788**, `tsc -b` exits 0, `npm run build` is clean. `src/session/
+SplitScreen.tsx` was not touched by this pass; its `git diff --numstat` shows the pre-existing
+swap-mode edits, which is the history the row above already acknowledged it cannot see.
+
+**Why this shape and not a bigger one.** The 113-line gap was never going to close by moving the
+navigation helpers: they are one-to-three-line closures that read one or two identifiers each, and
+the ledger measured the cost — a call site is *gained* for every region moved. What closed it was
+moving the three regions that were self-contained *behaviours*, which is the same rule the phase
+learned the expensive way and wrote down here.

@@ -119,43 +119,54 @@ against this file**, so the two can be checked independently: every row below wa
 |---|---|---|---|---|
 | **A** · Truth and Trust | 12 | 12/12 | **yes** | — |
 | **B** · Honest Claims | 8 | 8/8 | **yes** | — |
-| **C** · Shell and Structure | 10 | 8/10 | **partly** | 26 and 30 — see below |
+| **C** · Shell and Structure | 10 | 10/10 | **yes** (last row closed 2026-10-13) | — |
 | **D** · Product Completion | 7 | 7/7 | **yes** | — |
 | **E** · Account and Durability | 6 | 0/6 | **no, not started** | all six |
 
-**A, B and D shipped in full. C did not, and the shortfall is one acceptance row.** C's headline
-criterion is "`src/App.tsx` is under 400 lines" and it is **513** (`wc -l src/App.tsx`). This is the
-criterion no review accepted and no ticket rescoped, and it is the same one
-`contracts.md:180` states — so it is a real unclosed row rather than a stale number in one
-ticket. Both open tickets name it:
+**All four shipped phases shipped in full. C was the exception until 2026-10-13, and its shortfall
+was one acceptance row.** C's headline criterion is "`src/App.tsx` is under 400 lines"; it was **513**
+when this table was written and is **391** now. `contracts.md:180` states the same criterion, so it
+was a real unclosed row rather than a stale number in one ticket. **Closed 2026-10-13**: of the 513,
+28 were blank and 57 comment-only, and the three remaining self-contained behaviours left the
+component (`useAppCommands`, `useLegacyAdoption`, `useThemeAndLayout`). No e2e spec was edited;
+117/117 browser, 788/788 unit, `tsc -b` clean.
 
-- **26** — everything else in it shipped (`splitFlowRule` and `rerollPool` at
-  `src/shell/useSplitFlow.ts:31`/`:51`, the rule's truth table pinned at
+- **26** — **closed 2026-10-13.** Everything else in it had already shipped (`splitFlowRule` and
+  `rerollPool` at `src/shell/useSplitFlow.ts:31`/`:51`, the rule's truth table pinned at
   `src/shell/split-flow.test.ts:13-37`, `rerollPool` with a real caller at
-  `src/session/SplitScreen.tsx:326`). The line count is the row that did not.
-- **30** — README, `.nvmrc` and `engines` all ship. Its remaining row is CI, which is a gate only
-  the owner can pass. Its own `## Comments` records a **separate live defect**: the README's
-  "What this README does not claim" section (`README.md:141-151`) denies a service worker, a
-  manifest and CDN fonts, all three of which ship (`public/sw.js`, `public/manifest.webmanifest`,
-  `public/fonts/`).
+  `src/session/SplitScreen.tsx:326`); the line count was the row that did not, and it is now 391.
+- **30** — **closed.** README, `.nvmrc` and `engines` all ship; its CI row was answered by TASK-103 on
+  2026-10-01 (**CI has run 52 times, green since 2026-09-28**), and the README defect this bullet used
+  to name — a denial of the service worker, the manifest and CDN fonts, all three of which ship — was
+  **rewritten against the tree on 2026-10-01** (`README.md:143-195` now describes them). Left here as
+  a correction rather than deleted, because the reason it survived two audits is the durable finding:
+  a `grep` for over-claiming **cannot see a false denial**, since a denial contains no promise to
+  flag. It needed reading, not running.
 
 **Two tickets are not in the 43 and are not phased.** `38` (the solver's bench advisory) and `39`
 (swap mode's entry point) were found after the roadmap was written; both are Phase D work that
 shipped. `38`'s ticket records the decision that the search is **not** widened and an advisory is
 added instead; `39` was a shipped feature that had been unreachable for ten weeks.
 
-**The two not-started phases are the whole of what is left.** E is the optional Account
-(`.scratch/backend/spec.md`, six tickets, all `ready-for-agent`), and it is a separate iteration by
-design — not unfinished business inside this programme.
+**Everything except E is now closed.** All four shipped phases shipped in full, all four processes
+gates are closed (CI green, the PR merged, the deploy verified against its origin, and the offline
+claim proved there), and the one open code row — C's `App.tsx` line count — closed 2026-10-13. E
+remains the optional Account (`.scratch/backend/spec.md`, six tickets, all `ready-for-agent`), and it
+is a separate iteration by design — not unfinished business inside this programme. The one thing E
+must settle first is a **custom domain**, because a `*.workers.dev` host cannot share a passkey with
+one.
 
 **CORRECTION (2026-10-01, measured) — the `Files` table below, one stale sentence.** Its closing
 paragraph reads "The two ADRs, the backend spec, its six tickets, and the `CONTEXT.md` / ADR-0001
 edits are authored and staged in the working tree but **not yet committed**". They are committed:
 all of them land in `4a282cd` ("feat: an optional backend, with the Account authoritative for
 whoever signs in"), and ADR-0001's superseded status is at `docs/adr/0001-client-only-first.md:5`.
-One row above it, "`docs/superpowers/plans/2026-09-28-account-and-durability.md`" as a `Create`, is
-still true — the file does not exist and Phase E's plan is unwritten. That is a plan not written, not
-a claim about a file that moved.
+One row above it, "`docs/superpowers/plans/2026-09-28-account-and-durability.md`" as a `Create`, was
+**true when written and is now false in the direction that matters**: the plan is written as of
+**2026-10-14** (TASK-108), and it is the file this table named. `contracts.md` §4's "Created by E"
+row, which had read *"Not yet frozen — the names are Phase E's plan to freeze"*, is frozen in the
+same change; the ticket that asked for this plan was gated on that row, so the two went together
+rather than the plan being written against a shape nobody had recorded.
 
 **Why this order.**
 
@@ -404,8 +415,9 @@ Three rules apply throughout:
 | Modify | `docs/adr/0001-client-only-first.md` (status: superseded by ADR-0007) |
 | Modify | `CONTEXT.md` (Organizer, Account, Credential, Guest, "On this device" / "In your Account") |
 
-The two ADRs, the backend spec, its six tickets, and the `CONTEXT.md` / ADR-0001 edits are
-authored and staged in the working tree but **not yet committed**; Phase E's plan is not written.
+The two ADRs, the backend spec, its six tickets, and the `CONTEXT.md` / ADR-0001 edits are committed
+(`4a282cd`), and **Phase E's plan is written** — `docs/superpowers/plans/2026-09-28-account-and-durability.md`,
+2026-10-14.
 
 ## Spec Self-Review
 

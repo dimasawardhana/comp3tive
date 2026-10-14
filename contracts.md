@@ -177,7 +177,7 @@ lines, zero importers, a second `validateTournamentSpec`), `src/session/split-mo
 zero importers), `src/tournament/team-participation-validator.ts` (97 lines, its only importer is an
 unused import at `src/App.tsx:49`).
 
-**Modify.** `src/App.tsx` (1,315 lines today → under 400; the C plan's baseline was 1,280 at `d87ac7b`); `src/landing.tsx` (drop `./index.css`);
+**Modify.** `src/App.tsx` (1,315 lines today → **391**, under the 400 target; the C plan's baseline was 1,280 at `d87ac7b`); `src/landing.tsx` (drop `./index.css`);
 `src/index.css` and `src/landing.css` (add `@import "./split.css";`, move 110 rules, delete the dead
 `pulse-needle`); `src/nav.tsx`; `src/session/MatchScreen.tsx`, `src/session/SplitScreen.tsx`,
 `src/tournament/TournamentScreen.tsx` (render the shared `Breadcrumb`); `src/DashboardScreen.tsx`,
@@ -437,21 +437,53 @@ provenance word: a unit test asserts neither returned string contains `proven`, 
 `best-found`, `exact`, `minimum`, `optimal`, `solver`, `search`, `node`, `heuristic` or `aborted`,
 nor an em-dash.
 
-### Created by E
+### Created by E — frozen 2026-10-14 by `docs/superpowers/plans/2026-09-28-account-and-durability.md`
 
-Not yet frozen. `.scratch/backend/spec.md` fixes the *decisions*; the names are Phase E's plan to
-freeze, and this row is where they get written down. Known requirements:
+The names below are the plan's, and this row is where they are written down. The plan is
+`docs/superpowers/plans/2026-09-28-account-and-durability.md`; it was the last thing this repo had
+agreed to do and is now written. Every signature here was resolved by reading the file, not by
+carrying a ticket's line number forward — the tickets predate C and D's decomposition of `App.tsx`,
+so their `App.tsx:NNN` anchors point into regions that have since moved (the plan's Self-Review lists
+the three).
 
-- `parseBackup` keeps its signature and gains a `version: 5` branch carrying `disciplines[]`, with
-  v1–v4 migration. `serializeBackup` gains a matching parameter.
-- `Player` gains `createdAt`. "Recently added" is physical order today — `list()` is a bare
-  `getAll()`, `useRoster` applies no sort, and the Dashboard takes `players.slice(-3)`.
-- The sync decision — adopt, push, reject-stale, clear — is **a pure function over two snapshots and
-  a version**, and gets a direct unit test rather than being pinned only through the UI.
-- The `Account` is its own opaque key. A passkey contributes a credential record; Google contributes
-  an issuer-and-subject pair. A verified email is an attribute used to find the Account, never the
-  key it is joined on. There is no path where presenting a Google token merges into an existing
-  Account because an address matched.
+```ts
+// src/data/transfer.ts — Task 1
+export interface BackupData { version: 5; /* … */ disciplines: Discipline[] }
+export function serializeBackup(
+  players: Player[], sessions: Session[], communities: Community[],
+  tournaments: Tournament[], savedSquads: SavedSquad[], disciplines: Discipline[],
+): string;
+export function parseBackup(text: string, disciplines?: Discipline[]): BackupData;  // signature unchanged
+
+// src/domain/types.ts — Tasks 2, 4
+export interface Player { /* … */ createdAt: number }   // epoch ms, written at creation only
+export interface Account { id: Id; email?: string; /* … */ }        // id is opaque and its own key
+export interface Credential { /* … */ accountId: Id; signCount: number; /* … */ }
+
+// src/account/session.ts — Task 4. The ONE module holding the session, and the one guard
+// that answers "may this write reach the network".
+export function getSession(): { accountId: string } | null;
+export function signIn(...): Promise<void>;
+export function signOut(): Promise<void>;
+export function refresh(): Promise<void>;
+
+// src/account/sync-decision.ts — Task 6. Pure, outside React, unit-tested directly.
+export function decideSync(
+  local: BackupData | null,
+  versions: { lastKnown: number; server: number; identical?: boolean },
+): "push" | "push-and-adopt" | "reject-stale" | "no-op";
+```
+
+**The `parseBackup` signature does not move.** It already takes the catalog as an optional second
+argument, and v5 rides through it unchanged — the version branch and the built-ins-win merge are
+inside the function, not in its shape. **`serializeBackup` gains the catalog as its sixth
+parameter**, appended rather than inserted: its existing order already differs from the shape's, so
+appending is what keeps the two call sites (one production, one test) mechanical.
+
+**Deliberately absent from this list, so a later reader does not add it.** No
+`replaceAllDisciplines` on `DisciplineStore` — the interface grows a method only when something needs
+it, and the catalog is cleared by a `delete*` loop. No `updatedAt`/`deletedAt` on any entity: nothing
+merges per record, and the version integer is what makes a conflict visible.
 
 ---
 
@@ -775,6 +807,162 @@ this decision; and each is restated here so the reason survives a test file bein
 fourth amendment may cite this paragraph as authority to edit them: each is a refusal with a
 reason, and changing one is a finding of its own.
 
+### Amended by Day 3, 2026-10-01 — tickets 40 and 41, and `app-correctness/03`
+
+Three amendments, each written **before** the code it governs, for the same reason R2's three are.
+They are three and not one because they sit under three different files: one a rule holds, one that
+no rule holds, and one a phase claims for reading only.
+
+#### (a) a permanently-mounted live region for the swap-mode entry — ticket 40
+
+**What it grants, in full:**
+
+1. **One module-level constant** for the mode's instruction before a pick, and **one
+   `useState<string>`** holding the entry notice. The banner prints the constant and the notice
+   announces it, so the sentence has exactly one definition in the file. The notice is written in
+   two places: `toggleSwapMode` sets it when the mode turns **on**, and `handlePick` clears it on
+   the first tap. Both handlers already exist. **This is the one rewrite the grant costs:** the
+   banner's `: "Tap one player on each team to swap them."` branch at `:398` becomes
+   `: SWAP_IDLE,` — **one line rewritten in place**, and the **fifth named exception** to §6's
+   zero-removed-lines check. It is a replacement, not an insertion, and like (b) and (c) above it is
+   not additive and does not claim to be.
+2. **One `<div className="swap-entry-notice" role="status">`**, inserted immediately **before** the
+   `{swapMode && (` guard at `:392` and rendered unconditionally — present in the markup with the
+   mode off, empty when the mode is off.
+3. **One new rule `.swap-entry-notice`** in `src/split.css`, carrying the visually-hidden
+   declarations and nothing else. It is the same nine declarations as `.sr-only` at
+   `src/landing.css:319-329`, under a different name, and (b) of this section says why they are not
+   one rule.
+4. **The tests the ticket names**: two cases in `src/session/SplitScreen.swap-entry.test.ts` and one
+   test in `e2e/tests/split/swap.spec.ts`.
+
+**Why a second region rather than a parent around the banner.** The obvious shape is to make the
+banner's container permanently mounted and let `role="status"` move up to it, which announces every
+transition from one region. It is refused for three reasons, each checkable. `e2e/tests/split/
+swap.spec.ts:364` asserts the attribute **on `.swap-banner`**, and ticket 40's own acceptance holds
+that `:336-383` must pass unedited. A parent region holding a `role="status"` child is two nested
+live regions, and a text change inside the child is a change in **both** subtrees, so every later
+transition would be announced twice. And the wrapper costs layout: `.screen` is `display: flex;
+flex-direction: column; gap: 20px` (`src/split.css:45-48`, `.split-screen` at `:621-623`), so an
+always-mounted box in that column adds 20px of dead space to every split screen in every state.
+
+**Why `position: absolute` settles the gap and settles it in the region itself.** An out-of-flow
+flex item takes no part in the parent's `gap`, so a 1px region costs the layout nothing in either
+state. That is not a cosmetic preference — it is the reason this shape needs no margin to undo a
+gap, no `display: contents` for the announcement to depend on, and no measurement in
+`e2e/tests/split/action-bar.spec.ts` to be re-run. The alternative wrappers each need one of those
+three things, and `display: contents` in particular would make the announcement depend on an engine
+behaviour nothing in this repo measures.
+
+**Why the region carries the sentence only until the first pick.** The banner stays the live region
+for transitions 2 and 3 — that is what `role="status"` on `.swap-banner` is **for**, and R2's (c)
+recorded it earning its keep. So the second region must be silent for both of them, and it is: it
+holds the entry sentence from the tap on `Swap` until the first card tap, and is empty for the rest
+of the mode's life. **The alternative — leaving it filled while the mode is on — announces every
+later transition twice**, once from each region, which is a worse regression than the silence this
+ticket exists to fix. The clearing in `handlePick` is therefore load-bearing, not tidying, and
+`e2e/tests/split/swap.spec.ts` pins both halves in the browser: the tagged region carries the entry
+sentence after the tap on `Swap`, and is **empty** again after the first card tap. It cannot be
+pinned in a unit test, because `renderToStaticMarkup` renders the initial state and this repo has
+no DOM renderer — `src/session/SplitScreen.swap-entry.test.ts` says so in its own header.
+
+**The ticket's own claim that this "needs no declaration changed" is wrong, and it is wrong in a way
+worth keeping.** It holds as long as the second region is empty whenever the banner is showing,
+which is the whole time it is not empty. A region that carries a sentence the banner is already
+printing, and is not hidden, prints that sentence **twice, on screen, twenty pixels apart.** So a
+visually-hidden declaration is not an optional extra here; it is the difference between an
+announcement and a visual regression. What the ticket got right is the shape: `.swap-banner` keeps
+the visible sentence and **no declaration of `.swap-banner` changes** — this grant adds a rule for a
+class that does not exist yet and touches no existing declaration in `src/split.css`.
+
+**Why the visually-hidden rule is not hoisted into a shared utility.** `src/landing.css` already
+defines `.sr-only`, and it is the same nine declarations. The two stylesheets are **never loaded
+together** — `src/index.css:2-3` imports `tokens.css` and `split.css`, and Phase C29's rule is that
+the Landing Page loads neither the app's script chunk nor its stylesheet — so one shared rule would
+have to live in `src/tokens.css`, which §7 D7 records is C29's file and not a phase's to extend for
+a new class. `src/landing.css:149` records that same grant as a phantom one. The duplication is
+real, deliberate, and nine declarations wide; moving it is its own decision and not this ticket's.
+
+**What it does not grant:**
+
+- **No edit to the banner.** `:392-401`, `role="status"` on `:393`, the `aria-hidden` icon, the
+  sentence at `:396-398` and the `pick` branch all stay exactly as they are. The region is a
+  sibling, never a parent.
+- **No second live region on any other element**, and no `aria-live` on `.split-head` or the `.pick`
+  cards. R2's (c) above refused those and is not reopened here.
+- **No `aria-live="assertive"`, no debounce, no focus move.** A swap is the user's own tap reflected
+  back at them.
+- **No copy.** The region announces the sentence already on screen and writes no other words. A
+  fix that needed a new sentence to announce an existing state would be a design change.
+- **No second entry point.** The `Swap` ghost from R1 is the only control, `toggleSwapMode` is not
+  rewritten, and the `!swapMode` guards on Back, Save squad and Share are untouched.
+- **No change to `src/split.css:636-651`.** `.swap-banner` and `.swap-banner-icon` are byte-identical
+  after this, and `e2e/tests/split/swap.spec.ts:326` (`.swap-banner` has count 0 with the mode off)
+  stays green **without being edited**.
+
+#### (b) `aria-expanded` on the settings trigger — ticket 41
+
+**What it grants, in full:** one attribute line inserted into the ⚙ button at
+`src/shell/AppChrome.tsx:164-172` — `aria-expanded={showSettings}`, read from the state the chrome
+already holds at `:44` — and the assertion pair the ticket asks for in
+`e2e/tests/settings-panel/settings.spec.ts`, which already opens the panel at `:19`.
+
+**No exception is required and that is the record.** `src/shell/AppChrome.tsx` is C's extraction
+surface (§3) and appears in **no** row of §6, so no zero-removed-lines rule holds it and the edit is
+purely additive: the button keeps `aria-label`, `title` and `onClick`, and the popover still renders
+the same `.settings-popover` markup under the same `{showSettings && (`. It is written here anyway
+because this file is where a reader looks to find out what a control is allowed to claim, and the
+next sweep will find this trigger's omission and want to close it.
+
+**The ✚ button is not part of this amendment, and this paragraph is why it cannot be cited to
+change it.** R2's (a) removed the `showAddCommunity` prop because a boolean on the chrome's interface
+claimed a knowledge the chrome does not have; the form's visibility is App's
+(`src/App.tsx:426`), the chrome never learns the answer, and `aria-expanded` there would be a false
+claim to a screen reader. ⚙ is the opposite case — the chrome declares the state at `:44`, writes it
+in one place and reads it in one place, and the same file already uses the attribute correctly twice
+at `:81` and `:105`. **If the form's visibility ever moves into the chrome, that is a new
+amendment with its own proof.**
+
+**What it does not grant:** no `aria-expanded` on ✚, no edit to the note at `:19-25`, no change to
+the community switcher at `:105` or the rail toggle at `:81`, and no change to `.icon-btn` or any
+popover behaviour. The interesting half of the test is `aria-expanded="false"`: a closed popover
+whose trigger still announces itself as open is the failure a one-sided test cannot catch.
+
+#### (c) the CSV branch runs the model rules — `app-correctness/03`
+
+**What it grants, in full:** `src/data/player-import.ts`'s `csvRowsToPlayers` calls
+`validatePlayer(player, disciplines)` on the player it has just built and routes any issue to
+`skipped` with the row's own line, in the same `{ line, reason }` shape every other skip in that
+function already uses; it refuses a row whose discipline declares **no attributes**, before building
+anything, because that row's strength column would otherwise be discarded without a word; and the
+two cases in `src/data/player-import.test.ts` that pin both.
+
+**§4's "reads, never writes" is not this grant's problem, and the distinction is worth stating.**
+That row is **Phase D's** right over the file — D36 consumes the parser and writes no part of it.
+This is not a phase and holds no phase's ticket, which is why it carries no phase name and no
+phase-shaped grant. What §4 does settle is that this is the first write to this file since the
+parser landed, and it changes no exported signature: `csvRowsToPlayers`, `parsePlayerCsv`,
+`assertImportSize`, `MAX_IMPORT_BYTES`, `CsvRow` and `ImportSkip` are all exactly as they were, and
+`usePlayerImport.ts:406` — which calls it once per row to keep each row's **line** attached to it —
+needs no edit to learn about any of this.
+
+**Why a check and not the construction this relied on.** The player was built from the discipline's
+own attributes with every role eligible and `preferredRole: null`, so it was *safe by construction* —
+a claim, and one nothing in the repo measured. It held for every shape the catalog ships. **Two
+shapes defeat it, and only one of them is the validator's to catch.** A discipline with **no roles**
+produces `eligibleRoles: []`, which `validateCapability` already rejects
+(`src/domain/validation.ts:57-59`), so the call closes it. A discipline with **no attributes**
+produces `attributeRatings: {}`, and `validateCapability` iterates `discipline.attributes` — zero of
+them, so zero issues, and the player is *valid* while carrying no rating at all. **That is why the
+guard is in this grant and not left to the call:** a validator cannot catch a rule the model does not
+state, and the row the user typed a strength into would have imported as a player with no numbers and
+a report that said it worked.
+
+**What it does not grant:** no change to `parsePlayerCsv`, no change to the CSV template, no change
+to the players-only JSON branch or the backup branch, both of which already validate; no change to
+the clamp at `rating`, which is what makes an out-of-range strength a warning rather than a refusal;
+and no new copy anywhere but the two skip reasons, which use the branch's existing voice.
+
 
 
 
@@ -784,7 +972,7 @@ reason, and changing one is a finding of its own.
 
 | File | Phases | The rule |
 |---|---|---|
-| `src/session/SplitScreen.tsx` | A03 (`reroll`), B13 (gap copy), B15 (two strings), C26 + C28 (crumb block, pool expression), D31/D37/D38 (additive), **R1 (Day 2, one ghost button, additive)** | Each phase edits one named region. D's edit is purely additive: one `share?` prop, one `Share` button, one `<p className="fairness">`. Verify with `git diff -U0 src/session/SplitScreen.tsx \| grep -E "^-[^-]" \| grep -v "^---"` → no output. **One named exception, 2026-09-30:** the swap-prompt line at `:397` may lose its **trailing full stop**, and nothing else about that line. See §5. **Second named exception, 2026-10-01 (R1):** one `Swap` ghost button may be **inserted** into the `.split-bar` row and bound to the existing `toggleSwapMode`. Purely additive, so the zero-removed-lines check above still holds; it grants no removal, no second control, no edit to `:397`/`:392-401`/`:497` or the three `!swapMode` guards, and **no declaration in any stylesheet**. It does grant one **comment-only** correction, to the paragraph at `src/split.css:784-814` that states how many actions the bar holds. See §5. |
+| `src/session/SplitScreen.tsx` | A03 (`reroll`), B13 (gap copy), B15 (two strings), C26 + C28 (crumb block, pool expression), D31/D37/D38 (additive), **R1 (Day 2, one ghost button, additive)**, **ticket 40 (Day 3, one announcement region)** | Each phase edits one named region. D's edit is purely additive: one `share?` prop, one `Share` button, one `<p class="fairness">`. Verify with `git diff -U0 src/session/SplitScreen.tsx \| grep -E "^-[^-]" \| grep -v "^---"` → no output. **One named exception, 2026-09-30:** the swap-prompt line at `:397` may lose its **trailing full stop**, and nothing else about that line. See §5. **Second named exception, 2026-10-01 (R1):** one `Swap` ghost button may be **inserted** into the `.split-bar` row and bound to the existing `toggleSwapMode`. Purely additive, so the zero-removed-lines check above still holds; it grants no removal, no second control, no edit to `:397`/`:392-401`/`:497` or the three `!swapMode` guards, and **no declaration in any stylesheet**. It does grant one **comment-only** correction, to the paragraph at `src/split.css:784-814` that states how many actions the bar holds. See §5. **Third named exception, 2026-10-01 (ticket 40):** one `<div className="swap-entry-notice" role="status">` may be **inserted before** the banner guard at `:392`, rendered unconditionally, carrying one `useState<string>` and one module-level constant for the entry sentence; the constant is what `:398` now reads, so **that one line is rewritten in place — the fifth named exception to this check — and the check above therefore returns that line and not nothing.** It grants no edit to `:392-401`, no change to `role="status"` on the banner, and no second live region. **It is the one grant in this row that adds a rule to `src/split.css`**: a new `.swap-entry-notice` class only, where R1's grant withheld every declaration, because a region that prints a sentence `.swap-banner` is already printing must be visually hidden or it prints it twice. See §5. |
 | `src/tournament/bracket.ts` | A07 (pairing, standings), D35 (round-robin arms) | D adds a `buildBracket` arm, a `roundsFor` arm, and extends `champion()` to also accept `"round-robin"`. The `series`, `single-elim` and `swiss` arms are not modified. |
 | `src/main.tsx` | A05 (error boundary), D33 (SW registration) | Registration is added on `window`'s `load`, outside `<ErrorBoundary>`, with the rejection handled so a failed registration is silent. The render call and A05's wrapper are unchanged. |
 | `src/App.tsx` | A (delete/import handlers), B15 (two strings), C (decomposition), E (sign-in) | Sequenced, never concurrent: A → B → C → E. |

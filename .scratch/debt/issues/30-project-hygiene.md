@@ -1,6 +1,8 @@
 # 30: Project hygiene: README, engine floor, node pin
 
-**Status:** resolved (re-checked 2026-10-01 against `feature/revamp`; verified partial, one live defect)
+**Status:** resolved — closed 2026-10-13 (TASK-106). All eight acceptance rows hold; the one row that
+could not fail has been deleted and replaced by the hand-read rule at
+`docs/agents/document-claims.md`. See *Re-read 2026-10-13* at the end.
 
 **What to build:** A newcomer — human or agent — can open the repo root and learn what the
 product is, how to run everything, and which Node version it needs, without reading
@@ -65,21 +67,40 @@ Developer floors, for the README's requirements line: React 19.1, TypeScript 5.8
 Vitest 3, Playwright 1.62 and `@types/node` 22.15 as declared in `package.json`.
 
 **Acceptance criteria:**
-- [ ] `test -f README.md` and `test -f .nvmrc` both succeed; `.nvmrc` contains `24.16.0`
+- [x] `test -f README.md` and `test -f .nvmrc` both succeed; `.nvmrc` contains `24.16.0`
 - [x] `jq -r '.engines.node' package.json` prints an engine floor that admits the local pin and the
       CI version. **Corrected 2026-10-01:** the row named `>=22.20 <23 || >=24.12`; the shipped value is
       `^22.20 || ^24.12 || >=25`. The `>=25` arm was added deliberately, so the row's literal string no
       longer matches and re-stating the old one would make this ticket fail against a correct tree.
-- [ ] Every command the README names appears as a key in `package.json`'s `scripts` — checked by extracting the backticked `npm run …` names and diffing them against `jq -r '.scripts | keys[]' package.json`
-- [ ] Every path the README names exists — checked by extracting the backticked paths and testing each with `test -e`
-- [x] **The README's claims match the tree, in both directions.** **Corrected 2026-10-01:** the row
-      demanded that every `service worker|offline|installable|manifest|account|server|sync` hit be a
-      *denial*. That was written for a build that had none of them, so it became **unsatisfiable the
-      moment the PWA shipped** — and it would also have flagged `webServer` at `README.md:80`, an
-      unrelated use of the word. It is replaced by the real requirement, which is bidirectional: the
-      README states what ships, scoped to what is proven, and denies only what is genuinely absent.
-- [ ] The README states that the browser suite's config is `e2e/playwright.config.ts` and that a bare `npx playwright test` finds nothing
-- [ ] `npx tsc -b` stays green after the `package.json` edit (the file is not type-checked, but nothing else in it changes)
+- [x] Every command the README names appears as a key in `package.json`'s `scripts` — re-run
+      2026-10-13: `dev`, `build`, `preview`, `test`, `test:watch`, `e2e`, `capture:hero`, `e2e:live`
+      all resolve. (`npm ci` and `npm install` are named as commands, not as `scripts` keys.)
+- [x] Every path the README names exists — re-run 2026-10-13: 19 source and asset paths checked with
+      `test -e`, all present. The route paths (`/`, `/app/`, `/404.html`, `/sw.js`,
+      `/manifest.webmanifest`) are build inputs, present under `public/`; `playwright.config.ts` is
+      named precisely because it is **absent** from the root, which is the point of that row.
+- [x] **The README's claims match the tree, in both directions, read by hand.** **Replaced
+      2026-10-13 (TASK-106).** This row has now been wrong twice, and both are the same mistake, so
+      the row is not re-worded a third time — it is replaced by the rule it was trying to express.
+
+      - **As written it could not fail.** It demanded that every hit of
+        `service worker|offline|installable|manifest|account|server|sync` be a *denial*. A false
+        denial is still a denial, so the grep passed on the paragraph that denied a service worker
+        ten lines above `public/sw.js`. **A scan for over-claiming cannot see a denial at all**: there
+        is no promise in it to flag.
+      - **Re-worded on 2026-10-01, it stopped being satisfiable in the other direction.** The
+        corrected README *describes* the service worker, manifest and self-hosted fonts, using the
+        same words the denial had. No honest document can make the scan return only denials, and
+        today it returns **21** lines, every one of them true.
+
+      **The rule that replaces it: every sentence in a document that asserts a capability — and every
+      sentence that denies one — names the tree it was checked against, and the check was a reading.**
+      Written down at `docs/agents/document-claims.md` so it outlives this ticket. Applied to
+      `README.md` on 2026-10-13: all 21 grep hits read against the tree, plus every path, byte size
+      and count the README names. The result is recorded under *Re-read 2026-10-13* below — the
+      README is clean, and it was a reading rather than a run that established it.
+- [x] The README states that the browser suite's config is `e2e/playwright.config.ts` and that a bare `npx playwright test` finds nothing — `README.md:106-107`, re-checked 2026-10-13
+- [x] `npx tsc -b` stays green — re-run 2026-10-13, exit 0
 
 **Blocked by:** 29 — it is the last ticket, and the README describes the file layout the previous
 nine produce (`src/shell/**`, `src/ui/constants.ts`, `src/split.css`).
@@ -156,8 +177,8 @@ would otherwise find two unmet rows with nothing in this ticket explaining them.
   are `>=24.12`), so the floor is right and only the spelling differs. Recorded in the entry above
   and re-confirmed here.
 - The final row says "close 114 lines" in the sibling ticket's arithmetic; against this ticket's own
-  criterion the gap is **113** (`wc -l src/App.tsx` is 513). That number belongs to debt 26, which
-  stays open for it.
+  criterion the gap was **113** (`wc -l src/App.tsx` was 513 at the time). That number belonged to
+  debt 26, **which closed it on 2026-10-13 at 391 lines** — under 400, with no behaviour change.
 
 **The remainder is CI, and CI is not this ticket's to close — but it is not the whole remainder
 either.** The workflow exists (`.github/workflows/ci.yml`, added by `c3d7cb4` and unchanged since)
@@ -213,6 +234,36 @@ true when the app had none, unsatisfiable the moment it shipped, and it would al
 `webServer`. **Both are the same blind spot as the README's own false denials: a check written for a
 build with less, asserting what the smaller build needed.**
 
-**CI is not in this ticket and does not block it.** The workflow exists, was last touched 13 days
-ago, and has never run on a reachable runner. That belongs to `app-health/04` and `debt/10`, whose two
-never-met acceptance rows — `workers: 2` and the coverage artifact — are recorded there.
+## Re-read 2026-10-13 (TASK-106) — the row deleted, the rule written down, the README read
+
+**The row that could not fail is gone.** It is replaced by the hand-read rule, not by another
+version of itself, and the rule now lives at `docs/agents/document-claims.md` so it outlives this
+ticket. The reasoning is in the acceptance criteria above; this section is the reading it calls for.
+
+**Every grep hit, read against the tree.** The scan returns **21** lines. Not one is a false claim:
+
+| What the hit is | Where (by content, not line) | Checked against |
+|---|---|---|
+| "No account, no server" — a **denial**, and true | the intro's "No account, no server in this build" bullet, and the "No backend, no account, no server" row in the absent list | `grep -rn 'import.meta.env' src/` → nothing; no `fetch`/`XHR`/`WebSocket`/`sendBeacon` in `src/`; ADR-0007/0008 decide the backend, unbuilt |
+| the service worker, described | "A service worker." in `## What this README does not claim` | `public/sw.js`, 12,894 B; `DOCUMENTS` is six URLs at `vite.config.ts:22-29` |
+| the manifest and the install surface | "A web-app manifest, and so an installable app."; "No install prompt." | `public/manifest.webmanifest`, 597 B; `rel="manifest"` ×1, `theme-color` ×2, `apple-touch-icon` ×2 in **both** documents; no `beforeinstallprompt`/`appinstalled` in `src/` |
+| the offline claim, scoped and proved twice | "The offline claim, proved twice"; "The production deploy has happened"; "The `ignoreVary` question is answered" | `e2e/tests/pwa/offline.spec.ts` (7 cases, `vite preview`) and `e2e/live/offline.spec.ts` (4 tests, deployed origin) |
+| "no sync, no push, no background work" — a **denial**, and true | "No sync, no push, no background work." | `public/sw.js` registers exactly `install`, `activate`, `fetch`; zero `sync`/`periodicsync` |
+| `webServer`, "Vite dev server" | the requirements paragraph and the `npm run dev` table row | unrelated uses of the word — the false positive the old row would have flagged |
+
+**Every path, size and count the README names, read against the tree:** 19 source and asset paths
+exist; `public/sw.js` is 12,894 B and the manifest 597 B, both as stated; `src/fonts.css:36-75` holds
+**five** `@font-face` rules (a sixth grep hit is the comment at `:24`); `public/fonts/` holds exactly
+five `woff2` beside two OFL texts; `public/icons/` holds three PNGs; `e2e/tests/` holds **32**
+spec files; `SELECTABLE_FORMATS` is the four formats claimed; both documents carry no
+`googleapis`/`gstatic` reference and no `preconnect`.
+
+**The README is clean, and it took reading to establish that rather than running.** Everything the
+ticket asked to be built was already built; what this pass removed was the check that could neither
+pass nor fail, and replaced it with a rule a reader can act on.
+
+**CI is not in this ticket and does not block it.** The workflow exists and **has run 52 times, green
+since 2026-09-28** — the re-check above says "never run on a reachable runner", which was the same
+`gh`-absent mistake corrected in `docs/ROADMAP.md` and `IMPLEMENTATION_PLAN.md` on 2026-10-01. The
+two never-met rows in `app-health/04` / `debt/10` (`workers: 2`, the coverage artifact) stand as
+recorded.

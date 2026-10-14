@@ -11,6 +11,18 @@
   // canonical spec form.
   //
   // /api/* is reserved for the planned backend and claimed by nothing here.
+  //
+  // `comp3tive` is the LIVE Worker's real name, not a placeholder. The deployed
+  // origin is https://comp3tive.dimasawardhana.workers.dev/, and the name is the
+  // first label of that host: a workers.dev URL is always `<worker>.<account>`.
+  // Recorded 2026-10-13, verified by `curl` rather than by reading this file
+  // back — see docs/ROADMAP.md, gate 3. Deploying this config updates that
+  // Worker; it does not create a second one.
+  //
+  // A custom domain is still needed before any passkey is registered, and that
+  // is a Phase E decision rather than a deploy one: a workers.dev host is on the
+  // Public Suffix List's private section, so it can never share a credential with
+  // a custom domain (docs/adr/0008-account-identity.md).
   "name": "comp3tive",
   "compatibility_date": "2026-09-14",
   "assets": {

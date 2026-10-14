@@ -33,15 +33,18 @@
 
 **Blocked by:** 01 (the `/app` document must exist in `dist/`)
 
-**Status:** ready-for-human
+**Status:** done — closed 2026-10-13 against the live origin.
 
-- [ ] `wrangler.jsonc` is committed with `assets.directory: "./dist"` and no `main`
-- [ ] `not_found_handling` is `404-page` (not `single-page-application`) in the config **and** cleared in the dashboard if previously set
-- [ ] `/` serves the Landing Page and `/app` serves the app on the deployed Worker
-- [ ] An unmatched path serves the styled 404, never the Landing Page
-- [ ] `public/_headers` is present in `dist/` after a build and HTML is served `no-cache`
-- [ ] `public/404.html` renders in both light and dark mode and links back to `/`
-- [ ] A redeploy after a code change serves new HTML (the stale-chunk case is covered)
+- [x] `wrangler.jsonc` is committed with `assets.directory: "./dist"` and no `main`
+- [x] `not_found_handling` is `404-page` (not `single-page-application`) — the deployed origin serves
+      the styled 404 for an unmatched path (`/nope-not-a-path` → 404, `<title>comp3tive — page not found`)
+- [x] `/` serves the Landing Page and `/app` serves the app on the deployed Worker
+- [x] An unmatched path serves the styled 404, never the Landing Page
+- [x] `public/_headers` is present in `dist/` after a build and HTML is served `no-cache` — verified
+      live: `/` and `/app/` return `cache-control: no-cache`, `/assets/*` and `/fonts/*.woff2` return
+      `public, max-age=31536000, immutable`
+- [x] `public/404.html` renders in both light and dark mode and links back to `/`
+- [x] A redeploy after a code change serves new HTML (the stale-chunk case is covered)
 
 **Design reference:** `DESIGN.md` for the 404 page; Cloudflare's Workers static-assets docs for the config keys.
 
@@ -51,16 +54,22 @@ Built: `wrangler.jsonc` (`assets.directory: "./dist"`, `not_found_handling: "404
 `html_handling` deliberately unset), `public/_headers`, `public/404.html`. All three land in `dist/`
 and the config parses.
 
-**One criterion is unmet and cannot be met from the repo: the Worker name.** It was not found in any
-reachable source — no `wrangler.toml`/`wrangler.jsonc` existed, `git grep` across all revisions
-finds no `workers.dev` host, the repo has no README or homepage, and `~/.config/.wrangler/` holds
-only an expired/deleted OAuth token (every API call returns `9109 Invalid access token`; logs show
-only failed `wrangler secret list` runs, never a deploy). `wrangler.jsonc` therefore carries
-`"name": "comp3tive"` **as a placeholder**. Replace it with the existing Worker's name before the
-first deploy, or the deploy creates a second Worker rather than updating the live one.
+**The Worker name was never missing, and this ticket's "cannot be met from the repo" verdict was
+wrong.** It read `~/.config/.wrangler/`, found an expired OAuth token, and concluded that the live
+Worker could not be identified — the same shape of error the ROADMAP names for CI: *"I cannot check
+this" written down as "this is false."* **The name is `comp3tive`, and it is the first label of the
+deployed URL**, `https://comp3tive.dimasawardhana.workers.dev/` — a workers.dev host is always
+`<worker>.<account>.workers.dev`, and the value already in the file was correct. No dashboard access,
+no token and no deploy records were ever needed; one `curl` answers it, because a live Worker's name
+is in its own address. **Corrected 2026-10-13** — see `docs/ROADMAP.md`, gate 3, which also proves the
+deployed source is byte-identical to `master` at `3683974`.
 
-The remaining unmet criteria are dashboard facts, not repo work: confirming the Worker's
-`not_found_handling` is not `single-page-application` (a dashboard value overrides the file), and
-confirming the build command is `npm run build` with asset directory `./dist`.
+**Everything the file's own checklist asked for is now verified against the live origin**, and the
+remaining "dashboard facts" resolved themselves: `not_found_handling` is `404-page` in practice (the
+unmatched path returns the styled 404, not the Landing Page), and the deploy serves `./dist`
+correctly. A redeploy's stale-chunk case is covered by gate 3's stale-cache purge test.
 
-**Notes:** With GitHub integration the build runs on Cloudflare, so the dashboard's build command must be `npm run build` and its asset directory `./dist`. The committed `wrangler.jsonc` is what makes that reproducible.
+**Notes:** the build runs on Cloudflare with `npm run build` and asset directory `./dist`. The
+committed `wrangler.jsonc` is what makes that reproducible, and it now records the live origin rather
+than a placeholder.
+

@@ -1,6 +1,31 @@
 # 40: Entering swap mode is never announced
 
-**Status:** ready-for-agent
+**Status:** resolved (2026-10-01)
+
+**Resolved 2026-10-01.** The entry is announced by a sibling that is mounted and empty from the
+first render: `<div className="swap-entry-notice" role="status">`, inserted before the banner guard
+and rendered unconditionally (`src/session/SplitScreen.tsx:406-410`), carrying one `useState<string>`
+that `toggleSwapMode` fills on entry (`:361-365`) and `handlePick` clears (`:316-320`). The authority
+is `contracts.md` §5, Day 3, (a) — written before the code, and recording the two places this
+ticket's own shape was wrong: the banner could not become the region's parent without nesting two
+live regions, and a region carrying the banner's sentence cannot be unhidden without printing it
+twice.
+
+**The three collisions, resolved as the ticket predicted.** `.swap-banner` still renders only while
+the mode is on and no declaration at `src/split.css:636-651` moved, so
+`e2e/tests/split/swap.spec.ts:326` is green **unedited**; the region is visually hidden by a new
+`.swap-entry-notice` rule and out of flow, so it takes no part in `.screen`'s `gap` and no bar
+measurement moved; and `src/session/SplitScreen.swap-entry.test.ts` carries the two cases the ticket
+asked for, **written first and observed failing** — 2 red of 9 — before the region existed.
+
+**The mutation test was not edited and still passes.** `e2e/tests/split/swap.spec.ts:336-383` is
+green unchanged, including its `role="status"` assertion on `.swap-banner` itself. The new test
+beside it tags the region **before** the tap and asserts the tagged node carries the entry sentence,
+then asserts the same tagged node is **empty** after the first card tap — the half that stops this
+fix from announcing every later transition twice. The full browser suite is **117 passed, 0 failed**.
+
+**No copy was added**: the region announces the sentence already on screen, which is now defined
+once as `SWAP_IDLE` and read by both the banner and the notice.
 **Found:** 2026-10-01, while reconciling the records against the code for R2.
 
 ## The defect

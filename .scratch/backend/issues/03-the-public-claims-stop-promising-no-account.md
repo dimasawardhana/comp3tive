@@ -93,9 +93,14 @@ ADR, not a ticket." ADR-0007 is that ADR, and it is written.
 **Acceptance criteria:**
 - [ ] `grep -rniE 'no account|no server|no sign.?up|not on a server' index.html app/index.html public/`
       returns nothing
-- [ ] `grep -niE 'no account|no server' README.md` returns nothing, or only lines that explicitly deny
-      the claim — ticket 30's own gate, kept satisfiable. If ticket 30 has landed, its README text is
-      corrected in the same pass so the gate still passes
+- [ ] **No document asserts the absence of an account or a server that will not be true.** Read by
+      hand, not grepped: `docs/agents/document-claims.md`. **This row used to read "`grep -niE 'no
+      account|no server' README.md` returns nothing, or only lines that explicitly deny the claim —
+      ticket 30's own gate, kept satisfiable"** — which imported ticket 30's broken row and would
+      have had the same defect here. Ticket 30 deleted it on 2026-10-13 (TASK-106) and replaced it
+      with the rule; this row follows suit rather than restating a check that cannot fail. When the
+      Account ships, `README.md:40-42`'s *"No account, no server in this build"* and
+      `index.html`'s trust rows are the sentences to re-read, and they become false exactly then.
 - [ ] `index.html`'s trust list has at most three rows and none asserts the absence of an account or a
       server
 - [ ] `PRODUCT.md` no longer contains the strings "no backend, no auth, no network",

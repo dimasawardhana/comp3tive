@@ -19,11 +19,13 @@ introduces the repo's first runtime secret, its first environment read, and its 
 
 **What to build, exactly.**
 
-1. **Settle the production origin first.** `wrangler.jsonc:14` carries `"name": "comp3tive"` as a
-   documented placeholder; `.scratch/landing-page/issues/05:56-60` records that deploying with it
-   unchanged "creates a second Worker rather than updating the live one". Identity binds to an origin,
-   so the real hostname and a canonical custom domain are recorded in `wrangler.jsonc` (and in the
-   ADR's consequences) before any credential is registered. `workers.dev` is not the canonical origin.
+1. **Settle the canonical origin first.** The Worker is already deployed and live at
+   `https://comp3tive.dimasawardhana.workers.dev/`, so `wrangler.jsonc`'s `"name": "comp3tive"` is the
+   real Worker name (a workers.dev host is `<worker>.<account>.workers.dev`) — **not** the placeholder
+   this ticket and `.scratch/landing-page/issues/05:56-60` both called it, which is corrected here
+   rather than left standing. Identity binds to an origin, so what is still to settle is the
+   **custom domain** a passkey will be bound to; `workers.dev` is where the app is reachable today,
+   not the canonical origin, and the two can never share a credential.
 
 2. **A `server/` deployable in this repository**, importing domain types from `src/domain/types.ts`
    rather than copying them. It exposes `/api/*` — the path ADR-0006 reserved and nothing has claimed
@@ -77,8 +79,8 @@ introduces the repo's first runtime secret, its first environment read, and its 
       value is read in client code
 - [ ] `.env.example` exists and `.env` / `.dev.vars` remain untracked — `git check-ignore` resolves
       both
-- [ ] `wrangler.jsonc` carries the real Worker name and the canonical origin, and a comment records
-      why the name is not a placeholder any more
+- [ ] `wrangler.jsonc` records the live Worker name (`comp3tive`, already correct) and adds the
+      canonical **custom domain** once chosen; the name is no longer described as a placeholder
 - [ ] `wrangler.jsonc` carries `assets.run_worker_first` covering `/api/*`, and the "no Worker script
       and no `main`" comment at `wrangler.jsonc:3` is corrected rather than left stale
 - [ ] Navigating a browser directly to an API path reaches the API (not the assets fallback), proving

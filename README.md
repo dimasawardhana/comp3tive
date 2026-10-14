@@ -96,6 +96,7 @@ Playwright 1.62, `@types/node` 22.15.
 | `npm run test:watch` | Unit tests in watch mode |
 | `npm run e2e` | The browser suite — Playwright |
 | `npm run capture:hero` | Drive a real split in Chromium and self-check the screenshots it takes |
+| `npm run e2e:live` | The same offline claim, against the **deployed** origin — needs the network |
 
 `npm test` and `npm run test:watch` are unit tests only. The `.tsx` screens have no component tests
 by design; anything that needs a real browser goes through `npm run e2e`.
@@ -104,7 +105,7 @@ by design; anything that needs a real browser goes through `npm run e2e`.
 
 `npm run e2e` runs `playwright test --config=e2e/playwright.config.ts`. **A bare `npx playwright
 test` finds nothing**, because the config lives in `e2e/` — there is no `playwright.config.ts` at
-the repository root. The 32 specs are in `e2e/tests/`, and `testDir` is `./tests` relative to the
+the repository root. The specs are in `e2e/tests/`, and `testDir` is `./tests` relative to the
 config, so one file is addressed as:
 
 ```bash
@@ -114,6 +115,12 @@ npm run e2e -- tests/squads/saved-squad.spec.ts
 The config's `webServer` is `npm run preview` with `cwd: ".."` and `reuseExistingServer: true`, so
 a preview server that is already up will be reused — and a stale one serves old assets. Run
 `npm run build` before trusting a run.
+
+`npm run e2e:live` is a separate config (`e2e/live.playwright.config.ts`, `testDir: ./live`) and is
+**not** part of `npm run e2e`. It drives the deployed origin at
+`https://comp3tive.dimasawardhana.workers.dev/` with a real Chromium, so it needs the network and a
+deploy that already exists, and it is the only thing that can check the host's own headers and a real
+activation. Run it after a deploy; it is the proof recorded in `docs/ROADMAP.md`'s gate 3.
 
 `npm run capture:hero` has the same prerequisite by hand: it drives a real Chromium against
 `http://localhost:4173/app/`, so `npm run build && npm run preview` must already be serving. It
@@ -136,11 +143,15 @@ capture-and-verify tool; treat its output as a diagnostic, not an asset.
 | `docs/adr/` | Eight numbered decisions |
 | `docs/FLOW.md` | The navigation contract: screens, breadcrumbs, back targets |
 | `docs/archive/DOMAIN_MODEL.md` | The shipped domain model, archived under a superseded banner — `CONTEXT.md` is the live glossary |
-| `docs/agents/` | The issue-tracker and triage conventions |
+| `docs/agents/` | The issue-tracker, triage and document-claim conventions |
 | `.scratch/` | Tickets, committed on purpose |
 | `sample-data/` | Three sample rosters, one per seeded discipline |
 
 ## What this README does not claim
+
+**Every claim below — and every denial — was read against the tree it describes, not grepped for.**
+The rule is `docs/agents/document-claims.md`; a scan for over-claiming cannot see a denial, because a
+denial contains no promise to flag.
 
 Three of the four things this section used to deny ship, so they are stated first rather than
 removed:
@@ -162,14 +173,28 @@ removed:
   to render a glyph. The standalone `public/comp3tive.svg` has no cascade to route through, so it
   declares its own face: the local `woff2`, on a relative URL, not a remote one.
 
-**The offline claim, scoped to what is actually proven.** `e2e/tests/pwa/offline.spec.ts` drives a
-real Chromium against a real `vite preview` and proves seven things: neither document reaches a
-host other than the origin; the app and the Landing Page each open with the network cut; a font and
+**The offline claim, proved twice — locally, and then on the deployed origin.** `e2e/tests/pwa/offline.spec.ts`
+drives a real Chromium against a real `vite preview` and proves seven things: neither document reaches
+a host other than the origin; the app and the Landing Page each open with the network cut; a font and
 a module behind an `await import()` are served from the cache; a whole tournament runs; and a new
-build activates and purges the old cache. **No production deploy has happened**, so none of that has
-been shown against a deployed origin. `{ ignoreVary: true }` (`public/sw.js:171`) is the largest
-unverified assumption in the branch — `vite preview` sends `Vary: Origin` on everything it serves,
-and a real host may not (`docs/ROADMAP.md`, gates 2 and 3).
+build activates and purges the old cache.
+
+**The production deploy has happened, and the same claim is now proved against it.**
+`https://comp3tive.dimasawardhana.workers.dev/` serves `master` at `3683974`, byte-identical to that
+commit's `dist/` (all three documents compared with `diff` against a clean-worktree build, 2026-10-13).
+`e2e/live/offline.spec.ts` drives the deployed origin — `npx playwright test
+--config=e2e/live.playwright.config.ts` — and proves the four things a preview server cannot: no
+request leaves the origin; a whole tournament runs with the network cut; the deployed worker's
+`VERSION` is recomputed from its own 23 precached responses and matches; and a planted stale
+`comp3tive-` cache is purged on activation while a cache that is not ours is left alone.
+
+**The `ignoreVary` question is answered, and the answer is that it does not matter here.**
+`{ ignoreVary: true }` (`public/sw.js:171`) was "the largest unverified assumption in the branch"
+because `vite preview` sends `Vary: Origin` and a real host might not. The deployed host sends **no
+`Vary` header at all** — verified on `/`, `/app/`, `/sw.js`, `/manifest.webmanifest`, `/404.html`, a
+hashed asset, a font and an icon, by `HEAD` and by `GET` with and without `Accept-Encoding`. So
+`cache.match` has no `Vary` to honour, the fix is harmless rather than load-bearing, and the
+assumption is retired (`docs/ROADMAP.md`, gates 2 and 3 — both closed 2026-10-13).
 
 Two conditions travel with the claim, and both are the ones the Landing Page's own restored
 sentence carries. **Only the app registers the worker** (`src/main.tsx:11`; `src/landing.tsx` never

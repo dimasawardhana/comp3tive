@@ -101,9 +101,14 @@ starts awaiting a `fetch`.
 - **`Player` gains `createdAt`.** "Recently added" is physical order today — a bare `getAll()` with
   no index, no sort in `useRoster`, and `players.slice(-3)` in the Dashboard — which a server makes
   arbitrary. Ticket 02 makes the meaning explicit.
-- **One canonical origin.** Identity binds to an origin, so the production hostname is settled before
-  any credential is registered. `wrangler.jsonc:14` currently carries `"name": "comp3tive"` as a
-  documented placeholder that would create a second Worker if deployed unchanged.
+- **One canonical origin.** Identity binds to an origin, so the origin a credential is registered
+  against must be settled first. The Worker is deployed and live at
+  `https://comp3tive.dimasawardhana.workers.dev/`, so `wrangler.jsonc:14`'s `"name": "comp3tive"` is
+  the **real** Worker name, not the placeholder this file called it — a workers.dev host is
+  `<worker>.<account>.workers.dev`, so the name is the host's first label (`docs/ROADMAP.md`, gate 3,
+  verified 2026-10-13). **What Phase E still has to choose is a custom domain:** a `*.workers.dev`
+  host is on the Public Suffix List's private section and can never share a passkey with a custom
+  domain, so `workers.dev` is where the app is reachable today, not the canonical origin.
 - **An Account is its own opaque key, and email is an attribute, not the join.** A passkey contributes
   a Credential record and Google contributes an issuer-and-subject pair; both attach to the Account,
   and attaching the second is an explicit act by a signed-in Organizer. Keying on a verified email

@@ -1,7 +1,11 @@
 # comp3tive — implementation plan
 
-**Status:** current as of 2026-09-28. This is the live index; the design behind each phase lives in
-`docs/superpowers/`, and the cross-phase rules live in `contracts.md`.
+**Status:** **corrected 2026-10-01** — this file was three days stale and said so nowhere. It claimed
+Phases C and D had not started, that `feature/revamp` was 26 commits ahead of `master` and unpushed,
+and that 23 of 43 tickets remained. **All three were false when written and stayed false until
+today.** Every count below is read from `.scratch/debt/issues/*`'s own `Status:` lines and from the
+tree, not from this file's memory. The design behind each phase lives in `docs/superpowers/`, and the
+cross-phase rules live in `contracts.md`.
 
 > **What this file used to be.** Until 2026-09-28 this was a 235-line draft claiming comp3tive had no
 > `Session` type, needed bye handling, needed Swiss completion criteria, needed `roleComplete` and
@@ -27,17 +31,27 @@
 
 ## Where the work stands
 
-**43 tickets. 20 shipped, 23 to go.**
+**43 tickets. 40 shipped, 3 to go** — read from the tracker's `Status:` lines on 2026-10-01:
 
 ```
 Phase A · Truth and Trust          12 tickets   SHIPPED   edfd739
-Phase B · Honest Claims             8 tickets   SHIPPED   feature/revamp, unpushed
-Phase C · Shell and Structure      10 tickets   not started
-Phase D · Product Completion        7 tickets   not started
+Phase B · Honest Claims             8 tickets   SHIPPED   9e6a4a3 (PR #5)
+Phase C · Shell and Structure      10 tickets   SHIPPED   2026-10-13 (all 10)
+Phase D · Product Completion        7 tickets   SHIPPED   d98b95c
 Phase E · Account and Durability    6 tickets   not started
 ```
 
-**Not pushed.** `feature/revamp` is 26 commits ahead of `master` at `5b65d53` and the tree is clean.
+**On `master`, not on a branch.** `feature/revamp` merged as `9e6a4a3` and is 8 commits behind;
+`master` is level with `origin/master` at `3683974` and there are **0 open PRs**. **CI runs on every
+push and has been green since 2026-09-28** — 47 of 52 runs successful, the 5 failures all on
+2026-09-18, the day the workflow was added — and the latest green run is this `HEAD`. That last
+sentence is new: `docs/ROADMAP.md` spent 2026-10-01 denying it, and `gh` is not installed on this
+machine, so the way to check is one unauthenticated request to
+`api.github.com/repos/dimasawardhana/comp3tive/actions/runs`.
+
+**Nothing is left open in A–D.** `app-correctness/03`'s read-path decision and CSV validation were
+delivered 2026-10-01, and **debt 26's `wc -l src/App.tsx` closed 2026-10-13 at 391 lines** against
+the under-400 criterion — see Phase C below.
 
 ### Phase A — Truth and Trust · shipped
 
@@ -77,36 +91,49 @@ defaulting to badminton. All three are in the known-open table below.
 
 Ledger: [`.superpowers/sdd/2026-09-17-honest-claims/progress.md`](.superpowers/sdd/2026-09-17-honest-claims/progress.md)
 
-### Phase C — Shell and Structure · not started · 10 tickets
+### Phase C — Shell and Structure · **shipped, all 10 tickets, 2026-10-13**
 
 **Goal:** the code can absorb the next five features without the shell growing. `src/App.tsx` from
 1,315 lines to under 400, holding no navigation, scoping or flow rules. 415 lines of dead modules
 gone, one definition of the tournament validation rules, no native `alert`/`confirm`, and the
 Landing Page stops downloading the app's stylesheet.
 
-**The first thing to check:** `src/shell/` does not exist. Every file the phase creates is genuinely
-new, and Phase D is hard-blocked on it.
+**Landed.** `src/shell/` exists with all seven files Phase D was hard-blocked on, plus
+`src/session/flow.ts`; the three deleted modules are gone. **The headline criterion is now met:
+`wc -l src/App.tsx` is 391**, under the 400 stated in this file, `contracts.md:180` and debt 26 — so
+the one row that was open in three documents at once is closed in all three.
+
+**What closed it, 2026-10-13.** The residual was not 113 loose lines. Of the 513, 28 were blank and
+57 comment-only, leaving **428 code lines**; three self-contained behaviours still lived in the
+component. They are now `src/shell/useAppCommands.ts` (the store writes, the export, the delete
+censuses), `src/shell/useLegacyAdoption.ts` (the pre-community adoption effect and its two warning
+refs) and `useThemeAndLayout` in `src/shell/usePreferences.ts`. No e2e spec was edited: **117/117
+browser, 788/788 unit, `tsc -b` clean**. The phase's own rule — *a region's line cost is its read
+set, not its length* — is what made this cheap; moving the one-to-three-line navigation closures
+would have gained nothing.
 
 Spec · plan · tickets: `docs/superpowers/specs/2026-09-17-shell-and-structure-design.md` ·
 `docs/superpowers/plans/2026-09-17-shell-and-structure.md` (3,026 lines) ·
 `.scratch/debt/issues/21-30`.
 
-### Phase D — Product Completion · not started · 7 tickets
+### Phase D — Product Completion · **shipped** · 7 tickets
 
 **Goal:** the organizer's evening closes. The teams can be sent to the group chat as text and as a
 branded image, the app opens with no signal and installs to the home screen, the browser is asked to
 protect the data, a 3- or 5-team night can run a tournament, and the roster stops being one player at
 a time.
 
-**Blocked.** The plan's own gate: if `src/shell/RosterScreen.tsx`, `src/shell/usePlayerImport.ts`,
-`src/shell/useSplitFlow.ts`, `src/shell/useToasts.ts`, `src/ui/Modal.tsx`, `src/ui/constants.ts` or
-`src/shell/useCommunityScope.ts` is missing, **stop** — a prerequisite phase has not landed.
+**Shipped, and the plan's own gate is satisfied.** All seven gate files exist — `RosterScreen.tsx`,
+`usePlayerImport.ts`, `useSplitFlow.ts`, `useToasts.ts`, `Modal.tsx`, `constants.ts`,
+`useCommunityScope.ts` — checked 2026-10-01. `src/share/**` ships text and poster sharing, round
+robin, bulk rating and the CSV path, and `public/sw.js` + `manifest.webmanifest` make the offline
+promise true.
 
 Spec · plan · tickets: `docs/superpowers/specs/2026-09-17-product-completion-design.md` ·
 `docs/superpowers/plans/2026-09-17-product-completion.md` (3,979 lines) ·
 `.scratch/debt/issues/31-37`.
 
-### Phase E — Account and Durability · not started · 6 tickets
+### Phase E — Account and Durability · **plan written 2026-10-14, not started** · 6 tickets
 
 **Goal:** the evening survives the device. A Guest is unchanged. An Organizer who signs in gets
 their roster on a second device, and gets it back after losing the first.
@@ -125,28 +152,33 @@ format is the backup format, one document per `(account, community)` — no seco
 algorithm, no duplicated validation. Nothing is normalized server-side: Player deletion leaves
 dangling ids by design, and a relational schema would reject what the app deliberately does.
 
-**Not yet written:** its implementation plan. The design, the decisions and the six tickets exist;
-`docs/superpowers/plans/2026-09-28-account-and-durability.md` does not. Write it after D, not before
-— E's `contracts.md` row is the one place its frozen names get recorded, and a plan written before
-the phase's place in the order was settled would freeze the wrong shapes.
+**Written 2026-10-14:** `docs/superpowers/plans/2026-09-28-account-and-durability.md`. It is written
+**after** D, as this row required, and the condition that held it back is discharged: C's last row
+closed 2026-10-13, so the phase's place in the order is settled. Its first act was to freeze E's
+frozen names — `contracts.md` §4's "Created by E" row had read *"Not yet frozen — the names are Phase
+E's plan to freeze"* — so the plan records shapes rather than assuming them. **Every ticket's line
+anchor into `src/App.tsx` was stale** (written before C and D decomposed it); the plan cites what it
+read and lists the three regions that moved.
 
 Design · ADRs · tickets: `.scratch/backend/spec.md` · `docs/adr/0007-optional-backend.md` ·
 `docs/adr/0008-account-identity.md` · `.scratch/backend/issues/01-06`.
 
 ## Recommended order, and why
 
-**B → C → D → E.** B is eight tickets, most of it copy, and it unblocks D's share text. C is the only
-pure-refactor phase and the browser suite is green enough to gate it now. D is the expensive product
-work and it lands in the shell C builds. E is last because every one of its tickets lands in a file a
-later phase creates or rewrites.
+**B → C → D → E, as written — and three of the four are behind us.** B is eight tickets, most of it
+copy, and it unblocks D's share text. C is the only pure-refactor phase and the browser suite was
+green enough to gate it. D is the expensive product work and it lands in the shell C builds. E is
+last because every one of its tickets lands in a file a later phase creates or rewrites. **As of
+2026-10-14 the order that remains is E alone**: C's last row closed, all four gates are closed, and
+E's plan — the one thing this file was waiting on before E could start — is written.
 
-**They are not file-disjoint, whatever the roadmap says.** B and C share two files, with four
-different owners between them: `src/App.tsx` (B15's two strings sit inside the region C26 moves) and
+**They are not file-disjoint, whatever the roadmap says.** B and C shared two files, with four
+different owners between them: `src/App.tsx` (B15's two strings sat inside the region C26 moved) and
 `src/session/SplitScreen.tsx` (B13's gap copy and B15's two strings, against C28's crumb block and
 C26's re-roll expression). Two agents in those files at once is the failure Phase A recorded as
-Ruling R16. **B is now shipped**, so that constraint is spent: the order is **C → D → E**. C still
-gains nothing by starting early, because D is hard-blocked on C either way — the parallelism buys no
-critical-path time and costs a merge. Run them one at a time.
+Ruling R16. **That constraint is spent, and `contracts.md` §6 records the two amendments that came
+after it** — both written before their code, which is the habit this file should be recommending by
+now rather than documenting.
 
 **Two new obligations arrived with Phase B, both recorded in `contracts.md`:**
 - **Adding a discipline needs a `SEEDS_ADDED_IN` entry and a `DB_VERSION` bump.** Without the bump
@@ -162,16 +194,18 @@ Not scheduled anywhere. Recorded so they are not rediscovered as if they were ne
 
 | Item | Where it is recorded | Size |
 |---|---|---|
-| CI has never run on a GitHub runner; branch protection is not set | Phase A ledger, "Not observed" | one line in the repo settings |
+| ~~CI has never run on a GitHub runner~~ — **false, and now corrected:** 52 runs, green since 2026-09-28, latest on this `HEAD`. **Branch protection is still unverified** (the API answers 401 unauthenticated from here) | Phase A ledger, "Not observed" | one line in the repo settings |
 | `workers: 2` is measured and green (29.9 s against ~60 s) but deliberately left at 1 | Phase A ledger, Ruling R15 | one character |
 | The standings tiebreak's last key is seed-ordered, not seed-neutral, and decides the title in 1,688 of 262,144 reachable 6-team Swiss final states | Phase A ledger, Ruling R8 | documented residue, defensible |
 | A depth-3 quoted name in a CSV still leaks its tail as a row; the cap narrows that class rather than closing it | Phase A ledger, deferred under R12 | one honest comment |
 | `src/tournament/TournamentScreen.tsx` has no spec coverage for the ReviewPanel state | Phase A ledger, Task 2 deferral | one new spec |
 | The v1 import route through `handleImport` has no e2e coverage | Phase A ledger, Task 6 deferral | one `it` |
 | A tournament delete is not re-asserted after a reload in `delete-row.spec.ts` (players and sessions are) | `.scratch/debt/issues/04` Comments | one assertion |
-| Handlers write stores rather than hooks in three places Phase A did not touch | Phase A ledger, carry-forward | Phase C's C24–C27 |
+| ~~Handlers write stores rather than hooks in three places Phase A did not touch~~ — **done by C24–C27** | Phase A ledger, carry-forward | — |
 | **Tournament subs are unimplemented and unspecified** — no `Sub` type exists anywhere | the audit below | a decision, not a ticket |
 | `src/landing.css` is granted to Phase B but written by no task; B's spec claims exclusive ownership of nine paths it does not own | `contracts.md` §3, §7 D5 | bookkeeping |
+| ~~The roster editor's **refusal** is met in code (`PlayerEditModal.tsx:141-146` returns before `onSave` and renders `.field-errors`) but has **no test at any layer**~~ — **closed 2026-10-13 by TASK-107**: `e2e/tests/roster/editor-refusal.spec.ts` drives it through the real UI, mutation-verified. It had to be a browser case, not the "one unit case" this row predicted: `renderToStaticMarkup` runs no handlers, and the repo has no jsdom or `*.test.tsx` | `.scratch/app-correctness/issues/03`, second pass | done |
+| `.swap-entry-notice` duplicates the nine visually-hidden declarations of `.sr-only` (`src/landing.css:319-329`). The two stylesheets are never loaded together, so the right home is `src/tokens.css` — which `contracts.md` §7 D7 records is not a phase's file | `contracts.md` §5, Day 3, (a) | nine declarations, and a decision |
 | `docs/BUSINESS_FLOW_REVIEW.md:13` still states "There is no server, no auth, no network roundtrip" | the backend spec's Further Notes | dated analysis, deliberately out of E03's copy pass |
 | **A sign-in must not overwrite an account that has already synced.** The adoption guard is on the *account's* state, not the device's — and a bad overwrite now destroys the authoritative copy, where before it damaged only the local one | ADR-0007, backend spec Implementation Decisions | Phase E's plan must pin the guard and its test |
 | **A pending offline write blocks sign-out, or is discarded behind an explicit confirm.** Signing out empties the stores and a queued write then has nowhere to go | ADR-0007, backend spec | Phase E's plan |

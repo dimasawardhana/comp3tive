@@ -1,6 +1,18 @@
 # 41: The settings popover's trigger does not say whether it is open
 
-**Status:** ready-for-agent
+**Status:** resolved (2026-10-01)
+
+**Resolved 2026-10-01.** `aria-expanded={showSettings}` on the ⚙ trigger
+(`src/shell/AppChrome.tsx:169`), read from the state the chrome already holds at `:44` — no second
+piece of state, not inverted. The popover, its markup and `.icon-btn` are unchanged, and the
+community switcher (`:105`) and the rail toggle (`:81`) were not touched. The authority is
+`contracts.md` §5, Day 3, (b), which records that **no exception was required** — `AppChrome` sits in
+no row of §6, so the edit is purely additive — and why the ✚ button is not part of it.
+
+**The test asserts both states, and the closed one is the point.** `e2e/tests/settings-panel/
+settings.spec.ts` now checks `aria-expanded="false"` before the first click, `"true"` after it, and
+`"false"` again after closing it by hand — the last of the three is what makes the attribute a
+reading of the state rather than a latch set on first open. Green in the full browser run.
 **Found:** 2026-10-01, while removing `AppChrome`'s dead `showAddCommunity` prop.
 
 ## The defect

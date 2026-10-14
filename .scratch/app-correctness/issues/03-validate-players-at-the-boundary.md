@@ -16,10 +16,12 @@
 
 **Blocked by:** —
 
-**Status:** open (re-checked 2026-10-01 against `feature/revamp`; every entry point verified, two rows genuinely unmet)
+**Status:** resolved (second re-check 2026-10-01, against `master`; both remaining rows delivered —
+the read-path decision is in `## Answer` above, and the CSV branch now calls the validator)
 
-**Corrected, not closed.** The successor that delivers the remaining gap is
-`.scratch/debt/issues/05-validate-players-where-data-enters.md`; see `## Comments` below.
+**Corrected, not closed** — as written on 2026-09-18, and superseded by the 2026-10-01 pass below,
+which closed the two rows that kept it open. The successor that delivered the bulk of the work is
+`.scratch/debt/issues/05-validate-players-where-data-enters.md`.
 
 - [ ] A capability with a missing attribute rating is rejected at save with an inline message, not persisted
 - [ ] The same malformed record in an imported backup file is rejected with a message naming the problem
@@ -32,6 +34,43 @@
 **Design reference:** the inline validation pattern already used in `DisciplineEditModal` and `PlayerEditModal`.
 
 **Notes:** This is the highest-value of the four fixes: the others are annoyances, this one loses the screen. It also needs no schema library — the validation function exists.
+
+## Answer
+
+**Written 2026-10-01. This is the decision the fifth bullet asked for, and it had never been
+stated anywhere in the tree.**
+
+**Validate on write; trust storage on read.**
+
+**What "on write" covers, now that the CSV branch is in it.** Four entry points, and every one
+refuses the record with a message naming it rather than persisting it: `PlayerEditModal.tsx:141-146`
+(inline, before `onSave`), `parseBackup` (`src/data/transfer.ts:139-144`), the players-only JSON
+branch (`src/shell/usePlayerImport.ts:356-360`), and `csvRowsToPlayers`
+(`src/data/player-import.ts:230-236`), which routes a failed check to `skipped` with the row's line.
+The boundary is the claim; the read path is not asked to re-prove it on every render.
+
+**What "on read" means, exactly.** `src/storage/indexed-db.ts:310` hands records back as stored —
+`listPlayers: crud.list` — and no read path calls `validatePlayer`. **That is the decision, stated,
+rather than the omission it used to be.**
+
+**Why it is the right way round for this app.** Every screen renders every player on the roster, and
+`computeStrength` runs during render from two places; validating on read would put an O(players)
+allocation and a rule walk on the render path of every screen, to re-check a fact the write path
+already established and which storage cannot change on its own. **The check belongs where the record
+is untrusted, which is the boundary, not the render.**
+
+**What the decision gives up, named rather than hidden.** A record that reached storage by some other
+route — a database edited by hand, a write path from an older install, a future writer that forgets —
+is **not** caught by a validator on read. It is caught by `computeStrength`, which still throws by
+design (`src/domain/strength.ts:28-32`, asserted not weakened by this ticket), and that throw is
+inside `ErrorBoundary`, so the result is the message and a Reload rather than a blank page. **That is
+a crash rather than a refusal, and it is the accepted cost:** the alternative is validating on every
+read to defend against a route this app does not have. The third line of defence — refusing to
+persist — is the one that is cheap, and it is the one that is enforced.
+
+**Revisit if** a write path is ever added that this list does not cover, because the argument above
+rests on the boundary being exhaustive. `src/data/transfer.ts` and `usePlayerImport.ts` are where to
+look first.
 
 ## Comments
 
@@ -82,6 +121,7 @@ the message and a Reload button; `src/domain/strength.ts:28-32` still throws on 
 so the last line of defence was not weakened. `e2e/tests/shell/error-boundary.spec.ts:70-71`
 asserts a real render throw produces the boundary and surfaces the message.
 
+
 ### What is genuinely unmet, and stays open
 
 **1. The read-path decision was never written.** This ticket's fifth bullet says: "*Decide the read
@@ -106,11 +146,68 @@ outright. **No test pins either.**
 **The other two rows are ambiguous rather than unmet, and are left as they are.** "*Unit tests for
 the rejection cases at both entry points*" names two entry points and three validate, so which two
 was meant is not recoverable from the file. And the first row — "*rejected at save with an inline
-message, not persisted*" — is met in code (`:141-146` returns before `onSave`) but has **no test at
-any layer**: `PlayerEditModal.test.ts` covers the rating controls, not the refusal, and no e2e drives
-it. That is a coverage gap on a met behaviour, not a defect in it.
+message, not persisted*" — is met in code (`:141-146` returns before `onSave`) but had **no test at
+any layer**: `PlayerEditModal.test.ts` covers the rating controls, not the refusal, and no e2e drove
+it.
 
-**Verdict: stays open.** Three of the four entry points validate, the boundary is in place and
-proven, and `computeStrength` still throws. The two things missing are the decision this ticket
-explicitly asked to be written down, and a check on the one entry point that does not call the
-validator.
+**CLOSED 2026-10-13 (TASK-107), and the coverage gap was the reason it took a browser case.**
+`e2e/tests/roster/editor-refusal.spec.ts` now drives the refusal through the real UI and asserts the
+three things the branch means: the modal stays open, `.field-errors` carries the validator's own
+sentence, and the player is not on the roster afterwards. It was mutation-tested — deleting the
+`return` in `PlayerEditModal.save` turns it **red** while its control case stays green, so it pins
+the refusal and not the dialog.
+
+**It could not have been a unit case.** `PlayerEditModal.test.ts` renders with
+`renderToStaticMarkup`, which runs no handlers, so `save()` is unreachable from that layer; and this
+repo has no jsdom, no testing library and no `*.test.tsx` — `vite.config.ts` includes only
+`src/**/*.test.ts`, and `README.md` states the convention outright: a `.tsx` screen is proven in a
+browser. `validatePlayer`'s own rules were already unit-tested in `src/domain/validation.test.ts`;
+what was untested was the *wiring*, and wiring needs a click.
+
+**The spec found something while being written, and it is recorded rather than fixed.** Five of the
+six refusal rules cannot be broken from the shipped UI — ratings always carry a value, the bounds
+are hardcoded 1–5 with no input, `buildCapabilities` heals a stray preferred role and an emptied
+eligibility list, and duplicates are filtered out of the add-a-capability strip. The one reachable
+path is a discipline that declares **no roles**: `DisciplineEditModal` permits saving one, and
+`validateCapability` then demands an eligible role from a list that is empty — so the dialog refuses
+with **no control that can clear it**. Refusing the discipline at creation or relaxing the player
+rule are both product decisions, so the spec records the dead end in its header instead of closing
+it.
+
+## Re-checked 2026-10-01 (second pass) — both rows closed, and this file is
+
+The two rows above were correct when written and are both delivered now. That section is left as it
+was found, because it is the dated record of why the ticket stayed open and these closures only make
+sense against it.
+
+**1. The read-path decision — now written.** `## Answer`, above: *validate on write, trust storage
+on read*, with what that costs stated rather than argued around. It was already the de facto
+behaviour (`src/storage/indexed-db.ts:310` returns records unvalidated); what was missing was anyone
+having chosen it.
+
+**2. The CSV branch — now calls `validatePlayer`.** `csvRowsToPlayers` builds the player, validates
+it and routes any issue to `skipped` with the row's line
+(`src/data/player-import.ts:230-236`). Both shapes that defeated the construction are closed and each
+has a test in `src/data/player-import.test.ts`:
+
+| Shape | Outcome | Test |
+|---|---|---|
+| discipline with no roles | `eligibleRoles: []`, rejected by `validateCapability:57-59`; the skip carries **the validator's own sentence**, not a phrase written beside it | `refuses a row whose discipline has no roles, by line and by the validator's own reason` |
+| discipline with no attributes | `attributeRatings: {}`, **which no validator catches** — `validateCapability` iterates the discipline's attributes and there are none to fail — so a guard refuses the row before anything is built | `refuses a row whose discipline has no attributes, because the strength would be discarded` |
+
+Both new tests were run against `src/data/player-import.ts` with the fix stashed: **2 failed, 20
+passed.** A test that cannot fail on the unfixed file is not the test.
+
+**The authority for the change** is `contracts.md` §5, Day 3, (c), written before the code — which
+also records why §4's "*reads, never writes*" is not in conflict: that row is **Phase D's** right,
+and no phase holds this edit.
+
+**The two ambiguous rows are still ambiguous, and this close does not claim them.** "*Unit tests for
+the rejection cases at both entry points*" names two and four validate; and the editor's inline
+refusal is met in code but has no test at any layer. **The first is now moot** — there is no longer
+a pair of entry points, only four — and the second remains a coverage gap on a behaviour that works.
+It is recorded in `docs/ROADMAP.md`'s known-open list rather than silently absorbed here.
+
+**The 2026-09-18 instruction not to close this file is superseded, and the reason is in it.** It said
+not to close while the ticket's own acceptance was open and owned by the successor. It is not owned
+by the successor any more.

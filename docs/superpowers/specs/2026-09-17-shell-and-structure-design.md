@@ -660,6 +660,15 @@ stopped — including the arithmetic that does not close, since removing the acc
 leaves 32 lines over target. The two sentences above are kept as written because "the estimate was
 wrong" is only meaningful against the estimate that was actually made.
 
+**RESOLVED 2026-10-13.** The correction above is kept as written — it records a real phase and a real
+shortfall. What has changed is the two live claims in its last sentences: **the target has now been
+met, and the file is 391, not 514.** The closing extraction is described at acceptance criterion 4.
+The estimate's range is worth one note, since this block calls it "wrong by roughly a third": the
+final figure, **391**, missed the original 330–390 band by a single line — so the estimate was
+wrong about the *journey*, not the destination. The phase stopped 73 lines short of a target it
+could have reached, and left the reasoning unrecorded, which is the failure this correction
+documents.
+
 The `useState` budget, stated so a stalled extraction is visible rather than discovered.
 Measured: `grep -c "useState(" src/App.tsx` → **13 call sites** (2 in the module-level
 `useStoredPref`/`useMediaQuery` helpers at `:94` and `:113`; 11 in the component body at `:140`,
@@ -674,6 +683,15 @@ measured number. The budget is on call sites inside `src/App.tsx`:
 | C25 | 12 | scoping adds no state |
 | C26 | **4** | both helper hooks (`:94`, `:113`) → `usePreferences`; `setup` (`:146`) + `activeSplit` → `useSplitFlow`; the four chrome toggles (`:159`–`:161`, plus `communityName` at `:158`) → `AppChrome`; `toasts` (`:162`) → `useToasts`. Left: `tournamentPrefill`, `filterIds`, `editingPlayer`, `downloadingId` |
 | C27 | **4** | `pendingMerge` is a `useState` inside `usePlayerImport`, not in `App.tsx` |
+
+**FINAL, 2026-10-13: 3 call sites in `App.tsx`.** The budget above stops at C27 and is preserved as
+the phase's own ledger. The later extraction moved `downloadingId` — the fourth of C26's four
+leftovers — into `src/shell/useAppCommands.ts`, beside `downloadSampleData`, which is its only
+writer and only reader; `App` now reads it back as `commands.downloadingId`. The three that remain
+are `tournamentPrefill`, `filterIds` and `editingPlayer`. **The row's intent is unchanged and still
+holds**: `App` declares no `View`, `HubMode` or `NAV_ITEMS`, and holds only the extras that no
+behaviour owns. `useStoredPref`'s `tb-rail` call stays here too, because the rail is chrome state
+rather than a document attribute — the distinction that kept it out of `useThemeAndLayout`.
 
 **Guarded by the e2e suite, no spec edited.** `saved-squad.spec.ts` is the end-to-end spec for
 this flow (save from split → list → use in tournament) and is the real acceptance test.
@@ -1162,6 +1180,30 @@ Every command runs from the repository root. "The suite" is
    `useCommunityScope`'s output stayed behind, which is exactly the shape the ledger called
    "genuine structural excess" when it declined to count them as formatting. The criterion's second
    half — "holds no navigation, scoping, or flow rules" — is met; its first half is not.
+
+   **RESOLVED 2026-10-13 — the criterion is met, and the measurement above stays as written.** The
+   paragraph above is history and is correct as history: no commit *in this phase's series* was under
+   400, the smallest was 473 at `1bcce41`, and the file was 514 after Phase D. What it also carried
+   was a live claim — *"its first half is not [met]"* — and that claim is now false.
+   **`wc -l src/App.tsx` is 391**, measured 2026-10-13, and the file holds no flow rules.
+
+   **The "32 unclaimed lines" finding is closed by being looked at, which is what it asked for.**
+   The paragraph above is careful that "the target was knowingly given up" and "32 lines are
+   unaccounted for" are two separate items, and it is right. The second item is now answered rather
+   than deferred: the 32 were never 32 *lines* of a kind — the file was 513 total of which **28 were
+   blank and 57 comment-only**, so the real subject was **428 code lines**, and an arithmetic done
+   against the raw `wc -l` had been comparing different units all along. Three self-contained
+   *behaviours* were still in the component — the store writes with their toasts, the pre-community
+   adoption effect with its two warning refs, and the theme/layout DOM binding
+   (`src/shell/useAppCommands.ts`, `src/shell/useLegacyAdoption.ts`, `useThemeAndLayout` in
+   `src/shell/usePreferences.ts`). Nothing was a formatting change: no e2e spec was edited, and the
+   suite is 117/117 browser, 788/788 unit, `tsc -b` clean. See
+   `.scratch/debt/issues/26-the-flow-moves-out-of-the-shell.md`, "Resolved 2026-10-13".
+
+   **`communityId ===` is now 0, and that row was the concrete form of the 32.** The four scoped
+   counts it named are the community-delete census, and they moved into `useAppCommands` with the
+   handler that reads them — which is the point: they were not stray writes in the shell, they were
+   one behaviour's read set, and they left when the behaviour did.
 5. **The three frozen modules exist with the frozen exports.**
    `grep -n "export function useNavigation\|export type View\|export type HubMode" src/shell/useNavigation.ts`
    → 3 lines; likewise `export function useCommunityScope` in `src/shell/useCommunityScope.ts`
@@ -1254,7 +1296,7 @@ Every command runs from the repository root. "The suite" is
 | Create | `src/split.css` |
 | Create | `README.md` |
 | Create | `.nvmrc` |
-| Modify | `src/App.tsx` (decomposition; 1,280 lines → under 400 — **the target was never met; the file's smallest value on any commit is 473, at `1bcce41`**. See the CORRECTION at acceptance criterion 4) |
+| Modify | `src/App.tsx` (decomposition; 1,280 lines → under 400 — **met 2026-10-13 at 391**. The phase itself landed at 473, its smallest value on any commit being 473 at `1bcce41`; see the CORRECTION and its RESOLVED note at acceptance criterion 4) |
 | Modify | `src/landing.tsx` (drop `./index.css`) |
 | Modify | `src/landing.css` (import `split.css`; delete the dead `pulse-needle` declarations) |
 | Modify | `src/index.css` (import `split.css`; move the split and shared-kit rules out) |
@@ -1308,6 +1350,16 @@ Every command runs from the repository root. "The suite" is
   **six** files (the flow hook, the roster screen, the app chrome, the preferences hook, the
   toasts hook, the toasts component), which the C26 design block above states correctly. This
   spec contradicts itself in adjacent bullets, and the count a reader needs is six.
+
+  **RESOLVED 2026-10-13.** The correction above is history and stays as written; its live claim —
+  "was never met, by any commit, at any point" — is now superseded, and the sentence that follows it
+  is the one that matters most in this file: **"32 lines above target that no review accepted and no
+  ticket scoped."** Those 32 have now been looked at. They were never 32 lines of one kind, because
+  the count being compared to the target was `wc -l` while the target is about code: of the 513,
+  **28 were blank and 57 comment-only**. The three remaining self-contained behaviours left the
+  component, and **`wc -l src/App.tsx` is 391.** So both halves of this criterion are true at once
+  for the first time: the goal is met, and the residual is accounted for rather than unclaimed.
+  Detail at acceptance criterion 4 and in `.scratch/debt/issues/26-the-flow-moves-out-of-the-shell.md`.
 
 - **Ambiguity check.** "No spec edited" is scoped to the e2e suite (`e2e/tests/**`), which is
   where C's behaviour net lives; unit tests may change where a real API change requires it
