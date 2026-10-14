@@ -73,8 +73,13 @@ trusted to preserve, which is why the meaning has to be written down rather than
 - [ ] A backup round trip preserves `createdAt`, covered by the existing transfer tests plus one
       assertion that a v4 file with timestamp-less players still imports (stamping on import rather
       than throwing)
-- [ ] `e2e/tests/dashboard/dashboard.spec.ts` stays green **unchanged** — the seeded ids and insertion
-      order agree, so the reordering must not alter what that spec observes
+- [ ] `e2e/tests/dashboard/dashboard.spec.ts` is green. **Corrected 2026-10-15: this row used to read
+      "stays green unchanged — the seeded ids and insertion order agree", and that reasoning was
+      false.** With the world's `al-1`..`al-4`, `slice(-3)` renders Alpha Two, Three, Four
+      (ascending) and a newest-first ranking renders Four, Three, Two — opposite orders, measured by
+      running the spec. The assertions and the "Last in the roster" kicker moved with the new
+      meaning; the ranking rule did not move, because descending is what this ticket's own text and
+      unit test specify and what the sibling tournaments teaser already does.
 - [ ] `e2e/support/seed.ts` and every spec that writes a player record supplies `createdAt`; the
       seeded values are monotonic so "newest last" keeps its documented meaning (that interface's
       comment already says "Roster players, newest last")

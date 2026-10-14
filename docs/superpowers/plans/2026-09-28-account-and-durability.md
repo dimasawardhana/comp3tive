@@ -229,8 +229,12 @@ Expected: FAIL — `["b","c","a"]` is not `["a","c","b"]` (`slice(-3)` on the sh
 - [ ] **Step 5: Verify the suite did not move**
 
 Run: `npx tsc -b && npx vitest run && npm run build && npm run e2e`
-Expected: green, with `e2e/tests/dashboard/dashboard.spec.ts` **unedited** — the seeded ids and insertion order agree, so the reordering must not alter what that spec observes.
-
+Expected: green. **Corrected 2026-10-15:** this step used to add "with
+`e2e/tests/dashboard/dashboard.spec.ts` **unedited** — the seeded ids and insertion order agree", and
+that was false. The spec's world is `al-1`..`al-4`, for which the old `slice(-3)` renders Alpha Two,
+Three, Four and a newest-first ranking renders the reverse; the two cannot both hold. The three
+teaser assertions and the kicker moved with the new meaning, and the rule itself stayed as specified
+here.
 - [ ] **Step 6: Commit**
 
 ```bash
