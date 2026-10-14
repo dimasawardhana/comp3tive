@@ -1,0 +1,111 @@
+{
+  "tasks": [
+    {
+      "id": "TASK-101",
+      "title": "Announce entering swap mode to assistive tech",
+      "goal": "Announce entering swap mode to assistive tech",
+      "description": "Debt ticket .scratch/debt/issues/40. Entering swap mode INSERTED the role=\"status\" banner, and a live region announces changes, not insertions -- so the one sentence that says what the mode is for was never heard. Shipped 2026-10-01: a permanently-mounted sibling .swap-entry-notice carries the entry sentence and clears on the first pick, so it is announced once and never twice. Authority: contracts.md section 5, Day 3 (a), written before the code. Red test written first and watched fail (2 of 9), then the fix; swap.spec.ts:336-383 passes unedited. Full browser suite 117/117.",
+      "status": "done",
+      "priority": "high",
+      "claim": null,
+      "created_at": "2026-10-01T04:15:11Z",
+      "updated_at": "2026-10-01T04:16:07Z"
+    },
+    {
+      "id": "TASK-102",
+      "title": "Validate CSV-built players, and write the read-path decision",
+      "goal": "Validate CSV-built players, and write the read-path decision",
+      "description": "app-correctness/issues/03, the last ticket in that tracker still open. Two rows: the read-path choice was never written down, and the CSV branch bypassed validatePlayer. Shipped 2026-10-01. The Answer section now says validate-on-write / trust-storage-on-read, with the cost named (a record that got in another way is caught by computeStrength throwing, not by a re-check on read). The CSV branch calls the validator AND guards the one shape no validator catches: a discipline with no attributes produces an empty rating map, and validateCapability iterates attributes to fail -- zero of them means zero issues. Both new tests run against the stashed fix: 2 red of 22.",
+      "status": "done",
+      "triage": "ready-for-agent",
+      "priority": "high",
+      "claim": null,
+      "created_at": "2026-10-01T04:15:34Z",
+      "updated_at": "2026-10-01T04:16:07Z"
+    },
+    {
+      "id": "TASK-103",
+      "title": "Correct the false CI denial in ROADMAP, and the stale IMPLEMENTATION_PLAN",
+      "goal": "Correct the false CI denial in ROADMAP, and the stale IMPLEMENTATION_PLAN",
+      "description": "Records pass, 2026-10-01. The roadmap claimed in three paragraphs that CI had never run; it had run 52 times, green since 2026-09-28, the latest on this HEAD. It also claimed a PR was open -- PR #5 merged as 9e6a4a3, 0 open now. IMPLEMENTATION_PLAN was 3 days stale: Phase C is 8 of 10 and Phase D is shipped, not unstarted. Why the denial survived two audits: no gh on the machine, so 'I cannot check this' got written down as 'this is false'.",
+      "status": "done",
+      "triage": "ready-for-agent",
+      "priority": "high",
+      "claim": null,
+      "created_at": "2026-10-01T04:15:34Z",
+      "updated_at": "2026-10-01T04:16:07Z"
+    },
+    {
+      "id": "TASK-104",
+      "title": "Deploy gates: supply the production hostname, then verify offline",
+      "goal": "Deploy gates: supply the production hostname, then verify offline",
+      "description": "BOTH GATES CLOSED 2026-10-13. The production hostname was never missing: the Worker is live at https://comp3tive.dimasawardhana.workers.dev/, and wrangler.jsonc's name \"comp3tive\" is the REAL Worker name (a workers.dev host is <worker>.<account>.workers.dev), not the documented placeholder four documents called it. It serves master at 3683974 BYTE-IDENTICALLY -- index.html, app/index.html, 404.html, sw.js, manifest.webmanifest and all 17 precached assets diffed clean against a worktree build of that commit. Gate 2: the deployed host sends NO Vary header anywhere (checked /, /app/, /sw.js, /manifest.webmanifest, /404.html, a hashed asset, a font, an icon; HEAD and GET with/without Accept-Encoding), so cache.match has nothing to honour and { ignoreVary: true } is HARMLESS rather than load-bearing -- the branch's \"largest unverified assumption\" is retired. Gate 3: e2e/live/offline.spec.ts (npm run e2e:live) drives Cloudflare's edge with a real Chromium and passes 4 tests across 3 consecutive runs -- no request leaves the origin; a whole round-robin tournament (15 players -> 3 teams -> 3 BO3 fixtures -> champion) runs with the network cut on the deployed build, holding exactly [\"comp3tive-b12c14230adf\"] and 23 precached entries; the deployed VERSION b12c14230adf RECOMPUTES from the live origin's own 23 responses (so the hash sees content, not a typed string); and a planted stale comp3tive- cache is purged on the genuine first activation while a foreign some-other-app-cache is left alone. Corrections shipped in README.md, docs/ROADMAP.md, docs/adr/0007, docs/adr/0008, .scratch/backend/spec.md, .scratch/backend/issues/04, .scratch/landing-page/issues/05, wrangler.jsonc. Residual for Phase E (not a gate): a CUSTOM DOMAIN, because a *.workers.dev host is on the Public Suffix List's private section and can never share a passkey with a custom domain. Method note: the first draft of the purge test re-registered an unchanged worker and asserted a purge that could not have fired (browsers byte-compare the script and skip activate); it failed, and the fix -- plant caches before the real first install -- is recorded in the spec. Verified: tsc -b exit 0, 788 unit tests pass, 117/117 local e2e pass, npm run build clean.",
+      "status": "done",
+      "triage": "ready-for-agent",
+      "priority": "high",
+      "claim": null,
+      "created_at": "2026-10-01T04:15:34Z",
+      "updated_at": "2026-10-13T16:21:12Z"
+    },
+    {
+      "id": "TASK-105",
+      "title": "Debt 26: decide the App.tsx line count, or close the row",
+      "goal": "Debt 26: decide the App.tsx line count, or close the row",
+      "description": "CLOSED 2026-10-13 by meeting the criterion, not by re-negotiating it. wc -l src/App.tsx is 391, under the 400 stated in debt 26, contracts.md:180 and IMPLEMENTATION_PLAN:54. The finding that made it cheap: of the 513 lines, 28 were blank and 57 comment-only, so the target was always about 428 code lines, not 513. Three self-contained BEHAVIOURS were still living in the component -- not 113 loose lines, and not a style problem: (1) src/shell/useAppCommands.ts (new, 251 lines) takes every handler that mutates a store and answers with a toast -- the seven store writes, the export, the two delete censuses -- which are one shape repeated over seven stores and carry the file's only real logic (communityDeleteWarning's per-community count, handleExport's ordering); downloadingId moved WITH its only writer, which is what keeps the hook from being a relocation of App's state. (2) src/shell/useLegacyAdoption.ts (new, 72 lines) takes the pre-community adoption effect and its two already-warned refs, which had sat 80 lines from their only use beside fileInputRef; the hook is self-contained because nothing outside reads or resets them. (3) useThemeAndLayout in src/shell/usePreferences.ts (extended) merges two useStoredPref calls, a useMediaQuery and the DOM-writing effect into the one idea they were four constructs for; railPref deliberately stayed in App because the rail is chrome state, not a document attribute. The nav helpers were LEFT ALONE on purpose: the phase ledger's own rule is that a region's line cost is its read set, not its length, and those closures are 1-3 lines reading one or two identifiers, so moving them would have bought nothing. NO e2e spec was edited and the flow's acceptance test (saved-squad.spec.ts) passes unedited. Verified: tsc -b exit 0, 788/788 unit, 117/117 browser, npm run build clean. The ticket's eighth acceptance row is now 3 states rather than 4 (downloadingId moved into the hook that owns it) -- recorded in the ticket as a consequence of this change, not an unclosed row; the row's intent (only the named leftovers, no View/HubMode/NAV_ITEMS) holds exactly. Records corrected: debt 26 (Status: resolved plus a full Resolved section), contracts.md:180, IMPLEMENTATION_PLAN.md (phase table, open-rows paragraph, Phase C section), docs/ROADMAP.md (header, summary table, D3's ticket-26 row, the phase-stands summary, the deliberately-not-doing table row, and the closing order), debt 30's citation of the number.",
+      "status": "done",
+      "triage": "ready-for-agent",
+      "priority": "medium",
+      "claim": null,
+      "created_at": "2026-10-01T04:15:34Z",
+      "updated_at": "2026-10-13T17:07:14Z"
+    },
+    {
+      "id": "TASK-106",
+      "title": "Debt 30: delete the acceptance row that cannot fail",
+      "goal": "Debt 30: delete the acceptance row that cannot fail",
+      "description": "CLOSED 2026-10-13. Debt 30's fifth acceptance row -- the one that cannot fail -- is DELETED, not re-worded, and replaced by the rule it was trying to express. THE ROW: 'grep -niE \"service worker|offline|installable|manifest|account|server|sync\" README.md returns only lines that explicitly deny the claim'. It had been wrong twice in the same way: (1) as written it could not fail, because a FALSE denial is still a denial -- the scan exists to catch over-claiming, a denial contains no promise to flag, so it passed on the paragraph that denied a service worker ten lines above public/sw.js; (2) re-worded on 2026-10-01 it became unsatisfiable in the other direction, because the corrected README DESCRIBES the service worker/manifest/fonts using the same words the denial used -- no honest document can make the scan return only denials. THE RULE (now durable at docs/agents/document-claims.md, a new file beside the repo's other agent conventions in the directory CLAUDE.md already points at): every sentence in a document that asserts a capability -- and every sentence that denies one -- names the tree it was checked against, and the check was a reading. It records the two worked failures above and the corollary that a runtime guard beats a grep (landing.spec.ts asserts the trust rows whole, scoped text not keyword). THE READING, done rather than asserted: the scan returns 21 lines, all 21 read against the tree and every one true; plus all 19 source/asset paths the README names (test -e, all present), both byte sizes (sw.js 12,894 B, manifest 597 B -- both exact), five @font-face rules in src/fonts.css:36-75 (a 6th grep hit is the comment at :24), five woff2 + two OFL texts, three icons, 32 e2e specs, SELECTABLE_FORMATS = the four claimed formats, and 0 googleapis/gstatic/preconnect references in either document. ALSO FIXED: the same unsatisfiable pattern had been copy-pasted into .scratch/backend/issues/03 acceptance row 96 ('ticket 30's own gate, kept satisfiable') -- it imported the broken row and would have had the same defect; that row now points at the rule instead. Rows verified and ticked: README.md/.nvmrc exist (.nvmrc 24.16.0), every npm run named is a scripts key, every path exists, the browser-suite config row, tsc -b green. Verified: tsc -b exit 0, 788/788 unit, 117/117 browser, build clean. RECORDS: debt 30 status -> resolved with a full 'Re-read 2026-10-13' section and content-addressed table (deliberately NOT line-numbered -- the README is a file being edited, so line citations rot; contracts.md's own rule is that a citation asserting a current fact may not name a moved line); docs/ROADMAP.md's audit note now names the rule file and records both counts (17 when measured 2026-10-01, 21 today, the four extra being the new e2e:live row and deployed-origin paragraphs); README.md gained the rule reference in its knowledge table and a scoping sentence in the claims section.",
+      "status": "done",
+      "triage": "ready-for-agent",
+      "priority": "medium",
+      "claim": null,
+      "created_at": "2026-10-01T04:15:34Z",
+      "updated_at": "2026-10-14T00:32:16Z"
+    },
+    {
+      "id": "TASK-108",
+      "title": "Write Phase E's plan",
+      "goal": "Write Phase E's plan",
+      "description": "CLOSED 2026-10-14. The plan is written: docs/superpowers/plans/2026-09-28-account-and-durability.md (524 lines, 6 tasks) -- the file the roadmap spec's own Files table named and the last thing this repo had agreed to do. It is written AFTER D, as the ticket required, and the condition that held it is discharged: C's last row closed 2026-10-13, so the phase's order was settled. FIRST ACT, because the ticket was gated on it: FROZE contracts.md section 4's 'Created by E' row, which had read 'Not yet frozen -- the names are Phase E's plan to freeze'. That row now carries the concrete signatures (BackupData v5 with disciplines[], serializeBackup's sixth parameter, Player.createdAt, Account/Credential, session.ts's four exports, decideSync's four-outcome union) plus two deliberate absences recorded so a later reader does not add them. THE FINDING THAT MATTERED MOST: EVERY TICKET'S LINE ANCHOR INTO src/App.tsx IS STALE. All six tickets were written before C and D decomposed the file, and my own TASK-105 extraction moved three more regions. Ticket 01's export call site (App.tsx:416) is now src/shell/useAppCommands.ts:199; ticket 01's merge loop (App.tsx:435-474) and ticket 02's JSON id rule (App.tsx:572) are src/shell/usePlayerImport.ts:282-294 and :350; ticket 05's swallowed catch (App.tsx:308-313) is src/shell/useSplitFlow.ts:257 and its orphan-repair effect is src/shell/useLegacyAdoption.ts; ticket 06's tb- try/catch (App.tsx:93-108) is src/shell/usePreferences.ts. The plan cites what it READ, not what the tickets said, and lists the moved regions in its Self-Review under the repo rule that a citation asserting a current fact may not name a moved line. TWO THINGS THE PLAN CAUGHT IN ITS OWN DRAFT: (a) Task 2's first draft specified only two new tests for recentPlayers, but THREE of the five EXISTING cases assert the slice(-3) semantics being replaced -- the plan now says so explicitly and re-asserts the two properties those cases were reaching for with an input that can distinguish order; (b) its own placeholder-scan sentence was self-defeating ('no TBD/TODO...') -- the exact defect the product-completion plan recorded against itself -- and is rewritten to state the claim that survives reading. OTHER DECISIONS STATED RATHER THAN ASSUMED: Task 5's window.confirm is a named exception to Phase D's no-native-dialogs rule, following the existing import-merge precedent, written into the code as contracts.md requires; Task 4 says STOP AND REPORT if the custom domain is unavailable, because registering credentials against workers.dev first means registering every one twice. Task 34 is resolved, so the roadmap's 'ticket 34 lands before E05' ordering is satisfied by history rather than constraining the plan. RECORDS: roadmap spec's two stale 'the plan is not written' claims corrected; docs/ROADMAP.md's closing item closed (nothing this file names remains); IMPLEMENTATION_PLAN's Phase E header, its 'Not yet written' paragraph, and its recommended order all updated. Verified: tsc -b exit 0, 788/788 unit, 119/119 browser, build clean.",
+      "status": "done",
+      "triage": "ready-for-agent",
+      "priority": "medium",
+      "claim": null,
+      "created_at": "2026-10-01T04:15:34Z",
+      "updated_at": "2026-10-14T10:48:02Z"
+    },
+    {
+      "id": "TASK-109",
+      "title": "Add aria-expanded to the settings popover trigger",
+      "goal": "Add aria-expanded to the settings popover trigger",
+      "description": "Debt ticket .scratch/debt/issues/41. The gear trigger said nothing about whether its popover was open, while the same file used the attribute correctly twice (rail toggle :81, community switcher :105). Shipped 2026-10-01: one inserted line, aria-expanded={showSettings}, read from the state the chrome already holds. The add-community button deliberately does NOT get one -- its form's visibility is App's, not the chrome's, and the chrome never learns the answer. Authority: contracts.md section 5, Day 3 (b).",
+      "status": "done",
+      "triage": "ready-for-agent",
+      "priority": "medium",
+      "claim": null,
+      "created_at": "2026-10-01T04:15:56Z",
+      "updated_at": "2026-10-01T04:16:33Z"
+    },
+    {
+      "id": "TASK-107",
+      "title": "Cover the roster editor's refusal with a test",
+      "goal": "Cover the roster editor's refusal with a test",
+      "description": "CLOSED 2026-10-13. The roster editor's refusal (PlayerEditModal.tsx:141-146 -- validates, sets .field-errors, returns before onSave) now has a test, and it had to be a BROWSER case: e2e/tests/roster/editor-refusal.spec.ts. The prediction in IMPLEMENTATION_PLAN's known-open row ('one unit case') was wrong and the spec says why -- PlayerEditModal.test.ts renders via renderToStaticMarkup, which runs no event handlers, so save() is unreachable from that layer; and the repo has no jsdom, no testing library and no *.test.tsx (vite.config.ts test.include is only src/**/*.test.ts), with README stating the convention outright. validatePlayer's own rules were already unit-tested; what was untested was the WIRING, and wiring needs a click. THE SPEC: two cases -- the refusal (modal stays open, .field-errors carries the validator's own sentence, the player is not on the roster after closing) and a control (same dialog, same session, saves fine with no capability). MUTATION-VERIFIED: deleting the early return in PlayerEditModal.save turns the refusal case RED while the control stays green, so it pins the refusal and not the dialog; PlayerEditModal.tsx was restored byte-identical (git diff empty). FINDING WHILE WRITING IT, recorded not fixed: five of the six refusal rules are UNREACHABLE from the shipped UI -- ratings always carry a value, DisciplineEditModal hardcodes {min:1,max:5} with no bounds input so no scale wide/fractional enough to render a free number field can exist, buildCapabilities heals a stray preferred role AND an emptied eligibility list by falling back to all roles, and duplicates are filtered out of the add-a-capability strip. The one reachable path is a discipline that declares NO ROLES: DisciplineEditModal permits saving one (untick 'Roles are required'), and validateCapability then demands an eligible role from an empty list -- the dialog refuses with NO CONTROL THAT CAN CLEAR IT, since the eligible-roles strip maps the discipline's own empty role list. Refusing the discipline at creation vs relaxing the player rule are both product decisions, so the spec's header records the dead end rather than closing it. RECORDS: app-correctness/03's open coverage row closed with the mutation evidence and the unreachability analysis; IMPLEMENTATION_PLAN's known-open row struck through. ALSO FIXED: my new spec made README's 'The 32 specs' stale -- a claim TASK-106 had JUST installed a rule about -- so the count is REMOVED rather than updated to 33, since it has now gone stale three times (22 -> 32 -> 33); ROADMAP records the third staleness. Verified: tsc -b exit 0, 788/788 unit, 119/119 browser (117 existing + 2 new), build clean.",
+      "status": "done",
+      "triage": "ready-for-agent",
+      "priority": "low",
+      "claim": null,
+      "created_at": "2026-10-01T04:15:34Z",
+      "updated_at": "2026-10-14T01:20:42Z"
+    }
+  ]
+}
