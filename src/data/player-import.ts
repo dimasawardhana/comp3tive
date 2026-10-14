@@ -189,6 +189,10 @@ export function csvRowsToPlayers(
 ): { players: Player[]; skipped: ImportSkip[] } {
   const players: Player[] = [];
   const skipped: ImportSkip[] = [];
+  // One clock reading for the whole import: the rows land in the same instant,
+  // so a per-row `Date.now()` would only measure how fast the loop runs. The
+  // index is what orders them, and it is the order the file lists them in.
+  const importedAt = Date.now();
   for (const row of rows) {
     const discipline = disciplines.find(
       (d) => d.shortName.toLowerCase() === row.discipline || d.name.toLowerCase() === row.discipline,
@@ -209,10 +213,15 @@ export function csvRowsToPlayers(
       continue;
     }
     const rating = Math.max(1, Math.min(5, row.strength)) as 1 | 2 | 3 | 4 | 5;
+    // Stamped in parse order so the file's own order is the "recently added"
+    // order. A single shared timestamp would leave the ranking to the id
+    // tie-break, and these ids are `crypto.randomUUID()` - so a freshly
+    // imported roster would come back in an arbitrary order.
     const player: Player = {
       id: crypto.randomUUID(),
       communityId,
       name: row.name,
+      createdAt: importedAt + players.length,
       capabilities: [
         {
           disciplineId: discipline.id,

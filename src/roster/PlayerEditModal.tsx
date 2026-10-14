@@ -132,7 +132,11 @@ export function PlayerEditModal({ player, disciplines, communityId, onClose, onS
   const save = async () => {
     const capabilities = buildCapabilities();
     const draft: Player = {
+      // Create vs edit, by the same rule as the id above it: an edit carries
+      // the player's own timestamp through, so fixing a typo does not move
+      // them to the top of the Dashboard's "recently added".
       id: player?.id ?? crypto.randomUUID(),
+      createdAt: player?.createdAt ?? Date.now(),
       communityId,
       name: name.trim(),
       notes: notes.trim() || undefined,

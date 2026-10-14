@@ -18,6 +18,17 @@ export interface Player {
   name: string;
   notes?: string;
   capabilities: Capability[];
+  /**
+   * When this player was added, epoch ms. The Dashboard's "recently added"
+   * teaser ranks by it; it is the only order the product displays, and the
+   * roster screen's own order is the store's.
+   *
+   * It exists because the alternative was inheriting an order from a storage
+   * engine: `list()` is a bare `getAll()`, which returns key order, so
+   * "recently added" meant insertion order within a session and id-ascending
+   * after a reload. Nothing else in the app could express the difference.
+   */
+  createdAt: number;
 }
 
 // ---- Tournaments (CONTEXT.md: the competition container) ----

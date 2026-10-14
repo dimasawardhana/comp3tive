@@ -47,6 +47,7 @@ const ROSTER: Player[] = RATED.map(([name, technical, fitness, iq], i) => ({
   id: `p${i + 1}`,
   communityId: "c1",
   name,
+  createdAt: 1000 + i,
   capabilities: [
     {
       disciplineId: FUTSAL_DISCIPLINE.id,

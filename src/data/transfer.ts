@@ -243,11 +243,24 @@ export function parseBackup(text: string, disciplines?: Discipline[]): BackupDat
   const adopted = (communityId: unknown): string =>
     typeof communityId === "string" && known.has(communityId) ? communityId : fallbackId;
 
+  // Same shape as the communityId adoption above: a field the file may not
+  // carry is filled in rather than left undefined. A v1-v4 file predates
+  // `Player.createdAt`, and the Dashboard ranks "recently added" by it, so an
+  // imported player with no timestamp would sort as `NaN`. The file's own value
+  // is kept when it is a usable number; otherwise the parse order stands in for
+  // an order nothing recorded, which is what a pre-v5 file can offer.
+  const importedAt = Date.now();
+  const withCreatedAt = (p: Player, i: number): Player => ({
+    ...p,
+    communityId: adopted(p.communityId),
+    createdAt: Number.isFinite(p.createdAt) ? p.createdAt : importedAt + i,
+  });
+
   return {
     version: 5,
     exportedAt: typeof data.exportedAt === "string" ? data.exportedAt : "",
     communities,
-    players: players.map((p) => ({ ...p, communityId: adopted(p.communityId) })),
+    players: players.map(withCreatedAt),
     sessions: sessions.map((s) => ({ ...s, communityId: adopted(s.communityId) })),
     tournaments: (rawTournaments as Tournament[]).map((t) => ({
       ...t,

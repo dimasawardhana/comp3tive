@@ -36,6 +36,7 @@ const roster: Player[] = Array.from({ length: 12 }, (_, i) => ({
   communityId: "c1",
   name: `Player ${i + 1}`,
   capabilities: [cap(4, 4, 4)],
+  createdAt: 1000 + i,
 }));
 
 const PROVEN: SplitResult["solver"] = { optimal: true, nodesExplored: 51, elapsedMs: 6 };
@@ -287,9 +288,9 @@ describe("layoutShareImage", () => {
     // re-derives the ordering, prints `strengthOf(...) ?? 0` for a player with no
     // capability in the discipline, or abbreviates the number differently.
     const mixed: Player[] = [
-      { id: "p1", communityId: "c1", name: "Andi", capabilities: [cap(5, 4, 4)] },
-      { id: "p2", communityId: "c1", name: "Dewi", capabilities: [] },
-      { id: "p3", communityId: "c1", name: "Citra", capabilities: [cap(4, 4, 4)] },
+      { id: "p1", communityId: "c1", name: "Andi", capabilities: [cap(5, 4, 4)], createdAt: 1000 },
+      { id: "p2", communityId: "c1", name: "Dewi", capabilities: [], createdAt: 1000 },
+      { id: "p3", communityId: "c1", name: "Citra", capabilities: [cap(4, 4, 4)], createdAt: 1000 },
     ];
     const result_: SplitResult = {
       ...result(1, 3),
@@ -373,10 +374,10 @@ describe("layoutShareImage", () => {
     // name list sized so the break lands on it. Fails if the fix tests for "A",
     // or if the break lands between the two halves of the name.
     const sitOuts: Player[] = [
-      { id: "budi", communityId: "c1", name: "Budi Santoso", capabilities: [cap(4, 4, 4)] },
-      { id: "citra", communityId: "c1", name: "Citra Dewi", capabilities: [cap(4, 4, 4)] },
-      { id: "andi", communityId: "c1", name: "Andi Wijaya", capabilities: [cap(4, 4, 4)] },
-      { id: "xy", communityId: "c1", name: "X Y", capabilities: [cap(4, 4, 4)] },
+      { id: "budi", communityId: "c1", name: "Budi Santoso", capabilities: [cap(4, 4, 4)], createdAt: 1000 },
+      { id: "citra", communityId: "c1", name: "Citra Dewi", capabilities: [cap(4, 4, 4)], createdAt: 1000 },
+      { id: "andi", communityId: "c1", name: "Andi Wijaya", capabilities: [cap(4, 4, 4)], createdAt: 1000 },
+      { id: "xy", communityId: "c1", name: "X Y", capabilities: [cap(4, 4, 4)], createdAt: 1000 },
     ];
     const lines = footerOf(result(2, 5, PROVEN, ["budi", "citra", "andi", "xy"]), [...roster, ...sitOuts]);
     // Only a line with text after it can strand: the last line's short word is

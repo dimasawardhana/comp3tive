@@ -373,6 +373,12 @@ export function usePlayerImport(deps: PlayerImportDeps): PlayerImportResult {
                 id: p.id ?? crypto.randomUUID(),
                 communityId: activeCommunity.id,
                 name: p.name,
+                // The file's own value when it is a usable number, else now -
+                // the same rule as the id above it. A players-only file from
+                // the CSV template or a hand-written roster carries no
+                // timestamps, so stamping is the common path and preserving is
+                // for a file that already knows when its players were added.
+                createdAt: Number.isFinite(p.createdAt) ? (p.createdAt as number) : Date.now(),
                 notes: p.notes,
                 capabilities: Array.isArray(p.capabilities) ? p.capabilities : [],
               };

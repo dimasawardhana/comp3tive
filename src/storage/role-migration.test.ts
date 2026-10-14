@@ -105,7 +105,7 @@ describe("v7 to v8: the role vocabulary is rewritten", () => {
   it("moves a stored MLBB capability from hero classes to lanes", async () => {
     const dbName = "comp3tive-test-rolemig-a";
     await writeV7Database(dbName, {
-      player: { id: "p1", communityId: "c1", name: "Budi", capabilities: [mlbbCapability(["tank", "fighter"], "tank")] },
+      player: { id: "p1", communityId: "c1", name: "Budi", capabilities: [mlbbCapability(["tank", "fighter"], "tank")], createdAt: 1 },
       session: { id: "s1", communityId: "c1", disciplineId: "mlbb", createdAt: 1, poolPlayerIds: ["p1"], settings: { teamCount: 1 }, result: splitWithRole("assassin") },
       squad: { id: "q1", communityId: "c1", name: "Squad", disciplineId: "mlbb", createdAt: 1, poolPlayerIds: ["p1"], settings: { teamCount: 1 }, result: splitWithRole("marksman") },
       customDisciplineId: "petanque-a",
@@ -124,7 +124,7 @@ describe("v7 to v8: the role vocabulary is rewritten", () => {
   it("refreshes the built-in MLBB catalog from the code", async () => {
     const dbName = "comp3tive-test-rolemig-b";
     await writeV7Database(dbName, {
-      player: { id: "p1", communityId: "c1", name: "Budi", capabilities: [mlbbCapability(["tank"], "tank")] },
+      player: { id: "p1", communityId: "c1", name: "Budi", capabilities: [mlbbCapability(["tank"], "tank")], createdAt: 1 },
       session: { id: "s1", communityId: "c1", disciplineId: "mlbb", createdAt: 1, poolPlayerIds: [], settings: { teamCount: 1 }, result: splitWithRole("tank") },
       squad: { id: "q1", communityId: "c1", name: "Squad", disciplineId: "mlbb", createdAt: 1, poolPlayerIds: [], settings: { teamCount: 1 }, result: splitWithRole("tank") },
       customDisciplineId: "petanque-b",
@@ -145,6 +145,7 @@ describe("v7 to v8: the role vocabulary is rewritten", () => {
         mlbbCapability(["tank"], "tank"),
         { disciplineId: "petanque-c", attributeRatings: { aim: 3 }, eligibleRoles: ["tank"], preferredRole: "tank" },
       ],
+      createdAt: 1,
     };
     await writeV7Database(dbName, {
       player: custom,
@@ -167,7 +168,7 @@ describe("v7 to v8: the role vocabulary is rewritten", () => {
   it("is idempotent, and never rewrites an id that is already a lane", async () => {
     const dbName = "comp3tive-test-rolemig-d";
     await writeV7Database(dbName, {
-      player: { id: "p1", communityId: "c1", name: "Budi", capabilities: [mlbbCapability(["tank"], "tank")] },
+      player: { id: "p1", communityId: "c1", name: "Budi", capabilities: [mlbbCapability(["tank"], "tank")], createdAt: 1 },
       session: { id: "s1", communityId: "c1", disciplineId: "mlbb", createdAt: 1, poolPlayerIds: [], settings: { teamCount: 1 }, result: splitWithRole("tank") },
       squad: { id: "q1", communityId: "c1", name: "Squad", disciplineId: "mlbb", createdAt: 1, poolPlayerIds: [], settings: { teamCount: 1 }, result: splitWithRole("tank") },
       customDisciplineId: "petanque-d",
@@ -202,7 +203,7 @@ describe("v7 to v8: the role vocabulary is rewritten", () => {
   it("the upgraded database is at the current version", async () => {
     const dbName = "comp3tive-test-rolemig-e";
     await writeV7Database(dbName, {
-      player: { id: "p1", communityId: "c1", name: "Budi", capabilities: [] },
+      player: { id: "p1", communityId: "c1", name: "Budi", capabilities: [], createdAt: 1 },
       session: { id: "s1", communityId: "c1", disciplineId: "mlbb", createdAt: 1, poolPlayerIds: [], settings: { teamCount: 1 }, result: splitWithRole("tank") },
       squad: { id: "q1", communityId: "c1", name: "Squad", disciplineId: "mlbb", createdAt: 1, poolPlayerIds: [], settings: { teamCount: 1 }, result: splitWithRole("tank") },
       customDisciplineId: "petanque-e",

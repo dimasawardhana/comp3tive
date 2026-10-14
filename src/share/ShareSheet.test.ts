@@ -28,6 +28,7 @@ const ROSTER: Player[] = [
       preferredRole: null,
     },
   ],
+  createdAt: 1000 + i,
 }));
 
 const RESULT: SplitResult = freshSplit(ROSTER.map((p) => p.id), ROSTER, FUTSAL_DISCIPLINE, { teamCount: 2 });

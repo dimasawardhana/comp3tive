@@ -359,19 +359,21 @@ test("dashboard teasers show the newest players and active tournaments and drill
   await gotoSeeded(page, world);
 
   await expect(page.locator(".screen h1")).toHaveText("Dashboard");
-  // Recent players: the three newest, in roster order (last three of the
-  // insertion order: Two, Three, Four), each with an MLBB badge.
+  // Recent players: the three newest, newest first. This is ranked by
+  // `Player.createdAt` (`src/dashboardTeasers.ts`), not by the roster's
+  // physical order, so the order here is Alpha Four, Three, Two rather than
+  // the ascending run the roster happens to be seeded in.
   const playerTeasers = page.locator('section[aria-label="Recent players"] .row');
   await expect(playerTeasers).toHaveCount(3);
-  await expect(playerTeasers.first()).toContainText("Alpha Two");
+  await expect(playerTeasers.first()).toContainText("Alpha Four");
   await expect(playerTeasers.nth(1)).toContainText("Alpha Three");
-  await expect(playerTeasers.nth(2)).toContainText("Alpha Four");
+  await expect(playerTeasers.nth(2)).toContainText("Alpha Two");
   await expect(page.locator('section[aria-label="Recent players"] .badge--mlbb')).toHaveCount(3);
 
   // Tapping a player teaser opens that player's edit modal on the Roster.
   await playerTeasers.nth(2).click();
   await expect(page.locator(".modal-title")).toHaveText("Edit player");
-  await expect(page.locator("#player-name")).toHaveValue("Alpha Four");
+  await expect(page.locator("#player-name")).toHaveValue("Alpha Two");
   await page.locator(".modal-card .modal-close").click();
   await expect(page.locator(".modal-card")).not.toBeVisible();
   await hubButton(page, "Home").click();

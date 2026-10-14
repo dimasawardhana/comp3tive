@@ -19,7 +19,7 @@ const tournament = (id: string): Tournament => ({
   teams: [],
   matches: [],
 });
-const player = (id: string, name: string): Player => ({ id, communityId: "c1", name, capabilities: [] });
+const player = (id: string, name: string): Player => ({ id, communityId: "c1", name, createdAt: 1000, capabilities: [] });
 const session = (id: string): Session => ({
   id,
   communityId: "c1",
@@ -431,3 +431,59 @@ describe("parseBackup: a two-community round trip keeps every record's own commu
     expect(referenced.every((id) => known.has(id))).toBe(true);
   });
 });
+describe("Player.createdAt survives a backup, and is filled in when absent", () => {
+  const withCreatedAt = (id: string, createdAt: number): Player => ({
+    id,
+    communityId: "c1",
+    name: `Player ${id}`,
+    createdAt,
+    capabilities: [],
+  });
+
+  it("round-trips the file's own timestamps", () => {
+    const roster = [withCreatedAt("a", 111), withCreatedAt("b", 222)];
+    const parsed = parseBackup(
+      serializeBackup(roster, [], [community("c1", "Crew")], [], [], []),
+    );
+    expect(parsed.players.map((p) => p.createdAt)).toEqual([111, 222]);
+  });
+
+  it("stamps a v4 file whose players carry no timestamp, rather than leaving it undefined", () => {
+    // The Dashboard's "recently added" ranks by this field, so an `undefined`
+    // arrives as a `NaN` comparison and an order nobody chose. A pre-v5 file
+    // has no timestamps to read, so the import order stands in for the order
+    // nothing recorded.
+    const text = JSON.stringify({
+      version: 4,
+      exportedAt: "",
+      communities: [community("c1", "Crew")],
+      players: [
+        { id: "a", communityId: "c1", name: "First", capabilities: [] },
+        { id: "b", communityId: "c1", name: "Second", capabilities: [] },
+      ],
+      sessions: [],
+    });
+    const parsed = parseBackup(text);
+    for (const p of parsed.players) {
+      expect(Number.isFinite(p.createdAt)).toBe(true);
+    }
+    // Distinct, and in the file's order: a shared stamp would leave the ranking
+    // to the id tie-break, which for imported ids is a random uuid.
+    expect(parsed.players[0].createdAt).toBeLessThan(parsed.players[1].createdAt);
+  });
+
+  it("keeps a timestamp the file does carry, even when it is 0", () => {
+    // `Number.isFinite` rather than a truthiness check: epoch 0 is a real
+    // timestamp, and `if (p.createdAt)` would silently replace it.
+    const text = JSON.stringify({
+      version: 5,
+      exportedAt: "",
+      communities: [community("c1", "Crew")],
+      players: [{ id: "a", communityId: "c1", name: "Epoch", createdAt: 0, capabilities: [] }],
+      sessions: [],
+      disciplines: [],
+    });
+    expect(parseBackup(text).players[0].createdAt).toBe(0);
+  });
+});
+

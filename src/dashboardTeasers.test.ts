@@ -2,11 +2,15 @@ import { describe, expect, it } from "vitest";
 import { recentActiveTournaments, recentPlayers } from "./dashboardTeasers";
 import type { Player, Tournament } from "./domain/types";
 
-/** A minimal player; the helpers only read order, never player fields. */
-const player = (id: string): Player => ({
+/**
+ * A minimal player. `createdAt` drives "recently added" and nothing else here,
+ * so the name is derived from the id and the rest stays empty.
+ */
+const player = (id: string, createdAt: number): Player => ({
   id,
   communityId: "c1",
   name: `Player ${id}`,
+  createdAt,
   capabilities: [],
 });
 
@@ -31,23 +35,51 @@ const tourney = (
 });
 
 describe("recentPlayers", () => {
-  it("returns the last three players of the roster, in roster order", () => {
-    const roster = [player("a"), player("b"), player("c"), player("d"), player("e")];
-    expect(recentPlayers(roster)).toEqual([player("c"), player("d"), player("e")]);
+  it("ranks by createdAt descending, deterministically from a shuffled input", () => {
+    const roster = [player("a", 100), player("b", 300), player("c", 200)];
+    // Shuffled on purpose: the input order is not the answer, which is the
+    // property `slice(-3)` never had. It returned the tail of whatever order
+    // the store happened to hand over.
+    const shuffled = [roster[1], roster[2], roster[0]];
+    expect(recentPlayers(shuffled).map((p) => p.id)).toEqual(["b", "c", "a"]);
   });
 
-  it("keeps roster order when more than three players exist (no reversal)", () => {
-    const roster = [player("a"), player("b"), player("c"), player("d")];
-    expect(recentPlayers(roster).map((p) => p.id)).toEqual(["b", "c", "d"]);
+  it("ranks an insertion-ordered roster the same way the store used to imply", () => {
+    // The shape the app actually produces: createdAt ascending with the roster.
+    // This case pins the visible Dashboard row for a normal device, and it is
+    // the one the old `slice(-3)` got right by accident.
+    const roster = [
+      player("a", 100),
+      player("b", 200),
+      player("c", 300),
+      player("d", 400),
+      player("e", 500),
+    ];
+    expect(recentPlayers(roster).map((p) => p.id)).toEqual(["e", "d", "c"]);
+  });
+
+  it("breaks equal timestamps by id ascending, so the result cannot depend on input order", () => {
+    const tied = [player("z", 100), player("a", 100), player("m", 100)];
+    expect(recentPlayers(tied).map((p) => p.id)).toEqual(["a", "m", "z"]);
+    // The same three, reversed: an unstable sort or an input-ordered tie-break
+    // would answer differently here, which is why both directions are asserted.
+    expect(recentPlayers([...tied].reverse()).map((p) => p.id)).toEqual(["a", "m", "z"]);
+  });
+
+  it("returns the three latest, not the first three", () => {
+    // Ids sort the opposite way to the timestamps, so anything keying off id
+    // order answers with the wrong end of the roster.
+    const roster = [player("z", 100), player("y", 200), player("x", 500), player("w", 900)];
+    expect(recentPlayers(roster).map((p) => p.id)).toEqual(["w", "x", "y"]);
   });
 
   it("returns the whole roster when it has fewer than three players", () => {
-    const roster = [player("a"), player("b")];
-    expect(recentPlayers(roster)).toEqual([player("a"), player("b")]);
+    const roster = [player("a", 100), player("b", 200)];
+    expect(recentPlayers(roster).map((p) => p.id)).toEqual(["b", "a"]);
   });
 
   it("returns a single player unchanged", () => {
-    expect(recentPlayers([player("a")])).toEqual([player("a")]);
+    expect(recentPlayers([player("a", 100)]).map((p) => p.id)).toEqual(["a"]);
   });
 
   it("returns an empty list for an empty roster", () => {

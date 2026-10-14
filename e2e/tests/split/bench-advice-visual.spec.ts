@@ -56,6 +56,7 @@ const ROSTER: readonly (readonly [name: string, rating: number])[] = [
 
 const roster: Player[] = ROSTER.map(([name, rating], i) => ({
   id: `pa-${i + 1}`,
+  createdAt: 1000 + i,
   communityId: COMMUNITY.id,
   name,
   capabilities: [{

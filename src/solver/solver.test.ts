@@ -272,8 +272,8 @@ describe("settings and pool helpers", () => {
       preferredRole: roles[0] ?? null,
     });
     const players: Player[] = [
-      { id: "1", communityId: "c1", name: "Budi", capabilities: [cap("futsal", { technical: 4, fitness: 3, "game-iq": 5 }, ["goalkeeper"])] },
-      { id: "2", communityId: "c1", name: "Andi", capabilities: [cap("mlbb", { mechanics: 4, "game-sense": 3, "hero-pool": 5, teamwork: 4 }, ["roam"])] },
+      { id: "1", communityId: "c1", name: "Budi", capabilities: [cap("futsal", { technical: 4, fitness: 3, "game-iq": 5 }, ["goalkeeper"])], createdAt: 1000 },
+      { id: "2", communityId: "c1", name: "Andi", capabilities: [cap("mlbb", { mechanics: 4, "game-sense": 3, "hero-pool": 5, teamwork: 4 }, ["roam"])], createdAt: 1001 },
     ];
     const pool = poolFromPlayers(players, FUTSAL_DISCIPLINE);
     expect(pool.map((q) => q.playerId)).toEqual(["1"]);
@@ -294,6 +294,7 @@ describe("settings and pool helpers", () => {
             preferredRole: "defender",
           },
         ],
+        createdAt: 1000,
       },
     ];
     const pool = poolFromPlayers(players, FUTSAL_DISCIPLINE);

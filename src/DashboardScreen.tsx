@@ -138,7 +138,7 @@ export function DashboardScreen({
           <section className="dashboard-teasers" aria-label="Recent players">
             <div className="dashboard-teasers-head">
               <h2>Recent players</h2>
-              <span className="kicker">Last in the roster</span>
+              <span className="kicker">Newest first</span>
             </div>
             <ul className="roster dashboard-teaser-list">
               {recentPlayersList.map((player) => {

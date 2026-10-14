@@ -28,6 +28,7 @@ const player = (id: string, name: string, ratings?: [number, number, number]): P
   communityId: "c1",
   name,
   capabilities: ratings ? [cap(...ratings)] : [],
+  createdAt: 1000,
 });
 
 /** Strengths: Andi 5.0, Budi 4.0, Gita 4.0, Eka 3.0, Fajar 3.0, Citra 2.0, Bela 2.0, Dewi none. */

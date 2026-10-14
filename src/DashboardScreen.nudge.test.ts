@@ -25,6 +25,7 @@ const PLAYERS: Player[] = Array.from({ length: 6 }, (_, i) => ({
   communityId: "c1",
   name: `Player ${i + 1}`,
   capabilities: [],
+  createdAt: 1000 + i,
 }));
 
 const NUDGE_COPY =

@@ -25,6 +25,7 @@ const player = (id: string, name: string, ratings?: [number, number, number]): P
   communityId: "c1",
   name,
   capabilities: ratings ? [cap(...ratings)] : [],
+  createdAt: 1000,
 });
 
 const ROSTER: Player[] = [

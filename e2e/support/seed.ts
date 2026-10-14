@@ -83,7 +83,15 @@ export function seedScript(world: SeedWorld): string {
   // futsal-capable and deliberately-malformed players are both seedable. A row
   // that supplies none gets the MLBB default, which is the only discipline the
   // unqualified worlds below mean.
-  const players = world.players.map((p) => (p.capabilities ? p : { ...p, capabilities: [mlbbCap] }));
+  // `createdAt` is filled in only when a spec did not set it, so the value is
+  // monotonic in roster order and "newest last" (the interface comment above)
+  // stays true for the Dashboard's "recently added", which ranks by it. A spec
+  // that cares about a specific instant passes its own.
+  const players = world.players.map((p, i) => ({
+    createdAt: 1000 + i,
+    ...p,
+    ...(p.capabilities ? {} : { capabilities: [mlbbCap] }),
+  }));
   const db = {
     communities: world.communities,
     players,

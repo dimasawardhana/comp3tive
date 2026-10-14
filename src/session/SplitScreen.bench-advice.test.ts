@@ -43,6 +43,7 @@ function squad(rated: readonly (readonly [name: string, rating: number])[]) {
     id: `p${i + 1}`,
     communityId: "c1",
     name,
+    createdAt: 1000 + i,
     capabilities: [
       {
         disciplineId: MLBB_DISCIPLINE.id,

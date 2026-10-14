@@ -14,6 +14,7 @@ const ROSTER: Player[] = ["Andi", "Budi", "Citra", "Dewi", "Eka", "Fajar", "Gita
     id: `p${i + 1}`,
     communityId: "c1",
     name,
+    createdAt: 1000 + i,
     capabilities: [
       {
         disciplineId: FUTSAL_DISCIPLINE.id,
