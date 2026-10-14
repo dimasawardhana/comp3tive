@@ -78,8 +78,8 @@ describe("autoGenerateSampleData", () => {
     name: "Test Discipline",
     shortName: "Test",
     roles: [
-      { id: "tank", name: "Tank" },
-      { id: "mage", name: "Mage" },
+      { id: "roam", name: "Tank" },
+      { id: "mid-lane", name: "Mage" },
     ],
     attributes: [
       { id: "mech", name: "Mechanics", min: 1, max: 5 },

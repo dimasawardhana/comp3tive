@@ -1,5 +1,10 @@
 import type { Community, Discipline, Id, Player, SavedSquad, Session, Tournament } from "../domain/types";
-import { BADMINTON_DISCIPLINE, SEED_DISCIPLINES, orderDisciplines } from "../domain/seed";
+import { BADMINTON_DISCIPLINE, MLBB_DISCIPLINE, SEED_DISCIPLINES, orderDisciplines } from "../domain/seed";
+import {
+  migratePlayer,
+  migrateSavedSquad,
+  migrateSession,
+} from "./role-migration";
 import type {
   CommunityStore,
   DisciplineStore,
@@ -15,8 +20,15 @@ const DEFAULT_DB = "comp3tive";
  * their data here, so it is migrated on first open and then removed.
  */
 const LEGACY_DB = "team-builder";
-/** The schema version of the app database. Exported so test support derives it. */
-export const DB_VERSION = 7;
+/**
+ * The schema version of the app database. Exported so test support derives it.
+ *
+ * **Version 8 is not a schema change — it is a meaning change.** MLBB's roles
+ * became lanes, so every stored id from the old vocabulary had to be rewritten.
+ * That rewrite is `migrateRoleVocabulary` in `./role-migration`, run inside the
+ * `versionchange` transaction below.
+ */
+export const DB_VERSION = 8;
 /**
  * Seeds added after a database version shipped, keyed by the version that
  * introduced them. An install that already carries a discipline store predates
@@ -78,10 +90,71 @@ function openAppDb(dbName: string): Promise<IDBDatabase> {
           }
         }
       }
+
+      // v8: MLBB's roles became lanes, so every stored id from the old
+      // vocabulary is rewritten in place. This is the only upgrade here that
+      // *rereads and rewrites* records rather than adding a seed, and it runs
+      // for every install below 8 regardless of which stores already existed.
+      //
+      // It reads through `upgrade` (the versionchange transaction) rather than
+      // through the store factories: those open their own connection, which
+      // would block on the upgrade already in flight and deadlock.
+      if (upgrade && event.oldVersion > 0 && event.oldVersion < 8) {
+        rewriteRoleVocabulary(upgrade);
+      }
     };
     request.onsuccess = () => resolve(request.result);
     request.onerror = () => reject(request.error ?? new Error("Could not open IndexedDB"));
   });
+}
+
+/**
+ * v8's rewrite, run inside the `versionchange` transaction.
+ *
+ * Two jobs, and the order matters: the catalog first, so the roles the records
+ * are rewritten *into* already exist.
+ *
+ * **The built-ins are refreshed from the seed rather than rewritten.** MLBB is a
+ * built-in, and its stored row still declares the hero classes this build no
+ * longer has. A built-in is code-authoritative — `DisciplineEditModal` disables
+ * every field of one and `delete` returns early, so a built-in cannot be edited
+ * or removed and there is nothing here to overwrite. Writing the seed is what
+ * keeps the catalog and the code from disagreeing about what a lane is.
+ *
+ * **Record stores are read and rewritten, not replaced.** Everything goes
+ * through `upgrade` (the versionchange transaction) rather than the store
+ * factories, because those open their own connection and would block on the
+ * upgrade already in flight. Each `migrate*` returns the same object when the
+ * record does not need rewriting, which is how the untouched ones are skipped.
+ *
+ * Nothing here may throw. An exception inside `onupgradeneeded` reverts the
+ * version bump and leaves the database at the old version, and the migrate
+ * functions are written to be total for that reason.
+ */
+function rewriteRoleVocabulary(upgrade: IDBTransaction): void {
+  // **MLBB only, and not every seed.** The file's rule above is that the
+  // catalog belongs to the user: writing `SEED_DISCIPLINES` here would
+  // resurrect a discipline they deliberately deleted, which is exactly what
+  // `indexed-db.test.ts`'s "without restoring one the user deleted" pins. MLBB
+  // is the one built-in whose definition changed, and a built-in cannot be
+  // deleted or edited (`DisciplineEditModal` disables every field of one and
+  // `delete` returns early), so refreshing it overwrites nothing of the user's.
+  upgrade.objectStore(DISCIPLINE_STORE).put(MLBB_DISCIPLINE);
+
+  const rewrite = <T extends { id: string }>(storeName: string, migrate: (record: T) => T): void => {
+    const store = upgrade.objectStore(storeName);
+    const read = store.getAll();
+    read.onsuccess = () => {
+      for (const record of read.result as T[]) {
+        const migrated = migrate(record);
+        if (migrated !== record) store.put(migrated);
+      }
+    };
+  };
+
+  rewrite<Player>(PLAYER_STORE, migratePlayer);
+  rewrite<Session>(SESSION_STORE, migrateSession);
+  rewrite<SavedSquad>(SAVED_SQUAD_STORE, migrateSavedSquad);
 }
 
 /** Open a database exactly as it exists, without creating stores or seeding. */

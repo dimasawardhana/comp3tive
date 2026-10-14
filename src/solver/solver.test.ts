@@ -10,7 +10,7 @@ import {
 import { BADMINTON_DISCIPLINE, FUTSAL_DISCIPLINE, MLBB_DISCIPLINE } from "../domain/seed";
 import type { Discipline, Player, SplitResult } from "../domain/types";
 
-const ALL_MLBB = ["tank", "assassin", "mage", "marksman", "fighter"];
+const ALL_MLBB = ["roam", "jungle", "mid-lane", "gold-lane", "exp-lane"];
 
 const p = (id: string, strength: number, eligible: string[] = [], preferred: string | null = null): PoolPlayer => ({
   playerId: id,
@@ -273,7 +273,7 @@ describe("settings and pool helpers", () => {
     });
     const players: Player[] = [
       { id: "1", communityId: "c1", name: "Budi", capabilities: [cap("futsal", { technical: 4, fitness: 3, "game-iq": 5 }, ["goalkeeper"])] },
-      { id: "2", communityId: "c1", name: "Andi", capabilities: [cap("mlbb", { mechanics: 4, "game-sense": 3, "hero-pool": 5, teamwork: 4 }, ["tank"])] },
+      { id: "2", communityId: "c1", name: "Andi", capabilities: [cap("mlbb", { mechanics: 4, "game-sense": 3, "hero-pool": 5, teamwork: 4 }, ["roam"])] },
     ];
     const pool = poolFromPlayers(players, FUTSAL_DISCIPLINE);
     expect(pool.map((q) => q.playerId)).toEqual(["1"]);

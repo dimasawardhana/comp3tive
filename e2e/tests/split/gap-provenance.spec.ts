@@ -27,7 +27,7 @@ import { test, expect } from "@playwright/test";
 import type { Page } from "@playwright/test";
 import { gotoSeeded, type SeedWorld } from "../../support/seed";
 
-const MLBB_ROLES = ["tank", "assassin", "mage", "marksman", "fighter"];
+const MLBB_ROLES = ["roam", "jungle", "mid-lane", "gold-lane", "exp-lane"];
 const FUTSAL_ROLES = ["goalkeeper", "defender", "winger", "pivot"];
 
 /** teamCount 2 against 10 players is proven: 5+5, gap 0.1 (avg 3.60 / 3.70). */

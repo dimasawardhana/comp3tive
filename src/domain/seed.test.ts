@@ -15,8 +15,12 @@ describe("seed disciplines", () => {
     expect(FUTSAL_DISCIPLINE.team).toEqual({ minTeamSize: 5, maxTeamSize: null, rolesRequired: false });
   });
 
-  it("mlbb defines its roles and attributes", () => {
-    expect(MLBB_DISCIPLINE.roles.map((r) => r.id)).toEqual(["tank", "assassin", "mage", "marksman", "fighter"]);
+  it("mlbb's roles are the five lanes, in draft order", () => {
+    // Not hero classes. `rolesRequired: true` assigns exactly one player per
+    // role, so these have to be the five positions a team fields.
+    expect(MLBB_DISCIPLINE.roles.map((r) => r.id)).toEqual([
+      "gold-lane", "exp-lane", "mid-lane", "jungle", "roam",
+    ]);
     expect(MLBB_DISCIPLINE.attributes.map((a) => a.id)).toEqual(["mechanics", "game-sense", "hero-pool", "teamwork"]);
   });
 

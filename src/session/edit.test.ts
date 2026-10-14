@@ -5,7 +5,7 @@ import { FUTSAL_DISCIPLINE, MLBB_DISCIPLINE } from "../domain/seed";
 import type { Player, SplitResult } from "../domain/types";
 
 const ALL_FUTSAL = ["goalkeeper", "defender", "winger", "pivot"];
-const ALL_MLBB = ["tank", "assassin", "mage", "marksman", "fighter"];
+const ALL_MLBB = ["roam", "jungle", "mid-lane", "gold-lane", "exp-lane"];
 
 const player = (id: string, name: string, fut: number[], ml: number[]): Player => ({ communityId: "c1",
   id,

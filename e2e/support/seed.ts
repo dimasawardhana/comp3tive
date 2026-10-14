@@ -56,14 +56,14 @@ export const MLBB_ID = "mlbb";
 export const mlbbCap = {
   disciplineId: MLBB_ID,
   attributeRatings: { mechanics: 4, "game-sense": 4, "hero-pool": 4, teamwork: 4 },
-  eligibleRoles: ["tank", "assassin", "mage", "marksman", "fighter"],
+  eligibleRoles: ["roam", "jungle", "mid-lane", "gold-lane", "exp-lane"],
   preferredRole: null,
 };
 
 /** One split team with a real player on it; the ledger only needs ids. */
 export const teamOf = (index: number, playerId: string) => ({
   index,
-  slots: [{ playerId, roleId: index === 0 ? "tank" : "assassin" }],
+  slots: [{ playerId, roleId: index === 0 ? "roam" : "jungle" }],
   totalStrength: 16,
   avgStrength: 4,
 });

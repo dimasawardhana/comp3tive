@@ -61,7 +61,7 @@ const distWorker = new URL("dist/sw.js", repoRoot);
 /** A precached document, so the version hash has something real to move with. */
 const landingSource = new URL("index.html", repoRoot);
 
-const ROLES = ["tank", "assassin", "mage", "marksman", "fighter"];
+const ROLES = ["roam", "jungle", "mid-lane", "gold-lane", "exp-lane"];
 
 /** 15 players, three teams of five, all MLBB-eligible: a whole tournament's worth. */
 const world = (): SeedWorld => ({

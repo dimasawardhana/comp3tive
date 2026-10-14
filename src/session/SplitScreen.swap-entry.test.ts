@@ -35,7 +35,7 @@ import { SAFETY_BAN } from "../test-support/safetyCopy";
  * the whole reason that module is a module.
  */
 
-const ROLES = ["tank", "assassin", "mage", "marksman", "fighter"];
+const ROLES = ["roam", "jungle", "mid-lane", "gold-lane", "exp-lane"];
 
 const NAMES = ["Alfa", "Bravo", "Cahya", "Delta", "Echo", "Foxtrot", "Golf", "Hotel", "India", "Juli"];
 

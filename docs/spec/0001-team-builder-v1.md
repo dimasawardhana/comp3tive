@@ -33,7 +33,7 @@ A local web app (deployable later) where the organizer maintains a roster of Pla
 13. As an organizer, I want the app to suggest a default number of teams from the pool size and team minimum, so that I don't do mental math.
 14. As an organizer, I want to override the number of teams, so that I can respond to how many people actually want to play.
 15. As an organizer, I want the split to minimize the strength gap between teams, so that no one is stuck on a stacked or hopeless team.
-16. As an organizer, I want MLBB teams to cover all five roles (tank, assassin, mage, marksman, fighter), so that every team is playable.
+16. As an organizer, I want MLBB teams to cover all five roles (gold lane, exp lane, mid lane, jungle, roam), so that every team is playable.
 17. As an organizer, I want futsal teams to have at least 5 players, so that games are playable.
 18. As an organizer, I want extra players assigned as subs on futsal teams, so that rotation is possible and no one is left out.
 19. As an organizer, I want the solver to respect role eligibility, so that players only get roles they can actually play.
@@ -69,7 +69,7 @@ A local web app (deployable later) where the organizer maintains a roster of Pla
 - **Domain model** (vocabulary per CONTEXT.md):
   - Player: `{ id, name, notes }`
   - Capability: `{ disciplineId, attributeRatings, eligibleRoles, preferredRole }` — at most one per player per discipline
-  - Discipline: `{ id, name, roles[], attributes[], strengthModel }` — roles, attributes, and the strength model are all discipline-owned; seed data: Futsal (roles: goalkeeper, defender, winger, pivot; attributes: technical, fitness, game IQ) and MLBB (roles: tank, assassin, mage, marksman, fighter; attributes: mechanics, game sense, hero pool, teamwork)
+  - Discipline: `{ id, name, roles[], attributes[], strengthModel }` — roles, attributes, and the strength model are all discipline-owned; seed data: Futsal (roles: goalkeeper, defender, winger, pivot; attributes: technical, fitness, game IQ) and MLBB (roles: gold lane, exp lane, mid lane, jungle, roam; attributes: mechanics, game sense, hero pool, teamwork)
   - Session: `{ id, pool, disciplineId, settings, teams }` — a saved snapshot of a team-building run
 - **Strength**: a pluggable per-discipline function combining the capability's attribute ratings into a single Strength number. v1: weighted sum with equal weights; the interface allows role-aware or differently weighted models later.
 - **Solver**: exact search (exhaustive assignment with pruning) that minimizes the strength gap between teams — sum-based for equal team sizes, average-based for unequal sizes (Subs). Constraint handling: MLBB role coverage is hard (all 5 roles on every team), futsal coverage is soft (min 5 players; unfilled roles get best-fit assignment plus a visible flag). Team size is a range (futsal: ≥5 with subs; MLBB: exactly 5). Runs behind a solver interface so a heuristic can be swapped in if pools ever grow beyond v1 scale.

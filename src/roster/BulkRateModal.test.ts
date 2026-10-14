@@ -251,7 +251,7 @@ describe("a player who already plays the discipline", () => {
       ...futsalPlayer("andi"),
       capabilities: [
         ...futsalPlayer("andi").capabilities,
-        { disciplineId: "mlbb", attributeRatings: { mechanics: 1 }, eligibleRoles: ["tank"], preferredRole: "tank" },
+        { disciplineId: "mlbb", attributeRatings: { mechanics: 1 }, eligibleRoles: ["roam"], preferredRole: "roam" },
       ],
     };
     const [rated] = ratePlayers([player], FUTSAL_DISCIPLINE, {

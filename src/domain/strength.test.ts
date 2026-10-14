@@ -23,8 +23,8 @@ describe("computeStrength (mean model)", () => {
     const cap: Capability = {
       disciplineId: MLBB_DISCIPLINE.id,
       attributeRatings: { mechanics: 5, "game-sense": 4, "hero-pool": 3, teamwork: 4 },
-      eligibleRoles: ["tank"],
-      preferredRole: "tank",
+      eligibleRoles: ["roam"],
+      preferredRole: "roam",
     };
     expect(computeStrength(MLBB_DISCIPLINE, cap)).toBe(4);
   });

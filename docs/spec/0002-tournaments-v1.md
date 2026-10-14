@@ -1,6 +1,9 @@
 # Tournaments v1 — Play the Split
 
-**Status**: shipped (DB v7, backup v4)
+**Status**: shipped (DB v8, backup v4)
+> **DB v7 → v8, 2026-10-15:** MLBB's roles became the five lanes. No tournament data changed —
+> the bump rewrites stored role ids (`src/storage/role-migration.ts`). See `contracts.md` §2,
+> "Changing a built-in's definition".
 
 **Reconciled 2026-10-01** against `feature/revamp`, claim by claim, with the code as the
 authority. The dated `CORRECTION` blocks below record what each passage replaced and why; they

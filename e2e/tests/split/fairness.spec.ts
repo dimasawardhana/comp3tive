@@ -48,7 +48,7 @@ import type { Page } from "@playwright/test";
 import { expectBlendedContrast } from "../../support/contrast";
 import { gotoSeeded, type SeedWorld } from "../../support/seed";
 
-const ROLES = ["tank", "assassin", "mage", "marksman", "fighter"];
+const ROLES = ["roam", "jungle", "mid-lane", "gold-lane", "exp-lane"];
 
 const BANNED = [
   "proven", "best gap", "best-found", "exact", "minimum", "optimal",

@@ -13,8 +13,8 @@ const futsalCap: Capability = {
 const mlbbCap: Capability = {
   disciplineId: "mlbb",
   attributeRatings: { mechanics: 4, "game-sense": 3, "hero-pool": 5, teamwork: 4 },
-  eligibleRoles: ["tank", "mage"],
-  preferredRole: "tank",
+  eligibleRoles: ["roam", "mid-lane"],
+  preferredRole: "roam",
 };
 
 const validPlayer = (overrides: Partial<Player> = {}): Player => ({
@@ -57,9 +57,9 @@ describe("validatePlayer", () => {
   });
 
   it("rejects a role that is not part of the discipline", () => {
-    const bad: Capability = { ...futsalCap, eligibleRoles: ["tank"] };
+    const bad: Capability = { ...futsalCap, eligibleRoles: ["roam"] };
     const issues = validatePlayer(validPlayer({ capabilities: [bad] }), disciplines);
-    expect(issues.some((i) => i.message.includes('Role "tank" is not part of "Futsal"'))).toBe(true);
+    expect(issues.some((i) => i.message.includes('Role "roam" is not part of "Futsal"'))).toBe(true);
   });
 
   it("rejects an empty eligibility list", () => {

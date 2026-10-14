@@ -39,7 +39,7 @@ const world = (): SeedWorld => ({
       {
         disciplineId: "mlbb",
         attributeRatings: { mechanics: 4, "game-sense": 4, "hero-pool": 4, teamwork: 4 },
-        eligibleRoles: ["tank", "assassin", "mage", "marksman", "fighter"],
+        eligibleRoles: ["roam", "jungle", "mid-lane", "gold-lane", "exp-lane"],
         preferredRole: null,
       },
     ],

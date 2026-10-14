@@ -5,11 +5,11 @@ import { gotoHubSeeded, hubButton, type SeedWorld } from "../../support/seed";
 const mlbbCap = (pref: string) => ({
   disciplineId: "mlbb",
   attributeRatings: { mechanics: 4, "game-sense": 4, "hero-pool": 4, teamwork: 4 },
-  eligibleRoles: ["tank", "assassin", "mage", "marksman", "fighter"],
+  eligibleRoles: ["roam", "jungle", "mid-lane", "gold-lane", "exp-lane"],
   preferredRole: pref,
 });
 
-const roles = ["tank", "assassin", "mage", "marksman", "fighter"];
+const roles = ["roam", "jungle", "mid-lane", "gold-lane", "exp-lane"];
 const names = ["Alpha", "Bravo", "Charlie", "Delta", "Echo", "Foxtrot", "Golf", "Hotel", "India", "Juliet"];
 
 /** The 10 MLBB players the flow splits, each with a distinct preferred role. */

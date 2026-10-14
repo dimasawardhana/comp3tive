@@ -106,6 +106,19 @@ Copied from the specs. Values are exact.
   only written on a first open (`:66-70`). An upgrade deliberately writes only the seeds its
   version introduced, never the whole catalog — the catalog is the user's to edit, and
   re-seeding it would resurrect a discipline they deleted.
+- **Changing a built-in's definition also needs a bump, and no `SEEDS_ADDED_IN` entry.**
+  `DB_VERSION` 7 → 8 changed MLBB's roles from hero classes to lanes (`src/domain/seed.ts`).
+  Nothing was *added*, so the entry above does not apply, and the upgrade's job was the
+  opposite of writing a seed: every stored record naming a retired role id had to be
+  rewritten through `MLBB_RETIRED_ROLES`, because `validateCapability` refuses a capability
+  whose role the discipline no longer declares. The rewrite is `src/storage/role-migration.ts`,
+  run inside the `versionchange` transaction, and it refreshes **only** the built-in that
+  changed — writing the whole catalog here would resurrect a discipline the user deleted,
+  which `indexed-db.test.ts` pins. Two rules that fall out of this and apply to any future
+  vocabulary change: **rewrite ids through an explicit map scoped by discipline** (a retired
+  id is an ordinary word, and a custom discipline may define its own role called `tank`), and
+  **never let the migration throw** — an exception in `onupgradeneeded` reverts the version
+  bump and leaves the database at the old version with the new code.
 - **Authority is the server's; the read path is IndexedDB.** From Phase E, a signed-in Organizer's
   Account is the source of truth, and this device holds a write-through cache of it. Two rules follow
   for every phase, including the ones that run before E: **no screen may await a `fetch` to render**

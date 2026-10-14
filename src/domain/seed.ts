@@ -5,8 +5,18 @@ import type { Discipline } from "./types";
  * and extensible via Discipline management).
  *
  * Futsal: 4 roles, 3 attributes, soft role coverage, min 5 with Subs.
- * MLBB: 5 roles, 4 attributes, hard role coverage, exactly 5.
+ * MLBB: the 5 lanes, 4 attributes, hard role coverage, exactly 5.
  * Badminton: 2 court roles, 3 attributes, hard role coverage, exactly 2.
+ *
+ * **MLBB's roles are lanes, not hero classes, and the distinction is the point.**
+ * A hero's class (Tank/Marksman/Assassin/Fighter/Mage/Support) describes what the
+ * hero *is*; a team's five slots are the five positions its players *fill* —
+ * gold lane, exp lane, mid lane, jungle and roam. `rolesRequired: true` assigns
+ * exactly one player to each, so the five roles have to be the five positions or
+ * the assignment is meaningless: no team drafts one Tank, one Marksman, one
+ * Assassin, one Fighter and one Mage. Hero breadth is already a rating here
+ * (`hero-pool`), so class-as-role double-counted what the attributes measure.
+ * See `MLBB_RETIRED_ROLES` for the vocabulary this replaced.
  */
 export const FUTSAL_DISCIPLINE: Discipline = {
   id: "futsal",
@@ -33,12 +43,13 @@ export const MLBB_DISCIPLINE: Discipline = {
   name: "Mobile Legends",
   shortName: "MLBB",
   builtIn: true,
+  // Ordered as a draft reads: the two side lanes, then mid, jungle and roam.
   roles: [
-    { id: "tank", name: "Tank" },
-    { id: "assassin", name: "Assassin" },
-    { id: "mage", name: "Mage" },
-    { id: "marksman", name: "Marksman" },
-    { id: "fighter", name: "Fighter" },
+    { id: "gold-lane", name: "Gold Laner" },
+    { id: "exp-lane", name: "Exp Laner" },
+    { id: "mid-lane", name: "Mid Laner" },
+    { id: "jungle", name: "Jungler" },
+    { id: "roam", name: "Roamer" },
   ],
   attributes: [
     { id: "mechanics", name: "Mechanics" },
@@ -48,6 +59,31 @@ export const MLBB_DISCIPLINE: Discipline = {
   ],
   strengthModel: { kind: "mean" },
   team: { minTeamSize: 5, maxTeamSize: 5, rolesRequired: true },
+};
+
+/**
+ * The hero classes MLBB used to declare as its roles, each mapped to the lane it
+ * is drafted into.
+ *
+ * **This is a migration table, and it is the only place the old vocabulary is
+ * still named.** Every hero class has exactly one default lane, which is why the
+ * rewrite is lossless: a player who was eligible for Assassin is a Jungler, and a
+ * player eligible for Tank and Fighter is a Roamer who can also cover Exp.
+ * Storage rewrites stored role ids through this map on the upgrade to database
+ * version 8 (`src/storage/indexed-db.ts`), and it is scoped to `mlbb` — a custom
+ * discipline is free to define its own role called `tank`, and must keep it.
+ *
+ * A class is not a *position*, and the map is a convention rather than a law: a
+ * Tank hero can roam or hold exp, a Fighter can do either. What the map records
+ * is the lane each class is picked for by default, which is the only thing an
+ * eligibility list keyed on classes can honestly be read as.
+ */
+export const MLBB_RETIRED_ROLES: Record<string, string> = {
+  assassin: "jungle",
+  mage: "mid-lane",
+  fighter: "exp-lane",
+  tank: "roam",
+  marksman: "gold-lane",
 };
 
 export const BADMINTON_DISCIPLINE: Discipline = {

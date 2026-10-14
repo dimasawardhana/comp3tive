@@ -172,8 +172,8 @@ describe("parseBackup: player validation", () => {
   const validCap = {
     disciplineId: "mlbb",
     attributeRatings: { mechanics: 4, "game-sense": 4, "hero-pool": 4, teamwork: 4 },
-    eligibleRoles: ["tank", "assassin", "mage", "marksman", "fighter"],
-    preferredRole: "tank",
+    eligibleRoles: ["roam", "jungle", "mid-lane", "gold-lane", "exp-lane"],
+    preferredRole: "roam",
   };
   const backup = (players: unknown[]) =>
     JSON.stringify({
@@ -218,7 +218,7 @@ describe("parseBackup: player validation", () => {
         id: "p1",
         communityId: "c1",
         name: "Player 1",
-        capabilities: [{ ...validCap, eligibleRoles: ["mage", "wizard"], preferredRole: null }],
+        capabilities: [{ ...validCap, eligibleRoles: ["mid-lane", "wizard"], preferredRole: null }],
       },
     ]);
     expect(() => parseBackup(text, SEED_DISCIPLINES)).toThrow(/Role "wizard" is not part of "Mobile Legends"\./);

@@ -17,16 +17,16 @@ import type { Session, Player } from "./domain/types";
  */
 
 const ROSTER: Player[] = [
-  { id: "hero-p1", communityId: "comm-hero", name: "Budi", capabilities: [{ disciplineId: "mlbb", attributeRatings: { mechanics: 4, "game-sense": 4, "hero-pool": 3, teamwork: 5 }, eligibleRoles: ["tank", "fighter"], preferredRole: "tank" }] },
-  { id: "hero-p2", communityId: "comm-hero", name: "Andi", capabilities: [{ disciplineId: "mlbb", attributeRatings: { mechanics: 3, "game-sense": 3, "hero-pool": 3, teamwork: 4 }, eligibleRoles: ["tank", "fighter"], preferredRole: "tank" }] },
-  { id: "hero-p3", communityId: "comm-hero", name: "Citra", capabilities: [{ disciplineId: "mlbb", attributeRatings: { mechanics: 5, "game-sense": 4, "hero-pool": 4, teamwork: 4 }, eligibleRoles: ["assassin", "mage"], preferredRole: "assassin" }] },
-  { id: "hero-p4", communityId: "comm-hero", name: "Dewi", capabilities: [{ disciplineId: "mlbb", attributeRatings: { mechanics: 3, "game-sense": 4, "hero-pool": 3, teamwork: 3 }, eligibleRoles: ["assassin", "fighter"], preferredRole: "assassin" }] },
-  { id: "hero-p5", communityId: "comm-hero", name: "Eka", capabilities: [{ disciplineId: "mlbb", attributeRatings: { mechanics: 4, "game-sense": 4, "hero-pool": 4, teamwork: 4 }, eligibleRoles: ["mage", "marksman"], preferredRole: "mage" }] },
-  { id: "hero-p6", communityId: "comm-hero", name: "Fajar", capabilities: [{ disciplineId: "mlbb", attributeRatings: { mechanics: 3, "game-sense": 3, "hero-pool": 4, teamwork: 3 }, eligibleRoles: ["mage", "tank"], preferredRole: "mage" }] },
-  { id: "hero-p7", communityId: "comm-hero", name: "Gita", capabilities: [{ disciplineId: "mlbb", attributeRatings: { mechanics: 4, "game-sense": 5, "hero-pool": 4, teamwork: 3 }, eligibleRoles: ["marksman", "mage"], preferredRole: "marksman" }] },
-  { id: "hero-p8", communityId: "comm-hero", name: "Hana", capabilities: [{ disciplineId: "mlbb", attributeRatings: { mechanics: 4, "game-sense": 3, "hero-pool": 3, teamwork: 3 }, eligibleRoles: ["marksman", "assassin"], preferredRole: "marksman" }] },
-  { id: "hero-p9", communityId: "comm-hero", name: "Irfan", capabilities: [{ disciplineId: "mlbb", attributeRatings: { mechanics: 4, "game-sense": 4, "hero-pool": 3, teamwork: 5 }, eligibleRoles: ["fighter", "tank"], preferredRole: "fighter" }] },
-  { id: "hero-p10", communityId: "comm-hero", name: "Joko", capabilities: [{ disciplineId: "mlbb", attributeRatings: { mechanics: 3, "game-sense": 4, "hero-pool": 3, teamwork: 3 }, eligibleRoles: ["fighter", "assassin"], preferredRole: "fighter" }] },
+  { id: "hero-p1", communityId: "comm-hero", name: "Budi", capabilities: [{ disciplineId: "mlbb", attributeRatings: { mechanics: 4, "game-sense": 4, "hero-pool": 3, teamwork: 5 }, eligibleRoles: ["roam", "exp-lane"], preferredRole: "roam" }] },
+  { id: "hero-p2", communityId: "comm-hero", name: "Andi", capabilities: [{ disciplineId: "mlbb", attributeRatings: { mechanics: 3, "game-sense": 3, "hero-pool": 3, teamwork: 4 }, eligibleRoles: ["roam", "exp-lane"], preferredRole: "roam" }] },
+  { id: "hero-p3", communityId: "comm-hero", name: "Citra", capabilities: [{ disciplineId: "mlbb", attributeRatings: { mechanics: 5, "game-sense": 4, "hero-pool": 4, teamwork: 4 }, eligibleRoles: ["jungle", "mid-lane"], preferredRole: "jungle" }] },
+  { id: "hero-p4", communityId: "comm-hero", name: "Dewi", capabilities: [{ disciplineId: "mlbb", attributeRatings: { mechanics: 3, "game-sense": 4, "hero-pool": 3, teamwork: 3 }, eligibleRoles: ["jungle", "exp-lane"], preferredRole: "jungle" }] },
+  { id: "hero-p5", communityId: "comm-hero", name: "Eka", capabilities: [{ disciplineId: "mlbb", attributeRatings: { mechanics: 4, "game-sense": 4, "hero-pool": 4, teamwork: 4 }, eligibleRoles: ["mid-lane", "gold-lane"], preferredRole: "mid-lane" }] },
+  { id: "hero-p6", communityId: "comm-hero", name: "Fajar", capabilities: [{ disciplineId: "mlbb", attributeRatings: { mechanics: 3, "game-sense": 3, "hero-pool": 4, teamwork: 3 }, eligibleRoles: ["mid-lane", "roam"], preferredRole: "mid-lane" }] },
+  { id: "hero-p7", communityId: "comm-hero", name: "Gita", capabilities: [{ disciplineId: "mlbb", attributeRatings: { mechanics: 4, "game-sense": 5, "hero-pool": 4, teamwork: 3 }, eligibleRoles: ["gold-lane", "mid-lane"], preferredRole: "gold-lane" }] },
+  { id: "hero-p8", communityId: "comm-hero", name: "Hana", capabilities: [{ disciplineId: "mlbb", attributeRatings: { mechanics: 4, "game-sense": 3, "hero-pool": 3, teamwork: 3 }, eligibleRoles: ["gold-lane", "jungle"], preferredRole: "gold-lane" }] },
+  { id: "hero-p9", communityId: "comm-hero", name: "Irfan", capabilities: [{ disciplineId: "mlbb", attributeRatings: { mechanics: 4, "game-sense": 4, "hero-pool": 3, teamwork: 5 }, eligibleRoles: ["exp-lane", "roam"], preferredRole: "exp-lane" }] },
+  { id: "hero-p10", communityId: "comm-hero", name: "Joko", capabilities: [{ disciplineId: "mlbb", attributeRatings: { mechanics: 3, "game-sense": 4, "hero-pool": 3, teamwork: 3 }, eligibleRoles: ["exp-lane", "jungle"], preferredRole: "exp-lane" }] },
 ];
 
 const discipline = MLBB_DISCIPLINE;
@@ -102,7 +102,7 @@ const DISCIPLINES = [
   {
     name: "Mobile Legends",
     desc: "5v5 MOBA — roles define your lane, and the strength model accounts for every attribute.",
-    roles: ["Tank", "Assassin", "Mage", "Marksman", "Fighter"],
+    roles: ["Gold Laner", "Exp Laner", "Mid Laner", "Jungler", "Roamer"],
     attributes: ["Mechanics", "Game Sense", "Hero Pool", "Teamwork"],
     teamSize: "5 a side",
   },

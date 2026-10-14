@@ -32,7 +32,7 @@ import { gotoHubSeeded, type SeedWorld } from "../../support/seed";
 const HUBS = ["Home", "Roster", "Squads", "Games", "History"] as const;
 
 const names = ["Alpha", "Bravo", "Charlie", "Delta", "Echo", "Foxtrot", "Golf", "Hotel", "India", "Juliet"];
-const roles = ["tank", "assassin", "mage", "marksman", "fighter"];
+const roles = ["roam", "jungle", "mid-lane", "gold-lane", "exp-lane"];
 
 const world = (): SeedWorld => {
   const players = names.map((name, i) => ({

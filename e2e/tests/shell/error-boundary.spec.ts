@@ -16,15 +16,15 @@ import { gotoHubSeeded, MLBB_ID, type SeedWorld } from "../../support/seed";
 const malformedCap = (role: string) => ({
   disciplineId: MLBB_ID,
   attributeRatings: { mechanics: 4, "game-sense": 4, "hero-pool": 4 },
-  eligibleRoles: ["tank", "assassin", "mage", "marksman", "fighter"],
+  eligibleRoles: ["roam", "jungle", "mid-lane", "gold-lane", "exp-lane"],
   preferredRole: role,
 });
 
 const world = (): SeedWorld => ({
   communities: [{ id: "comm-eb", name: "Boundary Crew", createdAt: 100 }],
   players: [
-    { id: "p1", communityId: "comm-eb", name: "Player One", capabilities: [malformedCap("tank")] },
-    { id: "p2", communityId: "comm-eb", name: "Player Two", capabilities: [malformedCap("fighter")] },
+    { id: "p1", communityId: "comm-eb", name: "Player One", capabilities: [malformedCap("roam")] },
+    { id: "p2", communityId: "comm-eb", name: "Player Two", capabilities: [malformedCap("exp-lane")] },
   ],
   sessions: [
     {
@@ -49,7 +49,7 @@ const world = (): SeedWorld => ({
         gap: 0,
         // The flag is what routes describeFlags into strongestOnTeam; without
         // it the throw is never reached.
-        flags: [{ kind: "role-uncovered", teamIndex: 0, roleId: "tank", coveringPlayerId: null }],
+        flags: [{ kind: "role-uncovered", teamIndex: 0, roleId: "roam", coveringPlayerId: null }],
         unassigned: [],
         solver: { optimal: true, nodesExplored: 0, elapsedMs: 0 },
       },

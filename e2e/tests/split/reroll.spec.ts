@@ -13,7 +13,7 @@ import { expect, test } from "@playwright/test";
 import type { Page } from "@playwright/test";
 import { gotoHubSeeded, MLBB_ID, type SeedWorld } from "../../support/seed";
 
-const MLBB_ROLES = ["tank", "assassin", "mage", "marksman", "fighter"];
+const MLBB_ROLES = ["roam", "jungle", "mid-lane", "gold-lane", "exp-lane"];
 
 /** One MLBB team whose slots fill the five roles in order; the ledger needs no more. */
 const mlbbTeam = (index: number, playerIds: string[]) => ({

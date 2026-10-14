@@ -25,7 +25,7 @@ import { test, expect } from "@playwright/test";
 import type { Page } from "@playwright/test";
 import { gotoSeeded, hubButton, recordMatch, tournamentMeta, type SeedWorld } from "../support/seed";
 
-const ROLES = ["tank", "assassin", "mage", "marksman", "fighter"];
+const ROLES = ["roam", "jungle", "mid-lane", "gold-lane", "exp-lane"];
 
 /** 15 players, three teams of five, all MLBB-eligible: a whole tournament's worth. */
 const world = (): SeedWorld => ({

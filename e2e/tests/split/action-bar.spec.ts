@@ -135,7 +135,7 @@ import { test, expect, type Page } from "@playwright/test";
 import { gotoSeeded, hubButton, type SeedWorld } from "../../support/seed";
 
 const COMMUNITY = { id: "comm-bar", name: "Bar Crew", createdAt: 100 };
-const ROLES = ["tank", "assassin", "mage", "marksman", "fighter"];
+const ROLES = ["roam", "jungle", "mid-lane", "gold-lane", "exp-lane"];
 
 /** Ten MLBB players, three distinct ratings so no two players tie by accident. */
 const players = Array.from({ length: 10 }, (_, i) => ({

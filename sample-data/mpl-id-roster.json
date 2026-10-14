@@ -16,10 +16,10 @@
             "teamwork": 5
           },
           "eligibleRoles": [
-            "tank",
-            "mage"
+            "roam",
+            "mid-lane"
           ],
-          "preferredRole": "tank"
+          "preferredRole": "roam"
         }
       ]
     },
@@ -37,10 +37,10 @@
             "teamwork": 2
           },
           "eligibleRoles": [
-            "assassin",
-            "marksman"
+            "jungle",
+            "gold-lane"
           ],
-          "preferredRole": "assassin"
+          "preferredRole": "jungle"
         }
       ]
     },
@@ -58,10 +58,10 @@
             "teamwork": 3
           },
           "eligibleRoles": [
-            "mage",
-            "fighter"
+            "mid-lane",
+            "exp-lane"
           ],
-          "preferredRole": "mage"
+          "preferredRole": "mid-lane"
         }
       ]
     },
@@ -79,10 +79,10 @@
             "teamwork": 4
           },
           "eligibleRoles": [
-            "marksman",
-            "tank"
+            "gold-lane",
+            "roam"
           ],
-          "preferredRole": "marksman"
+          "preferredRole": "gold-lane"
         }
       ]
     },
@@ -100,10 +100,10 @@
             "teamwork": 5
           },
           "eligibleRoles": [
-            "fighter",
-            "assassin"
+            "exp-lane",
+            "jungle"
           ],
-          "preferredRole": "fighter"
+          "preferredRole": "exp-lane"
         }
       ]
     },
@@ -121,10 +121,10 @@
             "teamwork": 2
           },
           "eligibleRoles": [
-            "tank",
-            "mage"
+            "roam",
+            "mid-lane"
           ],
-          "preferredRole": "tank"
+          "preferredRole": "roam"
         }
       ]
     },
@@ -142,10 +142,10 @@
             "teamwork": 3
           },
           "eligibleRoles": [
-            "assassin",
-            "marksman"
+            "jungle",
+            "gold-lane"
           ],
-          "preferredRole": "assassin"
+          "preferredRole": "jungle"
         }
       ]
     },
@@ -163,10 +163,10 @@
             "teamwork": 4
           },
           "eligibleRoles": [
-            "mage",
-            "fighter"
+            "mid-lane",
+            "exp-lane"
           ],
-          "preferredRole": "mage"
+          "preferredRole": "mid-lane"
         }
       ]
     },
@@ -184,10 +184,10 @@
             "teamwork": 5
           },
           "eligibleRoles": [
-            "marksman",
-            "tank"
+            "gold-lane",
+            "roam"
           ],
-          "preferredRole": "marksman"
+          "preferredRole": "gold-lane"
         }
       ]
     },
@@ -205,10 +205,10 @@
             "teamwork": 2
           },
           "eligibleRoles": [
-            "fighter",
-            "assassin"
+            "exp-lane",
+            "jungle"
           ],
-          "preferredRole": "fighter"
+          "preferredRole": "exp-lane"
         }
       ]
     },
@@ -226,10 +226,10 @@
             "teamwork": 3
           },
           "eligibleRoles": [
-            "tank",
-            "mage"
+            "roam",
+            "mid-lane"
           ],
-          "preferredRole": "tank"
+          "preferredRole": "roam"
         }
       ]
     },
@@ -247,10 +247,10 @@
             "teamwork": 4
           },
           "eligibleRoles": [
-            "assassin",
-            "marksman"
+            "jungle",
+            "gold-lane"
           ],
-          "preferredRole": "assassin"
+          "preferredRole": "jungle"
         }
       ]
     },
@@ -268,10 +268,10 @@
             "teamwork": 5
           },
           "eligibleRoles": [
-            "mage",
-            "fighter"
+            "mid-lane",
+            "exp-lane"
           ],
-          "preferredRole": "mage"
+          "preferredRole": "mid-lane"
         }
       ]
     },
@@ -289,10 +289,10 @@
             "teamwork": 2
           },
           "eligibleRoles": [
-            "marksman",
-            "tank"
+            "gold-lane",
+            "roam"
           ],
-          "preferredRole": "marksman"
+          "preferredRole": "gold-lane"
         }
       ]
     },
@@ -310,10 +310,10 @@
             "teamwork": 3
           },
           "eligibleRoles": [
-            "fighter",
-            "assassin"
+            "exp-lane",
+            "jungle"
           ],
-          "preferredRole": "fighter"
+          "preferredRole": "exp-lane"
         }
       ]
     },
@@ -331,10 +331,10 @@
             "teamwork": 4
           },
           "eligibleRoles": [
-            "tank",
-            "mage"
+            "roam",
+            "mid-lane"
           ],
-          "preferredRole": "tank"
+          "preferredRole": "roam"
         }
       ]
     },
@@ -352,10 +352,10 @@
             "teamwork": 5
           },
           "eligibleRoles": [
-            "assassin",
-            "marksman"
+            "jungle",
+            "gold-lane"
           ],
-          "preferredRole": "assassin"
+          "preferredRole": "jungle"
         }
       ]
     },
@@ -373,10 +373,10 @@
             "teamwork": 2
           },
           "eligibleRoles": [
-            "mage",
-            "fighter"
+            "mid-lane",
+            "exp-lane"
           ],
-          "preferredRole": "mage"
+          "preferredRole": "mid-lane"
         }
       ]
     },
@@ -394,10 +394,10 @@
             "teamwork": 3
           },
           "eligibleRoles": [
-            "marksman",
-            "tank"
+            "gold-lane",
+            "roam"
           ],
-          "preferredRole": "marksman"
+          "preferredRole": "gold-lane"
         }
       ]
     },
@@ -415,10 +415,10 @@
             "teamwork": 4
           },
           "eligibleRoles": [
-            "fighter",
-            "assassin"
+            "exp-lane",
+            "jungle"
           ],
-          "preferredRole": "fighter"
+          "preferredRole": "exp-lane"
         }
       ]
     },
@@ -436,10 +436,10 @@
             "teamwork": 5
           },
           "eligibleRoles": [
-            "tank",
-            "mage"
+            "roam",
+            "mid-lane"
           ],
-          "preferredRole": "tank"
+          "preferredRole": "roam"
         }
       ]
     },
@@ -457,10 +457,10 @@
             "teamwork": 2
           },
           "eligibleRoles": [
-            "assassin",
-            "marksman"
+            "jungle",
+            "gold-lane"
           ],
-          "preferredRole": "assassin"
+          "preferredRole": "jungle"
         }
       ]
     },
@@ -478,10 +478,10 @@
             "teamwork": 3
           },
           "eligibleRoles": [
-            "mage",
-            "fighter"
+            "mid-lane",
+            "exp-lane"
           ],
-          "preferredRole": "mage"
+          "preferredRole": "mid-lane"
         }
       ]
     },
@@ -499,10 +499,10 @@
             "teamwork": 4
           },
           "eligibleRoles": [
-            "marksman",
-            "tank"
+            "gold-lane",
+            "roam"
           ],
-          "preferredRole": "marksman"
+          "preferredRole": "gold-lane"
         }
       ]
     },
@@ -520,10 +520,10 @@
             "teamwork": 5
           },
           "eligibleRoles": [
-            "fighter",
-            "assassin"
+            "exp-lane",
+            "jungle"
           ],
-          "preferredRole": "fighter"
+          "preferredRole": "exp-lane"
         }
       ]
     }

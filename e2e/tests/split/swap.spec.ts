@@ -52,7 +52,7 @@ import { expect, test } from "@playwright/test";
 import type { Locator, Page } from "@playwright/test";
 import { gotoHubSeeded, MLBB_ID, type SeedWorld } from "../../support/seed";
 
-const ROLES = ["tank", "assassin", "mage", "marksman", "fighter"];
+const ROLES = ["roam", "jungle", "mid-lane", "gold-lane", "exp-lane"];
 
 /**
  * Two teams five apart, on purpose. Every Team A player is rated 5 on all four

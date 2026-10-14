@@ -70,7 +70,7 @@ import { SplitScreen } from "./SplitScreen";
 import { freshSplit } from "./edit";
 import type { Player, Session, SplitResult } from "../domain/types";
 
-const ROLES = ["tank", "assassin", "mage", "marksman", "fighter"];
+const ROLES = ["roam", "jungle", "mid-lane", "gold-lane", "exp-lane"];
 
 const ROSTER: Player[] = ["Alfa", "Bravo", "Cahya", "Delta", "Echo", "Foxtrot", "Golf", "Hotel", "India", "Juli"].map(
   (name, i) => ({

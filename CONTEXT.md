@@ -69,8 +69,9 @@ A catalog entry — an activity teams can be built for (futsal, MLBB, badminton)
 _Avoid_: activity, type, category, game, sport
 
 **Role**:
-A position within a discipline that a player fills (futsal: goalkeeper, defender, winger, pivot; MLBB: tank, assassin, mage, marksman, support). Each discipline defines its own role set.
-_Avoid_: position, lane, slot
+A position within a discipline that a player fills (futsal: goalkeeper, defender, winger, pivot; badminton: front court, rear court; MLBB: gold lane, exp lane, mid lane, jungle, roam). Each discipline defines its own role set.
+
+_Avoid_: position, slot. **A role is not a hero class.** MLBB's roles are the five **lanes**, because a team of five plays one player in each — the classes a hero belongs to (Tank, Marksman, Assassin, Fighter, Mage, Support) describe what a hero *is*, and a team does not field one of each. Hero breadth is rated as `hero-pool`, so a class is a rating, not a role.
 
 ### Sessions & teams
 
