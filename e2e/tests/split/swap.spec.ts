@@ -382,6 +382,49 @@ test("the banner's text change is announced, because the element survives the ch
   );
 });
 
+test("entering the mode announces its instruction, because the region was already there", async ({ page }) => {
+  // The other half of the banner's test above, and the one a static render
+  // cannot make. `role="status"` on `.swap-banner` announces the *later*
+  // transitions, because the element survives them. It could not announce the
+  // transition that starts the mode, because that transition **inserts** the
+  // element with its instruction already inside it — the same reason the bench
+  // advisory lost its `role="status"` (`src/DashboardScreen.nudge.test.ts:88`).
+  //
+  // So the entry is announced by a sibling that is mounted and empty from the
+  // first render, and this test asserts the mechanism rather than the wish:
+  // it **tags the region before the tap**, then asserts the tagged node holds
+  // the sentence. A region that had been inserted along with its text could not
+  // be tagged beforehand, so the tag is what makes "was already there" a fact
+  // about the DOM instead of a claim about the attribute.
+  await openSplit(page);
+
+  const region = page.locator(".swap-entry-notice");
+  await expect(region).toHaveCount(1);
+  await expect(region).toBeEmpty();
+
+  // Visually hidden, and asserted rather than assumed: 1px is the whole box, so
+  // the region cannot print the sentence the banner is already printing, and —
+  // out of flow — it takes no part in `.screen`'s `gap`. Both halves are the
+  // reason `.swap-entry-notice` needs a rule at all.
+  const box = await region.boundingBox();
+  expect(box?.width).toBe(1);
+  expect(box?.height).toBe(1);
+  await region.evaluate((node) => node.setAttribute("data-live-region", "tagged"));
+
+  await page.getByTestId("swap-mode").click();
+
+  await expect(page.locator('.swap-entry-notice[data-live-region="tagged"]')).toHaveText(
+    "Tap one player on each team to swap them.",
+  );
+
+  // And it goes quiet on the first tap, which is the half that stops the fix
+  // from costing a double announcement: from here the banner is the live
+  // region, and a notice still holding the entry sentence would repeat every
+  // later transition once per region.
+  await card(page, "Alfa").click();
+  await expect(page.locator('.swap-entry-notice[data-live-region="tagged"]')).toBeEmpty();
+});
+
 test("the solver-failure screen withholds Swap, because a swap needs two teams", async ({ page }) => {
   // A swap needs a team on each side. Below two teams the screen renders its
   // "Solver failed" empty state, and `Swap` is withheld on the same gate Share

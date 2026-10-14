@@ -1,4 +1,5 @@
 import type { Discipline, Id, Player } from "../domain/types";
+import { validatePlayer } from "../domain/validation";
 
 /** Refuse a file too large to parse sensibly. A guard, not a security control. */
 export const MAX_IMPORT_BYTES = 5 * 1024 * 1024;
@@ -196,8 +197,19 @@ export function csvRowsToPlayers(
       skipped.push({ line: row.line, reason: `Unknown discipline "${row.discipline}".` });
       continue;
     }
+    // A discipline with no attributes has nothing for the strength column to
+    // rate, so the row would import as a player carrying no rating at all and a
+    // report that said it worked. `validateCapability` cannot catch it: it
+    // iterates the discipline's attributes, and there are none to fail.
+    if (discipline.attributes.length === 0) {
+      skipped.push({
+        line: row.line,
+        reason: `"${discipline.name}" has no attributes, so the strength column would be ignored.`,
+      });
+      continue;
+    }
     const rating = Math.max(1, Math.min(5, row.strength)) as 1 | 2 | 3 | 4 | 5;
-    players.push({
+    const player: Player = {
       id: crypto.randomUUID(),
       communityId,
       name: row.name,
@@ -209,7 +221,20 @@ export function csvRowsToPlayers(
           preferredRole: null,
         },
       ],
-    });
+    };
+    // The model rules every other path that accepts player data from outside the
+    // app runs before a Player can be written — the backup parser, the
+    // players-only JSON branch, the editor. This one built its players from the
+    // discipline's own attributes and relied on that construction, which is
+    // safe rather than checked: a discipline with no roles produces a player who
+    // is eligible for nothing, and `validateCapability` rejects that at
+    // `src/domain/validation.ts:57-59`.
+    const problems = validatePlayer(player, disciplines);
+    if (problems.length > 0) {
+      skipped.push({ line: row.line, reason: problems[0].message });
+      continue;
+    }
+    players.push(player);
   }
   return { players, skipped };
 }

@@ -48,14 +48,17 @@
  *
  * ## What this file does not claim
  *
- * **It does not claim the entry announcement works.** Transition 1 is still
- * silent and this amendment does not fix it. Fixing it needs a permanently
- * mounted live region, which collides with `e2e/tests/split/swap.spec.ts:326`
- * (`.swap-banner` has count 0 when the mode is off) and with `.swap-banner` as a
- * styled hook at `src/split.css:636`. Both are design decisions with a
- * measurement behind them, so the entry announcement is recorded as known-open
- * in `contracts.md` rather than smuggled in here. The first test below is
- * written so that a future fix for it has something to change.
+ * **It does not claim the entry announcement works.** Transition 1 was silent
+ * for as long as this file existed: the banner is *inserted* with its
+ * instruction already inside it, and a live region announces changes to a node
+ * that is already there. **Ticket 40 fixed that on 2026-10-01, on a sibling
+ * rather than here** — `.swap-entry-notice` is mounted and empty from the first
+ * render, so the sentence arrives as a change. That was possible only because
+ * `.swap-banner` stayed a sibling, which is what `e2e/tests/split/swap.spec.ts:326`
+ * (count 0 with the mode off) and the styled hook at `src/split.css:636` both
+ * required. The entry is asserted in `e2e/tests/split/swap.spec.ts` and, at rest,
+ * in `src/session/SplitScreen.swap-entry.test.ts`; this file's subject is
+ * unchanged, which is the banner's own role in the mode.
  */
 import { readFileSync } from "node:fs";
 import { createElement } from "react";
@@ -208,17 +211,23 @@ describe("the swap banner's live region", () => {
     expect(source).toContain('<span className="swap-banner-icon" aria-hidden="true">');
   });
 
-  it("renders no banner at all when the mode is off, and so announces no entry", () => {
-    // **The residual, pinned rather than hidden.** With the mode off the element
-    // is absent, so there is nothing mounted to announce its arrival. This is
-    // the transition `role="status"` cannot reach, and the reason the fix is
-    // honest about its scope: a live region announces *changes*, and an
-    // insertion of the region itself is not one.
+  it("renders no banner at all when the mode is off", () => {
+    // **This used to be the residual, and ticket 40 closed it — the assertion
+    // stayed.** With the mode off the banner is absent, so it had nothing
+    // mounted to announce its own arrival: entering the mode *inserted* the
+    // region, and a live region announces changes to a node that is already
+    // there. The entry is now announced by a permanently-mounted sibling,
+    // `.swap-entry-notice` (`contracts.md` §5, Day 3, (a)), and this file's
+    // subject has not moved: the banner's own job is the **later** transitions,
+    // where its text mutates inside a node that survives.
     //
-    // The test exists to be broken on purpose by whoever fixes it properly, with
-    // a permanently mounted region (which collides with the count-0 assertion in
-    // `e2e/tests/split/swap.spec.ts:326` and with `.swap-banner` as a styled
-    // hook at `src/split.css:636`, and needs its own contract amendment).
+    // So the banner's absence is now load-bearing in the other direction too. It
+    // must stay a sibling of the region rather than becoming it, both because
+    // `e2e/tests/split/swap.spec.ts:326` holds `.swap-banner` at count 0 with
+    // the mode off and because a permanent banner would print an instruction on
+    // every screen. The entry side of the pair is asserted where the mode can
+    // actually be entered: `src/session/SplitScreen.swap-entry.test.ts` for the
+    // region existing at rest, and the same e2e file for the announcement.
     expect(banner(screen())).toBeNull();
   });
 

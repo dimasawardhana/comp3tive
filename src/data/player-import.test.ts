@@ -149,6 +149,37 @@ describe("csvRowsToPlayers", () => {
     const { players } = csvRowsToPlayers(rows, SEED_DISCIPLINES, "c1");
     expect(players[0].capabilities[0].attributeRatings.technical).toBe(5);
   });
+
+  it("refuses a row whose discipline has no roles, by line and by the validator's own reason", () => {
+    // The shape the build-from-attributes construction did not survive. Before
+    // the call to `validatePlayer`, this row produced a player eligible for
+    // nothing: `eligibleRoles` was the discipline's own role list, empty because
+    // the discipline's is. `validateCapability` rejects it at
+    // `src/domain/validation.ts:57-59`, so the reason is that sentence rather
+    // than a phrase written beside it — one definition of why a player is
+    // invalid, and one place to change it.
+    const roleless = { ...SEED_DISCIPLINES[0], id: "roleless", name: "Roleless", shortName: "Roleless", roles: [] };
+    const { rows } = parsePlayerCsv("Budi, roleless, 4");
+    const { players, skipped } = csvRowsToPlayers(rows, [roleless], "c1");
+    expect(players).toEqual([]);
+    expect(skipped).toEqual([
+      { line: 1, reason: 'At least one eligible role is required for "Roleless".' },
+    ]);
+  });
+
+  it("refuses a row whose discipline has no attributes, because the strength would be discarded", () => {
+    // The shape the *validator* cannot catch: it iterates the discipline's
+    // attributes, so a discipline with none produces zero issues and a player
+    // that is valid while carrying no rating at all. The strength the organizer
+    // typed would be dropped and the report would still say the row imported.
+    const rateless = { ...SEED_DISCIPLINES[0], id: "rateless", name: "Rateless", shortName: "Rateless", attributes: [] };
+    const { rows } = parsePlayerCsv("Budi, rateless, 4");
+    const { players, skipped } = csvRowsToPlayers(rows, [rateless], "c1");
+    expect(players).toEqual([]);
+    expect(skipped).toEqual([
+      { line: 1, reason: '"Rateless" has no attributes, so the strength column would be ignored.' },
+    ]);
+  });
 });
 
 describe("assertImportSize", () => {

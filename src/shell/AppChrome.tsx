@@ -166,6 +166,7 @@ export function AppChrome(props: AppChromeProps) {
               className="icon-btn"
               aria-label="Settings"
               title="Settings"
+              aria-expanded={showSettings}
               onClick={() => setShowSettings((s) => !s)}
             >
               ⚙

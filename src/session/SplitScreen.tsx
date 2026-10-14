@@ -32,6 +32,14 @@ interface Props {
   onBack?: () => void;
 }
 
+
+/**
+ * What swap mode says before a pick. The banner prints it and the entry notice
+ * announces it, so it has one definition here: a second copy is a second
+ * sentence that can drift from the one on screen.
+ */
+const SWAP_IDLE = "Tap one player on each team to swap them.";
+
 /** Team-membership signature, order-independent: used to detect a real re-roll. */
 function signature(result: SplitResult): string {
   return result.teams
@@ -265,6 +273,7 @@ export function SplitScreen({ session, discipline, roster, onPersistResult, onSu
   const [editable, setEditable] = useState<SplitResult>(session.result);
   const [swapMode, setSwapMode] = useState(false);
   const [pick, setPick] = useState<{ teamIndex: number; playerId: Id } | null>(null);
+  const [swapEntryNotice, setSwapEntryNotice] = useState("");
   const [rerollCount, setRerollCount] = useState(1);
   const [saveOpen, setSaveOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
@@ -305,6 +314,10 @@ export function SplitScreen({ session, discipline, roster, onPersistResult, onSu
   };
 
   const handlePick = (teamIndex: number, playerId: Id) => {
+    // Any tap ends the entry notice. The banner is the live region for everything
+    // after the first pick, so a notice left filled here would say each of those
+    // transitions twice — once from each region.
+    setSwapEntryNotice("");
     if (!pick) {
       setPick({ teamIndex, playerId });
       return;
@@ -348,6 +361,7 @@ export function SplitScreen({ session, discipline, roster, onPersistResult, onSu
   const toggleSwapMode = () => {
     setSwapMode((s) => !s);
     setPick(null);
+    setSwapEntryNotice(swapMode ? "" : SWAP_IDLE);
   };
 
   const teamCardProps = (team: TeamAssignment) => ({
@@ -389,13 +403,19 @@ export function SplitScreen({ session, discipline, roster, onPersistResult, onSu
         </div>
       </div>
 
+      {/* Always mounted, empty at rest: a live region announces changes to a node
+          that is already there, and entering the mode inserts the banner below.
+          `contracts.md` §5, Day 3, (a) — visually hidden by `.swap-entry-notice`,
+          because the banner is already printing this sentence. */}
+      <div className="swap-entry-notice" role="status">{swapEntryNotice}</div>
+
       {swapMode && (
         <div className="swap-banner" role="status">
           <span className="swap-banner-icon" aria-hidden="true">⇄</span>
           <span>
             {pick
               ? `Now tap a player on the other team to swap with ${nameOf(roster, pick.playerId)}`
-              : "Tap one player on each team to swap them."}
+              : SWAP_IDLE}
           </span>
         </div>
       )}

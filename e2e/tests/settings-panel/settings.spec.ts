@@ -19,6 +19,14 @@ test("settings panel: theme + layout fully functional", async ({ page }) => {
   const gear = page.getByTitle("Settings");
   await expect(gear).toBeVisible();
 
+  // 1b. The trigger says whether it is open. The closed state is the
+  // interesting half: a popover whose trigger still announces itself as open is
+  // the failure a one-sided test cannot catch, and `AppChrome` already uses
+  // `aria-expanded` this way for the rail toggle (:81) and the community
+  // switcher (:105) — both booleans the chrome holds itself, which is what this
+  // trigger's is. The ✚ button deliberately has none: its form's visibility is
+  // App's and the chrome never learns the answer (`contracts.md` §5, R2 (a)).
+  await expect(gear).toHaveAttribute("aria-expanded", "false");
   // 2. Popover hidden by default
   await expect(page.locator(".settings-popover")).not.toBeVisible();
 
@@ -26,6 +34,14 @@ test("settings panel: theme + layout fully functional", async ({ page }) => {
   await gear.click();
   const popover = page.locator(".settings-popover");
   await expect(popover).toBeVisible();
+  await expect(gear).toHaveAttribute("aria-expanded", "true");
+
+  // Closing it by hand says it again, so the attribute is a reading of the
+  // state rather than a latch set on first open.
+  await gear.click();
+  await expect(gear).toHaveAttribute("aria-expanded", "false");
+  await expect(popover).toBeHidden();
+  await gear.click();
 
   // 4. Verify popover is positioned below topbar (not at viewport bottom)
   const popoverBox = await popover.boundingBox();

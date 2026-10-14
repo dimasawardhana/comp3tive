@@ -99,6 +99,18 @@ const bar = (options: Options = {}): string => {
   return html.match(/<div class="bar split-bar">.*?<\/div>\s*<\/div>/s)?.[0] ?? "";
 };
 
+/** The whole screen's markup, which is where the announcement region lives. */
+const screen = (): string =>
+  renderToStaticMarkup(
+    createElement(SplitScreen, {
+      session: sessionOf(twoTeams()),
+      discipline: MLBB_DISCIPLINE,
+      roster: ROSTER,
+      onPersistResult: async () => {},
+      source: "ad-hoc",
+    }),
+  );
+
 /** The action row's own labels, in render order. */
 const labels = (html: string): string[] =>
   [...html.matchAll(/<button[^>]*>([^<]*)<\/button>/g)].map((m) => (m[1] ?? "").replace(/\s+/g, " ").trim());
@@ -179,5 +191,30 @@ describe("the split bar's swap entry point", () => {
     for (const label of all) {
       expect(label, `the bar's "${label}"`).not.toMatch(SAFETY_BAN);
     }
+  });
+});
+
+describe("the swap mode's entry announcement", () => {
+  it("has a live region mounted while the mode is off", () => {
+    // The precondition, and the whole fix. `role="status"` announces *changes* to
+    // a region that is already in the DOM; entering the mode used to **insert**
+    // the banner with its instruction already inside it, so the one sentence
+    // that says what the mode is for was the one a screen-reader user never
+    // heard. A region that is present at rest and empty at rest is the only
+    // shape that can be filled later and announced — and this is the assertion
+    // that fails on the code as it stood before ticket 40.
+    expect(screen()).toMatch(/<div class="swap-entry-notice" role="status"><\/div>/);
+  });
+
+  it("keeps the region and the banner apart, so neither is standing in for the other", () => {
+    // Both halves in one case, because either alone is satisfied by the wrong
+    // fix: a permanent `.swap-banner` announces nothing new and prints an
+    // instruction on every screen, and a region without the banner's silence
+    // would announce the same sentence twice on every later transition. The
+    // banner's absence here is what `e2e/tests/split/swap.spec.ts:326` pins in
+    // a browser — count 0 with the mode off — held at the unit level.
+    const html = screen();
+    expect(html).toContain('class="swap-entry-notice"');
+    expect(html).not.toContain('class="swap-banner"');
   });
 });
