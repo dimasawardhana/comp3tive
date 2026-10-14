@@ -86,8 +86,12 @@ account."
   so a `*.workers.dev` host and a custom domain can never share a passkey. The Worker is deployed and
   live at `https://comp3tive.dimasawardhana.workers.dev/` — `wrangler.jsonc`'s `"name": "comp3tive"` is
   the real Worker name, verified against the live URL on 2026-10-13 (`docs/ROADMAP.md`, gate 3), not
-  the placeholder this ADR said it was. **The canonical origin is still open, and it is a custom
-  domain:** `workers.dev` is where the app is reachable today, not where a passkey should be bound.
+  the placeholder this ADR said it was. **The canonical origin is still a custom domain, and the
+  decision is timed rather than deferred** (2026-10-15): Phase E is built and tested against
+  `localhost` and `workers.dev`, where passkeys are disposable and nothing is registered that
+  anyone keeps, and the domain is settled **before real organizers can register** — the moment a
+  credential stops being test data and starts being someone's way into their own roster. Nothing in
+  the build waits on the domain, and nothing ships a credential anybody keeps without it.
 - **Two origins are not reconciled by Related Origin Requests.** WebAuthn §5.11 offers a documented
   escape hatch (a `/.well-known/webauthn` document listing related origins under one RP ID), but it
   only helps clients that support it and the W3C Adoption CG's own guidance says "ROR is designed to be
