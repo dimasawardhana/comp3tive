@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { type Discipline, type Id, type Player } from "./domain";
+import { useCallback, useMemo, useRef, useState } from "react";
+import { type Id, type Player } from "./domain";
 import {
   createIndexedDbCommunityStore,
   createIndexedDbRosterStore,
@@ -14,7 +14,8 @@ import { useCommunities } from "./domain/useCommunities";
 import { useSessions } from "./session/useSessions";
 import { useSavedSquads } from "./session/useSavedSquads";
 import { useTournaments } from "./tournament/useTournaments";
-import { serializeBackup } from "./data/transfer";
+import { useAppCommands } from "./shell/useAppCommands";
+import { useLegacyAdoption } from "./shell/useLegacyAdoption";
 import { useNavigation } from "./shell/useNavigation";
 import { useSplitFlow } from "./shell/useSplitFlow";
 import { useCommunityScope } from "./shell/useCommunityScope";
@@ -23,10 +24,9 @@ import { AppChrome } from "./shell/AppChrome";
 import { ScreenSwitch } from "./shell/ScreenSwitch";
 import { AddCommunityForm } from "./shell/AddCommunityForm";
 import { useAddCommunity } from "./shell/useAddCommunity";
-import { useStoredPref, useMediaQuery } from "./shell/usePreferences";
+import { useStoredPref, useThemeAndLayout } from "./shell/usePreferences";
 import { useDurability } from "./shell/useDurability";
 import { useToasts } from "./shell/useToasts";
-import { formatError } from "./ui/format";
 
 const communityStore = createIndexedDbCommunityStore();
 const rosterStore = createIndexedDbRosterStore();
@@ -55,30 +55,9 @@ export default function App() {
   const { toasts, notify } = useToasts();
   const [editingPlayer, setEditingPlayer] = useState<Player | null | "new">(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  /** One toast per record type, however many renders the failing write retries. */
-  const playerAdoptionWarned = useRef(false);
-  const sessionAdoptionWarned = useRef(false);
-  const [themePref, setThemePref] = useStoredPref("tb-theme", "auto");
-  const [layoutPref, setLayoutPref] = useStoredPref("tb-layout", "auto");
+  const { themePref, setThemePref, layoutPref, setLayoutPref, effectiveLayout } = useThemeAndLayout();
   /** Desktop rail shows labels, or collapses to icons only. */
   const [railPref, setRailPref] = useStoredPref("tb-rail", "expanded");
-  const isWide = useMediaQuery("(min-width: 1024px)");
-  const effectiveLayout: "mobile" | "desktop" =
-    layoutPref === "auto" ? (isWide ? "desktop" : "mobile") : (layoutPref as "mobile" | "desktop");
-
-  useEffect(() => {
-    const el = document.documentElement;
-    if (themePref === "auto") {
-      delete el.dataset.theme;
-    } else {
-      el.dataset.theme = themePref;
-    }
-    if (layoutPref === "auto") {
-      delete el.dataset.layout;
-    } else {
-      el.dataset.layout = layoutPref;
-    }
-  }, [themePref, layoutPref]);
 
   const disciplines = catalog.disciplines;
   // The community-scoping rule itself lives in useCommunityScope; this is the
@@ -135,30 +114,15 @@ export default function App() {
     [view, tournaments.tournaments],
   );
 
-  // Legacy data (pre-community) has no communityId: adopt it into the active community.
-  useEffect(() => {
-    if (!activeCommunity) return;
-    for (const p of roster.players) {
-      if (!p.communityId || !communities.communities.some((c) => c.id === p.communityId)) {
-        void roster.savePlayer({ ...p, communityId: activeCommunity.id }).catch(() => {
-          if (!playerAdoptionWarned.current) {
-            playerAdoptionWarned.current = true;
-            notify("Some saved players could not be moved into this community.", "error");
-          }
-        });
-      }
-    }
-    for (const s of sessions.sessions) {
-      if (!s.communityId || !communities.communities.some((c) => c.id === s.communityId)) {
-        void sessionStore.saveSession({ ...s, communityId: activeCommunity.id }).catch(() => {
-          if (!sessionAdoptionWarned.current) {
-            sessionAdoptionWarned.current = true;
-            notify("Some saved sessions could not be moved into this community.", "error");
-          }
-        });
-      }
-    }
-  }, [activeCommunity, communities.communities, roster.players, sessions.sessions, roster, sessionStore]);
+  useLegacyAdoption({
+    activeCommunity,
+    communities: communities.communities,
+    players: roster.players,
+    sessions: sessions.sessions,
+    savePlayer: roster.savePlayer,
+    sessionStore,
+    notify,
+  });
 
   const flow = useSplitFlow({
     disciplines,
@@ -227,34 +191,6 @@ export default function App() {
     fileInputRef,
   });
 
-  const handleExport = async () => {
-    const allSessions = await sessionStore.listSessions();
-    const blob = new Blob(
-      [serializeBackup(roster.players, allSessions, communities.communities, tournaments.tournaments, savedSquads.squads)],
-      { type: "application/json" },
-    );
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `comp3tive-backup-${new Date().toISOString().slice(0, 10)}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-    // Last, after the download has been triggered and its object URL released:
-    // the export is over from the app's point of view, and this is the
-    // bookkeeping. The browser exposes no way to learn whether the user then
-    // cancelled a save dialog, so what is recorded is "an export was
-    // triggered" — the distinction the hook already draws about this key when
-    // it says a file on disk is the backup.
-    //
-    // That is only survivable because `lastExportAt` is destructured out of the
-    // hook and never rendered: nothing in `src/` claims a backup exists, so a
-    // cancelled download costs the user a file and a warning, and never a
-    // sentence saying they are covered. This call also retires any live
-    // dismissal in the same beat, which is why a snooze is not left standing
-    // over a user who did the one thing it was asking for.
-    recordExport();
-  };
-
   const {
     showAddCommunity,
     setShowAddCommunity,
@@ -264,79 +200,36 @@ export default function App() {
     cancelAddCommunity,
   } = useAddCommunity(communities.create);
 
-  const savePlayer = async (player: Player) => {
-    await roster.savePlayer(player);
-  };
-
-  const deletePlayer = async (id: Id) => {
-    try {
-      await roster.deletePlayer(id);
-    } catch (err) {
-      notify(`Could not delete the player: ${formatError(err)}`, "error");
-    }
-  };
-
-  const saveDiscipline = async (d: Discipline) => {
-    try {
-      await catalog.saveDiscipline(d);
-    } catch (err) {
-      notify(`Could not save discipline: ${formatError(err)}`, "error");
-      throw err;
-    }
-  };
-
-  const deleteDiscipline = async (id: Id) => {
-    try {
-      await catalog.deleteDiscipline(id);
-    } catch (err) {
-      notify(`Could not delete discipline: ${formatError(err)}`, "error");
-      throw err;
-    }
-  };
-  const [downloadingId, setDownloadingId] = useState<string | null>(null);
-  const downloadSampleData = async (disciplineId: Id) => {
-    setDownloadingId(disciplineId);
-    try {
-      const { downloadSampleData: download } = await import("./data/sample-data");
-      await download(disciplineId);
-    } catch {
-      notify("Could not download sample data", "error");
-    } finally {
-      setDownloadingId(null);
-    }
-  };
-  const deleteCommunity = async (id: Id) => {
-    if (communities.communities.length <= 1) {
-      notify("You need at least one community.", "error");
-      return;
-    }
-    const counts = await communities.remove(id);
-    const parts = [
-      counts.players && `${counts.players} player${counts.players === 1 ? "" : "s"}`,
-      counts.sessions && `${counts.sessions} session${counts.sessions === 1 ? "" : "s"}`,
-      counts.squads && `${counts.squads} saved squad${counts.squads === 1 ? "" : "s"}`,
-      counts.tournaments && `${counts.tournaments} tournament${counts.tournaments === 1 ? "" : "s"}`,
-    ].filter(Boolean);
-    notify(
-      parts.length > 0 ? `Community deleted, along with ${parts.join(", ")}.` : "Community deleted.",
-      "success",
-    );
-  };
-
-  /** A truthful description of what deleting this community will take with it. */
-  const communityDeleteWarning = (communityId: Id): string => {
-    const playerCount = roster.players.filter((p) => p.communityId === communityId).length;
-    const sessionCount = sessions.sessions.filter((s) => s.communityId === communityId).length;
-    const squadCount = savedSquads.squads.filter((q) => q.communityId === communityId).length;
-    const tournamentCount = tournaments.tournaments.filter((t) => t.communityId === communityId).length;
-    const parts = [
-      playerCount && `${playerCount} player${playerCount === 1 ? "" : "s"}`,
-      sessionCount && `${sessionCount} session${sessionCount === 1 ? "" : "s"}`,
-      squadCount && `${squadCount} saved squad${squadCount === 1 ? "" : "s"}`,
-      tournamentCount && `${tournamentCount} tournament${tournamentCount === 1 ? "" : "s"}`,
-    ].filter(Boolean);
-    return parts.length > 0 ? ` This also permanently deletes ${parts.join(", ")}.` : "";
-  };
+  /**
+   * The shell's write commands, in one hook: the seven store mutations that all
+   * answer with a toast, plus the export and the delete census. See the hook's
+   * own header for why this cluster and not the navigation helpers around it.
+   *
+   * `communities.remove` is passed rather than the store, because the cascade and
+   * the counts are the hook's own contract with `community-removal.ts` and
+   * re-deriving them here would be a second copy of it.
+   */
+  const commands = useAppCommands({
+    savePlayer: roster.savePlayer,
+    deletePlayer: roster.deletePlayer,
+    saveDiscipline: catalog.saveDiscipline,
+    deleteDiscipline: catalog.deleteDiscipline,
+    deleteCommunityCascade: communities.remove,
+    communityCount: communities.communities.length,
+    players: roster.players,
+    sessionCount: sessions.sessions.length,
+    squadCount: savedSquads.squads.length,
+    tournamentCount: tournaments.tournaments.length,
+    exportCommunities: communities.communities,
+    exportTournaments: tournaments.tournaments,
+    exportSquads: savedSquads.squads,
+    deleteTournament: tournaments.deleteTournament,
+    sessionStore,
+    recordExport,
+    view,
+    gotoHub,
+    notify,
+  });
 
   const filtersByDiscipline = (disciplineId: Id) => {
     setFilterIds(prev => prev.includes(disciplineId) ? prev.filter(id => id !== disciplineId) : [...prev, disciplineId]);
@@ -383,21 +276,6 @@ export default function App() {
     }
   };
 
-  const deleteTournament = async (id: Id) => {
-    try {
-      await tournaments.deleteTournament(id);
-    } catch (err) {
-      notify(`Could not delete the tournament: ${formatError(err)}`, "error");
-    }
-  };
-
-  const deleteTournamentFromUI = async (id: Id) => {
-    await deleteTournament(id);
-    if (view.mode === "tournament" && view.id === id) {
-      gotoHub("games");
-    }
-  };
-
   return (
     <div className="app" data-layout={effectiveLayout} data-rail={railPref}>
       <AppChrome
@@ -408,8 +286,8 @@ export default function App() {
         onGotoHub={gotoHub}
         communities={communities.communities}
         activeCommunity={activeCommunity}
-        onDeleteCommunity={deleteCommunity}
-        communityDeleteWarning={communityDeleteWarning}
+        onDeleteCommunity={commands.deleteCommunity}
+        communityDeleteWarning={commands.communityDeleteWarning}
         onToggleAddCommunity={() => setShowAddCommunity((s) => !s)}
         themePref={themePref}
         layoutPref={layoutPref}
@@ -456,7 +334,7 @@ export default function App() {
           editingPlayer={editingPlayer}
           fileInputRef={fileInputRef}
           tournamentPrefill={tournamentPrefill}
-          downloadingId={downloadingId}
+          downloadingId={commands.downloadingId}
           pendingMerge={importer.pendingMerge}
           lastReport={importer.lastReport}
           sessionsLoading={sessions.loading}
@@ -478,18 +356,18 @@ export default function App() {
           openTournament={openTournament}
           filtersByDiscipline={filtersByDiscipline}
           clearFilters={clearFilters}
-          handleExport={handleExport}
-          savePlayer={savePlayer}
-          deletePlayer={deletePlayer}
-          deleteTournament={deleteTournament}
+          handleExport={commands.handleExport}
+          savePlayer={commands.savePlayer}
+          deletePlayer={commands.deletePlayer}
+          deleteTournament={commands.deleteTournament}
           startSplit={startSplit}
-          deleteTournamentFromUI={deleteTournamentFromUI}
+          deleteTournamentFromUI={commands.deleteTournamentFromUI}
           openSession={openSession}
           deleteSession={sessions.deleteSession}
           deleteSquad={savedSquads.deleteSquad}
-          saveDiscipline={saveDiscipline}
-          deleteDiscipline={deleteDiscipline}
-          downloadSampleData={downloadSampleData}
+          saveDiscipline={commands.saveDiscipline}
+          deleteDiscipline={commands.deleteDiscipline}
+          downloadSampleData={commands.downloadSampleData}
           confirmMerge={importer.confirmMerge}
           cancelMerge={importer.cancelMerge}
           importFile={importer.importFile}
