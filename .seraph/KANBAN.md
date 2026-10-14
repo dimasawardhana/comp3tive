@@ -28,6 +28,12 @@ _Written by Seraph. Do not edit — this file is replaced on every change._
 - priority: high
 - updated: 2026-10-13T16:21:12Z
 
+### TASK-110 · MLBB's five roles are lanes, not hero classes, with stored ids migrated
+
+> **Goal:** MLBB's five roles are the five positions a team fields (gold laner, exp laner, mid laner, jungler, roamer), not the six hero classes (tank, marksman, assassin, fighter, mage, support), and every stored role id is migrated so no existing roster fails its next save.
+- priority: high
+- updated: 2026-10-14T15:46:39Z
+
 ### TASK-105 · Debt 26: decide the App.tsx line count, or close the row
 
 > **Goal:** Debt 26: decide the App.tsx line count, or close the row

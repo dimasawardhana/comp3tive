@@ -48,6 +48,26 @@
       "updated_at": "2026-10-13T16:21:12Z"
     },
     {
+      "id": "TASK-110",
+      "title": "MLBB's five roles are lanes, not hero classes, with stored ids migrated",
+      "goal": "MLBB's five roles are the five positions a team fields (gold laner, exp laner, mid laner, jungler, roamer), not the six hero classes (tank, marksman, assassin, fighter, mage, support), and every stored role id is migrated so no existing roster fails its next save.",
+      "description": "SHIPPED retroactively filed 2026-10-15; commit 88f9ee4, CI run 54 green (all 8 steps). The two are different taxonomies and only one describes a team: a class says what a hero IS, a lane says what a player DOES. `rolesRequired: true` assigns exactly one player per role, so the five roles have to be the five positions or the assignment is meaningless -- no team drafts one Tank, one Marksman, one Assassin, one Fighter and one Mage. Hero breadth was already rated (`hero-pool`), so class-as-role counted it twice. The repo already half-knew this: `samplePlayers.ts` stored `roleId: \"assassin\"` beside `roleName: \"Jungle\"`, and `CONTEXT.md`'s Role entry said 'marksman, support' while `seed.ts` seeded 'marksman, fighter' -- the two disagreed and neither was a position. THE RISKY HALF WAS DATA, NOT CODE: `validateCapability` refuses a capability whose role the discipline does not declare, and `parseBackup` refuses a whole file on its first bad player, so without a migration an existing roster would fail its next save and a backup would be refused on import, both looking like the app eating the user's own data. `src/storage/role-migration.ts` (new) rewrites capabilities, session splits and squad splits inside the versionchange transaction. Three design points, each earning its keep: (1) SCOPED BY DISCIPLINE, not by id -- retired ids are ordinary words and a custom discipline may own a role called `tank`; a test seeds exactly that and pins it. (2) TOTAL, NEVER THROWING -- an exception in `onupgradeneeded` reverts the version bump and leaves the database at the old version with the new code, so an unrecognised id is left as it is. (3) ONLY THE BUILT-IN THAT CHANGED IS REFRESHED -- the first draft wrote every seed, which resurrected a user-deleted discipline; `indexed-db.test.ts` caught it and the fix is recorded in `contracts.md` as a new case distinct from 'added a discipline' (a bump is required, a SEEDS_ADDED_IN entry is not). VERIFICATION BEYOND THE SUITES: the migration test writes a real v7 database and opens it via the app's own `indexedDB.open(name, DB_VERSION)` path rather than a hand-called helper, so it proves the upgrade REACHES the rewrite; disabling the migration turns 4 of its 6 cases red. A real browser then confirmed the editor offers the five lanes, that a 2-team split covers all five on BOTH teams, and that the Landing Page card reads 'Gold Laner . Exp Laner . Mid Laner . Jungler . Roamer'. Two judgement calls: the em-dash guard caught a dash added to new UI copy, and `DESIGN.md:222` requires the three discipline-card dashes to move together -- so the desc rewrite was reverted and only the roles array changed, leaving the endorsed set intact. `BUSINESS_FLOW_REVIEW.md` and the archived `DOMAIN_MODEL.md` were deliberately left alone per the repo's standing decision that they are dated records. Verified: tsc -b clean, 794/794 unit, 119/119 browser.",
+      "acceptance": "- `SEED_DISCIPLINES`' MLBB discipline declares exactly the five lanes, in draft order: gold-lane, exp-lane, mid-lane, jungle, roam.\n- `MLBB_RETIRED_ROLES` maps each of the five retired hero classes to its default lane and is the only place the old vocabulary is still named.\n- `DB_VERSION` is 8, and the `versionchange` upgrade rewrites stored role ids through the map, scoped to `mlbb` so a custom discipline owning a role called `tank` keeps it.\n- A migration test writes a v7 database by hand (old catalog, old ids, plus a `tank`-owning custom discipline), opens it through the app's own path, and asserts the rewrite; disabling the migration turns it red.\n- The built-in MLBB row is refreshed from the seed, and no other seed is written, so a user-deleted discipline is not resurrected.\n- `CONTEXT.md`'s Role entry lists the lanes and states that a role is not a hero class; `docs/spec/0001` and `0002` carry the same role set and DB version.\n- A 2-team MLBB split covers all five lanes on both teams, verified in a real browser.\n- `npx tsc -b` exits 0, `npx vitest run` exits 0, `npm run e2e` passes with 119/119.",
+      "status": "done",
+      "triage": "ready-for-agent",
+      "priority": "high",
+      "references": [
+        "src/domain/seed.ts",
+        "src/storage/role-migration.ts",
+        "src/storage/indexed-db.ts",
+        "CONTEXT.md",
+        "contracts.md"
+      ],
+      "claim": null,
+      "created_at": "2026-10-14T15:46:03Z",
+      "updated_at": "2026-10-14T15:46:39Z"
+    },
+    {
       "id": "TASK-105",
       "title": "Debt 26: decide the App.tsx line count, or close the row",
       "goal": "Debt 26: decide the App.tsx line count, or close the row",
