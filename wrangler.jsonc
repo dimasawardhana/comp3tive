@@ -23,10 +23,36 @@
   // is a Phase E decision rather than a deploy one: a workers.dev host is on the
   // Public Suffix List's private section, so it can never share a credential with
   // a custom domain (docs/adr/0008-account-identity.md).
+  // The D1 binding is declared now, ahead of the Worker script that will read it,
+  // because the database exists and a binding is how a database stops being an
+  // unrecorded remote resource. `main` and `assets.run_worker_first` are NOT here
+  // yet, and that is deliberate: `main` would name `server/index.ts` before it
+  // exists, and a config that points at a missing file breaks `wrangler deploy`
+  // for a site that is otherwise live. Both arrive with the script (TASK-114).
+  // Wrangler accepts a `d1_databases` block with no `main` and exposes it as
+  // `env.DB`, verified by `deploy --dry-run` on 2026-10-15.
+  //
+  // `comp3tive-db` is the database's real name and `database_id` is its real id,
+  // created 2026-10-15. A database id is an identifier, not a secret: what stays
+  // out of the repo is the Worker's runtime secrets. The binding is `DB` — not
+  // wrangler's suggested `comp3tive_db` — since one database needs no
+  // disambiguating prefix, and `docs/superpowers/plans/2026-09-28-account-and-durability.md`
+  // freezes that name for `server/storage.ts` to consume.
+  //
+  // Local development needs no account and no real id: `wrangler d1 execute
+  // --local` runs against a placeholder `database_id`, so `npm run dev` and the
+  // unit tests never touch Cloudflare.
   "name": "comp3tive",
   "compatibility_date": "2026-09-14",
   "assets": {
     "directory": "./dist",
     "not_found_handling": "404-page"
-  }
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "comp3tive-db",
+      "database_id": "d73ee1c8-7089-4da6-8ca4-91f5626b1a3a"
+    }
+  ]
 }
