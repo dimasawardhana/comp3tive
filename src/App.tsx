@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { type Id, type Player } from "./domain";
 import {
   createIndexedDbCommunityStore,
@@ -15,6 +15,7 @@ import { useSessions } from "./session/useSessions";
 import { useSavedSquads } from "./session/useSavedSquads";
 import { useTournaments } from "./tournament/useTournaments";
 import { useAppCommands } from "./shell/useAppCommands";
+import { createPushController } from "./account/useSync";
 import { useLegacyAdoption } from "./shell/useLegacyAdoption";
 import { useNavigation } from "./shell/useNavigation";
 import { useSplitFlow } from "./shell/useSplitFlow";
@@ -202,6 +203,63 @@ export default function App() {
   } = useAddCommunity(communities.create);
 
   /**
+   * The Account's data lifecycle (ticket 05): one object, built once, threaded
+   * to the AccountPanel through the screen switch. `onReplaced` refreshes every
+   * domain hook so a pull renders without a reload, and activates the pulled
+   * community when the Account named one.
+   */
+  const accountSync = useMemo(
+    () => ({
+      stores: {
+        communities: communityStore,
+        roster: rosterStore,
+        sessions: sessionStore,
+        tournaments: tournamentStore,
+        squads: squadStore,
+        disciplines: disciplineStore,
+      },
+      onReplaced: async (communityId: string | null) => {
+        await communities.refresh();
+        await roster.refresh();
+        await sessions.refresh();
+        await tournaments.refresh();
+        await savedSquads.refresh();
+        await catalog.refresh();
+        if (communityId) communities.setActiveId(communityId);
+      },
+      notify,
+    }),
+    [communities, roster, sessions, tournaments, savedSquads, catalog, notify],
+  );
+
+  /**
+   * The Account's push (ticket 06): every store mutation marks the active
+   * community dirty, and one debounced upload carries it. Signed out, the
+   * controller is inert by construction (`markDirty` checks the session).
+   * `pagehide` flushes, so an edit-then-close still reaches the Account.
+   */
+  const pushController = useMemo(
+    () =>
+      createPushController({
+        stores: accountSync.stores,
+        activeCommunityId: () => communities.activeId,
+        notify,
+      }),
+    [accountSync, notify],
+  );
+  const markDirty = useCallback(
+    (communityId: string | null | undefined) => {
+      if (communityId) pushController.markDirty(communityId);
+    },
+    [pushController],
+  );
+  useEffect(() => {
+    const flush = () => pushController.flush();
+    window.addEventListener("pagehide", flush);
+    return () => window.removeEventListener("pagehide", flush);
+  }, [pushController]);
+
+  /**
    * The shell's write commands, in one hook: the seven store mutations that all
    * answer with a toast, plus the export and the delete census. See the hook's
    * own header for why this cluster and not the navigation helpers around it.
@@ -231,6 +289,8 @@ export default function App() {
     view,
     gotoHub,
     notify,
+    markDirty,
+    activeCommunityId: communities.activeId,
   });
 
   const filtersByDiscipline = (disciplineId: Id) => {
@@ -345,6 +405,7 @@ export default function App() {
           squadsLoading={savedSquads.loading}
           disciplinesLoading={catalog.loading}
           sessionStore={sessionStore}
+          accountSync={accountSync}
           notify={notify}
           goBack={goBack}
           gotoHub={gotoHub}

@@ -67,6 +67,10 @@ export interface AppCommandsDeps {
   view: View;
   gotoHub: (mode: HubMode) => void;
   notify: (text: string, type?: ToastType) => void;
+  /** Mark the active community dirty for the Account push (ticket 06). */
+  markDirty: (communityId: Id | null | undefined) => void;
+  /** The active community id, read by the mutations that just wrote to it. */
+  activeCommunityId: Id | null;
 }
 
 export interface AppCommands {
@@ -108,43 +112,45 @@ export function useAppCommands(deps: AppCommandsDeps): AppCommands {
     view,
     gotoHub,
     notify,
+    markDirty,
+    activeCommunityId,
   } = deps;
 
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
-
   const deletePlayer = useCallback(
     async (id: Id) => {
       try {
         await deletePlayerFromStore(id);
+        markDirty(activeCommunityId);
       } catch (err) {
         notify(`Could not delete the player: ${formatError(err)}`, "error");
       }
     },
-    [deletePlayerFromStore, notify],
+    [deletePlayerFromStore, notify, markDirty, activeCommunityId],
   );
-
   const saveDisciplineWithNotify = useCallback(
     async (d: Discipline) => {
       try {
         await saveDiscipline(d);
+        markDirty(activeCommunityId);
       } catch (err) {
         notify(`Could not save discipline: ${formatError(err)}`, "error");
         throw err;
       }
     },
-    [saveDiscipline, notify],
+    [saveDiscipline, notify, markDirty, activeCommunityId],
   );
-
   const deleteDiscipline = useCallback(
     async (id: Id) => {
       try {
         await deleteDisciplineFromStore(id);
+        markDirty(activeCommunityId);
       } catch (err) {
         notify(`Could not delete discipline: ${formatError(err)}`, "error");
         throw err;
       }
     },
-    [deleteDisciplineFromStore, notify],
+    [deleteDisciplineFromStore, notify, markDirty, activeCommunityId],
   );
 
   const downloadSampleData = useCallback(
@@ -153,13 +159,14 @@ export function useAppCommands(deps: AppCommandsDeps): AppCommands {
       try {
         const { downloadSampleData: download } = await import("../data/sample-data");
         await download(disciplineId);
+        markDirty(activeCommunityId);
       } catch {
         notify("Could not download sample data", "error");
       } finally {
         setDownloadingId(null);
       }
     },
-    [notify],
+    [notify, markDirty, activeCommunityId],
   );
 
   const deleteCommunity = useCallback(
@@ -169,6 +176,7 @@ export function useAppCommands(deps: AppCommandsDeps): AppCommands {
         return;
       }
       const counts = await deleteCommunityCascade(id);
+      markDirty(activeCommunityId);
       const parts = [
         counts.players && plural(counts.players, "player"),
         counts.sessions && plural(counts.sessions, "session"),
@@ -180,7 +188,7 @@ export function useAppCommands(deps: AppCommandsDeps): AppCommands {
         "success",
       );
     },
-    [communityCount, deleteCommunityCascade, notify],
+    [communityCount, deleteCommunityCascade, notify, markDirty, activeCommunityId],
   );
 
   /** A truthful description of what deleting this community will take with it. */
@@ -234,11 +242,12 @@ export function useAppCommands(deps: AppCommandsDeps): AppCommands {
     async (id: Id) => {
       try {
         await deleteTournamentFromStore(id);
+        markDirty(activeCommunityId);
       } catch (err) {
         notify(`Could not delete the tournament: ${formatError(err)}`, "error");
       }
     },
-    [deleteTournamentFromStore, notify],
+    [deleteTournamentFromStore, notify, markDirty, activeCommunityId],
   );
 
   const deleteTournamentFromUI = useCallback(

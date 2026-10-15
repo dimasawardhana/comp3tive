@@ -21,6 +21,7 @@ import type { ToastType } from "./useToasts";
 import { formatError } from "../ui/format";
 import { Screen } from "../ui/Screen";
 import { DashboardScreen } from "../DashboardScreen";
+import type { AccountSync } from "../account/useAccount";
 import { RosterScreen } from "./RosterScreen";
 import { GamesScreen } from "../tournament/GamesScreen";
 import { TournamentScreen } from "../tournament/TournamentScreen";
@@ -79,6 +80,8 @@ export interface ScreenSwitchProps {
 
   // ---- stores and services the screens call into directly ----
   sessionStore: SessionStore;
+  /** The Account lifecycle (ticket 05), forwarded to the Dashboard's panel. */
+  accountSync: AccountSync;
   notify: (text: string, type?: ToastType) => void;
 
   // ---- navigation ----
@@ -164,6 +167,7 @@ export function ScreenSwitch(props: ScreenSwitchProps) {
     squadsLoading,
     disciplinesLoading,
     nudge,
+    accountSync,
     persisted,
     sessionStore,
     notify,
@@ -228,6 +232,7 @@ export function ScreenSwitch(props: ScreenSwitchProps) {
           }}
           onOpenTournament={(tournament) => openTournament(tournament.id)}
           nudge={nudge}
+          accountSync={accountSync}
         />
       )}
       {view.mode === "roster" && (

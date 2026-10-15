@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
+import type { AccountSync } from "./account/useAccount";
 import { DashboardScreen } from "./DashboardScreen";
 import { SAFETY_BAN } from "./test-support/safetyCopy";
 import type { Community, Player } from "./domain/types";
@@ -46,6 +47,13 @@ const screen = (nudge: { onDismiss: () => void } | null): string =>
       onOpenPlayer: () => {},
       onOpenTournament: () => {},
       nudge,
+      // The nudge test renders the screen in isolation; the Account lifecycle
+      // is out of scope here and the panel's handlers never run in this markup.
+      accountSync: {
+        stores: {} as AccountSync["stores"],
+        onReplaced: async () => {},
+        notify: () => {},
+      },
     }),
   );
 

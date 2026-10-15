@@ -1,6 +1,7 @@
 import { useCallback, useState } from "react";
 import { getSession, signInWithPasskey, signInWithGoogle, signOut, type Session } from "./session";
 import { googleClientId, requestGoogleCredential } from "./google-signin";
+import { runSignInSync, runSignOutClear, type AccountSync } from "./useAccount";
 
 /**
  * Who is signed in, and the two ways to change that.
@@ -29,7 +30,7 @@ import { googleClientId, requestGoogleCredential } from "./google-signin";
 
 type Busy = "passkey" | "google" | "out" | null;
 
-export function AccountPanel() {
+export function AccountPanel({ accountSync }: { accountSync: AccountSync }) {
   const [session, setLocalSession] = useState<Session | null>(() => getSession());
   const [busy, setBusy] = useState<Busy>(null);
   const [error, setError] = useState<string | null>(null);
@@ -58,15 +59,25 @@ export function AccountPanel() {
     }
   }, []);
 
-  const onPasskey = () => void run("passkey", () => signInWithPasskey());
+  const onPasskey = () =>
+    void run("passkey", async () => {
+      await signInWithPasskey();
+      // The session exists; now the data moves. Adopt or pull per the
+      // lifecycle's decision, which reports through toasts, not this panel.
+      await runSignInSync(accountSync);
+    });
   const onGoogle = () =>
     void run("google", async () => {
       const clientId = await googleClientId();
       if (!clientId) throw new Error("Google sign-in is not configured on this deployment.");
       await signInWithGoogle(await requestGoogleCredential(clientId));
+      await runSignInSync(accountSync);
     });
   const onSignOut = () =>
     void run("out", async () => {
+      // Explicit sign-out is the only thing that clears data (ticket 05): a
+      // stale token never reaches here, and a failed clear still signs out.
+      await runSignOutClear(accountSync);
       signOut();
     });
 
@@ -80,7 +91,7 @@ export function AccountPanel() {
       {session ? (
         <div className="account-signed-in">
           <p className="account-status">
-            Signed in. Your data is on this device and on your Account.
+            Signed in. Your data is in your Account and on this device.
           </p>
           <div className="account-actions">
             <button type="button" className="btn btn-ghost" onClick={onSignOut} disabled={busy !== null}>
