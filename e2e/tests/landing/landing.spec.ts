@@ -93,8 +93,8 @@ test.describe("Landing Page", () => {
     await expect(trust).toHaveCount(4);
     await expect(trust).toContainText([
       "The screen says when the gap is the best it found, not proven",
-      "stays on your device",
-      "no account",
+      "stays on your device by default, and an account is optional",
+      "An account is optional",
       // The offline row, restored by Task 12 and scoped to the condition that
       // makes it true. It is a *fourth* row, not a replacement: the count was 3
       // because there were three true rows, and swapping a true row out to keep
@@ -157,7 +157,16 @@ test.describe("Landing Page", () => {
     );
     await expect(bracketHead).not.toContainText("already fair");
 
-    await expect(page.locator(".landing-action-note")).toContainText("no account");
+    // Phase E ticket 03: the note used to read "Free, no account. Runs in your
+    // browser." That is an absence claim, and it stops being true the moment an
+    // Account ships, so the row now states what stays true either way. Asserted
+    // whole, per this file's own convention: a keyword check would pass a reword
+    // that puts the absence claim back. The wording deliberately carries neither
+    // "no account" nor "no server" even as a substring, so the repository-wide
+    // scan in the ticket's first acceptance row stays clean.
+    await expect(page.locator(".landing-action-note")).toHaveText(
+      "Free to use. An account is optional. Runs in your browser.",
+    );
     // The footer was the other unqualified fairness claim on the page: the
     // h1, the meta and the lede were scoped to "it can prove" in B14, and the
     // split screen says "Best gap found." (src/session/gapProvenance.ts:32),

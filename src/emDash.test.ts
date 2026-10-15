@@ -314,11 +314,11 @@ const ENDORSED: readonly Endorsed[] = [
     copy: "<title>comp3tive — page not found</title>",
     because: "the document title, and the one part of this page a reader sees before the body",
   },
-  {
-    file: "public/404.html",
-    copy: "Your data is untouched — it lives in this browser, not on a server. Only the address was",
-    because: "visible body copy on the 404 (DESIGN.md:202)",
-  },
+  // The 404's body sentence was endorsed here: "Your data is untouched — it
+  // lives in this browser, not on a server." Phase E ticket 03 rewrote it to drop
+  // the server-absence claim, and the rewrite carries no em-dash, so the entry is
+  // struck rather than left as dead cover - which is the rule this ledger states
+  // for itself above. The document title above keeps its endorsement.
 ];
 
 describe("the em-dash rule, held against the whole shipped surface", () => {

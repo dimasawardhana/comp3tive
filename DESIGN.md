@@ -244,7 +244,7 @@ for the other.
 
 ## Things that don't change
 
-- IndexedDB-only persistence
+- Local-first persistence: IndexedDB is the read path, and it holds a signed-out Organizer's data outright
 - JSON export/import (data portability is the migration path)
 - Existing data model (Community, Player, Discipline, Tournament, Session, Match)
 - Bottom nav: five hubs in `NAV_ITEMS` order — Home, Roster, Games, History, Squads (`src/shell/nav-items.ts:5-11`)

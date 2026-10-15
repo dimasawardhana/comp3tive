@@ -19,9 +19,10 @@
  * after one online visit, this app opens and runs a whole tournament on a device
  * with no network, because the shell, both documents, the fonts and the icons are
  * on the device and the teams were already in IndexedDB. It is not a sync story
- * and this worker does not pretend to be one — there is no server to sync with
- * (docs/adr/0001-client-only-first.md), and a caching strategy that only pays off
- * once a backend exists is a strategy for a product that does not exist yet.
+ * and this worker does not pretend to be one — nothing here syncs, and a caching
+ * strategy that only pays off once a backend exists is a strategy for a product
+ * that does not exist yet. Account sync is a separate, in-app concern
+ * (docs/adr/0007-optional-backend.md), not something this worker performs.
  */
 const VERSION = "__BUILD_VERSION__";
 /** Hashed asset URLs the build emitted, plus the fonts and the icons. */

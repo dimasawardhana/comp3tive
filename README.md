@@ -37,8 +37,9 @@ Split a roster of rated players into balanced teams, then run a tournament on te
   losing, the Dashboard also asks for a backup outright, and closing that prompt snoozes it
   rather than silencing it. Export is the durability story: a file the organizer owns is the one
   copy the browser cannot reach. It is not the only copy the organizer can lose.
-- **No account, no server** in this build, and the Landing Page's trust row says the same. The
-  optional backend and Accounts are decided in `docs/adr/0007-optional-backend.md` and
+- **No account or server has shipped yet**, and the Landing Page's trust row now says the data stays
+  on the device by default with an account optional, rather than promising the absence of one. The
+  backend and Accounts are decided in `docs/adr/0007-optional-backend.md` and
   `docs/adr/0008-account-identity.md` and tracked in `.scratch/backend/` — none of it is built.
 
 `CONTEXT.md` is the authoritative vocabulary — Organizer, Community, Player, Discipline, Team,
@@ -207,8 +208,8 @@ What is genuinely still absent, read out of the tree rather than assumed:
 
 - **No backend, no account, no server**, as above. `wrangler.jsonc` is an assets-only Worker with no
   Worker script and no `main`; `/api/*` is reserved for the planned backend and claimed by nothing
-  here. The "no account, no server" line on the Landing Page (`index.html:211`) describes what
-  ships today, not what is planned.
+  here. The Landing Page's trust row describes the local-first default rather than the absence of an
+  account, so it stays true once one exists.
 - **No sync, no push, no background work.** `public/sw.js` registers exactly three listeners —
   `install`, `activate`, `fetch` — and there is no `sync` or `periodicsync`. Nothing in `src/` opens
   a network connection at all, so there is no telemetry, no error reporting, and no third-party
