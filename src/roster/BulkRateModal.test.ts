@@ -51,6 +51,7 @@ const futsalPlayer = (id: string, ratings: Record<string, number> = { technical:
       preferredRole: "goalkeeper",
     },
   ],
+  createdAt: 1000,
 });
 
 /** A player who has never played futsal. */
@@ -59,6 +60,7 @@ const futsalOutsider = (id: string): Player => ({
   communityId: "c1",
   name: id,
   capabilities: [],
+  createdAt: 1000,
 });
 
 /** The dialog's HTML, with only the props a case names. */

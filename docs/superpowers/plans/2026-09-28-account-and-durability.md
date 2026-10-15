@@ -31,7 +31,8 @@ Copied from the spec and `contracts.md`. Every task's requirements implicitly in
 |---|---|---|
 | Create | `docs/superpowers/plans/2026-09-28-account-and-durability.md` | This file |
 | Create | `server/index.ts` | The Worker script: `/api/*` routing, sessions, storage; the repo's first Worker |
-| Create | `server/webauthn.ts` | Passkey registration/authentication using a maintained library, never hand-rolled |
+| Create | `server/storage.ts` | D1: the three-column schema, and the conditional `UPDATE … WHERE version = ?` that *is* the compare-and-swap |
+| Create | `server/webauthn.ts` | Passkey registration/authentication via `@simplewebauthn/server` (v13), never hand-rolled |
 | Create | `server/google.ts` | Google identity: `iss` + `sub`, audience/issuer/expiry checked, signature against rotating keys |
 | Create | `server/sync.ts` | One JSON document per `(account, community)` plus a version integer; compare-and-swap |
 | Create | `server/*.test.ts` | The routing, the token rules and the compare-and-swap, over an in-memory store |
@@ -228,8 +229,12 @@ Expected: FAIL — `["b","c","a"]` is not `["a","c","b"]` (`slice(-3)` on the sh
 - [ ] **Step 5: Verify the suite did not move**
 
 Run: `npx tsc -b && npx vitest run && npm run build && npm run e2e`
-Expected: green, with `e2e/tests/dashboard/dashboard.spec.ts` **unedited** — the seeded ids and insertion order agree, so the reordering must not alter what that spec observes.
-
+Expected: green. **Corrected 2026-10-15:** this step used to add "with
+`e2e/tests/dashboard/dashboard.spec.ts` **unedited** — the seeded ids and insertion order agree", and
+that was false. The spec's world is `al-1`..`al-4`, for which the old `slice(-3)` renders Alpha Two,
+Three, Four and a newest-first ranking renders the reverse; the two cannot both hold. The three
+teaser assertions and the kicker moved with the new meaning, and the rule itself stayed as specified
+here.
 - [ ] **Step 6: Commit**
 
 ```bash
@@ -295,11 +300,15 @@ git commit -m "docs(claims): the public copy stops promising there is no account
 
 **This ticket introduces three firsts:** the repo's first Worker script, its first runtime secret, and its first environment read in client code. It builds **no sync** — identity and data movement fail in different ways, and a session that is wrong makes every later bug look like a sync bug.
 
-- [ ] **Step 1: Settle the origin, and correct the config's false comment**
+- [ ] **Step 1: Correct the config's false comment, and bind D1**
 
-`wrangler.jsonc` currently states there is "no Worker script and no `main`" — that becomes false here and is corrected in the same change, not left as a stale invariant. Add `main` pointing at `server/index.ts` and `assets.run_worker_first: ["/api/*"]`. **The `run_worker_first` is not optional:** `compatibility_date` is `2026-09-14`, past the 2025-04-01 threshold where a navigation request does not invoke the Worker script even when the path matches — so without it, `fetch("/api/session")` reaches the Worker while a browser navigating to that path is served the assets fallback. `assets.directory: "./dist"` and `not_found_handling: "404-page"` stay exactly as they are.
+`wrangler.jsonc` currently states there is "no Worker script and no `main`" — that becomes false here and is corrected in the same change, not left as a stale invariant. Add `main` pointing at `server/index.ts`, `assets.run_worker_first: ["/api/*"]`, and the **D1 binding** (`d1_databases`) that `server/storage.ts` reads the documents from. **The `run_worker_first` is not optional:** `compatibility_date` is `2026-09-14`, past the 2025-04-01 threshold where a navigation request does not invoke the Worker script even when the path matches — so without it, `fetch("/api/session")` reaches the Worker while a browser navigating to that path is served the assets fallback. `assets.directory: "./dist"` and `not_found_handling: "404-page"` stay exactly as they are.
 
-**The canonical origin is a custom domain, and it is a decision this task must record.** The app is live at `https://comp3tive.dimasawardhana.workers.dev/`; a `*.workers.dev` host is on the Public Suffix List's private section and can never share a passkey with a custom domain (`docs/adr/0008`). Choose the domain, record it in `wrangler.jsonc` and in ADR-0008's consequences, and make it the API base. If the domain is not yet available, **stop and report** — every credential registered against the wrong origin has to be registered again.
+**The database is `comp3tive-db`, bound as `DB`** (`env.DB` in `server/`). Decided 2026-10-15, so this step does not have to invent it: the Worker is `comp3tive` and the database follows it, which is one name to remember and matches the repo's existing naming. Create it once with `npx wrangler d1 create comp3tive-db --location apac`; the id it returns goes into `database_id` and **is committed, because a database id is an identifier and not a secret** — the secrets are the ones in `.dev.vars`/`wrangler secret`. `--location apac` is the hint the Organizer's own region justifies; it is a hint, not a pin, so it costs nothing to be wrong about. Local development needs no account and no real id: `wrangler d1 execute … --local` runs against a placeholder `database_id`, verified on 2026-10-15, so Steps 2 to 7 are buildable and verifiable without Cloudflare credentials. Only `d1 create` needs them.
+
+**The store is D1, and this is the decision that makes Step 3's versioned push possible at all.** One table, one row per `(account, community)`: the pair as the key, a version integer, and the v5 payload as a JSON column. A conditional `UPDATE … WHERE version = ?` against the primary is the atomic compare-and-swap the push needs; **KV and R2 cannot do it and are not alternatives** — KV is eventually consistent and resolves concurrent writes to the same key as last-write-wins, which is precisely the silent overwrite Task 6 exists to prevent (`docs/adr/0007`). Durable Objects would also be correct, at the cost of namespaces and migrations for one write path.
+
+**The canonical origin is a custom domain, and the decision is timed rather than blocking.** A `*.workers.dev` host is on the Public Suffix List's private section and can never share a passkey with a custom domain, so the domain has to be settled **before real organizers can register** — the moment a credential stops being test data. It does **not** block this task: build and test against `localhost` and `workers.dev`, where passkeys are disposable. Record in `wrangler.jsonc` that the `workers.dev` host is the development origin and not the canonical one, so the next reader does not mistake an unsettled decision for a settled one (`docs/adr/0008`).
 
 - [ ] **Step 2: Write the failing session test**
 
@@ -330,7 +339,7 @@ Expected: FAIL — `Failed to resolve import "./session"`.
 
 - [ ] **Step 4: Build the server**
 
-`server/index.ts` routes `/api/*` and answers everything else by falling through to the assets. Registration and sign-in follow ADR-0008: **the Account is its own opaque key**, a passkey contributes a credential record, Google contributes an `iss` + `sub` pair, and a verified email is an attribute used to find an Account and to notify its owner — **never the value two identities are joined on**. Attaching a second way in is an explicit act by an already-signed-in Organizer; there is no path where presenting a Google token merges into an existing Account because an address matched. The server stores credentials, never a password, and **uses a maintained WebAuthn library rather than hand-rolling the verification** — Google's own guidance says so and the specification is still subject to change. Store `signCount` and the backup-eligibility/backup-state flags per credential; **never hard-fail on a non-increasing `signCount`** (the spec calls it "a signal, but not proof", and failing closed locks out a synced passkey used from a second device). The user handle is 64 random bytes with no PII.
+`server/index.ts` routes `/api/*` and answers everything else by falling through to the assets. Registration and sign-in follow ADR-0008: **the Account is its own opaque key**, a passkey contributes a credential record, Google contributes an `iss` + `sub` pair, and a verified email is an attribute used to find an Account and to notify its owner — **never the value two identities are joined on**. Attaching a second way in is an explicit act by an already-signed-in Organizer; there is no path where presenting a Google token merges into an existing Account because an address matched. The server stores credentials, never a password, and **uses `@simplewebauthn/server` (v13) rather than hand-rolling the verification** — Google's own guidance says so and the specification is still subject to change, so the library is named here rather than left as "a library": it is the piece ADR-0008 says is part of the decision. It has a matching browser half (`@simplewebauthn/browser`), which is the only client-side dependency this task adds. Store `signCount` and the backup-eligibility/backup-state flags per credential; **never hard-fail on a non-increasing `signCount`** (the spec calls it "a signal, but not proof", and failing closed locks out a synced passkey used from a second device). The user handle is 64 random bytes with no PII.
 
 - [ ] **Step 5: Build the client session module**
 
@@ -517,7 +526,7 @@ The line numbers in Task 1's and Task 2's *Files* lists were resolved by reading
 **Two decisions this plan makes that the spec left open, both stated rather than assumed.**
 
 1. **The `window.confirm` in Task 5 is an exception to Phase D's "no native dialogs" constraint, and it is deliberate.** Ticket 05 requires a confirm naming what is at stake, and the app's existing precedent for exactly this gate is the import merge's `confirm`. Inventing a modal for it would add a second pattern for one prompt. The exception is written into the code, per `contracts.md`'s rule that a grant is recorded where it applies.
-2. **Task 4 can stop.** If the custom domain is not available, no credential can be registered against a canonical origin, and registering against `workers.dev` first means registering every credential twice. The task says **stop and report** rather than proceed with a provisional origin.
+2. **The store is D1 and the origin is timed, both decided 2026-10-15 rather than left to Step 1 to improvise.** Task 4 formerly read "stop and report" if the custom domain was unavailable. That was wrong: `localhost` and `workers.dev` are perfectly good development origins and their passkeys are disposable, so nothing in the build waits on the domain — what waits is the first *real* credential. The database name (`comp3tive-db`, bound `DB`) is fixed in Step 1 for the same reason: a build step should not be inventing a name whose consequences outlive it.
 
 **The one thing this plan cannot schedule.** Ticket 34's durability work is **resolved** and shipped, so the roadmap spec's "ticket 34 lands before E05" is satisfied by history rather than by an ordering constraint. Nothing in the plan waits on it.
 

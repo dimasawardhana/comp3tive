@@ -22,6 +22,7 @@ const validPlayer = (overrides: Partial<Player> = {}): Player => ({
   communityId: "c1",
   name: "Budi",
   capabilities: [futsalCap, mlbbCap],
+  createdAt: 1000,
   ...overrides,
 });
 

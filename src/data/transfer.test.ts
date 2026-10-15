@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { parseBackup, serializeBackup } from "./transfer";
 import { SAMPLE_PLAYERS } from "./samplePlayers";
 import { SEED_DISCIPLINES } from "../domain/seed";
-import type { Community, Player, SavedSquad, Session, Tournament } from "../domain/types";
+import type { Community, Discipline, Player, SavedSquad, Session, Tournament } from "../domain/types";
 
 const community = (id: string, name: string): Community => ({ id, name, createdAt: 1000 });
 const tournament = (id: string): Tournament => ({
@@ -19,7 +19,7 @@ const tournament = (id: string): Tournament => ({
   teams: [],
   matches: [],
 });
-const player = (id: string, name: string): Player => ({ id, communityId: "c1", name, capabilities: [] });
+const player = (id: string, name: string): Player => ({ id, communityId: "c1", name, createdAt: 1000, capabilities: [] });
 const session = (id: string): Session => ({
   id,
   communityId: "c1",
@@ -43,7 +43,7 @@ const savedSquad = (id: string, name: string): SavedSquad => ({
 describe("MPL ID sample roster", () => {
   it("is a valid import file (serializes and parses cleanly)", () => {
     const parsed = parseBackup(
-      serializeBackup(SAMPLE_PLAYERS, [], [community("community-default", "Default")], [], []),
+      serializeBackup(SAMPLE_PLAYERS, [], [community("community-default", "Default")], [], [], []),
     );
     expect(parsed.players).toHaveLength(25);
     expect(parsed.sessions).toEqual([]);
@@ -66,13 +66,117 @@ describe("serializeBackup / parseBackup roundtrip", () => {
     const sessions = [session("s1"), session("s2")];
     const tournaments = [tournament("tr1")];
     const squads = [savedSquad("q1", "Friday night")];
-    const parsed = parseBackup(serializeBackup(players, sessions, communities, tournaments, squads));
-    expect(parsed.version).toBe(4);
+    const parsed = parseBackup(serializeBackup(players, sessions, communities, tournaments, squads, []));
+    expect(parsed.version).toBe(5);
     expect(parsed.communities).toEqual(communities);
     expect(parsed.players).toEqual(players);
     expect(parsed.sessions).toEqual(sessions);
     expect(parsed.tournaments).toEqual(tournaments);
     expect(parsed.savedSquads).toEqual(squads);
+  });
+});
+
+describe("v5: the backup carries the discipline catalog", () => {
+  const custom = (over: Partial<Discipline> = {}): Discipline => ({
+    id: "volleyball",
+    name: "Volleyball",
+    shortName: "VB",
+    roles: [
+      { id: "setter", name: "Setter" },
+      { id: "spiker", name: "Spiker" },
+    ],
+    attributes: [{ id: "serve", name: "Serve", min: 1, max: 5 }],
+    strengthModel: { kind: "mean" },
+    team: { minTeamSize: 6, maxTeamSize: 6, rolesRequired: true },
+    ...over,
+  });
+  /** A v5 file written the way `serializeBackup` writes one. */
+  const v5 = (disciplines: unknown[]) =>
+    JSON.stringify({
+      version: 5,
+      exportedAt: "",
+      communities: [community("c1", "Sunday futsal")],
+      players: [],
+      sessions: [],
+      tournaments: [],
+      savedSquads: [],
+      disciplines,
+    });
+
+  it("carries the catalog through a round trip, custom entry included, byte for byte", () => {
+    // The catalog a real device exports is the seeds plus whatever the Organizer
+    // defined, so that is what the round trip is given. Deep equality *is* the
+    // byte-for-byte claim, and it covers every field of the custom entry: its
+    // roles, attributes, strength model and team.
+    const volleyball = custom();
+    const catalog = [...SEED_DISCIPLINES, volleyball];
+    const text = serializeBackup([], [], [community("c1", "Crew")], [], [], catalog);
+    const back = parseBackup(text, SEED_DISCIPLINES);
+    expect(back.version).toBe(5);
+    expect(back.disciplines).toEqual(catalog);
+  });
+
+  it("migrates a v4 file with no disciplines key to the built-in catalog", () => {
+    const v4 = JSON.stringify({
+      version: 4,
+      exportedAt: "",
+      communities: [community("c1", "Crew")],
+      players: [],
+      sessions: [],
+      tournaments: [],
+      savedSquads: [],
+    });
+    const back = parseBackup(v4, SEED_DISCIPLINES);
+    expect(back.version).toBe(5);
+    // No `disciplines` key in the file: the code's catalog is what a v4 device
+    // gets, because the catalog is code-authoritative and the file has none.
+    expect(back.disciplines.map((d) => d.id)).toEqual(SEED_DISCIPLINES.map((d) => d.id));
+  });
+
+  it("yields the code's built-ins even with no catalog parameter", () => {
+    // The parameter is for player validation, not for seeding the result: the
+    // built-ins come from `SEED_DISCIPLINES` either way, so omitting it cannot
+    // produce a catalog with no futsal in it.
+    const v4 = JSON.stringify({ version: 4, communities: [community("c1", "Crew")], players: [], sessions: [] });
+    expect(parseBackup(v4).disciplines.map((d) => d.id)).toEqual(SEED_DISCIPLINES.map((d) => d.id));
+  });
+
+  it("takes the code's definition of a built-in, never the file's", () => {
+    const futsal = SEED_DISCIPLINES.find((d) => d.id === "futsal")!;
+    const tampered = { ...futsal, roles: [{ id: "hacked", name: "Hacked" }] };
+    const back = parseBackup(v5([tampered]), SEED_DISCIPLINES);
+    const restored = back.disciplines.find((d) => d.id === "futsal");
+    // The seed's roles, not the file's: a newer build, or a hand-edited file,
+    // must not be able to redefine a built-in's roles or attributes.
+    expect(restored?.roles).toEqual(futsal.roles);
+    expect(restored?.attributes).toEqual(futsal.attributes);
+  });
+
+  it("cannot drop a built-in by omitting it from the file", () => {
+    // Merge by id against `SEED_DISCIPLINES`, not a filter over the file: the
+    // code's built-ins are always present, so a file listing one custom
+    // discipline cannot delete futsal, and a hand-edited or truncated file
+    // cannot leave the app without its constants. The custom entry still
+    // arrives - this is a merge, not a substitution in either direction.
+    const ids = parseBackup(v5([custom()])).disciplines.map((d) => d.id);
+    for (const seed of SEED_DISCIPLINES) expect(ids).toContain(seed.id);
+    expect(ids).toContain("volleyball");
+  });
+
+  it("treats a disciplines value that is not a list as an absent catalog", () => {
+    // The same lenient default the sibling lists take: `tournaments` and
+    // `savedSquads` read through `Array.isArray` and fall back rather than
+    // failing the import, and a corrupt key should not be the one thing that
+    // rejects a file. Nothing is lost either way, because the built-ins are the
+    // code's. A malformed *element* is a different matter and throws, below.
+    expect(parseBackup(v5({ id: "futsal" } as unknown as unknown[])).disciplines.map((d) => d.id)).toEqual(
+      SEED_DISCIPLINES.map((d) => d.id),
+    );
+  });
+
+  it("rejects a discipline with no id or no name", () => {
+    expect(() => parseBackup(v5([{ name: "No id" }]))).toThrow(/malformed discipline/);
+    expect(() => parseBackup(v5([{ id: "no-name" }]))).toThrow(/malformed discipline/);
   });
 });
 
@@ -93,7 +197,8 @@ describe("v1 backup migration", () => {
       ],
     });
     const parsed = parseBackup(text);
-    expect(parsed.version).toBe(4);
+    // Parsed output is always the current format, whatever the file said.
+    expect(parsed.version).toBe(5);
     expect(parsed.communities).toHaveLength(1);
     expect(parsed.communities[0].name).toBe("Default");
     expect(parsed.players[0].communityId).toBe(parsed.communities[0].id);
@@ -110,7 +215,7 @@ describe("v1 backup migration", () => {
       sessions: [],
     });
     const parsed = parseBackup(text);
-    expect(parsed.version).toBe(4);
+    expect(parsed.version).toBe(5);
     expect(parsed.players[0].communityId).toBe("c1");
     expect(parsed.tournaments).toEqual([]);
     expect(parsed.savedSquads).toEqual([]);
@@ -126,7 +231,7 @@ describe("v1 backup migration", () => {
       tournaments: [tournament("tr1")],
     });
     const parsed = parseBackup(text);
-    expect(parsed.version).toBe(4);
+    expect(parsed.version).toBe(5);
     expect(parsed.tournaments).toHaveLength(1);
     expect(parsed.savedSquads).toEqual([]);
   });
@@ -309,7 +414,7 @@ describe("parseBackup: a two-community round trip keeps every record's own commu
     const tournaments = [{ ...tournament("tr-alpha"), communityId: "c1" }];
     const squads = [{ ...savedSquad("q-beta", "Beta Squad"), communityId: "c2" }];
 
-    const parsed = parseBackup(serializeBackup(players, sessions, communities, tournaments, squads));
+    const parsed = parseBackup(serializeBackup(players, sessions, communities, tournaments, squads, []));
 
     expect(parsed.players.map((p) => p.communityId)).toEqual(["c1", "c2"]);
     expect(parsed.sessions[0].communityId).toBe("c2");
@@ -326,3 +431,59 @@ describe("parseBackup: a two-community round trip keeps every record's own commu
     expect(referenced.every((id) => known.has(id))).toBe(true);
   });
 });
+describe("Player.createdAt survives a backup, and is filled in when absent", () => {
+  const withCreatedAt = (id: string, createdAt: number): Player => ({
+    id,
+    communityId: "c1",
+    name: `Player ${id}`,
+    createdAt,
+    capabilities: [],
+  });
+
+  it("round-trips the file's own timestamps", () => {
+    const roster = [withCreatedAt("a", 111), withCreatedAt("b", 222)];
+    const parsed = parseBackup(
+      serializeBackup(roster, [], [community("c1", "Crew")], [], [], []),
+    );
+    expect(parsed.players.map((p) => p.createdAt)).toEqual([111, 222]);
+  });
+
+  it("stamps a v4 file whose players carry no timestamp, rather than leaving it undefined", () => {
+    // The Dashboard's "recently added" ranks by this field, so an `undefined`
+    // arrives as a `NaN` comparison and an order nobody chose. A pre-v5 file
+    // has no timestamps to read, so the import order stands in for the order
+    // nothing recorded.
+    const text = JSON.stringify({
+      version: 4,
+      exportedAt: "",
+      communities: [community("c1", "Crew")],
+      players: [
+        { id: "a", communityId: "c1", name: "First", capabilities: [] },
+        { id: "b", communityId: "c1", name: "Second", capabilities: [] },
+      ],
+      sessions: [],
+    });
+    const parsed = parseBackup(text);
+    for (const p of parsed.players) {
+      expect(Number.isFinite(p.createdAt)).toBe(true);
+    }
+    // Distinct, and in the file's order: a shared stamp would leave the ranking
+    // to the id tie-break, which for imported ids is a random uuid.
+    expect(parsed.players[0].createdAt).toBeLessThan(parsed.players[1].createdAt);
+  });
+
+  it("keeps a timestamp the file does carry, even when it is 0", () => {
+    // `Number.isFinite` rather than a truthiness check: epoch 0 is a real
+    // timestamp, and `if (p.createdAt)` would silently replace it.
+    const text = JSON.stringify({
+      version: 5,
+      exportedAt: "",
+      communities: [community("c1", "Crew")],
+      players: [{ id: "a", communityId: "c1", name: "Epoch", createdAt: 0, capabilities: [] }],
+      sessions: [],
+      disciplines: [],
+    });
+    expect(parseBackup(text).players[0].createdAt).toBe(0);
+  });
+});
+

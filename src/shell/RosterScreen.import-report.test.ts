@@ -103,6 +103,7 @@ const ONE_PLAYER: Player = {
   communityId: "c1",
   name: "Andi",
   capabilities: [],
+  createdAt: 1000,
 };
 
 /**

@@ -52,8 +52,15 @@ const S: SampleSpec[] = [
   { id: "varius", name: "Varius", team: "Aura Fire", roleId: "exp-lane", roleName: "EXP", flex: "roam", ratings: [4, 4, 4, 5] },
 ];
 
-export const SAMPLE_PLAYERS: Player[] = S.map((s) => ({
+// Deterministic, monotonic timestamps: the Dashboard's "recently added" ranks
+// by `createdAt`, and a sample roster that shared one instant would order
+// itself by id instead of by the roster's own sequence. A fixed base keeps the
+// fixture reproducible rather than reading the clock.
+const SAMPLE_EPOCH = 1_700_000_000_000;
+
+export const SAMPLE_PLAYERS: Player[] = S.map((s, i) => ({
   id: s.id,
+  createdAt: SAMPLE_EPOCH + i,
   communityId: "community-default",
   name: s.name,
   notes: `${s.team} · ${s.roleName}`,

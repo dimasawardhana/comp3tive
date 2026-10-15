@@ -43,6 +43,7 @@ const ROSTER = NAMES.map((name, i) => ({
   communityId: "c1",
   id: `p${i + 1}`,
   name,
+  createdAt: 1000 + i,
   capabilities: [
     {
       disciplineId: MLBB_DISCIPLINE.id,

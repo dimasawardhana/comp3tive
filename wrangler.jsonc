@@ -1,6 +1,20 @@
 {
-  // Static-assets Worker: the site is two documents plus a hero image, so there is
-  // no Worker script and no `main`. See docs/adr/0006-landing-page-and-app-paths.md.
+  // A Worker script answers /api/* and the static assets serve everything else.
+  // See docs/adr/0006-landing-page-and-app-paths.md (which path is which) and
+  // docs/adr/0007-optional-backend.md (why there is a server at all).
+  //
+  // `main` was absent until Phase E ticket 04, and the comment that used to sit
+  // here said so ("no Worker script and no `main`"). It is corrected rather than
+  // left as a stale invariant: this config now ships a script, and a reader who
+  // trusted the old sentence would conclude /api/* is unanswered.
+  //
+  // `assets.run_worker_first` is NOT optional, and that is the whole reason it is
+  // here. `compatibility_date` is 2026-09-14, past the 2025-04-01 threshold where
+  // a navigation request does not invoke the Worker script even when the path
+  // matches. Without this, `fetch("/api/session")` from the app reaches the
+  // Worker while a browser navigating to /api/session is served the assets
+  // fallback — a half-failure that looks like the API being flaky. Scoped to
+  // /api/*, so every other path keeps the assets' own behaviour.
   //
   // `not_found_handling` MUST NOT be "single-page-application": that value would
   // serve dist/index.html — the Landing Page — for every unmatched path, including
@@ -10,8 +24,6 @@
   // serves /app (307 to /app/) from dist/app/index.html, redirecting the two to the
   // canonical spec form.
   //
-  // /api/* is reserved for the planned backend and claimed by nothing here.
-  //
   // `comp3tive` is the LIVE Worker's real name, not a placeholder. The deployed
   // origin is https://comp3tive.dimasawardhana.workers.dev/, and the name is the
   // first label of that host: a workers.dev URL is always `<worker>.<account>`.
@@ -19,14 +31,43 @@
   // back — see docs/ROADMAP.md, gate 3. Deploying this config updates that
   // Worker; it does not create a second one.
   //
-  // A custom domain is still needed before any passkey is registered, and that
-  // is a Phase E decision rather than a deploy one: a workers.dev host is on the
-  // Public Suffix List's private section, so it can never share a credential with
-  // a custom domain (docs/adr/0008-account-identity.md).
+  // The workers.dev host is the DEVELOPMENT origin, not the canonical one, and
+  // that distinction is load-bearing rather than cosmetic. A workers.dev host
+  // sits on the Public Suffix List's private section, so a credential registered
+  // against it can never be shared with a custom domain (docs/adr/0008). Phase E
+  // is built and tested here, where passkeys are disposable; the custom domain is
+  // settled before real organizers can register, which is the moment a credential
+  // stops being test data. Do not read this file's presence of a working origin
+  // as the origin decision being closed.
+  //
+  // The D1 binding is the store (docs/adr/0007): one row per (account, community)
+  // plus a version integer, because a conditional `UPDATE ... WHERE version = ?`
+  // against the primary is the compare-and-swap the versioned push needs and KV
+  // and R2 cannot provide it.
+  //
+  // `comp3tive-db` is the database's real name and `database_id` is its real id,
+  // created 2026-10-15. A database id is an identifier, not a secret: what stays
+  // out of the repo is the Worker's runtime secrets, which go through
+  // `wrangler secret` (and `.dev.vars` locally, which .gitignore covers). The
+  // binding is `DB` — not wrangler's suggested `comp3tive_db` — since one
+  // database needs no disambiguating prefix.
+  //
+  // Local development needs no account and no real id: `wrangler d1 execute
+  // --local` runs against a placeholder `database_id`, so `npm run dev` and the
+  // unit tests never touch Cloudflare.
   "name": "comp3tive",
+  "main": "server/index.ts",
   "compatibility_date": "2026-09-14",
   "assets": {
     "directory": "./dist",
-    "not_found_handling": "404-page"
-  }
+    "not_found_handling": "404-page",
+    "run_worker_first": ["/api/*"]
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "comp3tive-db",
+      "database_id": "d73ee1c8-7089-4da6-8ca4-91f5626b1a3a"
+    }
+  ]
 }

@@ -600,7 +600,8 @@ export function RosterScreen(props: RosterScreenProps) {
                 Import {props.pendingMerge.counts.communities} new communit{props.pendingMerge.counts.communities === 1 ? "y" : "ies"},{" "}
                 {props.pendingMerge.counts.players} new player{props.pendingMerge.counts.players === 1 ? "" : "s"},{" "}
                 {props.pendingMerge.counts.sessions} session{props.pendingMerge.counts.sessions === 1 ? "" : "s"},{" "}
-                {props.pendingMerge.counts.tournaments} tournament{props.pendingMerge.counts.tournaments === 1 ? "" : "s"} and{" "}
+                {props.pendingMerge.counts.tournaments} tournament{props.pendingMerge.counts.tournaments === 1 ? "" : "s"},{" "}
+                {props.pendingMerge.counts.disciplines} new discipline{props.pendingMerge.counts.disciplines === 1 ? "" : "s"} and{" "}
                 {props.pendingMerge.counts.squads} saved squad{props.pendingMerge.counts.squads === 1 ? "" : "s"}? (Existing records with the
                 same id are kept.)
               </span>

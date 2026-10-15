@@ -77,6 +77,7 @@ const ROSTER: Player[] = ["Alfa", "Bravo", "Cahya", "Delta", "Echo", "Foxtrot", 
     communityId: "c1",
     id: `p${i + 1}`,
     name,
+    createdAt: 1000 + i,
     capabilities: [
       {
         disciplineId: MLBB_DISCIPLINE.id,

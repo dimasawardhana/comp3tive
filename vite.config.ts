@@ -133,6 +133,10 @@ export default defineConfig({
   },
   test: {
     environment: "node",
-    include: ["src/**/*.test.ts"],
+    // `server/**` is here because the Worker's own tests live beside it. The
+    // plan for this phase specifies `server/*.test.ts`; without this line vitest
+    // would collect none of them and every server test would be a file that
+    // never ran, which reads exactly like a passing suite.
+    include: ["src/**/*.test.ts", "server/**/*.test.ts"],
   },
 });

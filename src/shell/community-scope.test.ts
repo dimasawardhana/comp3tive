@@ -23,6 +23,7 @@ const player = (id: string, communityId: string): Player => ({
   communityId,
   name: id,
   capabilities: [],
+  createdAt: 1000,
 });
 
 const emptyResult: SplitResult = {

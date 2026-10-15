@@ -10,7 +10,7 @@ import {
 import type { Discipline, Player, Session, Tournament } from "../domain/types";
 import { FUTSAL_DISCIPLINE, MLBB_DISCIPLINE } from "../domain/seed";
 
-const player = (id: string, name: string): Player => ({ id, communityId: "c1", name, capabilities: [] });
+const player = (id: string, name: string): Player => ({ id, communityId: "c1", name, capabilities: [], createdAt: 1000 });
 
 /**
  * The schema version that shipped without badminton. A profile written at this

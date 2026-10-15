@@ -19,9 +19,9 @@ const byId = new Map(SEED_DISCIPLINES.map((d) => [d.id, d]));
 
 /** Three players, two of them in futsal. */
 const roster: Player[] = [
-  { id: "p1", communityId: "c1", name: "Andi", capabilities: [{ disciplineId: "futsal", attributeRatings: { technical: 2, fitness: 2, "game-iq": 2 }, eligibleRoles: ["goalkeeper"], preferredRole: null }] },
-  { id: "p2", communityId: "c1", name: "Budi", capabilities: [{ disciplineId: "futsal", attributeRatings: { technical: 2, fitness: 2, "game-iq": 2 }, eligibleRoles: ["goalkeeper"], preferredRole: null }] },
-  { id: "p3", communityId: "c1", name: "Citra", capabilities: [{ disciplineId: "mlbb", attributeRatings: { mechanics: 1 }, eligibleRoles: ["roam"], preferredRole: null }] },
+  { id: "p1", communityId: "c1", name: "Andi", createdAt: 1000, capabilities: [{ disciplineId: "futsal", attributeRatings: { technical: 2, fitness: 2, "game-iq": 2 }, eligibleRoles: ["goalkeeper"], preferredRole: null }] },
+  { id: "p2", communityId: "c1", name: "Budi", createdAt: 1001, capabilities: [{ disciplineId: "futsal", attributeRatings: { technical: 2, fitness: 2, "game-iq": 2 }, eligibleRoles: ["goalkeeper"], preferredRole: null }] },
+  { id: "p3", communityId: "c1", name: "Citra", createdAt: 1002, capabilities: [{ disciplineId: "mlbb", attributeRatings: { mechanics: 1 }, eligibleRoles: ["roam"], preferredRole: null }] },
 ];
 
 /** The roster's HTML with its three players, all visible. */

@@ -61,6 +61,7 @@ const playerRated = (disciplineId: string, attributeRatings: Record<string, numb
       preferredRole: null,
     },
   ],
+  createdAt: 1000,
 });
 
 /** The single-player editor's HTML, for one discipline and one set of ratings. */

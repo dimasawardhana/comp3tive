@@ -46,6 +46,7 @@ const rated = (discipline: Discipline, name: string, rating: number): Player => 
   id: name,
   communityId: "c1",
   name,
+  createdAt: 1000,
   capabilities: [
     {
       disciplineId: discipline.id,

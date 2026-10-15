@@ -1,6 +1,10 @@
 # Tournaments v1 — Play the Split
 
-**Status**: shipped (DB v8, backup v4)
+**Status**: shipped (DB v8, backup v5)
+> **Backup v4 → v5, 2026-10-15 (Phase E ticket 01):** the backup now carries `disciplines[]`, the
+> catalog of custom Disciplines. Tournament data is unchanged and every v1-v4 file still imports;
+> a file predating the field restores against the code's built-in catalog, which is where its
+> disciplines came from anyway (`src/data/transfer.ts`). See `docs/adr/0007-optional-backend.md`.
 > **DB v7 → v8, 2026-10-15:** MLBB's roles became the five lanes. No tournament data changed —
 > the bump rewrites stored role ids (`src/storage/role-migration.ts`). See `contracts.md` §2,
 > "Changing a built-in's definition".
@@ -154,7 +158,7 @@ Tournament {
 - Teams are **snapshots** owned by the tournament: deleting the source Session never affects a started tournament.
 - Seeding: teams ordered by split strength (strongest = seed 1); single elim pairs by **bit-reversal** seeding, so 4 teams open 1v3 / 2v4 and 8 teams open 1v5 / 3v7 / 2v6 / 4v8. No byes at 2/4/8. Round robin is seated from the same seed order with the ring anchored on slot 0, which makes seed 1 the team that rests in round 1.
 - After the **first recorded result**, re-roll and re-split lock. Player swaps remain allowed (the record stores match outcomes, not lineups).
-- Persistence: one document per tournament in IndexedDB (new `tournaments` store, DB v7), community-scoped. Backup v4 **carries** `tournaments[]` (added in v3) and `savedSquads[]` (added in v4); v1–v3 imports migrate with empty lists.
+- Persistence: one document per tournament in IndexedDB (new `tournaments` store, DB v7), community-scoped. Backup v5 **carries** `tournaments[]` (added in v3), `savedSquads[]` (added in v4) and `disciplines[]` (added in v5); v1–v3 imports migrate with empty lists.
 - Storage behind the same interfaces as ADR-0001 (`TournamentStore`), so a backend can replace IndexedDB later.
 
 **CORRECTION (2026-10-01, after Phase D's Task 7 landed) — § Data Model: the `format` union named
@@ -163,8 +167,8 @@ three values.** `src/domain/types.ts:25` names four, and the model's own `format
 Ticket 16 corrected the *other* fields in this block — `players: Id[]`, tournament-level
 `seriesLength`, `winnerNext`/`loserNext`, tournament-level `thirdPlace` — and left this line. It is
 the field a reader copies out of a data model. The rest of the block was re-checked field by field
-against `src/domain/types.ts:30-75` and holds, including the backup v4 / v3 attribution
-(`src/data/transfer.ts:6`) and DB v7 (`src/storage/indexed-db.ts:19`).
+against `src/domain/types.ts:30-75` and holds, including the backup v5 / v3 / v4 attribution
+(`src/data/transfer.ts:5-7`) and DB v7 (`src/storage/indexed-db.ts:19`).
 
 **CORRECTION (2026-10-01, measured) — § Data Model, seeding: "single elim pairs 1v8 / 4v5" is not
 what the bracket builds.** `buildBracket` seeds by reversing the low `rounds` bits of the seed

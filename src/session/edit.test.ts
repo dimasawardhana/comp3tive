@@ -10,6 +10,7 @@ const ALL_MLBB = ["roam", "jungle", "mid-lane", "gold-lane", "exp-lane"];
 const player = (id: string, name: string, fut: number[], ml: number[]): Player => ({ communityId: "c1",
   id,
   name,
+  createdAt: 1000,
   capabilities: [
     {
       disciplineId: "futsal",

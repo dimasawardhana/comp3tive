@@ -15,6 +15,7 @@ const ROSTER = NAMES.map((name, i) => ({
   communityId: "c1",
   id: `p${i}`,
   name,
+  createdAt: 1000 + i,
   capabilities: [
     {
       disciplineId: FUTSAL_DISCIPLINE.id,

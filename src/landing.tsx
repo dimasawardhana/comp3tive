@@ -16,17 +16,22 @@ import type { Session, Player } from "./domain/types";
  * result rather than typed.
  */
 
+// A fixed base plus the player's own roster index: the Landing Page renders the
+// shipped solver's real output, so the roster has to be deterministic while
+// still ordering itself by `createdAt` like a real one.
+const HERO_EPOCH = 1_700_000_000_000;
+
 const ROSTER: Player[] = [
-  { id: "hero-p1", communityId: "comm-hero", name: "Budi", capabilities: [{ disciplineId: "mlbb", attributeRatings: { mechanics: 4, "game-sense": 4, "hero-pool": 3, teamwork: 5 }, eligibleRoles: ["roam", "exp-lane"], preferredRole: "roam" }] },
-  { id: "hero-p2", communityId: "comm-hero", name: "Andi", capabilities: [{ disciplineId: "mlbb", attributeRatings: { mechanics: 3, "game-sense": 3, "hero-pool": 3, teamwork: 4 }, eligibleRoles: ["roam", "exp-lane"], preferredRole: "roam" }] },
-  { id: "hero-p3", communityId: "comm-hero", name: "Citra", capabilities: [{ disciplineId: "mlbb", attributeRatings: { mechanics: 5, "game-sense": 4, "hero-pool": 4, teamwork: 4 }, eligibleRoles: ["jungle", "mid-lane"], preferredRole: "jungle" }] },
-  { id: "hero-p4", communityId: "comm-hero", name: "Dewi", capabilities: [{ disciplineId: "mlbb", attributeRatings: { mechanics: 3, "game-sense": 4, "hero-pool": 3, teamwork: 3 }, eligibleRoles: ["jungle", "exp-lane"], preferredRole: "jungle" }] },
-  { id: "hero-p5", communityId: "comm-hero", name: "Eka", capabilities: [{ disciplineId: "mlbb", attributeRatings: { mechanics: 4, "game-sense": 4, "hero-pool": 4, teamwork: 4 }, eligibleRoles: ["mid-lane", "gold-lane"], preferredRole: "mid-lane" }] },
-  { id: "hero-p6", communityId: "comm-hero", name: "Fajar", capabilities: [{ disciplineId: "mlbb", attributeRatings: { mechanics: 3, "game-sense": 3, "hero-pool": 4, teamwork: 3 }, eligibleRoles: ["mid-lane", "roam"], preferredRole: "mid-lane" }] },
-  { id: "hero-p7", communityId: "comm-hero", name: "Gita", capabilities: [{ disciplineId: "mlbb", attributeRatings: { mechanics: 4, "game-sense": 5, "hero-pool": 4, teamwork: 3 }, eligibleRoles: ["gold-lane", "mid-lane"], preferredRole: "gold-lane" }] },
-  { id: "hero-p8", communityId: "comm-hero", name: "Hana", capabilities: [{ disciplineId: "mlbb", attributeRatings: { mechanics: 4, "game-sense": 3, "hero-pool": 3, teamwork: 3 }, eligibleRoles: ["gold-lane", "jungle"], preferredRole: "gold-lane" }] },
-  { id: "hero-p9", communityId: "comm-hero", name: "Irfan", capabilities: [{ disciplineId: "mlbb", attributeRatings: { mechanics: 4, "game-sense": 4, "hero-pool": 3, teamwork: 5 }, eligibleRoles: ["exp-lane", "roam"], preferredRole: "exp-lane" }] },
-  { id: "hero-p10", communityId: "comm-hero", name: "Joko", capabilities: [{ disciplineId: "mlbb", attributeRatings: { mechanics: 3, "game-sense": 4, "hero-pool": 3, teamwork: 3 }, eligibleRoles: ["exp-lane", "jungle"], preferredRole: "exp-lane" }] },
+  { id: "hero-p1", communityId: "comm-hero", createdAt: HERO_EPOCH + 1, name: "Budi", capabilities: [{ disciplineId: "mlbb", attributeRatings: { mechanics: 4, "game-sense": 4, "hero-pool": 3, teamwork: 5 }, eligibleRoles: ["roam", "exp-lane"], preferredRole: "roam" }] },
+  { id: "hero-p2", communityId: "comm-hero", createdAt: HERO_EPOCH + 2, name: "Andi", capabilities: [{ disciplineId: "mlbb", attributeRatings: { mechanics: 3, "game-sense": 3, "hero-pool": 3, teamwork: 4 }, eligibleRoles: ["roam", "exp-lane"], preferredRole: "roam" }] },
+  { id: "hero-p3", communityId: "comm-hero", createdAt: HERO_EPOCH + 3, name: "Citra", capabilities: [{ disciplineId: "mlbb", attributeRatings: { mechanics: 5, "game-sense": 4, "hero-pool": 4, teamwork: 4 }, eligibleRoles: ["jungle", "mid-lane"], preferredRole: "jungle" }] },
+  { id: "hero-p4", communityId: "comm-hero", createdAt: HERO_EPOCH + 4, name: "Dewi", capabilities: [{ disciplineId: "mlbb", attributeRatings: { mechanics: 3, "game-sense": 4, "hero-pool": 3, teamwork: 3 }, eligibleRoles: ["jungle", "exp-lane"], preferredRole: "jungle" }] },
+  { id: "hero-p5", communityId: "comm-hero", createdAt: HERO_EPOCH + 5, name: "Eka", capabilities: [{ disciplineId: "mlbb", attributeRatings: { mechanics: 4, "game-sense": 4, "hero-pool": 4, teamwork: 4 }, eligibleRoles: ["mid-lane", "gold-lane"], preferredRole: "mid-lane" }] },
+  { id: "hero-p6", communityId: "comm-hero", createdAt: HERO_EPOCH + 6, name: "Fajar", capabilities: [{ disciplineId: "mlbb", attributeRatings: { mechanics: 3, "game-sense": 3, "hero-pool": 4, teamwork: 3 }, eligibleRoles: ["mid-lane", "roam"], preferredRole: "mid-lane" }] },
+  { id: "hero-p7", communityId: "comm-hero", createdAt: HERO_EPOCH + 7, name: "Gita", capabilities: [{ disciplineId: "mlbb", attributeRatings: { mechanics: 4, "game-sense": 5, "hero-pool": 4, teamwork: 3 }, eligibleRoles: ["gold-lane", "mid-lane"], preferredRole: "gold-lane" }] },
+  { id: "hero-p8", communityId: "comm-hero", createdAt: HERO_EPOCH + 8, name: "Hana", capabilities: [{ disciplineId: "mlbb", attributeRatings: { mechanics: 4, "game-sense": 3, "hero-pool": 3, teamwork: 3 }, eligibleRoles: ["gold-lane", "jungle"], preferredRole: "gold-lane" }] },
+  { id: "hero-p9", communityId: "comm-hero", createdAt: HERO_EPOCH + 9, name: "Irfan", capabilities: [{ disciplineId: "mlbb", attributeRatings: { mechanics: 4, "game-sense": 4, "hero-pool": 3, teamwork: 5 }, eligibleRoles: ["exp-lane", "roam"], preferredRole: "exp-lane" }] },
+  { id: "hero-p10", communityId: "comm-hero", createdAt: HERO_EPOCH + 10, name: "Joko", capabilities: [{ disciplineId: "mlbb", attributeRatings: { mechanics: 3, "game-sense": 4, "hero-pool": 3, teamwork: 3 }, eligibleRoles: ["exp-lane", "jungle"], preferredRole: "exp-lane" }] },
 ];
 
 const discipline = MLBB_DISCIPLINE;

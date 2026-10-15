@@ -87,7 +87,7 @@ A local web app (deployable later) where the organizer maintains a roster of Pla
 ## Out of Scope
 
 - Role-complete (single-team lineup) mode — backlog; fair split is the v1 scope.
-- Backend, multi-user, auth — deferred by ADR-0001.
+- Backend, multi-user, auth — deferred by ADR-0001. **Amended 2026-10-15:** an optional Account with cross-device durability is now in scope under ADR-0007, which supersedes ADR-0001's position here. Multi-user collaboration and sharing remain out of scope: one Account owns its data and nothing is shared.
 - Deployment itself.
 - Import from external sources (contact lists, WhatsApp, CSV) — only JSON export/import of the app's own data.
 - Availability scheduling, contact info, or team history analytics (streaks, win rates).

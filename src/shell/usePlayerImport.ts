@@ -150,6 +150,8 @@ export interface PlayerImportDeps {
   saveSession: (s: Session) => Promise<void>;
   saveTournament: (t: Tournament) => Promise<void>;
   saveSquad: (s: SavedSquad) => Promise<void>;
+  /** Write one catalog entry. The hook updates its own list, so no refresh follows. */
+  saveDiscipline: (d: Discipline) => Promise<void>;
   /**
    * Re-read the communities, before their own records are written: the hooks
    * hold their own copies of the store's lists, so an imported community would
@@ -192,6 +194,7 @@ export function usePlayerImport(deps: PlayerImportDeps): PlayerImportResult {
     saveSession,
     saveTournament,
     saveSquad,
+    saveDiscipline,
     refreshCommunities,
     refreshRecords,
     notify,
@@ -258,14 +261,26 @@ export function usePlayerImport(deps: PlayerImportDeps): PlayerImportResult {
       const existingPlayerIds = new Set(players.map((p) => p.id));
       const existingSessionIds = new Set(sessions.map((s) => s.id));
       const existingTournamentIds = new Set(tournaments.map((t) => t.id));
+      // The device's own catalog, which already holds every built-in: a parsed
+      // file also carries them (built-ins come from the code, see `transfer.ts`),
+      // so filtering by id is what keeps this merge to the custom entries. A
+      // built-in is never "new" here, and re-writing one is exactly the
+      // resurrect-a-deleted-discipline hazard `indexed-db`'s upgrade avoids.
+      const existingDisciplineIds = new Set(disciplines.map((d) => d.id));
       const existingSquadIds = new Set(squads.map((q) => q.id));
       const newCommunities = data.communities.filter((c) => !existingCommunityIds.has(c.id));
       const newPlayers = data.players.filter((p) => !existingPlayerIds.has(p.id));
       const newSessions = data.sessions.filter((s) => !existingSessionIds.has(s.id));
       const newTournaments = (data.tournaments ?? []).filter((t) => !existingTournamentIds.has(t.id));
       const newSquads = (data.savedSquads ?? []).filter((q) => !existingSquadIds.has(q.id));
+      const newDisciplines = (data.disciplines ?? []).filter((d) => !existingDisciplineIds.has(d.id));
       const totalNew =
-        newCommunities.length + newPlayers.length + newSessions.length + newTournaments.length + newSquads.length;
+        newCommunities.length +
+        newPlayers.length +
+        newSessions.length +
+        newTournaments.length +
+        newSquads.length +
+        newDisciplines.length;
       if (totalNew === 0) return;
       setPendingMerge({
         counts: {
@@ -274,6 +289,7 @@ export function usePlayerImport(deps: PlayerImportDeps): PlayerImportResult {
           sessions: newSessions.length,
           tournaments: newTournaments.length,
           squads: newSquads.length,
+          disciplines: newDisciplines.length,
         },
         apply: async () => {
           // parseBackup has already resolved every communityId — including
@@ -287,6 +303,13 @@ export function usePlayerImport(deps: PlayerImportDeps): PlayerImportResult {
           // player whose community is not yet in hook state is re-homed by the
           // orphan-adoption effect above.
           await refreshCommunities();
+          // Before the players whose capabilities name them, for the same
+          // reason communities precede their own records: a capability resolves
+          // its discipline through the local catalog, so a player put on screen
+          // ahead of its discipline is a player with an unresolvable rating.
+          // No refresh call here — `saveDiscipline` updates the hook's own list,
+          // so the catalog is readable the moment this loop's write resolves.
+          for (const d of newDisciplines) await saveDiscipline(d);
           for (const p of newPlayers) await savePlayer(p);
           for (const s of newSessions) await saveSession(s);
           for (const t of newTournaments) await saveTournament(t);
@@ -295,7 +318,7 @@ export function usePlayerImport(deps: PlayerImportDeps): PlayerImportResult {
         },
       });
     },
-    [communities, players, sessions, tournaments, squads, disciplines, saveCommunity, savePlayer, saveSession, saveTournament, saveSquad, refreshCommunities, refreshRecords, notify],
+    [communities, players, sessions, tournaments, squads, disciplines, saveCommunity, saveDiscipline, savePlayer, saveSession, saveTournament, saveSquad, refreshCommunities, refreshRecords, notify],
   );
 
   const importFile = useCallback(
@@ -350,6 +373,12 @@ export function usePlayerImport(deps: PlayerImportDeps): PlayerImportResult {
                 id: p.id ?? crypto.randomUUID(),
                 communityId: activeCommunity.id,
                 name: p.name,
+                // The file's own value when it is a usable number, else now -
+                // the same rule as the id above it. A players-only file from
+                // the CSV template or a hand-written roster carries no
+                // timestamps, so stamping is the common path and preserving is
+                // for a file that already knows when its players were added.
+                createdAt: Number.isFinite(p.createdAt) ? (p.createdAt as number) : Date.now(),
                 notes: p.notes,
                 capabilities: Array.isArray(p.capabilities) ? p.capabilities : [],
               };

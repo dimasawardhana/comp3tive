@@ -59,7 +59,7 @@ function seedDatabase(dbName: string, records: Record<string, unknown[]>): Promi
 }
 
 const community = (id: string, name: string): Community => ({ id, name, createdAt: 1 });
-const player = (id: string, communityId: string): Player => ({ id, communityId, name: id, capabilities: [] });
+const player = (id: string, communityId: string): Player => ({ id, communityId, name: id, capabilities: [], createdAt: 1 });
 const session = (id: string, communityId: string): Session => ({
   id,
   communityId,
