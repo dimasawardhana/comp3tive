@@ -16,9 +16,13 @@
         "docs/adr/0007-optional-backend.md",
         "docs/adr/0008-account-identity.md"
       ],
-      "claim": null,
+      "claim": {
+        "harness": "omp",
+        "session": "01a13581-3ab1-75a6-8e47-fbea531e024d",
+        "expires": "2026-10-15T00:42:58Z"
+      },
       "created_at": "2026-10-14T16:22:35Z",
-      "updated_at": "2026-10-14T16:22:35Z"
+      "updated_at": "2026-10-15T00:12:58Z"
     },
     {
       "id": "TASK-115",

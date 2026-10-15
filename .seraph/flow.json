@@ -1,0 +1,44 @@
+{
+  "statuses": [
+    {
+      "id": "backlog",
+      "label": "Backlog",
+      "entry": true
+    },
+    {
+      "id": "todo",
+      "label": "To Do"
+    },
+    {
+      "id": "in_progress",
+      "label": "In Progress"
+    },
+    {
+      "id": "review",
+      "label": "Review"
+    },
+    {
+      "id": "done",
+      "label": "Done",
+      "terminal": true
+    }
+  ],
+  "transitions": [
+    [
+      "backlog",
+      "todo"
+    ],
+    [
+      "todo",
+      "in_progress"
+    ],
+    [
+      "in_progress",
+      "review"
+    ],
+    [
+      "review",
+      "done"
+    ]
+  ]
+}

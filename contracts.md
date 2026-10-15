@@ -60,13 +60,22 @@ and report rather than adapt silently.
 
 Copied from the specs. Values are exact.
 
-- **Zero new runtime dependencies.** `package.json` `dependencies` is `{"react": "^19.1.0",
-  "react-dom": "^19.1.0"}` and stays that way. The share poster is hand-drawn to `<canvas>`; no
-  DOM-to-image library. Reversing this needs an ADR.
-- **Unit tests collect `.ts` only.** `vite.config.ts:22` sets `test.include: ["src/**/*.test.ts"]`,
-  so `.tsx` is excluded from the unit harness. An extracted hook that must be unit-testable cannot
-  be `.tsx`.
-- **The unit environment is `node`.** `vite.config.ts:21` sets `test.environment: "node"`. No
+- **Zero new runtime dependencies, unless an ADR grants one.** `package.json` `dependencies` was
+  `{"react": "^19.1.0", "react-dom": "^19.1.0"}` and stayed that way through phases A to D. The share
+  poster is hand-drawn to `<canvas>`; no DOM-to-image library. **Reversed once, on 2026-10-15:**
+  Phase E added `@simplewebauthn/server` and `@simplewebauthn/browser` (v13), and the ADR this rule
+  asks for is `docs/adr/0008-account-identity.md` — it requires a maintained WebAuthn library
+  ("While it's possible to implement server-side passkeys functionality from scratch, we recommend
+  that you rely on a library instead") and calls the choice part of the decision rather than an
+  implementation detail. The rule's *intent* is the browser bundle, and both halves are load-bearing
+  there too: `@simplewebauthn/browser` is what encodes a ceremony the server will accept. Nothing
+  else was added, and the client bundle is the only place the second one ships.
+- **Unit tests collect `.ts` under `src/` and `server/`.** `vite.config.ts:140` sets
+  `test.include: ["src/**/*.test.ts", "server/**/*.test.ts"]`, so `.tsx` is excluded from the unit
+  harness. An extracted hook that must be unit-testable cannot be `.tsx`. The `server/` half was added
+  with Phase E, which writes its tests beside the Worker; without it `server/*.test.ts` would be files
+  vitest never collected, which reads exactly like a passing suite.
+- **The unit environment is `node`.** `vite.config.ts:135` sets `test.environment: "node"`. No
   `jsdom`, no `happy-dom`, no `@testing-library`. Unit tests cover pure functions and hook shape via
   `renderToStaticMarkup`; anything needing a real layout is proven by a Playwright spec.
 - **`workers: 1` and `retries: 0`.** `e2e/playwright.config.ts:6-7`. Retries hide the class of debt

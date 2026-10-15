@@ -1084,6 +1084,35 @@ h1 {
   padding: 6px 2px;
 }
 
+/* ---------- the account panel ---------- */
+/*
+ * Deliberately quiet. The panel is optional by design, so it reads as a
+ * footnote to the Dashboard rather than a call to action: the same
+ * `.dashboard-teasers-head` convention for its title, and no accent colour that
+ * would pull the eye away from "Split match".
+ */
+.dashboard-account {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid var(--hairline);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.account-status {
+  font-size: 13px;
+  color: var(--text-2);
+}
+.account-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.account-error {
+  font-size: 13px;
+  color: var(--danger);
+}
+
 /* ---------- buttons & bottom bar ---------- */
 .btn-danger-ghost {
   flex: 0 0 auto;

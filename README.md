@@ -211,9 +211,13 @@ What is genuinely still absent, read out of the tree rather than assumed:
   here. The Landing Page's trust row describes the local-first default rather than the absence of an
   account, so it stays true once one exists.
 - **No sync, no push, no background work.** `public/sw.js` registers exactly three listeners —
-  `install`, `activate`, `fetch` — and there is no `sync` or `periodicsync`. Nothing in `src/` opens
-  a network connection at all, so there is no telemetry, no error reporting, and no third-party
-  request of any kind at runtime.
+  `install`, `activate`, `fetch` — and there is no `sync` or `periodicsync`. **A page load opens no
+  network connection**, so the app and the Landing Page make no telemetry, no error reporting and no
+  third-party request; `e2e/tests/pwa/offline.spec.ts` is the check. The one thing that does reach
+  the network is an explicit sign-in: pressing "Use a passkey" talks to this origin, and pressing
+  "Sign in with Google" loads Google's sign-in script, which is why that script is injected on the
+  click rather than in the document (`src/account/google-signin.ts`). Nothing contacts a third party
+  unless an Organizer asks to sign in with Google, and a Guest never does.
 - **No install prompt.** The app is installable by manifest, but nothing in the tree listens for
   `beforeinstallprompt` or `appinstalled`; the browser's own affordance is the only one, and the
   app never asks.

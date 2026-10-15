@@ -10,7 +10,8 @@ _Render format 3._
 > **Goal:** An Organizer can create an Account and sign in on the deployed site by passkey or Google, and the app knows whether it is signed in -- with no data movement yet.
 - priority: high
 - triage: ready-for-agent
-- updated: 2026-10-14T16:22:35Z
+- claimed by: omp (session `01a13581-3ab1-75a6-8e47-fbea531e024d`, until 2026-10-15T00:42:58Z)
+- updated: 2026-10-15T00:12:58Z
 references:
   - .scratch/backend/issues/04-an-account-exists.md
   - docs/superpowers/plans/2026-09-28-account-and-durability.md

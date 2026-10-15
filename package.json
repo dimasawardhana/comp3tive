@@ -9,6 +9,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "types": "wrangler types --include-runtime=false",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -17,6 +18,8 @@
     "e2e:live": "playwright test --config=e2e/live.playwright.config.ts"
   },
   "dependencies": {
+    "@simplewebauthn/browser": "13.3.0",
+    "@simplewebauthn/server": "13.3.3",
     "react": "^19.1.0",
     "react-dom": "^19.1.0"
   },

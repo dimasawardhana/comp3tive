@@ -204,3 +204,67 @@ export interface SavedSquad {
   settings: SessionSettings;
   result: SplitResult;
 }
+
+// ---- Accounts (CONTEXT.md: the Organizer; ADR-0008 for the identity model) ----
+
+/**
+ * An Organizer's Account, and its own opaque key.
+ *
+ * **Nothing is ever joined on `email`.** A passkey and a Google identity each
+ * *attach* to an Account rather than being it, so two Accounts may legitimately
+ * share an address, and presenting a Google token whose address matches an
+ * existing Account creates a separate one. Automatic linking on a matching
+ * address is the account-takeover pattern ADR-0008 rejects; attaching a second
+ * way in is an explicit act by an already-signed-in Organizer.
+ */
+export interface Account {
+  id: Id;
+  /**
+   * The WebAuthn user handle: 64 random bytes, base64url, PII-free, stable for
+   * the life of the Account. The spec forbids it carrying anything identifying
+   * and recommends exactly this shape, and it "ought to be the same for all
+   * credentials registered to the same user account".
+   */
+  handle: string;
+  /**
+   * A verified address, when the Account has one, used to find the Account and
+   * to notify its owner. An attribute, never the key. Null is a real state: a
+   * passkey-only Account that never supplied one is unrecoverable if its
+   * authenticator is lost, which ADR-0008 accepts rather than inventing a
+   * recovery path WebAuthn does not define.
+   */
+  email: string | null;
+  createdAt: number;
+}
+
+/**
+ * One registered passkey. **Per credential, not per device.**
+ *
+ * A synced passkey arrives from a second device as the same credential id and
+ * public key, so authentication must find this row rather than insert a second
+ * one. `id` is the credential id in base64url, which is the value the
+ * authenticator presents.
+ */
+export interface Credential {
+  id: string;
+  accountId: Id;
+  /** The COSE public key, base64url. A credential, never a password. */
+  publicKey: string;
+  /**
+   * The authenticator's signature counter, stored and never used to hard-fail.
+   * A non-increasing value "is a signal, but not proof" that an authenticator
+   * was cloned, and races across synced devices produce it legitimately, so
+   * failing closed would lock out the exact user this feature serves.
+   */
+  signCount: number;
+  /**
+   * Whether the credential is backed up, and its authenticator type. Stored per
+   * credential because together they say whether it survives device loss, which
+   * is the failure the Account exists to fix.
+   */
+  backedUp: boolean;
+  deviceType: string;
+  /** Where the authenticator said it can be reached, for a targeted re-prompt. */
+  transports: string[];
+  createdAt: number;
+}

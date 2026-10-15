@@ -3,6 +3,7 @@ import { recentActiveTournaments, recentPlayers } from "./dashboardTeasers";
 import { PageHeader } from "./ui/PageHeader";
 import { Screen } from "./ui/Screen";
 import { FORMAT_LABEL, STATUS_LABEL } from "./ui/constants";
+import { AccountPanel } from "./account/AccountPanel";
 
 const BADGE_CLASS: Record<string, string> = {
   futsal: "badge--futsal",
@@ -278,6 +279,11 @@ export function DashboardScreen({
           </button>
         </div>
       </div>
+
+      {/* Last on the page, and outside the empty-state branch: an Organizer
+          with no roster yet can still create an Account, and it sits below the
+          actions so nothing about the daily flow moves down to make room. */}
+      <AccountPanel />
     </Screen>
   );
 }
