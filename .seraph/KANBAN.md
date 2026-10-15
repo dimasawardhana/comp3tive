@@ -1,40 +1,9 @@
 # Board
 
 _Written by Seraph. Do not edit — this file is replaced on every change._
+_Render format 3._
 
 ## Backlog
-
-### TASK-111 · Backup v5 carries the discipline catalog
-
-> **Goal:** A custom Discipline survives an export/import round trip, and the payload can carry the catalog to an Account at all.
-- priority: high
-- triage: ready-for-agent
-- updated: 2026-10-14T16:22:19Z
-references:
-  - .scratch/backend/issues/01-backup-carries-the-discipline-catalog.md
-  - docs/superpowers/plans/2026-09-28-account-and-durability.md
-  - src/data/transfer.ts
-  - src/shell/usePlayerImport.ts
-
-> **Done when:** A round trip through `serializeBackup`/`parseBackup` preserves a custom discipline byte-for-byte (id, name, shortName, roles, attributes, strengthModel, team). A v4 file with no `disciplines` key imports with the built-ins and parses as `version: 5`. A v1 file still imports, keeping the existing Default-community adoption. A v5 file redefining `futsal`'s roles is imported with the CODE's definition, not the file's — built-ins are code-authoritative. Importing a backup with one custom discipline into a device that already holds it writes once and leaves the existing record unchanged. `grep -n 'version: 4' src/` returns nothing. `npx vitest run` and `npx tsc -b` exit 0.
-
-> Phase E ticket 01 -- `.scratch/backend/issues/01-backup-carries-the-discipline-catalog.md`, plan Task 1 (`docs/superpowers/plans/2026-09-28-account-and-durability.md`). THE PROBLEM: the catalog is the one aggregate the backup omits, and the omission is silent data loss -- export on one device, import on another, and every custom Discipline is gone while capabilities in it survive as orphans. `useDisciplines.refresh` also re-seeds `SEED_DISCIPLINES` whenever the list reads back empty, so an empty catalog is indistinguishable from a fresh install. WHY IT IS FIRST: a per-account catalog cannot sync while the catalog is absent from the payload, so this is a prerequisite of ticket 06, not a follow-up. The built-ins-win merge is a merge BY ID against `SEED_DISCIPLINES`, not a filter that drops file entries. Call sites were resolved by reading the file, not from the ticket's line numbers: `serializeBackup`'s only production caller is now `src/shell/useAppCommands.ts` (the ticket says `src/App.tsx:416`, stale since C and D decomposed that file). Pure and local; no gate.
-
-### TASK-112 · A Player carries a creation timestamp
-
-> **Goal:** "Recently added" is expressed rather than inherited from a storage engine's iteration order, and the Dashboard ranks by it.
-- priority: high
-- triage: ready-for-agent
-- updated: 2026-10-14T16:22:35Z
-references:
-  - .scratch/backend/issues/02-player-gains-a-creation-timestamp.md
-  - docs/superpowers/plans/2026-09-28-account-and-durability.md
-  - src/domain/types.ts
-  - src/dashboardTeasers.ts
-
-> **Done when:** `Player` declares `createdAt: number` and `npx tsc -b` forces every construction site to supply it, with no cast around it. Creating a player stamps `createdAt`; editing one leaves it byte-identical. `recentPlayers` returns the three latest by `createdAt` descending, deterministic for equal timestamps (ties by id ascending), proven from a SHUFFLED input — the property `slice(-3)` did not have. A backup round trip preserves it, and a v4 file with timestamp-less players still imports by stamping rather than throwing. `e2e/tests/dashboard/dashboard.spec.ts` stays green UNCHANGED. `e2e/support/seed.ts` and every spec that writes a player supplies it, with monotonic seeded values so "newest last" keeps its documented meaning.
-
-> Phase E ticket 02 -- `.scratch/backend/issues/02-player-gains-a-creation-timestamp.md`, plan Task 2. THE DEFECT: "Recently added" is not expressed anywhere. `list()` is a bare `getAll()`, no object store declares an index, and `useRoster` applies no sort -- so the order is insertion order within a session and ID-ASCENDING after a reload, and the Dashboard takes `players.slice(-3)`. Today's suite passes only because the seeded ids happen to sort the same as their insertion order. A server answering without an ORDER BY changes a visible Dashboard row, which is why the meaning has to be written down. WHY IT IS SECOND: ticket 05's adoption has no ordering key without it. The four construction sites and their rules: `PlayerEditModal` (`player?.createdAt ?? Date.now()` -- the one site that must distinguish create from edit), `player-import.ts`'s CSV branch (stamp per row in parse order so ties are not created wholesale), `usePlayerImport.ts`'s JSON import (preserve a finite file value, else stamp), and `e2e/support/seed.ts`. The Roster screen's own display order is deliberately unchanged -- changing both would move two visible surfaces for one decision.
 
 ### TASK-114 · An Account exists, and the app knows who is signed in
 
@@ -84,21 +53,6 @@ references:
 
 > Phase E ticket 06 -- `.scratch/backend/issues/06-the-account-keeps-up-with-changes.md`, plan Task 6. BLOCKED BY TASK-115, which supplies the adoption boundary a push has to start from -- do not start it first. THE FAILURE THIS EXISTS TO PREVENT IS INVISIBLE TODAY: every save is a whole-document upsert, nothing carries `updatedAt`/`deletedAt`/`revision`, and `save`/`remove` resolve on the IndexedDB request rather than transaction commit -- so writes are last-write-wins with no compare-and-swap anywhere, and two devices editing one Community produce a silent overwrite in which the loser's evening is gone and nothing reports it. THE COMPARE-AND-SWAP IS `server/storage.ts`'s conditional `UPDATE ... WHERE version = ?` against D1's primary -- this is what makes the D1 choice load-bearing rather than incidental, since KV and R2 are eventually consistent and resolve concurrent writes to the same key as last-write-wins, which would reintroduce this exact bug. A rejected push must SAY SO: silently clobbering is the bug, silently refusing is the second bug, because a refused write that says nothing looks like a save that worked. The Organizer is shown which Communities are affected and when they were last changed elsewhere, and chooses: take the server's version, or push this device's over it deliberately. The decision logic is a PURE function outside React, unit-tested directly, because its failure mode is data loss. The Account is identified by the TOKEN, never by the payload. `src/account/sync-decision.ts` holds `decideSync(local, lastKnownVersion, serverVersion)` returning push / push-and-adopt / reject-stale / no-op; its test is `src/account/sync-decision.test.ts` (collect `.ts` only -- no jsdom, no `.tsx` tests). Deliberately not built: per-record sync, tombstones, field-level merge, background sync.
 
-### TASK-113 · The public claims stop promising there is no account
-
-> **Goal:** No public or product statement asserts comp3tive has no account and no server, and the one prohibition that forbids the feature is amended.
-- priority: medium
-- triage: ready-for-agent
-- updated: 2026-10-14T16:22:35Z
-references:
-  - .scratch/backend/issues/03-the-public-claims-stop-promising-no-account.md
-  - docs/superpowers/plans/2026-09-28-account-and-durability.md
-  - docs/agents/document-claims.md
-
-> **Done when:** `grep -rniE 'no account|no server|no sign.?up|not on a server' index.html app/index.html public/` returns nothing. No document asserts the absence of an account or a server that will not be true -- read by hand per `docs/agents/document-claims.md`, not grepped, because a denial contains no promise to flag. `PRODUCT.md` no longer says "no backend, no auth, no network", keeps multi-user and sync genuinely out of scope, and states the guest default plus the Account's cross-device reach. `DESIGN.md`'s "Things that don't change" list names the local-first default rather than the exclusion of a server. `e2e/tests/landing/landing.spec.ts`'s copy assertion is updated to the corrected sentence. Both spec out-of-scope lines carry the same corrected line naming ADR-0007 rather than ADR-0001.
-
-> Phase E ticket 03 -- `.scratch/backend/issues/03-the-public-claims-stop-promising-no-account.md`, plan Task 3. Four page strings promise the opposite of this feature (`index.html` meta description, trust list and CTA note; `public/404.html`), and two documents state it as an invariant. THE RULE for every replacement: a page may say the data stays on the device BY DEFAULT and may say an account is OPTIONAL, but must not assert the absence of a server, because after ticket 06 there is one. `docs/FLOW.md` is deliberately left alone -- "a local-first single-user tool" stays true, since one Account is still one Organizer. NOT GATED ON B14: ticket 14 and the offline row have both landed, so this is pure copy work on the current tree. The landing spec's assertion is part of this ticket -- correcting the copy without it leaves the suite red -- and that is the Phase B exemption for copy changes, not a violation of the no-spec-edited discipline. The unsatisfiable grep row this ticket used to carry was itself deleted on 2026-10-13 (TASK-106).
-
 
 ## Done
 
@@ -132,6 +86,18 @@ references:
 - priority: high
 - updated: 2026-10-14T15:46:39Z
 
+### TASK-111 · Backup v5 carries the discipline catalog
+
+> **Goal:** A custom Discipline survives an export/import round trip, and the payload can carry the catalog to an Account at all.
+- priority: high
+- updated: 2026-10-14T18:49:30Z
+
+### TASK-112 · A Player carries a creation timestamp
+
+> **Goal:** "Recently added" is expressed rather than inherited from a storage engine's iteration order, and the Dashboard ranks by it.
+- priority: high
+- updated: 2026-10-14T19:25:12Z
+
 ### TASK-105 · Debt 26: decide the App.tsx line count, or close the row
 
 > **Goal:** Debt 26: decide the App.tsx line count, or close the row
@@ -155,6 +121,12 @@ references:
 > **Goal:** Add aria-expanded to the settings popover trigger
 - priority: medium
 - updated: 2026-10-01T04:16:33Z
+
+### TASK-113 · The public claims stop promising there is no account
+
+> **Goal:** No public or product statement asserts comp3tive has no account and no server, and the one prohibition that forbids the feature is amended.
+- priority: medium
+- updated: 2026-10-15T00:12:26Z
 
 ### TASK-107 · Cover the roster editor's refusal with a test
 
