@@ -15,7 +15,11 @@
  * nothing by making a request it cannot read the answer to.
  */
 
-import { d1Database, type Database } from "./db";
+import { collectDecompose } from "./store/decompose";
+import { reassemble } from "./store/reassemble";
+import { parseBackup, type BackupData } from "../src/data/transfer";
+import { collectCasRevision, collectInsertRevision, getRevision, listRevisions } from "./storage";
+import { d1Database, type Database, type Statement } from "./db";
 import {
   accountForToken,
   attachGoogle,
@@ -79,6 +83,48 @@ async function readJson<T>(request: Request): Promise<T> {
   } catch {
     throw new ApiError(400, "That request body is not valid JSON.");
   }
+}
+
+/** Parse a document payload, mapping a rejected document onto a 400. */
+function parseOr400(payload: string): BackupData {
+  try {
+    return parseBackup(payload);
+  } catch (error) {
+    throw new ApiError(400, error instanceof Error ? error.message : "That payload is not a valid document.");
+  }
+}
+
+/**
+ * The `community_documents` dual-write, gated on the revision counter like
+ * every other statement in the batch. During the dual-write window writes go
+ * to both stores (reads come from the normalized rows), so a failed deploy can
+ * be rolled back without data loss (relational plan, Task 3).
+ *
+ * `insert` selects the insert-or-ignore shape (adoption); otherwise the
+ * versioned UPDATE (push), which only fires when the blob row exists.
+ */
+function guardedDocumentUpsert(
+  db: Database,
+  accountId: string,
+  communityId: string,
+  payload: string,
+  now: number,
+  revision: number,
+  insert: boolean,
+): Statement {
+  const guard = " AND (SELECT revision FROM community_revisions WHERE account_id = ? AND community_id = ?) = ?";
+  return insert
+    ? db
+        .prepare(
+          `INSERT INTO community_documents (account_id, community_id, version, payload, updated_at)
+           SELECT ?, ?, 1, ?, ? WHERE NOT EXISTS (SELECT 1 FROM community_documents WHERE account_id = ? AND community_id = ?)${guard}`,
+        )
+        .bind(accountId, communityId, payload, now, accountId, communityId, accountId, communityId, revision)
+    : db
+        .prepare(
+          `UPDATE community_documents SET payload = ?, version = version + 1, updated_at = ? WHERE account_id = ? AND community_id = ?${guard}`,
+        )
+        .bind(payload, now, accountId, communityId, accountId, communityId, revision);
 }
 
 /**
@@ -173,6 +219,101 @@ async function route(db: Database, request: Request, env: Env, pathname: string)
     if (!body.credential) throw new ApiError(400, "That request carries no credential.");
     await attachGoogle(db, accountId, body.credential, { clientId: env.GOOGLE_CLIENT_ID });
     return json({ ok: true });
+  }
+
+  // ---- Community documents (normalized store; dual-write window) ----
+
+  if (pathname === "/api/documents" && method === "GET") {
+    const accountId = await requireAccount(db, request);
+    const summaries = await listRevisions(db, accountId);
+    return json({
+      documents: summaries.map((s) => ({ communityId: s.communityId, version: s.revision, updatedAt: s.updatedAt })),
+    });
+  }
+
+  if (pathname === "/api/documents/pull" && method === "POST") {
+    const accountId = await requireAccount(db, request);
+    const body = await readJson<{ communityIds?: unknown }>(request);
+    const ids = Array.isArray(body.communityIds)
+      ? body.communityIds.filter((v): v is string => typeof v === "string")
+      : [];
+    const documents: Array<{ communityId: string; version: number; payload: string }> = [];
+    for (const communityId of ids) {
+      // A pull is a read, never a write: the payload is reassembled from the
+      // rows, so a community whose revision row exists always has a document.
+      const revision = await getRevision(db, accountId, communityId);
+      if (!revision) continue;
+      const doc = await reassemble(db, accountId, communityId);
+      if (!doc) continue;
+      documents.push({ communityId, version: revision.revision, payload: JSON.stringify(doc) });
+    }
+    return json({ documents });
+  }
+
+  // Adoption's first write: create the revision row at 1 and decompose the
+  // document into rows, one atomic batch. Insert-only: an Account that already
+  // has a revision for this community gets a 409 rather than an overwrite,
+  // because the overwrite path runs through the compare-and-swap and never
+  // through an adoption. The parse is validation, not normalization: a payload
+  // that fails it applies nothing.
+  if (pathname === "/api/documents/adopt" && method === "POST") {
+    const accountId = await requireAccount(db, request);
+    const body = await readJson<{ communityId?: string; payload?: string }>(request);
+    if (!body.communityId || typeof body.payload !== "string")
+      throw new ApiError(400, "That request is missing its community or payload.");
+    const doc = parseOr400(body.payload);
+    const now = Date.now();
+    const statements = [
+      collectInsertRevision(db, accountId, body.communityId, now),
+      ...collectDecompose(db, accountId, body.communityId, doc, 1),
+      // Dual-write window (relational plan, Task 3): community_documents stays
+      // current so a failed deploy can be rolled back without data loss.
+      // Guarded like the rest: it applies only when the revision row was
+      // created by this batch.
+      guardedDocumentUpsert(db, accountId, body.communityId, JSON.stringify(doc), now, 1, true),
+    ];
+    const results = await db.batch(statements);
+    // The revision insert is the gate: changes 0 means the row existed.
+    if (results[0].changes !== 1)
+      return json({ error: "This Account already has data for that community." }, 409);
+    return json({ version: 1 });
+  }
+  // The compare-and-swap push: the CAS UPDATE on community_revisions is the
+  // FIRST statement of the batch, and every row write carries the gate in its
+  // own WHERE — a subquery naming the revision a winning CAS produces. A
+  // `batch` is atomic but a lost CAS is not an error: without the per-statement
+  // guard the loser's writes would run anyway. With it, a loser leaves zero
+  // rows behind and gets a 409 carrying the server's current revision.
+  if (pathname === "/api/documents/push" && method === "POST") {
+    const accountId = await requireAccount(db, request);
+    const body = await readJson<{ communityId?: string; expectedVersion?: number; payload?: string }>(request);
+    if (!body.communityId || typeof body.payload !== "string" || typeof body.expectedVersion !== "number")
+      throw new ApiError(400, "That request is missing its community, version or payload.");
+    const doc = parseOr400(body.payload);
+    const now = Date.now();
+    const existing = await getRevision(db, accountId, body.communityId);
+    if (!existing) return json({ error: "No document to push onto.", serverVersion: null }, 409);
+    if (existing.revision !== body.expectedVersion)
+      return json({ error: "This community changed on another device first.", serverVersion: existing.revision }, 409);
+    const next = body.expectedVersion + 1;
+    const statements = [
+      collectCasRevision(db, accountId, body.communityId, body.expectedVersion, now),
+      ...collectDecompose(db, accountId, body.communityId, doc, next),
+      // Dual-write window: the blob's version is kept in step with the
+      // revision counter, in the same transaction so the two never diverge.
+      guardedDocumentUpsert(db, accountId, body.communityId, JSON.stringify(doc), now, next, false),
+    ];
+    const results = await db.batch(statements);
+    // The CAS is the gate: changes 0 means another write won between our read
+    // and this batch. Re-read for the 409's current revision.
+    if (results[0].changes !== 1) {
+      const current = await getRevision(db, accountId, body.communityId);
+      return json(
+        { error: "This community changed on another device first.", serverVersion: current?.revision ?? null },
+        409,
+      );
+    }
+    return json({ version: next });
   }
 
   return json({ error: "No such endpoint." }, 404);
