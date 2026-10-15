@@ -34,11 +34,24 @@ export interface Database {
    * does rather than a second copy of the tables.
    */
   exec(sql: string): Promise<void>;
+  /**
+   * Run statements in order as one atomic transaction. D1's `batch` is
+   * transactional ("all statements or none"), and it is the only transaction
+   * primitive D1 offers — interactive BEGIN/COMMIT over a single connection is
+   * not available across a Worker's stateless invocations. The compare-and-swap
+   * push depends on this: the conditional revision UPDATE must gate the row
+   * writes, and a rejected CAS must leave zero rows behind.
+   */
+  batch(statements: Statement[]): Promise<Array<{ changes: number }>>;
 }
 
 class D1Statement implements Statement {
   constructor(private readonly stmt: D1PreparedStatement) {}
 
+  /** The wrapped D1 statement, for `batch`. Not part of the seam's surface. */
+  get raw(): D1PreparedStatement {
+    return this.stmt;
+  }
   bind(...values: unknown[]): Statement {
     return new D1Statement(this.stmt.bind(...values));
   }
@@ -66,6 +79,15 @@ export function d1Database(db: D1Database): Database {
     prepare: (sql) => new D1Statement(db.prepare(sql)),
     exec: async (sql) => {
       await db.exec(sql);
+    },
+    batch: async (statements) => {
+      const results = await db.batch(
+        statements.map((s) => {
+          if (!(s instanceof D1Statement)) throw new Error("batch received a foreign statement.");
+          return s.raw;
+        }),
+      );
+      return results.map((r) => ({ changes: r.meta?.changes ?? 0 }));
     },
   };
 }

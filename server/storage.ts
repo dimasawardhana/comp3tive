@@ -10,7 +10,7 @@
  * client and the server cannot drift on what an `Account` is.
  */
 import type { Account, Credential, Id } from "../src/domain/types";
-import type { Database } from "./db";
+import type { Database, Statement } from "./db";
 
 interface AccountRow {
   id: string;
@@ -305,4 +305,159 @@ export async function takeChallenge(
   if (row.kind !== kind) return null;
   if (row.expires_at <= now) return null;
   return { value: row.value, accountId: row.account_id, payload: row.payload };
+}
+
+// ---- Community documents ----
+
+/** One stored document: the payload plus the version the next write must name. */
+export interface StoredDocument {
+  version: number;
+  payload: string;
+  updatedAt: number;
+}
+
+/**
+ * The Account's document for one community, or null if it has never synced.
+ *
+ * Keyed on the pair: one Account with three Communities is three rows, so a
+ * push for one community never touches another's document.
+ */
+export async function getDocument(
+  db: Database,
+  accountId: Id,
+  communityId: Id,
+): Promise<StoredDocument | null> {
+  const row = await db
+    .prepare("SELECT version, payload, updated_at FROM community_documents WHERE account_id = ? AND community_id = ?")
+    .bind(accountId, communityId)
+    .first<{ version: number; payload: string; updated_at: number }>();
+  if (!row) return null;
+  return { version: row.version, payload: row.payload, updatedAt: row.updated_at };
+}
+
+/** Every community the Account has a document for, with versions and no payloads. */
+export async function listDocumentSummaries(
+  db: Database,
+  accountId: Id,
+): Promise<Array<{ communityId: Id; version: number; updatedAt: number }>> {
+  const result = await db
+    .prepare("SELECT community_id, version, updated_at FROM community_documents WHERE account_id = ? ORDER BY updated_at DESC")
+    .bind(accountId)
+    .all<{ community_id: string; version: number; updated_at: number }>();
+  return result.map((r) => ({ communityId: r.community_id, version: r.version, updatedAt: r.updated_at }));
+}
+
+/**
+ * First write for this community: the insert the compare-and-swap guards.
+ *
+ * Returns the new version (always 1) — or null if a row already exists, which
+ * means the Account has data here and adoption must not proceed blind.
+ * `INSERT OR IGNORE` against the pair primary key makes the check and the write
+ * one statement, so a concurrent first sync cannot produce two rows.
+ */
+export async function insertDocument(
+  db: Database,
+  accountId: Id,
+  communityId: Id,
+  payload: string,
+  now: number,
+): Promise<number | null> {
+  const result = await db
+    .prepare(
+      "INSERT OR IGNORE INTO community_documents (account_id, community_id, version, payload, updated_at) VALUES (?, ?, 1, ?, ?)",
+    )
+    .bind(accountId, communityId, payload, now)
+    .run();
+  return result.changes === 1 ? 1 : null;
+}
+
+/**
+ * The compare-and-swap (ticket 06's guard, defined here because ticket 05's
+ * pull path reads the same rows).
+ *
+ * Applies only when the caller names the version it believes is current.
+ * Returns the row's NEW version, or null when the named version was not the
+ * current one — which is the rejection the losing device is told about.
+ */
+export async function updateDocument(
+  db: Database,
+  accountId: Id,
+  communityId: Id,
+  expectedVersion: number,
+  payload: string,
+  now: number,
+): Promise<number | null> {
+  const result = await db
+    .prepare(
+      "UPDATE community_documents SET payload = ?, version = version + 1, updated_at = ? WHERE account_id = ? AND community_id = ? AND version = ?",
+    )
+    .bind(payload, now, accountId, communityId, expectedVersion)
+    .run();
+  if (result.changes !== 1) return null;
+  return expectedVersion + 1;
+}
+
+// ---- Community revisions (the normalized store's compare-and-swap) ----
+
+/**
+ * First write for this community against the normalized rows: create the
+ * revision row at 1, or refuse when one already exists. The caller batches
+ * this ahead of `collectDecompose`'s statements so the insert and the rows
+ * commit together.
+ */
+export function collectInsertRevision(
+  db: Database,
+  accountId: Id,
+  communityId: Id,
+  now: number,
+): Statement {
+  return db
+    .prepare(
+      "INSERT OR IGNORE INTO community_revisions (account_id, community_id, revision, updated_at) VALUES (?, ?, 1, ?)",
+    )
+    .bind(accountId, communityId, now);
+}
+
+/**
+ * The compare-and-swap on the revision counter: the FIRST statement of the
+ * push transaction, ahead of `collectDecompose`'s row writes. Returns null
+ * when the expected revision is not current — the losing device's refusal.
+ */
+export function collectCasRevision(
+  db: Database,
+  accountId: Id,
+  communityId: Id,
+  expectedRevision: number,
+  now: number,
+): Statement {
+  return db
+    .prepare(
+      "UPDATE community_revisions SET revision = revision + 1, updated_at = ? WHERE account_id = ? AND community_id = ? AND revision = ?",
+    )
+    .bind(now, accountId, communityId, expectedRevision);
+}
+
+/** Current revision and update time for one community, or null if never synced. */
+export async function getRevision(
+  db: Database,
+  accountId: Id,
+  communityId: Id,
+): Promise<{ revision: number; updatedAt: number } | null> {
+  const row = await db
+    .prepare("SELECT revision, updated_at FROM community_revisions WHERE account_id = ? AND community_id = ?")
+    .bind(accountId, communityId)
+    .first<{ revision: number; updated_at: number }>();
+  return row ? { revision: row.revision, updatedAt: row.updated_at } : null;
+}
+
+/** Every community the Account has a revision for, newest update first. */
+export async function listRevisions(
+  db: Database,
+  accountId: Id,
+): Promise<Array<{ communityId: Id; revision: number; updatedAt: number }>> {
+  const rows = await db
+    .prepare("SELECT community_id, revision, updated_at FROM community_revisions WHERE account_id = ? ORDER BY updated_at DESC")
+    .bind(accountId)
+    .all<{ community_id: string; revision: number; updated_at: number }>();
+  return rows.map((r) => ({ communityId: r.community_id, revision: r.revision, updatedAt: r.updated_at }));
 }

@@ -1,3 +1,9 @@
+import {
+  getDocument,
+  insertDocument,
+  listDocumentSummaries,
+  updateDocument,
+} from "./storage";
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { sqliteDatabase } from "./test-support/sqlite";
@@ -69,10 +75,26 @@ describe("the schema applies", () => {
       .all<{ name: string }>();
     expect(rows.map((r) => r.name)).toEqual([
       "accounts",
+      "capability_ratings",
+      "capability_roles",
       "challenges",
+      "communities",
+      "community_documents",
+      "community_revisions",
       "credentials",
+      "discipline_attributes",
+      "discipline_roles",
+      "disciplines",
       "federated_identities",
+      "match_games",
+      "player_capabilities",
+      "players",
+      "saved_squads",
       "sessions",
+      "split_sessions",
+      "tournament_matches",
+      "tournament_teams",
+      "tournaments",
     ]);
   });
 
@@ -314,5 +336,61 @@ describe("challenges are single-use", () => {
     const pending = JSON.stringify({ accountId: "a1", handle: "handle-a1" });
     await insertChallenge(db, "c-1", "the-challenge", "registration", "a1", pending, 5000);
     expect((await takeChallenge(db, "c-1", "registration", 1000))?.payload).toBe(pending);
+  });
+});
+
+describe("community documents", () => {
+  it("inserts the first document at version 1 and refuses a second insert for the same community", async () => {
+    const db = await freshDb();
+    await insertAccount(db, account("a1"));
+    expect(await insertDocument(db, "a1", "c1", '{"v":5}', 1000)).toBe(1);
+    // Adoption is insert-only: the Account already having data there is a 409
+    // on the route, and a null here, never a silent overwrite.
+    expect(await insertDocument(db, "a1", "c1", '{"v":5, "x":1}', 2000)).toBeNull();
+    const doc = await getDocument(db, "a1", "c1");
+    expect(doc?.version).toBe(1);
+    expect(doc?.payload).toBe('{"v":5}');
+  });
+
+  it("keeps one community's document apart from another's", async () => {
+    const db = await freshDb();
+    await insertAccount(db, account("a1"));
+    await insertDocument(db, "a1", "c1", "one", 1000);
+    await insertDocument(db, "a1", "c2", "two", 1000);
+    expect((await getDocument(db, "a1", "c1"))?.payload).toBe("one");
+    expect((await getDocument(db, "a1", "c2"))?.payload).toBe("two");
+  });
+
+  it("applies a compare-and-swap only against the current version", async () => {
+    const db = await freshDb();
+    await insertAccount(db, account("a1"));
+    await insertDocument(db, "a1", "c1", "v1", 1000);
+    // Stale expectation (0, not the current 1): refused, nothing written.
+    expect(await updateDocument(db, "a1", "c1", 0, "lost", 2000)).toBeNull();
+    expect((await getDocument(db, "a1", "c1"))?.payload).toBe("v1");
+    // Correct expectation: applied, and the version advances.
+    expect(await updateDocument(db, "a1", "c1", 1, "v2", 3000)).toBe(2);
+    expect((await getDocument(db, "a1", "c1"))?.payload).toBe("v2");
+    // A second device that still believes the version is 1 loses.
+    expect(await updateDocument(db, "a1", "c1", 1, "lost", 4000)).toBeNull();
+    expect((await getDocument(db, "a1", "c1"))?.payload).toBe("v2");
+  });
+
+  it("answers null for a document that does not exist, and lists summaries without payloads", async () => {
+    const db = await freshDb();
+    await insertAccount(db, account("a1"));
+    expect(await getDocument(db, "a1", "c1")).toBeNull();
+    await insertDocument(db, "a1", "c1", "payload", 1000);
+    const summaries = await listDocumentSummaries(db, "a1");
+    expect(summaries).toEqual([{ communityId: "c1", version: 1, updatedAt: 1000 }]);
+  });
+
+  it("answers nothing for another account's documents", async () => {
+    const db = await freshDb();
+    await insertAccount(db, account("a1"));
+    await insertAccount(db, account("a2"));
+    await insertDocument(db, "a1", "c1", "mine", 1000);
+    expect(await getDocument(db, "a2", "c1")).toBeNull();
+    expect(await listDocumentSummaries(db, "a2")).toEqual([]);
   });
 });

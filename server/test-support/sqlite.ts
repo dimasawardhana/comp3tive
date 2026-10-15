@@ -25,6 +25,7 @@ import type { Database, Row, Statement } from "../db";
 
 class SqliteStatement implements Statement {
   constructor(
+    private readonly db: DatabaseSync,
     private readonly stmt: StatementSync,
     private readonly params: unknown[] = [],
   ) {}
@@ -33,7 +34,7 @@ class SqliteStatement implements Statement {
     // `node:sqlite` refuses `undefined`; D1 does too ("D1_TYPE_ERROR"). Making
     // the substitution here means a forgotten optional field fails as a null
     // column in a test rather than only in production.
-    return new SqliteStatement(this.stmt, values.map((v) => (v === undefined ? null : v)));
+    return new SqliteStatement(this.db, this.stmt, values.map((v) => (v === undefined ? null : v)));
   }
 
   async all<T = Row>(): Promise<T[]> {
@@ -45,9 +46,13 @@ class SqliteStatement implements Statement {
     return (row as T | undefined) ?? null;
   }
 
-  async run(): Promise<{ changes: number }> {
+  async run(): Promise<{ changes: number; meta?: { changes: number } }> {
     const result = this.stmt.run(...(this.params as never[]));
-    return { changes: Number(result.changes) };
+    const changes = Number(result.changes);
+    // `meta.changes` too: the handler wraps `env.DB` in `d1Database`, which
+    // reads `result.meta?.changes`, and a test that hands the raw seam to the
+    // handler must look like D1 to it.
+    return { changes, meta: { changes } };
   }
 }
 
@@ -62,9 +67,27 @@ export function sqliteDatabase(): Database {
   const db = new DatabaseSync(":memory:");
   db.exec("PRAGMA foreign_keys = ON");
   return {
-    prepare: (sql) => new SqliteStatement(db.prepare(sql)),
+    prepare: (sql) => new SqliteStatement(db, db.prepare(sql)),
     exec: async (sql) => {
       db.exec(sql);
+    },
+    // D1's `batch` is the platform's one transaction primitive: all statements
+    // or none. Over node:sqlite the equivalent is an interactive transaction,
+    // which a single local connection can do safely.
+    batch: async (statements) => {
+      db.exec("BEGIN");
+      try {
+        const results = new Array<{ changes: number }>(statements.length);
+        for (const [i, s] of statements.entries()) {
+          if (!(s instanceof SqliteStatement)) throw new Error("batch received a foreign statement.");
+          results[i] = await s.run();
+        }
+        db.exec("COMMIT");
+        return results;
+      } catch (error) {
+        db.exec("ROLLBACK");
+        throw error;
+      }
     },
   };
 }
