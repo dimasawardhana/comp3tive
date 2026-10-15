@@ -210,13 +210,41 @@ export async function refresh(): Promise<void> {
   }
 }
 
+/**
+ * A failed ceremony, in words an Organizer can act on.
+ *
+ * The browser's own text is accurate and useless: `NotAllowedError` covers the
+ * user cancelling, no matching credential, and a timeout, and its message names
+ * all three without naming a next step. The commonest real cause here is the
+ * honest one, so it is the one the message leads with.
+ */
+function ceremonyFailure(err: unknown, action: "create" | "sign in"): Error {
+  if (err instanceof Error) {
+    if (err.name === "NotAllowedError" || err.name === "AbortError") {
+      return action === "create"
+        ? new Error("Your device did not create a passkey. Try again, or use a device with a screen lock.")
+        : new Error("No passkey matched. If you have not created an account on this device yet, choose Create an account.");
+    }
+    if (err.name === "InvalidStateError") {
+      return new Error("This device already has a passkey for this origin. Sign in with it instead.");
+    }
+    return err;
+  }
+  return new Error("That did not work. Try again.");
+}
+
 // ---- Passkeys ----
 
 /** The options/verify pair for one WebAuthn ceremony, over the API. */
 export async function startPasskeyRegistration(): Promise<SignedIn> {
   const { startRegistration } = await import("@simplewebauthn/browser");
   const ceremony = await post<{ ceremonyId: string; options: never }>("/api/passkey/register/options", {});
-  const response = await startRegistration({ optionsJSON: ceremony.options });
+  let response;
+  try {
+    response = await startRegistration({ optionsJSON: ceremony.options });
+  } catch (err) {
+    throw ceremonyFailure(err, "create");
+  }
   const result = await post<{ account: { id: string }; token: string; expiresAt: number }>(
     "/api/passkey/register/verify",
     { ceremonyId: ceremony.ceremonyId, response },
@@ -228,7 +256,12 @@ export async function startPasskeyRegistration(): Promise<SignedIn> {
 export async function signInWithPasskey(): Promise<SignedIn> {
   const { startAuthentication } = await import("@simplewebauthn/browser");
   const ceremony = await post<{ ceremonyId: string; options: never }>("/api/passkey/signin/options", {});
-  const response = await startAuthentication({ optionsJSON: ceremony.options });
+  let response;
+  try {
+    response = await startAuthentication({ optionsJSON: ceremony.options });
+  } catch (err) {
+    throw ceremonyFailure(err, "sign in");
+  }
   const result = await post<{ token: string; expiresAt: number }>("/api/passkey/signin/verify", {
     ceremonyId: ceremony.ceremonyId,
     response,

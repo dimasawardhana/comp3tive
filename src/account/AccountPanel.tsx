@@ -1,5 +1,5 @@
 import { useCallback, useState } from "react";
-import { getSession, signInWithPasskey, signInWithGoogle, signOut, type Session } from "./session";
+import { getSession, startPasskeyRegistration, signInWithPasskey, signInWithGoogle, signOut, type Session } from "./session";
 import { googleClientId, requestGoogleCredential } from "./google-signin";
 import { runSignInSync, runSignOutClear, type AccountSync } from "./useAccount";
 
@@ -28,14 +28,14 @@ import { runSignInSync, runSignOutClear, type AccountSync } from "./useAccount";
  * every state, because that is the promise the Landing Page now makes.
  */
 
-type Busy = "passkey" | "google" | "out" | null;
+type Busy = "create" | "signin" | "google" | "out" | null;
 
 export function AccountPanel({ accountSync }: { accountSync: AccountSync }) {
   const [session, setLocalSession] = useState<Session | null>(() => getSession());
   const [busy, setBusy] = useState<Busy>(null);
   const [error, setError] = useState<string | null>(null);
   /**
-   * Both buttons are always offered, and nothing is fetched to decide that.
+   * Every way in is always offered, and nothing is fetched to decide that.
    *
    * **Deliberate, and it was a bug first.** An earlier cut asked `/api/config`
    * on mount so an unconfigured deployment could hide the Google button. That
@@ -44,6 +44,13 @@ export function AccountPanel({ accountSync }: { accountSync: AccountSync }) {
    * at all" and makes a Guest's device talk to a server for nothing. The probe
    * was buying a hidden button. Clicking instead costs nothing when Google *is*
    * configured, and says so plainly when it is not.
+   *
+   * **Creating and signing in are separate buttons, and that is not padding.**
+   * They are two different WebAuthn ceremonies against two different server
+   * routes, and no one button can be both: a sign-in ceremony on a device with
+   * no credential fails with `NotAllowedError`, which reads to the user as
+   * "passkeys are broken". Creating an Account is a deliberate act, and the
+   * signed-out panel is the only place a first-time visitor looks for it.
    */
 
   const run = useCallback(async (which: Exclude<Busy, null>, action: () => Promise<unknown>) => {
@@ -59,11 +66,16 @@ export function AccountPanel({ accountSync }: { accountSync: AccountSync }) {
     }
   }, []);
 
-  const onPasskey = () =>
-    void run("passkey", async () => {
-      await signInWithPasskey();
+  const onCreate = () =>
+    void run("create", async () => {
+      await startPasskeyRegistration();
       // The session exists; now the data moves. Adopt or pull per the
       // lifecycle's decision, which reports through toasts, not this panel.
+      await runSignInSync(accountSync);
+    });
+  const onPasskeySignIn = () =>
+    void run("signin", async () => {
+      await signInWithPasskey();
       await runSignInSync(accountSync);
     });
   const onGoogle = () =>
@@ -108,10 +120,18 @@ export function AccountPanel({ accountSync }: { accountSync: AccountSync }) {
             <button
               type="button"
               className="btn btn-primary"
-              onClick={onPasskey}
+              onClick={onCreate}
               disabled={busy !== null}
             >
-              {busy === "passkey" ? "Waiting for your device…" : "Use a passkey"}
+              {busy === "create" ? "Waiting for your device…" : "Create an account"}
+            </button>
+            <button
+              type="button"
+              className="btn btn-ghost"
+              onClick={onPasskeySignIn}
+              disabled={busy !== null}
+            >
+              {busy === "signin" ? "Waiting for your device…" : "Sign in with a passkey"}
             </button>
             <button type="button" className="btn btn-ghost" onClick={onGoogle} disabled={busy !== null}>
               {busy === "google" ? "Talking to Google…" : "Sign in with Google"}

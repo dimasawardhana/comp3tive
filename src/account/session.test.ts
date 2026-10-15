@@ -186,3 +186,64 @@ describe("storage", () => {
     expect(getSession()).not.toBeNull();
   });
 });
+
+/**
+ * The two passkey ceremonies are two different routes, and this pins that.
+ *
+ * **It is a regression test for a shipped bug.** `startPasskeyRegistration`
+ * existed, was exported, and was called by nothing: the only passkey button ran
+ * `signInWithPasskey`, so a first-time visitor could only ever perform a sign-in
+ * against a credential their device did not have. The browser answers that with
+ * `NotAllowedError` and the app reported the browser's own sentence, which reads
+ * as "passkeys are broken". Two assertions defend it — the create path must
+ * POST to `/register/verify`, and a cancellation must produce a sentence that
+ * names the create button rather than the DOMException's text.
+ */
+describe("the passkey ceremonies", () => {
+  /** Stub the lazily imported WebAuthn browser library, per ceremony. */
+  function stubWebauthn(behavior: "ok" | "cancel"): void {
+    vi.doMock("@simplewebauthn/browser", () => ({
+      startRegistration: async () => (behavior === "cancel" ? Promise.reject(domException("NotAllowedError")) : { id: "cred-1", response: {} }),
+      startAuthentication: async () => (behavior === "cancel" ? Promise.reject(domException("NotAllowedError")) : { id: "cred-1", response: {} }),
+    }));
+  }
+
+  function domException(name: string): Error {
+    const err = new Error("The operation either timed out or was not allowed.");
+    err.name = name;
+    return err;
+  }
+
+  it("creates an Account through the registration routes, never the sign-in ones", async () => {
+    stubWebauthn("ok");
+    const paths: string[] = [];
+    stubFetch((url) => {
+      paths.push(url.replace(API_BASE, ""));
+      if (url.endsWith("/api/passkey/register/options")) {
+        return json({ ceremonyId: "c1", options: {} });
+      }
+      if (url.endsWith("/api/passkey/register/verify")) {
+        return json({ account: { id: "a1" }, token: "t", expiresAt: Date.now() + 60_000 });
+      }
+      return json({ account: { id: "a1" } });
+    });
+    const { startPasskeyRegistration } = await import("./session");
+    const signedIn = await startPasskeyRegistration();
+    expect(signedIn.accountId).toBe("a1");
+    expect(paths).toEqual(["/api/passkey/register/options", "/api/passkey/register/verify"]);
+  });
+
+  it("sends the user to Create an account when the device has no credential", async () => {
+    stubWebauthn("cancel");
+    stubFetch(() => json({ ceremonyId: "c1", options: {} }));
+    const { signInWithPasskey } = await import("./session");
+    await expect(signInWithPasskey()).rejects.toThrow(/Create an account/);
+  });
+
+  it("does not report a cancelled create with the sign-in wording", async () => {
+    stubWebauthn("cancel");
+    stubFetch(() => json({ ceremonyId: "c1", options: {} }));
+    const { startPasskeyRegistration } = await import("./session");
+    await expect(startPasskeyRegistration()).rejects.toThrow(/did not create a passkey/);
+  });
+});

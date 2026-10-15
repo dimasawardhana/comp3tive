@@ -45,6 +45,29 @@ references:
 
 > Plan: docs/superpowers/plans/2026-10-15-relational-backend.md (Task 4). ADR-0007 storage section superseded in part 2026-10-15. Invariants: wire format stays backup v5; CAS survives on community_revisions; client storage seam unchanged; guest e2e specs stay green unedited. After the drop, rollback means restoring the pre-migration export.
 
+### TASK-122 · Deploy feature/account and enable Google sign-in on the live origin
+
+> **Goal:** Passkey sign-in returned 500 on the live origin for two independent reasons, both found and fixed. (a) The remote D1 had zero application tables (only _cf_KV) because the deployed Worker never applied a schema: server/schema.sql documents the command, but nothing runs it, so every DB-touching route threw. Applied to the remote DB; live register/sign-in/session now answer 200. (b) The client had no way to create an Account: startPasskeyRegistration existed but was wired to no UI, so a first-time visitor could only run a sign-in ceremony with no credential on the device and got NotAllowedError. Fixed: a distinct Create an account button, plus actionable ceremony failure messages. Remaining: deploy the fix, and create the Google OAuth client.
+- priority: high
+- triage: ready-for-agent
+- updated: 2026-10-15T18:02:50Z
+
+> **Done when:** On a database with no tables, applying both schema files makes /api/passkey/register/options answer 200 rather than 500. curl /api/config returns a googleClientId, not null. In a browser on the deployed origin: Create an account registers a credential and lands signed in; Sign out then Sign in with a passkey reuses that credential and pulls the Account's data; signing in with no credential on the device shows the 'choose Create an account' message rather than a raw NotAllowedError. D1 shows one accounts row and one credentials row. The guest e2e suite stays green unedited.
+
+> ROOT CAUSES (diagnosed and reproduced 2026-10-16):
+> (a) MISSING SCHEMA. npx wrangler d1 execute comp3tive-db --remote --json --command "SELECT name FROM sqlite_master WHERE type='table'" returned only _cf_KV. Every DB-touching route answered 500 {"error":"Something went wrong on the server."}: /api/passkey/register/options, /api/passkey/signin/options, and /api/session with a bearer token all reproduced it, while /api/config and /api/session without a token answered fine -- which is what isolated it to the database. FIX APPLIED TO THE REMOTE DB, in this order (schema-v2 assumes the identity tables from schema.sql exist):
+>   npx wrangler d1 execute comp3tive-db --remote --file=server/schema.sql
+>   npx wrangler d1 execute comp3tive-db --remote --file=server/schema-v2.sql
+> Both files are CREATE TABLE IF NOT EXISTS throughout, so re-running is safe. After applying: register + sign-in + /api/session all verified 200 against the live origin, and a full register -> sign-in -> session round trip returned the same account id. THIS IS A DEPLOY-RUNBOOK GAP: the schema is applied out of band by hand, so a fresh database reproduces the 500 exactly. Make it a step, not folklore -- an npm script or a documented runbook.
+> (b) NO WAY TO CREATE AN ACCOUNT. git grep showed startPasskeyRegistration exported from src/account/session.ts with zero callers; the only passkey button called signInWithPasskey. A sign-in ceremony with no credential on the device fails NotAllowedError, which the user reads as 'passkeys are broken'. FIXED: 'Create an account' (primary) and 'Sign in with a passkey' are now separate buttons, and both ceremonies wrap their browser call so a failure reports an actionable sentence.
+> REMAINING STEPS:
+> 1. Commit the fix on master (src/account/AccountPanel.tsx, src/account/session.ts).
+> 2. Create the Google OAuth client (console.developers.google.com/auth/clients): type Web application; Authorized JavaScript origins http://localhost:5173 and https://comp3tive.dimasawardhana.workers.dev; no redirect URIs (the flow is a JS callback POSTed to /api/google/signin). Consent screen (auth/branding): app name comp3tive, support email; workers.dev cannot be an Authorized domain (public suffix list), so leave that empty. No extra scopes (email/profile/openid defaults only, no verification review); audience stays Testing with yourself as a test user.
+> 3. npx wrangler secret put GOOGLE_CLIENT_ID (and .dev.vars locally with the same name).
+> 4. npm run build && npx wrangler deploy, then re-run the browser checks in Done-when.
+> VERIFIED LOCALLY before deploy (wrangler dev --local on :8787 serving dist/, Chromium with a virtual authenticator): register/options+verify 200, signin/options+verify 200, documents/adopt on first sign-in then documents/pull on the second, D1 rows accounts=1 credentials=1, and the no-credential sign-in path shows the intended message rather than the raw DOMException. npx tsc -b 0; npx vitest run 912/912; npm run e2e 124/124 with no spec edited.
+> NOTE: passkeys registered on the workers.dev origin are development-disposable per ADR-0008 (a workers.dev host is on the Public Suffix List, so a credential there can never be shared with a custom domain). A custom domain must be settled before real organizers register.
+
 ### TASK-121 · RB-5: query endpoints (follow-up)
 
 > **Goal:** Expose the new query capability on the wire: leaderboard by discipline+attribute, cross-community player search, per-discipline session history.
