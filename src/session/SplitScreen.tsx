@@ -536,6 +536,7 @@ export function SplitScreen({ session, discipline, roster, onPersistResult, onSu
             className="btn btn-ghost"
             onClick={toggleSwapMode}
             data-testid="swap-mode"
+            title="Trade one player for another between two teams"
           >
             Swap
           </button>
@@ -554,7 +555,12 @@ export function SplitScreen({ session, discipline, roster, onPersistResult, onSu
             Save teams to tournament →
           </button>
         ) : (
-          <button type="button" className="btn btn-primary" onClick={() => void reroll()}>
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={() => void reroll()}
+            title="Shuffle the same players into fresh teams"
+          >
             Re-roll
           </button>
         )}

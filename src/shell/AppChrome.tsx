@@ -23,10 +23,7 @@ export interface AppChromeProps {
    * the button carries no `aria-expanded`.
    */
   onToggleAddCommunity: () => void;
-  themePref: string;
-  layoutPref: string;
-  onThemeChange: (v: string) => void;
-  onLayoutChange: (v: string) => void;
+
   toasts: Array<{ id: string; text: string; type: ToastType }>;
   /** The screen switch, rendered inside `<main className="shell-main">`. */
   children: React.ReactNode;
@@ -34,21 +31,17 @@ export interface AppChromeProps {
 
 /**
  * The shell around every screen: skip link, desktop rail, topbar (community
- * switcher with its delete confirm, ✚, settings popover), the live region and
- * the handheld bottom nav. It owns the two menus that open and close inside the
- * chrome itself — the community menu and the settings popover — and nothing
- * outside the chrome reads either.
+ * switcher with its delete confirm, ✚), the live region and the handheld
+ * bottom nav. It owns the one menu that opens and closes inside the chrome
+ * itself — the community menu — and nothing outside the chrome reads it.
  */
 export function AppChrome(props: AppChromeProps) {
   const [showCommunityMenu, setShowCommunityMenu] = useState(false);
-  const [showSettings, setShowSettings] = useState(false);
   const {
     railPref,
     viewStack,
     activeCommunity,
     communityDeleteWarning,
-    themePref,
-    layoutPref,
   } = props;
   return (
     <>
@@ -160,38 +153,6 @@ export function AppChrome(props: AppChromeProps) {
             >
               ✚
             </button>
-          <div className="settings-trigger">
-            <button
-              type="button"
-              className="icon-btn"
-              aria-label="Settings"
-              title="Settings"
-              aria-expanded={showSettings}
-              onClick={() => setShowSettings((s) => !s)}
-            >
-              ⚙
-            </button>
-            {showSettings && (
-              <div className="settings-popover" role="dialog" aria-label="Settings">
-                <div className="settings-section">
-                  <div className="settings-label">Theme</div>
-                  <div className="settings-options">
-                    <button type="button" className={`settings-chip ${themePref === "light" ? "active" : ""}`} onClick={() => props.onThemeChange("light")}>Light</button>
-                    <button type="button" className={`settings-chip ${themePref === "dark" ? "active" : ""}`} onClick={() => props.onThemeChange("dark")}>Dark</button>
-                    <button type="button" className={`settings-chip ${themePref === "auto" ? "active" : ""}`} onClick={() => props.onThemeChange("auto")}>Auto</button>
-                  </div>
-                </div>
-                <div className="settings-section">
-                  <div className="settings-label">Layout</div>
-                  <div className="settings-options">
-                    <button type="button" className={`settings-chip ${layoutPref === "auto" ? "active" : ""}`} onClick={() => props.onLayoutChange("auto")}>Auto</button>
-                    <button type="button" className={`settings-chip ${layoutPref === "mobile" ? "active" : ""}`} onClick={() => props.onLayoutChange("mobile")}>Mobile</button>
-                    <button type="button" className={`settings-chip ${layoutPref === "desktop" ? "active" : ""}`} onClick={() => props.onLayoutChange("desktop")}>Desktop</button>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
           </div>
         </header>
         <main id="main" className="shell-main">

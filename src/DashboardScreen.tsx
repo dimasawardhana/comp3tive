@@ -2,9 +2,7 @@ import type { Community, Discipline, Player, SavedSquad, Tournament } from "./do
 import { recentActiveTournaments, recentPlayers } from "./dashboardTeasers";
 import { PageHeader } from "./ui/PageHeader";
 import { Screen } from "./ui/Screen";
-import type { AccountSync } from "./account/useAccount";
 import { FORMAT_LABEL, STATUS_LABEL } from "./ui/constants";
-import { AccountPanel } from "./account/AccountPanel";
 
 const BADGE_CLASS: Record<string, string> = {
   futsal: "badge--futsal",
@@ -46,8 +44,7 @@ interface Props {
    * it would forget the answer the moment the user navigated away.
    */
   nudge: { onDismiss: () => void } | null;
-  /** The Account lifecycle, handed to the panel so sign-in/sign-out move data. */
-  accountSync: AccountSync;
+
 }
 
 /**
@@ -80,7 +77,6 @@ export function DashboardScreen({
   onOpenPlayer,
   onOpenTournament,
   nudge,
-  accountSync,
 }: Props) {
   if (!community) return null;
   const tournamentCount = tournaments.filter(
@@ -283,11 +279,6 @@ export function DashboardScreen({
           </button>
         </div>
       </div>
-
-      {/* Last on the page, and outside the empty-state branch: an Organizer
-          with no roster yet can still create an Account, and it sits below the
-          actions so nothing about the daily flow moves down to make room. */}
-      <AccountPanel accountSync={accountSync} />
     </Screen>
   );
 }

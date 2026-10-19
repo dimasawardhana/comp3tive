@@ -251,3 +251,24 @@ export async function clearLocalData(stores: SyncStores): Promise<void> {
     /* nothing to clear */
   }
 }
+
+/**
+ * Delete one community's document from the Account. The local cascade has
+ * already run; this stops the server copy from resurrecting the community at
+ * the next pull. Silent on failure by the same contract as the push: sync
+ * degrades, the local delete stands.
+ */
+export async function deleteCommunityDocument(communityId: string): Promise<void> {
+  const session = getSession();
+  if (!session) return;
+  try {
+    await apiFetch("/api/documents/delete", {
+      method: "POST",
+      body: JSON.stringify({ communityId }),
+    });
+  } catch {
+    // Offline or unreachable: the document resurfaces at the next sign-in
+    // pull, where the Organizer can delete it again.
+  }
+  localStorage.removeItem(syncVersionKey(session.accountId, communityId));
+}

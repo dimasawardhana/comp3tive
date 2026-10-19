@@ -261,6 +261,18 @@
       "updated_at": "2026-10-15T11:54:41Z"
     },
     {
+      "id": "TASK-123",
+      "title": "Fix D1 sync coverage for all client mutations and new-user UX friction",
+      "goal": "Fix two things reported by the Organizer: (1) D1 sync coverage - client-side mutations (player save, split-flow writes: sessions/squads/tournaments, community create, session/squad deletes) never call markDirty so they never reach D1; deleted communities have no server delete so their documents resurrect at next sign-in. Add markDirty to every mutation path, add a /api/documents/delete route, and stop deleteCommunity from pushing an empty document. (2) New-user UX: save-squad succeeds silently (no toast), the no-communities empty state points at an unlabeled topbar icon, and split-screen actions (Swap/Re-roll) and match-setup jargon (seats/eligible) are unexplained. Keep guest e2e green unedited.",
+      "acceptance": "1) Every store mutation while signed in marks its community dirty: savePlayer, split (session save), saveSquadFromSplit, consumeTeams, recordResult, undoLastResult, createTournament, onPersistResult, community create, session delete, squad delete. 2) POST /api/documents/delete removes the revision row, decomposed rows, and legacy blob for that account+community, covered by a server test. 3) deleteCommunity deletes the remote document for the removed community and does not mark it dirty. 4) Save squad shows a toast; no-communities empty state has an inline create button; split-screen Swap/Re-roll carry one-line hints; match-setup eligibility copy names the discipline. 5) npx tsc -b clean; npx vitest run green; npm run e2e green unedited.",
+      "status": "done",
+      "triage": "ready-for-agent",
+      "priority": "high",
+      "claim": null,
+      "created_at": "2026-10-19T08:16:14Z",
+      "updated_at": "2026-10-19T08:46:21Z"
+    },
+    {
       "id": "TASK-105",
       "title": "Debt 26: decide the App.tsx line count, or close the row",
       "goal": "Debt 26: decide the App.tsx line count, or close the row",
@@ -325,6 +337,17 @@
       "claim": null,
       "created_at": "2026-10-14T16:22:35Z",
       "updated_at": "2026-10-15T00:12:26Z"
+    },
+    {
+      "id": "TASK-124",
+      "title": "Settings as a nav destination with Account section and Sync now",
+      "goal": "Replace the topbar settings popover with a full Settings screen reachable from the rail and bottom nav; move the Account panel off the Dashboard into it; add a manual Sync now button for signed-in Organizers.",
+      "acceptance": "Settings appears as a sixth nav item in both layouts; theme/layout chips work and persist from the Settings screen; the Account panel renders on Settings, not the Dashboard; a signed-in Organizer sees a Sync now button that pushes every community; tsc, vitest, and the e2e suite pass.",
+      "status": "done",
+      "priority": "medium",
+      "claim": null,
+      "created_at": "2026-10-19T09:44:33Z",
+      "updated_at": "2026-10-19T09:44:54Z"
     },
     {
       "id": "TASK-107",

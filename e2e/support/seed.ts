@@ -33,8 +33,8 @@ import { DB_VERSION } from "../../src/storage/indexed-db";
 /** Re-exported for specs that read IndexedDB themselves (e.g. persistence probes). */
 export { DB_VERSION };
 
-/** The five hub destinations, matching NAV_ITEMS (src/App.tsx:62-68). */
-export type HubName = "Home" | "Roster" | "Games" | "History" | "Squads";
+/** The six hub destinations, matching NAV_ITEMS (src/shell/nav-items.ts). */
+export type HubName = "Home" | "Roster" | "Games" | "History" | "Squads" | "Settings";
 
 export interface SeedWorld {
   communities: { id: string; name: string; createdAt: number }[];

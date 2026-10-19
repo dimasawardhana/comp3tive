@@ -30,7 +30,7 @@ import { runSignInSync, runSignOutClear, type AccountSync } from "./useAccount";
 
 type Busy = "create" | "signin" | "google" | "out" | null;
 
-export function AccountPanel({ accountSync }: { accountSync: AccountSync }) {
+export function AccountPanel({ accountSync, onSyncNow }: { accountSync: AccountSync; onSyncNow?: () => Promise<boolean> }) {
   const [session, setLocalSession] = useState<Session | null>(() => getSession());
   const [busy, setBusy] = useState<Busy>(null);
   const [error, setError] = useState<string | null>(null);
@@ -94,7 +94,7 @@ export function AccountPanel({ accountSync }: { accountSync: AccountSync }) {
     });
 
   return (
-    <section className="dashboard-account" aria-label="Account">
+    <section className="account-panel" aria-label="Account">
       <div className="dashboard-teasers-head">
         <h2>Account</h2>
         <span className="kicker">Optional</span>
@@ -106,6 +106,15 @@ export function AccountPanel({ accountSync }: { accountSync: AccountSync }) {
             Signed in. Your data is in your Account and on this device.
           </p>
           <div className="account-actions">
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={onSyncNow ? () => void onSyncNow() : undefined}
+              disabled={busy !== null || !onSyncNow}
+              title="Send every community's latest data to your Account now"
+            >
+              Sync now
+            </button>
             <button type="button" className="btn btn-ghost" onClick={onSignOut} disabled={busy !== null}>
               {busy === "out" ? "Signing out…" : "Sign out"}
             </button>

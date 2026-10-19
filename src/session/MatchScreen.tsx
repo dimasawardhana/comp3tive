@@ -79,7 +79,10 @@ export function MatchScreen(props: Props) {
         <div className="match-section-head">
           <span className="match-step">2</span>
           <h2 className="match-section-title">Who&apos;s playing?</h2>
-          <span className="match-count">
+          <span
+            className="match-count"
+            title={`Players who can play ${discipline.name}: ${selectedCapable.length} of ${capable.length} selected`}
+          >
             {selectedCapable.length} / {capable.length} eligible
           </span>
         </div>
@@ -136,7 +139,7 @@ export function MatchScreen(props: Props) {
           <span className="match-step">3</span>
           <h2 className="match-section-title">How many teams?</h2>
           <span className="match-count">
-            {seatsNeeded} seats needed
+            {seatsNeeded} players needed for {teamCount} teams
           </span>
         </div>
         <div className="stepper" role="group" aria-label="Team count">
@@ -162,7 +165,9 @@ export function MatchScreen(props: Props) {
           <p className="status">Locked to {props.lockedTeamCount} teams by the tournament.</p>
         )}
         {!props.lockedTeamCount && teamCountTooHigh && maxPossibleTeams > 0 && (
-          <p className="status">Max {maxPossibleTeams} teams from {selectedCapable.length} eligible players.</p>
+          <p className="status">
+            Only {maxPossibleTeams} full {discipline.shortName} teams are possible from {selectedCapable.length} players.
+          </p>
         )}
       </section>
 

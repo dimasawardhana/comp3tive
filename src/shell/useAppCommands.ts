@@ -2,6 +2,7 @@ import { useCallback, useState } from "react";
 import type { Community, Discipline, Id, Player, SavedSquad, Tournament } from "../domain/types";
 import type { SessionStore } from "../storage/types";
 import { serializeBackup } from "../data/transfer";
+import { deleteCommunityDocument } from "../account/sync";
 import { formatError } from "../ui/format";
 import type { ToastType } from "./useToasts";
 import type { HubMode, View } from "./useNavigation";
@@ -61,6 +62,8 @@ export interface AppCommandsDeps {
    */
   exportDisciplines: Discipline[];
   deleteTournament: (id: Id) => Promise<void>;
+  deleteSession: (id: Id) => Promise<void>;
+  deleteSquad: (id: Id) => Promise<void>;
   sessionStore: SessionStore;
   recordExport: () => void;
   /** `deleteTournamentFromUI` bounces to Games only when the deleted one is on screen. */
@@ -75,6 +78,8 @@ export interface AppCommandsDeps {
 
 export interface AppCommands {
   savePlayer: (player: Player) => Promise<void>;
+  deleteSession: (id: Id) => Promise<void>;
+  deleteSquad: (id: Id) => Promise<void>;
   deletePlayer: (id: Id) => Promise<void>;
   saveDiscipline: (d: Discipline) => Promise<void>;
   deleteDiscipline: (id: Id) => Promise<void>;
@@ -92,7 +97,7 @@ const plural = (n: number, noun: string) => `${n} ${noun}${n === 1 ? "" : "s"}`;
 
 export function useAppCommands(deps: AppCommandsDeps): AppCommands {
   const {
-    savePlayer,
+    savePlayer: savePlayerFromStore,
     deletePlayer: deletePlayerFromStore,
     saveDiscipline,
     deleteDiscipline: deleteDisciplineFromStore,
@@ -107,6 +112,8 @@ export function useAppCommands(deps: AppCommandsDeps): AppCommands {
     exportSquads,
     exportDisciplines,
     deleteTournament: deleteTournamentFromStore,
+    deleteSession: deleteSessionFromStore,
+    deleteSquad: deleteSquadFromStore,
     sessionStore,
     recordExport,
     view,
@@ -117,6 +124,27 @@ export function useAppCommands(deps: AppCommandsDeps): AppCommands {
   } = deps;
 
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  const savePlayer = useCallback(
+    async (player: Player) => {
+      await savePlayerFromStore(player);
+      markDirty(activeCommunityId);
+    },
+    [savePlayerFromStore, markDirty, activeCommunityId],
+  );
+  const deleteSession = useCallback(
+    async (id: Id) => {
+      await deleteSessionFromStore(id);
+      markDirty(activeCommunityId);
+    },
+    [deleteSessionFromStore, markDirty, activeCommunityId],
+  );
+  const deleteSquad = useCallback(
+    async (id: Id) => {
+      await deleteSquadFromStore(id);
+      markDirty(activeCommunityId);
+    },
+    [deleteSquadFromStore, markDirty, activeCommunityId],
+  );
   const deletePlayer = useCallback(
     async (id: Id) => {
       try {
@@ -176,7 +204,12 @@ export function useAppCommands(deps: AppCommandsDeps): AppCommands {
         return;
       }
       const counts = await deleteCommunityCascade(id);
-      markDirty(activeCommunityId);
+      // Not markDirty(id): the community is gone locally, and pushing a
+      // payload built for a deleted community would upload an empty document.
+      // The remote document is deleted by name, so it cannot resurrect at the
+      // next pull.
+      await deleteCommunityDocument(id);
+      markDirty(activeCommunityId === id ? null : activeCommunityId);
       const parts = [
         counts.players && plural(counts.players, "player"),
         counts.sessions && plural(counts.sessions, "session"),
@@ -262,6 +295,8 @@ export function useAppCommands(deps: AppCommandsDeps): AppCommands {
 
   return {
     savePlayer,
+    deleteSession,
+    deleteSquad,
     deletePlayer,
     saveDiscipline: saveDisciplineWithNotify,
     deleteDiscipline,

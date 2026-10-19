@@ -20,16 +20,16 @@ const twoCommunities = (): SeedWorld => ({
   activeCommunityId: "comm-alpha",
 });
 
-test("fresh load lands on the Dashboard with the five hub tabs", async ({ page }) => {
+test("fresh load lands on the Dashboard with the six hub tabs", async ({ page }) => {
   await gotoSeeded(page, twoCommunities());
 
   // ADR-0005: the view stack root is the dashboard view; every fresh load lands here.
   await expect(page.locator(".screen h1")).toHaveText("Dashboard");
 
-  // The five-slot layout. The nav buttons carry no aria-label: their accessible
+  // The six-slot layout. The nav buttons carry no aria-label: their accessible
   // name IS their visible label (the icon span is aria-hidden), which is what
   // hubButton resolves. Exactly one control matches each name at this width.
-  for (const hub of ["Home", "Roster", "Games", "History", "Squads"] as const) {
+  for (const hub of ["Home", "Roster", "Games", "History", "Squads", "Settings"] as const) {
     await expect(hubButton(page, hub)).toHaveCount(1);
     await expect(hubButton(page, hub)).toBeVisible();
   }

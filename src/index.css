@@ -201,36 +201,11 @@ body {
     padding-inline: 0;
   }
 }
-.settings-trigger {
-  position: relative;
-  display: flex;
-  align-items: center;
-}
-.settings-popover {
-  position: absolute;
-  top: calc(100% + 6px);
-  right: 0;
-  z-index: 60;
-  background: var(--surface);
-  border: 1.5px solid var(--hairline);
-  border-radius: var(--r-md);
-  box-shadow: var(--shadow);
-  padding: 12px 14px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  min-width: 220px;
-}
-.settings-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 29;
-}
-
 .settings-section {
   display: flex;
   flex-direction: column;
   gap: 6px;
+  margin-bottom: 18px;
 }
 .settings-label {
   font-family: var(--font-display);
@@ -1087,11 +1062,11 @@ h1 {
 /* ---------- the account panel ---------- */
 /*
  * Deliberately quiet. The panel is optional by design, so it reads as a
- * footnote to the Dashboard rather than a call to action: the same
- * `.dashboard-teasers-head` convention for its title, and no accent colour that
- * would pull the eye away from "Split match".
+ * footnote to the Settings screen rather than a call to action: the same
+ * `.dashboard-teasers-head` convention for its title, and no accent colour
+ * that would pull the eye away from the page's real actions.
  */
-.dashboard-account {
+.account-panel {
   margin-top: 18px;
   padding-top: 14px;
   border-top: 1px solid var(--hairline);

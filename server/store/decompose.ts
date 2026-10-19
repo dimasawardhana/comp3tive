@@ -315,6 +315,26 @@ export async function decompose(
 }
 
 /**
+ * Delete every row the community owns, plus its revision row — the server
+ * half of a community deletion, so the document cannot resurrect at the next
+ * pull. One atomic `batch`. Idempotent: deleting a community the server has
+ * no rows for succeeds as a no-op, because the client's local delete already
+ * ran and a retry must not be an error.
+ */
+export function collectDeleteCommunity(
+  db: Database,
+  accountId: string,
+  communityId: string,
+): Statement[] {
+  const stmts: Statement[] = [];
+  const add: Add = (sql, ...values) => stmts.push(db.prepare(sql).bind(...values));
+  stmtClearCommunity(add, accountId, communityId);
+  add("DELETE FROM community_revisions WHERE account_id = ? AND community_id = ?", accountId, communityId);
+  add("DELETE FROM community_documents WHERE account_id = ? AND community_id = ?", accountId, communityId);
+  return stmts;
+}
+
+/**
  * Delete every row the community owns. FK cascades do most of it; the
  * statement list is explicit so a new table without a cascade fails the
  * round-trip test (leftover rows leak into the next reassemble) rather than

@@ -30,6 +30,8 @@ import { HistoryScreen } from "../session/HistoryScreen";
 import { SquadsScreen } from "../session/SquadsScreen";
 import { DisciplinesScreen } from "../domain/DisciplinesScreen";
 import { MatchScreen } from "../session/MatchScreen";
+import { SettingsScreen } from "./SettingsScreen";
+import type { PushController } from "../account/useSync";
 
 /** The `{disciplineId, teamCount}` draft Games is entered with and consumes. */
 type TournamentPrefill = { disciplineId: Id; teamCount: number };
@@ -80,8 +82,14 @@ export interface ScreenSwitchProps {
 
   // ---- stores and services the screens call into directly ----
   sessionStore: SessionStore;
-  /** The Account lifecycle (ticket 05), forwarded to the Dashboard's panel. */
+  /** The Account lifecycle (ticket 05), forwarded to the Settings screen's panel. */
   accountSync: AccountSync;
+  /** The push controller, for the Settings screen's "Sync now" button. */
+  pushController: PushController;
+  themePref: string;
+  layoutPref: string;
+  onThemeChange: (v: string) => void;
+  onLayoutChange: (v: string) => void;
   notify: (text: string, type?: ToastType) => void;
 
   // ---- navigation ----
@@ -108,6 +116,7 @@ export interface ScreenSwitchProps {
   openSession: SplitFlowResult["openSession"];
   deleteSession: (id: Id) => Promise<void>;
   deleteSquad: (id: Id) => Promise<void>;
+  markDirty: (communityId: Id | null | undefined) => void;
   saveDiscipline: (d: Discipline) => Promise<void>;
   deleteDiscipline: (id: Id) => Promise<void>;
   downloadSampleData: (disciplineId: Id) => Promise<void>;
@@ -161,13 +170,18 @@ export function ScreenSwitch(props: ScreenSwitchProps) {
     editingPlayer,
     fileInputRef,
     tournamentPrefill,
+    accountSync,
+    pushController,
+    themePref,
+    layoutPref,
+    onThemeChange,
+    onLayoutChange,
     downloadingId,
     pendingMerge,
     sessionsLoading,
     squadsLoading,
     disciplinesLoading,
     nudge,
-    accountSync,
     persisted,
     sessionStore,
     notify,
@@ -192,6 +206,7 @@ export function ScreenSwitch(props: ScreenSwitchProps) {
     openSession,
     deleteSession,
     deleteSquad,
+    markDirty,
     saveDiscipline,
     deleteDiscipline,
     downloadSampleData,
@@ -232,7 +247,16 @@ export function ScreenSwitch(props: ScreenSwitchProps) {
           }}
           onOpenTournament={(tournament) => openTournament(tournament.id)}
           nudge={nudge}
+        />
+      )}
+      {view.mode === "settings" && (
+        <SettingsScreen
+          themePref={themePref}
+          layoutPref={layoutPref}
+          onThemeChange={onThemeChange}
+          onLayoutChange={onLayoutChange}
           accountSync={accountSync}
+          pushController={pushController}
         />
       )}
       {view.mode === "roster" && (
@@ -315,6 +339,7 @@ export function ScreenSwitch(props: ScreenSwitchProps) {
             if (splitFlowRule(activeSplit.source).persistsSession) {
               const updatedSession = { ...activeSplit.session, result };
               await sessionStore.saveSession(updatedSession);
+              markDirty(updatedSession.communityId);
             }
           }}
           source={activeSplit.source}

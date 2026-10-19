@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { gotoSeeded, type SeedWorld } from "../../support/seed";
+import { gotoSeeded, hubButton, type SeedWorld } from "../../support/seed";
 
 test.use({ viewport: { width: 390, height: 844 } });
 
@@ -12,8 +12,8 @@ const world = (): SeedWorld => ({
   activeCommunityId: "comm-viewport",
 });
 
-/** Verify panel + navigation stay on viewport (fixed/sticky). */
-test("panel and navigation stay on viewport", async ({ page }) => {
+/** Verify the Settings screen + navigation stay on viewport (fixed/sticky). */
+test("settings screen and navigation stay on viewport", async ({ page }) => {
   await gotoSeeded(page, world());
 
   // 1. Topbar is sticky (stays at top when scrolling)
@@ -35,15 +35,14 @@ test("panel and navigation stay on viewport", async ({ page }) => {
     expect(navBox.y + navBox.height).toBeGreaterThanOrEqual(viewportSize.height - 5);
   }
 
-  // 3. Open settings panel → anchored to topbar
-  await page.getByTitle("Settings").click();
-  const popover = page.locator(".settings-popover");
-  await expect(popover).toBeVisible();
-  const popoverBox = await popover.boundingBox();
+  // 3. Settings is a hub now: the nav button lands on the screen, whose
+  // content sits inside the scrolling column (below the sticky topbar).
+  await hubButton(page, "Settings").click();
+  await expect(page.locator(".screen h1")).toHaveText("Settings");
+  const screenBox = await page.locator(".screen").boundingBox();
   const topbarBox2 = await topbar.boundingBox();
-  if (popoverBox && topbarBox2) {
-    // popover appears below topbar
-    expect(popoverBox.y).toBeGreaterThan(topbarBox2.y);
+  if (screenBox && topbarBox2) {
+    expect(screenBox.y).toBeGreaterThan(topbarBox2.y);
   }
 
   // 4. Click Desktop layout → layout changes

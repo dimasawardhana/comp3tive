@@ -5,7 +5,7 @@
 import { expect, test } from "@playwright/test";
 import { hubButton, type HubName } from "../../support/seed";
 
-const HUBS: HubName[] = ["Home", "Roster", "Games", "History", "Squads"];
+const HUBS: HubName[] = ["Home", "Roster", "Games", "History", "Squads", "Settings"];
 
 for (const viewport of [
   { width: 1280, height: 720 },
@@ -23,10 +23,10 @@ for (const viewport of [
       await expect(hubButton(page, hub)).toBeVisible();
     }
 
-    // Five slots, in whichever layout this width ships. A sixth NAV_ITEMS entry
-    // would render a sixth control into a five-slot bar and break the layout,
+    // Six slots, in whichever layout this width ships. A seventh NAV_ITEMS entry
+    // would render a seventh control into a six-slot bar and break the layout,
     // and HubName is hand-written so tsc cannot catch the drift.
-    await expect(page.locator(".rail-link:visible, .bottom-nav .nav-link:visible")).toHaveCount(5);
+    await expect(page.locator(".rail-link:visible, .bottom-nav .nav-link:visible")).toHaveCount(6);
 
     await hubButton(page, "Games").click();
     await expect(page.locator(".screen h1")).toHaveText("Games");

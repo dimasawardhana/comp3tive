@@ -150,6 +150,12 @@ references:
 - priority: high
 - updated: 2026-10-15T11:54:41Z
 
+### TASK-123 · Fix D1 sync coverage for all client mutations and new-user UX friction
+
+> **Goal:** Fix two things reported by the Organizer: (1) D1 sync coverage - client-side mutations (player save, split-flow writes: sessions/squads/tournaments, community create, session/squad deletes) never call markDirty so they never reach D1; deleted communities have no server delete so their documents resurrect at next sign-in. Add markDirty to every mutation path, add a /api/documents/delete route, and stop deleteCommunity from pushing an empty document. (2) New-user UX: save-squad succeeds silently (no toast), the no-communities empty state points at an unlabeled topbar icon, and split-screen actions (Swap/Re-roll) and match-setup jargon (seats/eligible) are unexplained. Keep guest e2e green unedited.
+- priority: high
+- updated: 2026-10-19T08:46:21Z
+
 ### TASK-105 · Debt 26: decide the App.tsx line count, or close the row
 
 > **Goal:** Debt 26: decide the App.tsx line count, or close the row
@@ -179,6 +185,12 @@ references:
 > **Goal:** No public or product statement asserts comp3tive has no account and no server, and the one prohibition that forbids the feature is amended.
 - priority: medium
 - updated: 2026-10-15T00:12:26Z
+
+### TASK-124 · Settings as a nav destination with Account section and Sync now
+
+> **Goal:** Replace the topbar settings popover with a full Settings screen reachable from the rail and bottom nav; move the Account panel off the Dashboard into it; add a manual Sync now button for signed-in Organizers.
+- priority: medium
+- updated: 2026-10-19T09:44:54Z
 
 ### TASK-107 · Cover the roster editor's refusal with a test
 

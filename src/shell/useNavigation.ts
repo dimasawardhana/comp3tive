@@ -3,8 +3,9 @@ import type { Id } from "../domain/types";
 import type { SplitSource } from "./useSplitFlow";
 
 export type View =
-  | { mode: "roster" }
   | { mode: "dashboard" }
+  | { mode: "roster" }
+  | { mode: "settings" }
   | { mode: "games" }
   | { mode: "history" }
   | { mode: "disciplines" }
@@ -13,7 +14,7 @@ export type View =
   | { mode: "match"; source: SplitSource }
   | { mode: "split"; source: SplitSource };
 
-export type HubMode = "dashboard" | "roster" | "games" | "history" | "squads";
+export type HubMode = "dashboard" | "roster" | "games" | "history" | "squads" | "settings";
 
 /** `[...stack, v]` — what `pushView` did inline. */
 export function pushStack(stack: View[], v: View): View[] {

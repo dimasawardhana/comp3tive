@@ -15,7 +15,7 @@
  * nothing by making a request it cannot read the answer to.
  */
 
-import { collectDecompose } from "./store/decompose";
+import { collectDecompose, collectDeleteCommunity } from "./store/decompose";
 import { reassemble } from "./store/reassemble";
 import { parseBackup, type BackupData } from "../src/data/transfer";
 import { collectCasRevision, collectInsertRevision, getRevision, listRevisions } from "./storage";
@@ -315,6 +315,19 @@ async function route(db: Database, request: Request, env: Env, pathname: string)
     }
     return json({ version: next });
   }
+  // A community deletion: remove the revision row, the decomposed rows and
+  // the dual-write blob together, so the document cannot resurrect at the
+  // next pull or sign-in. Idempotent by design — the client's local cascade
+  // already succeeded before this is called, so a retry after a lost response
+  // must succeed too.
+  if (pathname === "/api/documents/delete" && method === "POST") {
+    const accountId = await requireAccount(db, request);
+    const body = await readJson<{ communityId?: string }>(request);
+    if (!body.communityId || typeof body.communityId !== "string")
+      throw new ApiError(400, "That request is missing its community.");
+    await db.batch(collectDeleteCommunity(db, accountId, body.communityId));
+    return json({ ok: true });
+   }
 
   return json({ error: "No such endpoint." }, 404);
 }

@@ -125,6 +125,56 @@ export default function App() {
     notify,
   });
 
+  /**
+   * The Account's data lifecycle (ticket 05): one object, built once, threaded
+   * to the AccountPanel through the screen switch. `onReplaced` refreshes every
+   * domain hook so a pull renders without a reload, and activates the pulled
+   * community when the Account named one.
+   */
+  const accountSync = useMemo(
+    () => ({
+      stores: {
+        communities: communityStore,
+        roster: rosterStore,
+        sessions: sessionStore,
+        tournaments: tournamentStore,
+        squads: squadStore,
+        disciplines: disciplineStore,
+      },
+      onReplaced: async (communityId: string | null) => {
+        await communities.refresh();
+        await roster.refresh();
+        await sessions.refresh();
+        await tournaments.refresh();
+        await savedSquads.refresh();
+        await catalog.refresh();
+        if (communityId) communities.setActiveId(communityId);
+      },
+      notify,
+    }),
+    [communities, roster, sessions, tournaments, savedSquads, catalog, notify],
+  );
+  /**
+   * The Account's push (ticket 06): every store mutation marks the active
+   * community dirty, and one debounced upload carries it. Signed out, the
+   * controller is inert by construction (`markDirty` checks the session).
+   * `pagehide` flushes, so an edit-then-close still reaches the Account.
+   */
+  const pushController = useMemo(
+    () =>
+      createPushController({
+        stores: accountSync.stores,
+        activeCommunityId: () => communities.activeId,
+        notify,
+      }),
+    [accountSync, notify],
+  );
+  const markDirty = useCallback(
+    (communityId: string | null | undefined) => {
+      if (communityId) pushController.markDirty(communityId);
+    },
+    [pushController],
+  );
   const flow = useSplitFlow({
     disciplines,
     // Unscoped on purpose, like `viewTournament` above: a split's bracket
@@ -143,6 +193,7 @@ export default function App() {
     pushView,
     resetTo,
     setTournamentPrefill,
+    markDirty,
   });
   const {
     setup,
@@ -200,59 +251,18 @@ export default function App() {
     setCommunityName,
     createCommunity,
     cancelAddCommunity,
-  } = useAddCommunity(communities.create);
-
-  /**
-   * The Account's data lifecycle (ticket 05): one object, built once, threaded
-   * to the AccountPanel through the screen switch. `onReplaced` refreshes every
-   * domain hook so a pull renders without a reload, and activates the pulled
-   * community when the Account named one.
-   */
-  const accountSync = useMemo(
-    () => ({
-      stores: {
-        communities: communityStore,
-        roster: rosterStore,
-        sessions: sessionStore,
-        tournaments: tournamentStore,
-        squads: squadStore,
-        disciplines: disciplineStore,
+  } = useAddCommunity(
+    useCallback(
+      async (name: string) => {
+        const community = await communities.create(name);
+        markDirty(community.id);
+        return community;
       },
-      onReplaced: async (communityId: string | null) => {
-        await communities.refresh();
-        await roster.refresh();
-        await sessions.refresh();
-        await tournaments.refresh();
-        await savedSquads.refresh();
-        await catalog.refresh();
-        if (communityId) communities.setActiveId(communityId);
-      },
-      notify,
-    }),
-    [communities, roster, sessions, tournaments, savedSquads, catalog, notify],
+      [communities, markDirty],
+    ),
   );
 
-  /**
-   * The Account's push (ticket 06): every store mutation marks the active
-   * community dirty, and one debounced upload carries it. Signed out, the
-   * controller is inert by construction (`markDirty` checks the session).
-   * `pagehide` flushes, so an edit-then-close still reaches the Account.
-   */
-  const pushController = useMemo(
-    () =>
-      createPushController({
-        stores: accountSync.stores,
-        activeCommunityId: () => communities.activeId,
-        notify,
-      }),
-    [accountSync, notify],
-  );
-  const markDirty = useCallback(
-    (communityId: string | null | undefined) => {
-      if (communityId) pushController.markDirty(communityId);
-    },
-    [pushController],
-  );
+
   useEffect(() => {
     const flush = () => pushController.flush();
     window.addEventListener("pagehide", flush);
@@ -284,6 +294,8 @@ export default function App() {
     exportSquads: savedSquads.squads,
     exportDisciplines: catalog.disciplines,
     deleteTournament: tournaments.deleteTournament,
+    deleteSession: sessions.deleteSession,
+    deleteSquad: savedSquads.deleteSquad,
     sessionStore,
     recordExport,
     view,
@@ -351,10 +363,6 @@ export default function App() {
         onDeleteCommunity={commands.deleteCommunity}
         communityDeleteWarning={commands.communityDeleteWarning}
         onToggleAddCommunity={() => setShowAddCommunity((s) => !s)}
-        themePref={themePref}
-        layoutPref={layoutPref}
-        onThemeChange={setThemePref}
-        onLayoutChange={setLayoutPref}
         toasts={toasts}
       >
         {loadError && (
@@ -375,7 +383,10 @@ export default function App() {
           <div className="empty">
             <div className="kicker">First whistle</div>
             <div className="big">No communities yet</div>
-            <p>Use ✚ in the topbar to create your first community.</p>
+            <p>A community holds one roster: the players, teams and history of one group.</p>
+            <button type="button" className="btn btn-primary" onClick={() => setShowAddCommunity(true)}>
+              + Create a community
+            </button>
           </div>
         )}
 
@@ -406,6 +417,11 @@ export default function App() {
           disciplinesLoading={catalog.loading}
           sessionStore={sessionStore}
           accountSync={accountSync}
+          pushController={pushController}
+          themePref={themePref}
+          layoutPref={layoutPref}
+          onThemeChange={setThemePref}
+          onLayoutChange={setLayoutPref}
           notify={notify}
           goBack={goBack}
           gotoHub={gotoHub}
@@ -426,8 +442,9 @@ export default function App() {
           startSplit={startSplit}
           deleteTournamentFromUI={commands.deleteTournamentFromUI}
           openSession={openSession}
-          deleteSession={sessions.deleteSession}
-          deleteSquad={savedSquads.deleteSquad}
+          deleteSession={commands.deleteSession}
+          deleteSquad={commands.deleteSquad}
+          markDirty={markDirty}
           saveDiscipline={commands.saveDiscipline}
           deleteDiscipline={commands.deleteDiscipline}
           downloadSampleData={commands.downloadSampleData}

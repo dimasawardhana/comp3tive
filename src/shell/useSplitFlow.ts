@@ -106,6 +106,8 @@ export interface SplitFlowDeps {
   saveTournament: (t: Tournament) => Promise<void>;
   saveSquad: (s: SavedSquad) => Promise<void>;
   notify: (text: string, type?: ToastType) => void;
+  /** Marks the community dirty for the Account sync push after a store write. */
+  markDirty: (communityId: Id | null | undefined) => void;
   pushView: (v: View) => void;
   resetTo: (v: View) => void;
   setTournamentPrefill: (p: { disciplineId: Id; teamCount: number } | null) => void;
@@ -161,6 +163,7 @@ export function useSplitFlow(deps: SplitFlowDeps): SplitFlowResult {
     pushView,
     resetTo,
     setTournamentPrefill,
+    markDirty,
   } = deps;
   const [setup, setSetup] = useState<MatchSetup | null>(null);
   const [activeSplit, setActiveSplit] = useState<{ session: Session; source: SplitSource } | null>(null);
@@ -253,6 +256,7 @@ export function useSplitFlow(deps: SplitFlowDeps): SplitFlowResult {
     if (splitFlowRule(setup.source).persistsSession) {
       try {
         await sessionStore.saveSession(session);
+        markDirty(activeCommunityId);
       } catch {
         // Non-fatal: still show the split if persistence failed.
         notify("Your split wasn't saved to History.", "error");
@@ -291,6 +295,7 @@ export function useSplitFlow(deps: SplitFlowDeps): SplitFlowResult {
     try {
       const built = buildBracket(next);
       await saveTournament(built);
+      markDirty(activeCommunityId);
       openTournamentOverGames(built.id);
       setSetup(null);
     } catch (err) {
@@ -306,6 +311,7 @@ export function useSplitFlow(deps: SplitFlowDeps): SplitFlowResult {
     if (!viewTournament) return;
     try {
       await saveTournament(applyResult(viewTournament, matchId, games));
+      markDirty(activeCommunityId);
     } catch (err) {
       notify(formatError(err), "error");
     }
@@ -315,6 +321,7 @@ export function useSplitFlow(deps: SplitFlowDeps): SplitFlowResult {
     if (!viewTournament) return;
     try {
       await saveTournament(undoLastGame(viewTournament));
+      markDirty(activeCommunityId);
     } catch (err) {
       notify(formatError(err), "error");
     }
@@ -354,6 +361,7 @@ export function useSplitFlow(deps: SplitFlowDeps): SplitFlowResult {
       matches: [],
     };
     await saveTournament(tournament);
+    markDirty(activeCommunityId);
     openTournamentOverGames(tournament.id);
     setSetup(null);
   };
@@ -372,6 +380,8 @@ export function useSplitFlow(deps: SplitFlowDeps): SplitFlowResult {
       result,
     };
     await saveSquad(squad);
+    markDirty(activeCommunityId);
+    notify("Saved squad. Find it under Squads.", "success");
   };
 
   const reSplitSquad = (squad: SavedSquad) => {

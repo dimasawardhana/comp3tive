@@ -26,6 +26,13 @@ export interface PushController {
   markDirty(communityId: string): void;
   /** Push immediately, bypassing the debounce (the pagehide flush). */
   flush(): void;
+  /**
+   * Push every community the account has a local document for, and report the
+   * outcome. The Settings screen's "Sync now" button: a deliberate, visible
+   * sync the Organizer can press instead of trusting the debounce. Returns
+   * false when nothing could be pushed (offline, or not signed in).
+   */
+  syncAll(): Promise<boolean>;
   /** Stop the timer (tests, and nothing else). */
   dispose(): void;
 }
@@ -184,6 +191,23 @@ export function createPushController(ctx: PushContext): PushController {
       const current = pending;
       pending = null;
       void pushCommunity(ctx, current.communityId);
+    },
+    async syncAll() {
+      // A pending debounce is the same intent with a timer in front of it:
+      // cancel it so its community is pushed by this pass, not twice.
+      this.flush();
+      const communities = await ctx.stores.communities.listCommunities();
+      if (communities.length === 0) return true;
+      let any = false;
+      let ok = true;
+      for (const c of communities) {
+        // Sequential on purpose: one in flight (the `pushing` gate would
+        // no-op every parallel call after the first anyway).
+        const pushed = await pushCommunity(ctx, c.id);
+        if (pushed) any = true;
+        else ok = false;
+      }
+      return ok && any;
     },
     dispose() {
       if (pending) clearTimeout(pending.timer);
