@@ -42,6 +42,7 @@ export function JoinPanel({ community, communities, disciplines, savePlayer, not
   const join = useJoinRegistrations(notify);
   const [selectedCode, setSelectedCode] = useState<string | null>(null);
   const [codesForCommunity, setCodesForCommunity] = useState(false);
+  const [mintDiscipline, setMintDiscipline] = useState<string>("");
 
   const codes: JoinCodeInfo[] = useMemo(() => {
     const list = join.codes ?? [];
@@ -67,7 +68,7 @@ export function JoinPanel({ community, communities, disciplines, savePlayer, not
     );
   }
 
-  const onMint = () => void join.mintCode(community.id);
+  const onMint = () => void join.mintCode(community.id, mintDiscipline || undefined);
   const onLoadCodes = async () => {
     await join.loadCodes();
     setCodesForCommunity(true);
@@ -119,6 +120,22 @@ export function JoinPanel({ community, communities, disciplines, savePlayer, not
         Create a link anyone can use to register as a player of {community.name}. Registrations wait for you to pull them into the roster.
       </p>
       <div className="account-actions">
+        <label className="join-mint-discipline" htmlFor="join-mint-discipline">
+          For discipline
+          <select
+            id="join-mint-discipline"
+            value={mintDiscipline}
+            onChange={(e) => setMintDiscipline(e.target.value)}
+            disabled={join.busy}
+          >
+            <option value="">Any (visitor picks)</option>
+            {disciplines.map((d) => (
+              <option key={d.id} value={d.id}>
+                {d.name}
+              </option>
+            ))}
+          </select>
+        </label>
         <button type="button" className="btn btn-primary" onClick={onMint} disabled={join.busy}>
           Create a join link
         </button>
@@ -128,25 +145,31 @@ export function JoinPanel({ community, communities, disciplines, savePlayer, not
       </div>
       {codes.length > 0 && (
         <ul className="join-codes">
-          {codes.map((c) => (
-            <li key={c.code} className="join-code-row">
-              <div className="join-code-link">{joinLink(c.code)}</div>
-              <button type="button" className="btn btn-ghost" onClick={() => onCopy(c.code)}>
-                Copy
-              </button>
-              <button
-                type="button"
-                className="btn btn-primary"
-                onClick={() => {
-                  setSelectedCode(c.code);
-                  void onPull(c.code);
-                }}
-                disabled={join.busy || selectedCode === c.code}
-              >
-                Pull registrations
-              </button>
-            </li>
-          ))}
+          {codes.map((c) => {
+            const bound = disciplines.find((d) => d.id === c.disciplineId);
+            return (
+              <li key={c.code} className="join-code-row">
+                <div className="join-code-link">
+                  {joinLink(c.code)}
+                  {bound ? <span className="join-code-discipline">{bound.name}</span> : null}
+                </div>
+                <button type="button" className="btn btn-ghost" onClick={() => onCopy(c.code)}>
+                  Copy
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={() => {
+                    setSelectedCode(c.code);
+                    void onPull(c.code);
+                  }}
+                  disabled={join.busy || selectedCode === c.code}
+                >
+                  Pull registrations
+                </button>
+              </li>
+            );
+          })}
         </ul>
       )}
       {communities.length > 1 && (

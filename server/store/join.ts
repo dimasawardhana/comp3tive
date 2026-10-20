@@ -20,6 +20,9 @@ import { toBase64Url } from "../encoding";
 export interface JoinCode {
   code: string;
   communityId: string;
+  /** The discipline this link registers players for; null = whole catalog
+   * (codes minted before links became one-per-discipline). */
+  disciplineId: string | null;
   createdAt: number;
 }
 
@@ -44,38 +47,73 @@ export interface RegistrationPayload {
   notes: string | null;
 }
 
-/** Mint a code for the community. Random, so it cannot be guessed. */
-export async function mintJoinCode(db: Database, accountId: string, communityId: string, now: number): Promise<JoinCode> {
+/** Mint a code for the community, optionally bound to one discipline.
+ *
+ * Binding is the point of the mint: the discipline's id lives server-side
+ * (the public form never sees ids), the form drops its discipline picker,
+ * and a registration through that link names the bound discipline. */
+export async function mintJoinCode(
+  db: Database,
+  accountId: string,
+  communityId: string,
+  now: number,
+  disciplineId?: string,
+): Promise<JoinCode> {
   const bytes = new Uint8Array(8);
   crypto.getRandomValues(bytes);
   const code = toBase64Url(bytes);
-  await db
-    .prepare("INSERT INTO join_codes (code, account_id, community_id, created_at) VALUES (?, ?, ?, ?)")
-    .bind(code, accountId, communityId, now)
-    .run();
-  return { code, communityId, createdAt: now };
+  await db.batch([
+    db
+      .prepare("INSERT INTO join_codes (code, account_id, community_id, created_at) VALUES (?, ?, ?, ?)")
+      .bind(code, accountId, communityId, now),
+    ...(disciplineId
+      ? [
+          db
+            .prepare("INSERT INTO join_code_disciplines (code, account_id, discipline_id) VALUES (?, ?, ?)")
+            .bind(code, accountId, disciplineId),
+        ]
+      : []),
+  ]);
+  return { code, communityId, disciplineId: disciplineId ?? null, createdAt: now };
 }
 
-/** Every code the Account has minted, newest first. */
+/** Every code the Account has minted, newest first, with its binding. */
 export async function listJoinCodes(db: Database, accountId: string): Promise<JoinCode[]> {
   const rows = await db
-    .prepare("SELECT code, community_id, created_at FROM join_codes WHERE account_id = ? ORDER BY created_at DESC")
+    .prepare(
+      `SELECT c.code, c.community_id, c.created_at, b.discipline_id
+       FROM join_codes c
+       LEFT JOIN join_code_disciplines b ON b.code = c.code
+       WHERE c.account_id = ?
+       ORDER BY c.created_at DESC`,
+    )
     .bind(accountId)
-    .all<{ code: string; community_id: string; created_at: number }>();
-  return rows.map((r) => ({ code: r.code, communityId: r.community_id, createdAt: r.created_at }));
+    .all<{ code: string; community_id: string; created_at: number; discipline_id: string | null }>();
+  return rows.map((r) => ({
+    code: r.code,
+    communityId: r.community_id,
+    disciplineId: r.discipline_id,
+    createdAt: r.created_at,
+  }));
 }
 
-/** Look a code up for the public route: the community's account and community. */
+/** Look a code up for the public route: the account, community, and — when
+ * the link was minted for one discipline — that discipline's id. */
 export async function joinCodeByCode(
   db: Database,
   code: string,
-): Promise<{ accountId: string; communityId: string } | null> {
+): Promise<{ accountId: string; communityId: string; disciplineId: string | null } | null> {
   const row = await db
-    .prepare("SELECT account_id, community_id FROM join_codes WHERE code = ?")
+    .prepare(
+      `SELECT c.account_id, c.community_id, b.discipline_id
+       FROM join_codes c
+       LEFT JOIN join_code_disciplines b ON b.code = c.code
+       WHERE c.code = ?`,
+    )
     .bind(code)
-    .first<{ account_id: string; community_id: string }>();
+    .first<{ account_id: string; community_id: string; discipline_id: string | null }>();
   if (!row) return null;
-  return { accountId: row.account_id, communityId: row.community_id };
+  return { accountId: row.account_id, communityId: row.community_id, disciplineId: row.discipline_id };
 }
 
 /** The community's name from the decomposed rows, for the public form's heading. */

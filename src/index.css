@@ -274,6 +274,27 @@ body {
   background: var(--surface-2);
   padding: 6px 10px;
 }
+.join-mint-discipline {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text-2);
+}
+.join-mint-discipline select {
+  font: inherit;
+  color: var(--text-1);
+  background: var(--surface-2);
+  border: 1.5px solid var(--hairline);
+  border-radius: var(--r-sm);
+  padding: 6px 8px;
+}
+.join-code-discipline {
+  margin-left: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent);
+}
 .topbar-wrap {
   position: sticky;
   top: 0;

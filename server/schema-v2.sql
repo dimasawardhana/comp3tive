@@ -271,6 +271,21 @@ CREATE TABLE IF NOT EXISTS join_codes (
   created_at   INTEGER NOT NULL
 );
 
+-- A code's discipline binding (added when links became one-per-discipline):
+-- mint a code FOR a discipline and the public form stops offering the
+-- discipline picker — the link's discipline is the registration's discipline.
+-- Rows are absent on codes minted before the binding existed, which the
+-- routes read as "unbound": those links keep the old whole-catalog form.
+-- A separate table rather than a new column on join_codes so the schema
+-- stays CREATE IF NOT EXISTS all the way down: `npm run db:apply` re-runs
+-- idempotently and no ALTER has to be guarded.
+CREATE TABLE IF NOT EXISTS join_code_disciplines (
+  code         TEXT PRIMARY KEY REFERENCES join_codes(code) ON DELETE CASCADE,
+  account_id   TEXT NOT NULL,
+  discipline_id TEXT NOT NULL,
+  FOREIGN KEY (account_id, discipline_id) REFERENCES disciplines (account_id, id) ON DELETE CASCADE
+);
+
 -- One pending registration per form submission. `payload` is JSON (name,
 -- discipline name, role, notes) rather than normalized columns: the roster
 -- import is a read-and-review flow, never a query join, and the public form's

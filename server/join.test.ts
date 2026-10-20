@@ -102,6 +102,21 @@ async function mintedCode(db: Database): Promise<{ token: string; code: string }
   return { token, code: body.code };
 }
 
+/** Mint a code bound to the doc's Futsal (d-futsal): the bound-link tests' prefix. */
+async function boundCode(db: Database): Promise<{ token: string; code: string }> {
+  await storage.insertAccount(db, { id: "a1", handle: "handle-a1", email: "a@example.com", createdAt: 1000 });
+  const token = await sessionFor(db, "a1");
+  const adopt = await handler.fetch(authed("/api/documents/adopt", token, { method: "POST", body: JSON.stringify({ communityId: "c1", payload: doc() }) }), envFor(db));
+  expect(adopt.status).toBe(200);
+  const mint = await handler.fetch(
+    authed("/api/join/codes", token, { method: "POST", body: JSON.stringify({ communityId: "c1", disciplineId: "d-futsal" }) }),
+    envFor(db),
+  );
+  expect(mint.status).toBe(200);
+  const body = (await mint.json()) as { code: string };
+  return { token, code: body.code };
+}
+
 describe("POST /api/join/codes", () => {
   it("requires a session", async () => {
     const db = await freshDb();
@@ -126,6 +141,28 @@ describe("POST /api/join/codes", () => {
     const body = (await list.json()) as { codes: Array<{ code: string; communityId: string }> };
     expect(body.codes.map((c) => c.code)).toContain(code);
     expect(body.codes[0].communityId).toBe("c1");
+  });
+
+  it("refuses a discipline the account does not have", async () => {
+    const db = await freshDb();
+    await storage.insertAccount(db, { id: "a1", handle: "handle-a1", email: "a@example.com", createdAt: 1000 });
+    const token = await sessionFor(db, "a1");
+    const adopt = await handler.fetch(authed("/api/documents/adopt", token, { method: "POST", body: JSON.stringify({ communityId: "c1", payload: doc() }) }), envFor(db));
+    expect(adopt.status).toBe(200);
+    const mint = await handler.fetch(
+      authed("/api/join/codes", token, { method: "POST", body: JSON.stringify({ communityId: "c1", disciplineId: "d-nope" }) }),
+      envFor(db),
+    );
+    expect(mint.status).toBe(404);
+  });
+
+  it("mints a bound code and lists its binding", async () => {
+    const db = await freshDb();
+    const { token, code } = await boundCode(db);
+    const list = await handler.fetch(authed("/api/join/codes", token), envFor(db));
+    const body = (await list.json()) as { codes: Array<{ code: string; disciplineId: string | null }> };
+    const row = body.codes.find((c) => c.code === code);
+    expect(row?.disciplineId).toBe("d-futsal");
   });
 });
 
@@ -155,6 +192,16 @@ describe("GET /api/join/:code (public)", () => {
     const db = await freshDb();
     const response = await handler.fetch(request("/api/join/does-not-exist"), envFor(db));
     expect(response.status).toBe(404);
+  });
+
+  it("answers only the bound discipline for a bound code", async () => {
+    const db = await freshDb();
+    const { code } = await boundCode(db);
+    const response = await handler.fetch(request(`/api/join/${code}`), envFor(db));
+    expect(response.status).toBe(200);
+    const body = (await response.json()) as { disciplines: Array<{ id: string; name: string }> };
+    expect(body.disciplines.length).toBe(1);
+    expect(body.disciplines[0].id).toBe("d-futsal");
   });
 });
 
@@ -232,6 +279,46 @@ describe("POST /api/join/:code (public)", () => {
     const { code } = await mintedCode(db);
     const response = await handler.fetch(
       request(`/api/join/${code}`, { method: "POST", body: JSON.stringify({ name: "Ama", discipline: "Futsal", role: "Quarterback" }) }),
+      envFor(db),
+    );
+    expect(response.status).toBe(400);
+  });
+
+  it("records the bound discipline, overruling the request's", async () => {
+    const db = await freshDb();
+    const { token, code } = await boundCode(db);
+    // The bound form has no picker; a stale tab posting the seed's "Futsal"
+    // name still lands on the bound discipline — the link decides.
+    const response = await handler.fetch(
+      request(`/api/join/${code}`, {
+        method: "POST",
+        body: JSON.stringify({ name: "Ama", discipline: "Futsal", role: "Keeper", ratings: { Fitness: 3 } }),
+      }),
+      envFor(db),
+    );
+    expect(response.status).toBe(201);
+    const pull = await handler.fetch(authed("/api/join/registrations", token, { method: "POST", body: JSON.stringify({ code }) }), envFor(db));
+    const body = (await pull.json()) as { registrations: Array<{ payload: string }> };
+    const payload = JSON.parse(body.registrations[0].payload) as { disciplineName: string; ratings: Record<string, number> };
+    expect(payload.disciplineName).toBe("Futsal");
+    expect(payload.ratings).toEqual({ Fitness: 3 });
+  });
+
+  it("accepts a bound registration with no discipline in the request", async () => {
+    const db = await freshDb();
+    const { code } = await boundCode(db);
+    const response = await handler.fetch(
+      request(`/api/join/${code}`, { method: "POST", body: JSON.stringify({ name: "Ama", role: "Keeper" }) }),
+      envFor(db),
+    );
+    expect(response.status).toBe(201);
+  });
+
+  it("refuses a role the bound discipline does not offer", async () => {
+    const db = await freshDb();
+    const { code } = await boundCode(db);
+    const response = await handler.fetch(
+      request(`/api/join/${code}`, { method: "POST", body: JSON.stringify({ name: "Ama", role: "Quarterback" }) }),
       envFor(db),
     );
     expect(response.status).toBe(400);

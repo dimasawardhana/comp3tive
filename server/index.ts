@@ -342,14 +342,24 @@ async function route(db: Database, request: Request, env: Env, pathname: string)
   // silent revoke would break links the Organizer has already shared.
   if (pathname === "/api/join/codes" && method === "POST") {
     const accountId = await requireAccount(db, request);
-    const body = await readJson<{ communityId?: string }>(request);
+    const body = await readJson<{ communityId?: string; disciplineId?: unknown }>(request);
     if (!body.communityId) throw new ApiError(400, "That request is missing its community.");
     // The account must have a revision row for the community: the code points
     // public traffic at it, and one that named an unknown community would
     // serve a form whose registrations could never be pulled.
     const revision = await getRevision(db, accountId, body.communityId);
     if (!revision) throw new ApiError(404, "No such community for this Account.");
-    const code = await mintJoinCode(db, accountId, body.communityId, Date.now());
+    // A link may be minted FOR a discipline: the public form then registers
+    // for that discipline alone. The id must be one the Account's catalog
+    // holds — same rule as every other catalog reference the server checks.
+    let disciplineId: string | undefined;
+    if (typeof body.disciplineId === "string" && body.disciplineId) {
+      const disciplines = await accountDisciplines(db, accountId);
+      if (!disciplines.some((d) => d.id === body.disciplineId))
+        throw new ApiError(404, "No such discipline for this Account.");
+      disciplineId = body.disciplineId;
+    }
+    const code = await mintJoinCode(db, accountId, body.communityId, Date.now(), disciplineId);
     return json({ code: code.code, communityId: code.communityId, createdAt: code.createdAt });
   }
 
@@ -359,9 +369,6 @@ async function route(db: Database, request: Request, env: Env, pathname: string)
     return json({ codes });
   }
 
-  // The public form's data: community name and the discipline catalog with
-  // roles. No session, no account data beyond what a visitor needs to fill
-  // the form — the community's name and the catalog it offers.
   if (pathname.startsWith("/api/join/") && method === "GET" && pathname !== "/api/join/codes") {
     const code = decodeURIComponent(pathname.slice("/api/join/".length));
     const record = await joinCodeByCode(db, code);
@@ -369,6 +376,14 @@ async function route(db: Database, request: Request, env: Env, pathname: string)
     const name = await communityName(db, record.accountId, record.communityId);
     if (!name) throw new ApiError(404, "That join code does not exist.");
     const disciplines = await accountDisciplines(db, record.accountId);
+    if (record.disciplineId) {
+      // A bound link: the form offers exactly one discipline — the one the
+      // Organizer chose at mint. A binding whose discipline was deleted
+      // since (CASCADE removed the row) reads as unbound and falls back to
+      // the whole catalog, which still registers fine.
+      const bound = disciplines.find((d) => d.id === record.disciplineId);
+      if (bound) return json({ community: { name }, disciplines: [bound] });
+    }
     return json({ community: { name }, disciplines });
   }
 
@@ -387,14 +402,26 @@ async function route(db: Database, request: Request, env: Env, pathname: string)
       notes?: unknown;
     }>(request);
     const name = typeof body.name === "string" ? body.name.trim() : "";
-    const discipline = typeof body.discipline === "string" ? body.discipline.trim() : "";
+    let discipline = typeof body.discipline === "string" ? body.discipline.trim() : "";
     if (!name || name.length > 80) throw new ApiError(400, "A registration needs a name (at most 80 characters).");
-    if (!discipline || discipline.length > 60) throw new ApiError(400, "A registration needs a discipline.");
     // The discipline must be one the community offers: the form's picker is a
     // convenience, not the validation, so the server checks the name against
-    // the catalog rather than trusting the request.
+    // the catalog rather than trusting the request. A BOUND link overrules
+    // whatever the request says — the link names the discipline, not the
+    // visitor (a bound form has no picker to disagree with anyway).
     const disciplines = await accountDisciplines(db, record.accountId);
-    const offered = disciplines.filter((d) => d.name === discipline);
+    let offered = disciplines.filter((d) => d.name === discipline);
+    if (record.disciplineId) {
+      const bound = disciplines.filter((d) => d.id === record.disciplineId);
+      if (bound.length > 0) {
+        offered = bound;
+        discipline = bound[0].name;
+      }
+      // A binding whose discipline was deleted falls back to the request's
+      // discipline (still validated against the catalog), so the link
+      // degrades to the unbound form instead of 400ing forever.
+    }
+    if (!discipline || discipline.length > 60) throw new ApiError(400, "A registration needs a discipline.");
     if (offered.length === 0) throw new ApiError(400, "That discipline is not one this community offers.");
     const role = typeof body.role === "string" && body.role.trim() ? body.role.trim() : null;
     if (role && !offered.some((d) => d.roles.includes(role)))

@@ -119,8 +119,10 @@ export function joinPage(code: string): string {
   <form id="form" hidden>
     <label for="name">Your name</label>
     <input id="name" name="name" required maxlength="80" autocomplete="name" />
-    <label for="discipline">Discipline</label>
-    <select id="discipline" name="discipline" required></select>
+    <div id="discipline-wrap">
+      <label for="discipline">Discipline</label>
+      <select id="discipline" name="discipline" required></select>
+    </div>
     <label for="role">Preferred role</label>
     <select id="role" name="role"></select>
     <p class="note">Optional: leave blank if any role suits you.</p>
@@ -173,6 +175,14 @@ export function joinPage(code: string): string {
       for (const a of d.attributes) {
         if (!merged.attributes.some((x) => x.name === a.name)) merged.attributes.push(a);
       }
+    }
+    // A link minted FOR one discipline: the server already answers exactly
+    // one entry, so the picker would offer a choice of one. Hide it and say
+    // the discipline in the page's sub-line instead — the link chose it.
+    if (data.disciplines.length === 1) {
+      $("discipline-wrap").hidden = true;
+      $("sub").textContent =
+        "Register as a " + data.disciplines[0].name + " player and the organizer will add you to the roster.";
     }
     const fillRoles = () => {
       role.replaceChildren();

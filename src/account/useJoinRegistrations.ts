@@ -17,10 +17,15 @@ import { apiFetch } from "./session";
  * and this hook's callers respect it.
  */
 
-/** A join code the Account has minted, as the server reports it. */
+/** A join code the Account has minted, as the server reports it.
+ *
+ * `disciplineId` is the link's binding: registrations through the link are
+ * for that discipline and its public form shows no discipline picker. Null
+ * on links minted before bindings existed — those keep the catalog form. */
 export interface JoinCodeInfo {
   code: string;
   communityId: string;
+  disciplineId: string | null;
   createdAt: number;
 }
 
@@ -48,7 +53,7 @@ export interface JoinRegistrationApi {
   codes: JoinCodeInfo[] | null;
   /** Registration rows for the selected code, or null until a pull. */
   pending: PendingRegistration[] | null;
-  mintCode: (communityId: string) => Promise<void>;
+  mintCode: (communityId: string, disciplineId?: string) => Promise<void>;
   loadCodes: () => Promise<void>;
   pullRegistrations: (code: string) => Promise<PendingRegistration[] | null>;
   acknowledge: (ids: string[]) => Promise<void>;
@@ -57,9 +62,9 @@ export interface JoinRegistrationApi {
 interface ServerJoinCode {
   code: string;
   communityId: string;
+  disciplineId?: string | null;
   createdAt: number;
 }
-
 interface ServerRegistration {
   id: string;
   payload: string;
@@ -100,20 +105,23 @@ export function useJoinRegistrations(notify: (message: string, type?: "info" | "
   const [pending, setPending] = useState<PendingRegistration[] | null>(null);
 
   const mintCode = useCallback(
-    async (communityId: string) => {
+    async (communityId: string, disciplineId?: string) => {
       setBusy(true);
       try {
         const response = await apiFetch("/api/join/codes", {
           method: "POST",
           headers: { "content-type": "application/json" },
-          body: JSON.stringify({ communityId }),
+          body: JSON.stringify(disciplineId ? { communityId, disciplineId } : { communityId }),
         });
         if (!response || !response.ok) {
           notify("That join code could not be created.", "error");
           return;
         }
         const minted = (await response.json()) as ServerJoinCode;
-        setCodes((prev) => [{ code: minted.code, communityId: minted.communityId, createdAt: minted.createdAt }, ...(prev ?? [])]);
+        setCodes((prev) => [
+          { code: minted.code, communityId: minted.communityId, disciplineId: minted.disciplineId ?? null, createdAt: minted.createdAt },
+          ...(prev ?? []),
+        ]);
         notify("Join code created. Share the link below.", "success");
       } finally {
         setBusy(false);
@@ -131,7 +139,14 @@ export function useJoinRegistrations(notify: (message: string, type?: "info" | "
         return;
       }
       const body = (await response.json()) as { codes: ServerJoinCode[] };
-      setCodes(body.codes.map((c) => ({ code: c.code, communityId: c.communityId, createdAt: c.createdAt })));
+      setCodes(
+        body.codes.map((c) => ({
+          code: c.code,
+          communityId: c.communityId,
+          disciplineId: c.disciplineId ?? null,
+          createdAt: c.createdAt,
+        })),
+      );
     } finally {
       setBusy(false);
     }
