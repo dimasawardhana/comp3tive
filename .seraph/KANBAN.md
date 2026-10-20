@@ -5,46 +5,6 @@ _Render format 3._
 
 ## Backlog
 
-### TASK-117 · RB-1: relational schema v2 + store skeleton
-
-> **Goal:** Replace the one-blob document storage with a normalized D1 schema and the decompose/reassemble store modules that translate backup-v5 documents to and from rows.
-- priority: high
-- triage: ready-for-agent
-- claimed by: omp (session `omp-relational-backend`, until 2026-10-15T09:53:59Z)
-- updated: 2026-10-15T09:23:59Z
-references:
-  - docs/superpowers/plans/2026-10-15-relational-backend.md
-
-> **Done when:** server/schema-v2.sql defines the ~14 tables per the plan; server/store/decompose.ts and reassemble.ts pass the round-trip law test (reassemble(decompose(b)) === b) on the sample rosters; npx vitest run green; no wire-format change (endpoints untouched).
-
-> Plan: docs/superpowers/plans/2026-10-15-relational-backend.md (Task 1). ADR-0007 storage section superseded in part 2026-10-15. Invariants: wire format stays backup v5; CAS survives on community_revisions; client storage seam unchanged; guest e2e specs stay green unedited.
-
-### TASK-118 · RB-2: decompose/reassemble all entity kinds
-
-> **Goal:** Extend the store modules to cover every entity kind — communities, disciplines (with roles/attributes), players (with capabilities), split sessions, saved squads, tournaments (with teams, matches, games).
-- priority: high
-- triage: ready-for-agent
-- updated: 2026-10-15T09:15:56Z
-references:
-  - docs/superpowers/plans/2026-10-15-relational-backend.md
-
-> **Done when:** Property test: randomly generated valid documents round-trip exactly (reassemble(decompose(b)) === b, plus parseBackup(serialize(...)) === b); deterministic ordering via position columns; vitest green.
-
-> Plan: docs/superpowers/plans/2026-10-15-relational-backend.md (Task 2). ADR-0007 storage section superseded in part 2026-10-15. Invariants: wire format stays backup v5; CAS survives on community_revisions; client storage seam unchanged; guest e2e specs stay green unedited.
-
-### TASK-120 · RB-4: migration + cutover, drop community_documents
-
-> **Goal:** Migrate existing community_documents rows into the normalized tables and cut over: read every row, decompose, write community_revisions at the row's version, verify the round-trip per row, then drop community_documents from the schema.
-- priority: high
-- triage: ready-for-agent
-- updated: 2026-10-15T09:16:21Z
-references:
-  - docs/superpowers/plans/2026-10-15-relational-backend.md
-
-> **Done when:** Migration script (scripts/migrate-documents.ts or a one-shot Worker route) verified against a migrated local D1 that passes the full suite; backup export taken before the live migration; community_documents dropped only after verification.
-
-> Plan: docs/superpowers/plans/2026-10-15-relational-backend.md (Task 4). ADR-0007 storage section superseded in part 2026-10-15. Invariants: wire format stays backup v5; CAS survives on community_revisions; client storage seam unchanged; guest e2e specs stay green unedited. After the drop, rollback means restoring the pre-migration export.
-
 ### TASK-122 · Deploy feature/account and enable Google sign-in on the live origin
 
 > **Goal:** Deploy the passkey fix and enable Google sign-in on the live origin. Both root causes of the passkey 500 are now fixed and the fix is committed to master (c8709dd): (a) the remote D1 had zero application tables because nothing in the deploy applies a schema -- fixed out of band on the remote DB, and still a deploy-runbook gap worth an npm script; (b) the client had no way to create an Account, because startPasskeyRegistration was wired to no UI -- fixed with a distinct Create an account button and actionable ceremony messages. Remaining: npx wrangler deploy, then the Google OAuth client and its secret.
@@ -67,19 +27,6 @@ references:
 > 4. npm run build && npx wrangler deploy, then re-run the browser checks in Done-when.
 > VERIFIED LOCALLY before deploy (wrangler dev --local on :8787 serving dist/, Chromium with a virtual authenticator): register/options+verify 200, signin/options+verify 200, documents/adopt on first sign-in then documents/pull on the second, D1 rows accounts=1 credentials=1, and the no-credential sign-in path shows the intended message rather than the raw DOMException. Full chain green at c8709dd: npx tsc -b 0; npx vitest run 915/915 (65 files); npm run e2e 124/124 with no spec edited; npm run build clean.
 > NOTE: passkeys registered on the workers.dev origin are development-disposable per ADR-0008 (a workers.dev host is on the Public Suffix List, so a credential there can never be shared with a custom domain). A custom domain must be settled before real organizers register.
-
-### TASK-121 · RB-5: query endpoints (follow-up)
-
-> **Goal:** Expose the new query capability on the wire: leaderboard by discipline+attribute, cross-community player search, per-discipline session history.
-- priority: medium
-- triage: ready-for-agent
-- updated: 2026-10-15T09:16:32Z
-references:
-  - docs/superpowers/plans/2026-10-15-relational-backend.md
-
-> **Done when:** GET endpoints in server/store/queries.ts-backed routes, account-scoped from the token; a grep gate confirms every query in server/store/queries.ts carries account_id in its WHERE; client UI consuming them is a separate design task with its own ADR note (touches the no-screen-awaits-a-fetch invariant).
-
-> Plan: docs/superpowers/plans/2026-10-15-relational-backend.md (Task 5, follow-up, not part of the storage build). ADR-0007 storage section superseded in part 2026-10-15. Invariants: wire format stays backup v5; client storage seam unchanged; guest e2e specs stay green unedited.
 
 
 ## Done
@@ -144,17 +91,41 @@ references:
 - priority: high
 - updated: 2026-10-15T07:48:43Z
 
+### TASK-117 · RB-1: relational schema v2 + store skeleton
+
+> **Goal:** Replace the one-blob document storage with a normalized D1 schema and the decompose/reassemble store modules that translate backup-v5 documents to and from rows.
+- priority: high
+- updated: 2026-10-19T14:35:48Z
+
+### TASK-118 · RB-2: decompose/reassemble all entity kinds
+
+> **Goal:** Extend the store modules to cover every entity kind — communities, disciplines (with roles/attributes), players (with capabilities), split sessions, saved squads, tournaments (with teams, matches, games).
+- priority: high
+- updated: 2026-10-19T14:36:17Z
+
 ### TASK-119 · RB-3: rewire adopt/pull/push with dual-write
 
 > **Goal:** Route the existing document endpoints through the new store: push = CAS on community_revisions as the first statement then decompose in one transaction; pull = reassemble; adopt = revision row at 1 plus decompose. community_documents stays in dual-write (write both, read new) as the rollback window.
 - priority: high
 - updated: 2026-10-15T11:54:41Z
 
+### TASK-120 · RB-4: migration + cutover, drop community_documents
+
+> **Goal:** Migrate existing community_documents rows into the normalized tables and cut over: read every row, decompose, write community_revisions at the row's version, verify the round-trip per row, then drop community_documents from the schema.
+- priority: high
+- updated: 2026-10-19T14:52:34Z
+
 ### TASK-123 · Fix D1 sync coverage for all client mutations and new-user UX friction
 
 > **Goal:** Fix two things reported by the Organizer: (1) D1 sync coverage - client-side mutations (player save, split-flow writes: sessions/squads/tournaments, community create, session/squad deletes) never call markDirty so they never reach D1; deleted communities have no server delete so their documents resurrect at next sign-in. Add markDirty to every mutation path, add a /api/documents/delete route, and stop deleteCommunity from pushing an empty document. (2) New-user UX: save-squad succeeds silently (no toast), the no-communities empty state points at an unlabeled topbar icon, and split-screen actions (Swap/Re-roll) and match-setup jargon (seats/eligible) are unexplained. Keep guest e2e green unedited.
 - priority: high
 - updated: 2026-10-19T08:46:21Z
+
+### TASK-125 · Public player registration: join codes and a public /join/:code form
+
+> **Goal:** Let an Organizer mint a join code for a community and share a public link. Anyone with the link fills a registration form (name, discipline, role, notes) that lands in a pending-registrations table; the Organizer pulls pending registrations into the roster from the Settings screen.
+- priority: high
+- updated: 2026-10-19T12:15:21Z
 
 ### TASK-105 · Debt 26: decide the App.tsx line count, or close the row
 
@@ -185,6 +156,12 @@ references:
 > **Goal:** No public or product statement asserts comp3tive has no account and no server, and the one prohibition that forbids the feature is amended.
 - priority: medium
 - updated: 2026-10-15T00:12:26Z
+
+### TASK-121 · RB-5: query endpoints (follow-up)
+
+> **Goal:** Expose the new query capability on the wire: leaderboard by discipline+attribute, cross-community player search, per-discipline session history.
+- priority: medium
+- updated: 2026-10-19T15:01:57Z
 
 ### TASK-124 · Settings as a nav destination with Account section and Sync now
 

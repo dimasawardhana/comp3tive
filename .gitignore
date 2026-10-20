@@ -12,7 +12,7 @@ test-results/
 .omp/
 .omp_session/
 .superpowers/
-.scratch/review/
+.scratch/
 
 # Local secrets and deploy state (Cloudflare static-assets Worker)
 .env
