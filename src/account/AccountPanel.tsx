@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { getSession, startPasskeyRegistration, signInWithPasskey, signInWithGoogle, signOut, type Session } from "./session";
 import { googleClientId, requestGoogleCredential } from "./google-signin";
 import { runSignInSync, runSignOutClear, type AccountSync } from "./useAccount";
@@ -34,6 +34,8 @@ export function AccountPanel({ accountSync, onSyncNow }: { accountSync: AccountS
   const [session, setLocalSession] = useState<Session | null>(() => getSession());
   const [busy, setBusy] = useState<Busy>(null);
   const [error, setError] = useState<string | null>(null);
+  /** Where Google's rendered button lands when One Tap is suppressed. */
+  const googleButtonRef = useRef<HTMLDivElement>(null);
   /**
    * Every way in is always offered, and nothing is fetched to decide that.
    *
@@ -82,7 +84,7 @@ export function AccountPanel({ accountSync, onSyncNow }: { accountSync: AccountS
     void run("google", async () => {
       const clientId = await googleClientId();
       if (!clientId) throw new Error("Google sign-in is not configured on this deployment.");
-      await signInWithGoogle(await requestGoogleCredential(clientId));
+      await signInWithGoogle(await requestGoogleCredential(clientId, googleButtonRef.current ?? undefined));
       await runSignInSync(accountSync);
     });
   const onSignOut = () =>
@@ -146,6 +148,10 @@ export function AccountPanel({ accountSync, onSyncNow }: { accountSync: AccountS
               {busy === "google" ? "Talking to Google…" : "Sign in with Google"}
             </button>
           </div>
+          {/* One Tap's fallback lands here: when Google declines the prompt
+              it renders its own button into this div, and the ghost button
+              above stays as the affordance that started the flow. */}
+          <div ref={googleButtonRef} className="account-google-fallback" />
         </div>
       )}
 

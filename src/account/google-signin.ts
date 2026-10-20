@@ -26,6 +26,19 @@ interface GoogleIdentityServices {
         cancel_on_tap_outside?: boolean;
       }): void;
       prompt(momentListener?: (notification: { isNotDisplayed(): boolean; isSkippedMoment(): boolean }) => void): void;
+      /**
+       * The rendered-button fallback. One Tap is best-effort by Google's own
+       * documentation, `isSkippedMoment()` is a normal outcome (no Google
+       * session in the profile, third-party cookies blocked, or the prompt
+       * was dismissed once and Google now suppresses it for hours), so a
+       * button that only ever calls `prompt()` is a button that does nothing
+       * for exactly the people it exists for. A rendered button opens the
+       * account chooser on click, which works in every one of those states.
+       */
+      renderButton(
+        parent: HTMLElement,
+        options: { type?: string; size?: string; text?: string; shape?: string; theme?: string },
+      ): void;
     };
   };
 }
@@ -74,8 +87,14 @@ export async function googleClientId(): Promise<string | null> {
  * Resolves with the token, or rejects with something a person can act on. The
  * token is verified server-side and is never trusted here for anything beyond
  * "this is what Google said".
+ *
+ * `fallback`, when supplied and still in the document, receives Google's own
+ * rendered sign-in button whenever One Tap declines to appear — the promise
+ * then stays pending until the Organizer picks an account through it (or
+ * abandons the panel and the call's lifetime ends with the panel). Callers
+ * that pass no container keep the one-shot contract.
  */
-export async function requestGoogleCredential(clientId: string): Promise<string> {
+export async function requestGoogleCredential(clientId: string, fallback?: HTMLElement): Promise<string> {
   await loadScript();
   const gsi = window.google;
   if (!gsi) throw new Error("Google Sign-In did not load.");
@@ -101,10 +120,17 @@ export async function requestGoogleCredential(clientId: string): Promise<string>
     });
 
     gsi.accounts.id.prompt((notification) => {
-      // One Tap can be suppressed (no Google session, or the browser has decided
-      // to stay quiet). Saying so is better than a button that appears to do
-      // nothing, and it is not an error state the caller can retry usefully.
       if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+        // One Tap declined to appear, which is a normal state, not an error.
+        // With a container, hand the choice to Google's rendered button: it
+        // opens the account chooser on click and works where One Tap will
+        // not (no Google session, blocked third-party cookies, the dismissal
+        // cooldown). Without one (callers that only want the answer), keep
+        // the old contract and report.
+        if (fallback && fallback.isConnected) {
+          gsi.accounts.id.renderButton(fallback, { type: "standard", size: "large", text: "signin_with", shape: "pill", theme: "filled_blue" });
+          return;
+        }
         settle(() => reject(new Error("Google did not offer a sign-in. Try a passkey instead.")));
       }
     });

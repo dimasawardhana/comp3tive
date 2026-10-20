@@ -15,7 +15,8 @@
     "test:watch": "vitest",
     "capture:hero": "node scripts/capture-hero.mjs",
     "e2e": "playwright test --config=e2e/playwright.config.ts",
-    "e2e:live": "playwright test --config=e2e/live.playwright.config.ts"
+    "e2e:live": "playwright test --config=e2e/live.playwright.config.ts",
+    "db:apply": "wrangler d1 execute comp3tive-db --remote --file=server/schema.sql && wrangler d1 execute comp3tive-db --remote --file=server/schema-v2.sql"
   },
   "dependencies": {
     "@simplewebauthn/browser": "13.3.0",
