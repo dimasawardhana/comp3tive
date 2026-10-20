@@ -24,10 +24,20 @@ export interface JoinCodeInfo {
   createdAt: number;
 }
 
-/** One pending registration, as the public form submitted it. */
+/** One pending registration, as the public form submitted it.
+ *
+ * `ratings` is keyed by attribute name; null on rows older than the rating
+ * form (and on rows whose discipline offered no attributes).
+ */
 export interface PendingRegistration {
   id: string;
-  payload: { name: string; disciplineName: string; roleName: string | null; notes: string | null };
+  payload: {
+    name: string;
+    disciplineName: string;
+    roleName: string | null;
+    ratings: Record<string, number> | null;
+    notes: string | null;
+  };
   createdAt: number;
 }
 
@@ -67,6 +77,14 @@ function parseRegistration(row: ServerRegistration): PendingRegistration | null 
         name: payload.name,
         disciplineName: payload.disciplineName,
         roleName: typeof payload.roleName === "string" ? payload.roleName : null,
+        ratings:
+          payload.ratings && typeof payload.ratings === "object"
+            ? Object.fromEntries(
+                Object.entries(payload.ratings).filter(
+                  (entry): entry is [string, number] => typeof entry[1] === "number",
+                ),
+              )
+            : null,
         notes: typeof payload.notes === "string" ? payload.notes : null,
       },
       createdAt: row.created_at,

@@ -30,11 +30,17 @@ export interface JoinRegistration {
   createdAt: number;
 }
 
-/** A registration's payload: the form's fields, validated before storage. */
+/** A registration's payload: the form's fields, validated before storage.
+ *
+ * `ratings` is keyed by attribute NAME (the public form knows no ids) with the
+ * visitor's self-assessed values. Null on rows written before this field
+ * existed; consumers default those to the middle rating.
+ */
 export interface RegistrationPayload {
   name: string;
   disciplineName: string;
   roleName: string | null;
+  ratings: Record<string, number> | null;
   notes: string | null;
 }
 
@@ -81,33 +87,57 @@ export async function communityName(db: Database, accountId: string, communityId
   return row?.name ?? null;
 }
 
-/** The account's disciplines (name, short name, roles), for the form's picker.
+/** The account's disciplines (name, roles, attributes), for the public form.
  *
  * Disciplines are per-ACCOUNT, not per-community (schema-v2's decision table):
- * the catalog is shared, so the public form offers the whole catalog. Role
- * names ride along as a newline-joined list so the form needs no second query.
+ * the catalog is shared, so the public form offers the whole catalog. Role and
+ * attribute names ride along (newline-joined) so the form needs no second
+ * query. An attribute's bounds come too: the form's rating controls and the
+ * POST's validation share one definition of a legal rating.
  */
-export async function accountDisciplines(
-  db: Database,
-  accountId: string,
-): Promise<Array<{ id: string; name: string; shortName: string; roles: string[] }>> {
+export interface JoinDiscipline {
+  id: string;
+  name: string;
+  shortName: string;
+  roles: string[];
+  attributes: Array<{ name: string; min: number; max: number }>;
+}
+
+export async function accountDisciplines(db: Database, accountId: string): Promise<JoinDiscipline[]> {
   const rows = await db
     .prepare(
       `SELECT d.id, d.name, d.short_name,
               (SELECT GROUP_CONCAT(r.name, '\n') FROM discipline_roles r
                 WHERE r.account_id = d.account_id AND r.discipline_id = d.id
-                ORDER BY r.position) AS roles
+                ORDER BY r.position) AS roles,
+              (SELECT GROUP_CONCAT(a.name || '\t' || COALESCE(a.min_def, 1) || '\t' || COALESCE(a.max_def, 5), '\n')
+                FROM discipline_attributes a
+                WHERE a.account_id = d.account_id AND a.discipline_id = d.id
+                ORDER BY a.position) AS attributes
        FROM disciplines d
        WHERE d.account_id = ?
        ORDER BY d.rowid`,
     )
     .bind(accountId)
-    .all<{ id: string; name: string; short_name: string; roles: string | null }>();
+    .all<{
+      id: string;
+      name: string;
+      short_name: string;
+      roles: string | null;
+      attributes: string | null;
+    }>();
   return rows.map((r) => ({
     id: r.id,
     name: r.name,
     shortName: r.short_name,
     roles: r.roles === null ? [] : r.roles.split("\n"),
+    attributes:
+      r.attributes === null
+        ? []
+        : r.attributes.split("\n").map((line) => {
+            const [name, min, max] = line.split("\t");
+            return { name, min: Number(min), max: Number(max) };
+          }),
   }));
 }
 

@@ -76,6 +76,29 @@ button:disabled { opacity: .6; cursor: default; }
 p.note { font-size: .875rem; color: var(--muted); margin: .25rem 0 0; }
 p.error { color: var(--accent); font-weight: 600; margin: 1rem 0 0; }
 p.done { font-weight: 600; margin: 1rem 0 0; }
+fieldset.ratings {
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  background: var(--card);
+  margin: 1.5rem 0 0;
+  padding: .75rem 1rem 1rem;
+}
+fieldset.ratings legend { font-weight: 600; padding: 0 .35rem; }
+.rating-row { margin: .75rem 0 0; }
+.rating-row .rating-head {
+  display: flex; justify-content: space-between; align-items: baseline;
+}
+.rating-row .rating-head label { margin: 0; font-weight: 600; }
+.rating-row .rating-head output {
+  font-weight: 600; color: var(--accent); font-variant-numeric: tabular-nums;
+}
+.rating-row input[type="range"] {
+  margin: .25rem 0 0; padding: 0; height: 1.5rem; accent-color: var(--accent);
+}
+.rating-row .rating-ticks {
+  display: flex; justify-content: space-between;
+  font-size: .75rem; color: var(--muted); margin-top: .1rem;
+}
 `;
 
 /** The form document. `code` is already validated as the URL's code segment. */
@@ -101,12 +124,16 @@ export function joinPage(code: string): string {
     <label for="role">Preferred role</label>
     <select id="role" name="role"></select>
     <p class="note">Optional: leave blank if any role suits you.</p>
+    <fieldset id="ratings" class="ratings">
+      <legend>How strong are you?</legend>
+      <p class="note">Rate yourself 1 to 5. The organizer can adjust these later.</p>
+    </fieldset>
     <label for="notes">Notes for the organizer</label>
     <textarea id="notes" name="notes" maxlength="500"></textarea>
     <button type="submit" id="submit">Register</button>
-    <p class="error" id="error" hidden></p>
-    <p class="done" id="done" hidden></p>
   </form>
+  <p class="error" id="error" hidden></p>
+  <p class="done" id="done" hidden></p>
 </main>
 <script>
 (async () => {
@@ -128,19 +155,24 @@ export function joinPage(code: string): string {
     const discipline = $("discipline"), role = $("role");
     // Two disciplines can share a name (the seed Futsal and an adopted
     // document's own Futsal). The picker offers the name once, with the
-    // roles of every same-named entry merged, so the visitor never sees a
-    // duplicate option whose roles silently depend on which copy the
-    // browser happened to keep.
+    // roles and attributes of every same-named entry merged (first copy's
+    // bounds win for a duplicated attribute name), so the visitor never
+    // sees a duplicate option whose roles silently depend on which copy
+    // the browser happened to keep.
     const byName = new Map();
     for (const d of data.disciplines) {
       if (!byName.has(d.name)) {
-        byName.set(d.name, { name: d.name, roles: [] });
+        byName.set(d.name, { name: d.name, roles: [], attributes: [] });
         const option = document.createElement("option");
         option.value = d.name;
         option.textContent = d.name;
         discipline.appendChild(option);
       }
-      byName.get(d.name).roles.push(...d.roles);
+      const merged = byName.get(d.name);
+      merged.roles.push(...d.roles);
+      for (const a of d.attributes) {
+        if (!merged.attributes.some((x) => x.name === a.name)) merged.attributes.push(a);
+      }
     }
     const fillRoles = () => {
       role.replaceChildren();
@@ -157,8 +189,50 @@ export function joinPage(code: string): string {
         role.appendChild(option);
       }
     };
-    discipline.addEventListener("change", fillRoles);
+    // One slider per attribute, bounded by the catalog, default the middle
+    // (the same default the organizer-side import applies to old rows).
+    const ratings = $("ratings");
+    const fillRatings = () => {
+      const d = byName.get(discipline.value);
+      ratings.replaceChildren();
+      const legend = document.createElement("legend");
+      legend.textContent = "How strong are you?";
+      ratings.appendChild(legend);
+      const hint = document.createElement("p");
+      hint.className = "note";
+      hint.textContent = "Rate yourself honestly. The organizer can adjust these later.";
+      ratings.appendChild(hint);
+      if (!d || d.attributes.length === 0) return;
+      for (const a of d.attributes) {
+        const min = Number.isFinite(a.min) ? a.min : 1;
+        const max = Number.isFinite(a.max) ? a.max : 5;
+        const mid = Math.round((min + max) / 2);
+        const row = document.createElement("div");
+        row.className = "rating-row";
+        const head = document.createElement("div");
+        head.className = "rating-head";
+        const label = document.createElement("label");
+        label.textContent = a.name;
+        const out = document.createElement("output");
+        out.textContent = String(mid);
+        head.appendChild(label); head.appendChild(out);
+        const slider = document.createElement("input");
+        slider.type = "range";
+        slider.min = min; slider.max = max; slider.step = 1; slider.value = mid;
+        slider.dataset.name = a.name;
+        slider.addEventListener("input", () => { out.textContent = slider.value; });
+        const ticks = document.createElement("div");
+        ticks.className = "rating-ticks";
+        const lo = document.createElement("span"); lo.textContent = String(min);
+        const hi = document.createElement("span"); hi.textContent = String(max);
+        ticks.appendChild(lo); ticks.appendChild(hi);
+        row.appendChild(head); row.appendChild(slider); row.appendChild(ticks);
+        ratings.appendChild(row);
+      }
+    };
+    discipline.addEventListener("change", () => { fillRoles(); fillRatings(); });
     fillRoles();
+    fillRatings();
     $("form").hidden = false;
     $("form").addEventListener("submit", async (event) => {
       event.preventDefault();
@@ -173,6 +247,11 @@ export function joinPage(code: string): string {
             name: $("name").value,
             discipline: discipline.value,
             role: role.value,
+            // Keyed by attribute name (the slider's data), not its label's
+            // text: the name is the wire contract the server validates.
+            ratings: Object.fromEntries(
+              [...ratings.querySelectorAll("input[type=range]")].map((s) => [s.dataset.name, Number(s.value)])
+            ),
             notes: $("notes").value,
           }),
         });

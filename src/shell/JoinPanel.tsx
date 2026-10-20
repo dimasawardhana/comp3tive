@@ -156,9 +156,19 @@ export function JoinPanel({ community, communities, disciplines, savePlayer, not
   );
 }
 
-/** Map a registration's form answers onto a Player: names to ids, everything else default. */
-function registrationToPlayer(
-  registration: { payload: { name: string; disciplineName: string; roleName: string | null; notes: string | null } },
+/** Map a registration's form answers onto a Player: names to ids, ratings to
+ * attribute ids, anything missing to the middle rating. Exported for tests
+ * of the pull-import contract. */
+export function registrationToPlayer(
+  registration: {
+    payload: {
+      name: string;
+      disciplineName: string;
+      roleName: string | null;
+      ratings: Record<string, number> | null;
+      notes: string | null;
+    };
+  },
   communityId: Id,
   disciplines: Discipline[],
 ): Player | null {
@@ -171,6 +181,7 @@ function registrationToPlayer(
   // A discipline with no roles produces a player eligible for nothing, which
   // `validatePlayer` rejects; the CSV import skips those rows and so does this.
   if (eligible.length === 0) return null;
+  const submitted = registration.payload.ratings ?? {};
   return {
     id: crypto.randomUUID(),
     communityId,
@@ -180,9 +191,12 @@ function registrationToPlayer(
     capabilities: [
       {
         disciplineId: discipline.id,
-        // Default rating: the middle. The Organizer edits strengths in the
-        // roster; a registration carries no basis for a stronger claim.
-        attributeRatings: Object.fromEntries(discipline.attributes.map((a) => [a.id, 3])),
+        // Self-assessed where the visitor rated themselves; the middle
+        // rating where they did not (or where the row predates the rating
+        // form). The Organizer reviews strengths either way.
+        attributeRatings: Object.fromEntries(
+          discipline.attributes.map((a) => [a.id, submitted[a.name] ?? 3]),
+        ),
         eligibleRoles: eligible,
         preferredRole: roleId,
       },

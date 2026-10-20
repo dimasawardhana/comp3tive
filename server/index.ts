@@ -101,6 +101,10 @@ async function readJson<T>(request: Request): Promise<T> {
   }
 }
 
+function isRecord(v: unknown): v is Record<string, unknown> {
+  return typeof v === "object" && v !== null;
+}
+
 /** Parse a document payload, mapping a rejected document onto a 400. */
 function parseOr400(payload: string): BackupData {
   try {
@@ -375,7 +379,13 @@ async function route(db: Database, request: Request, env: Env, pathname: string)
     const code = decodeURIComponent(pathname.slice("/api/join/".length));
     const record = await joinCodeByCode(db, code);
     if (!record) throw new ApiError(404, "That join code does not exist.");
-    const body = await readJson<{ name?: unknown; discipline?: unknown; role?: unknown; notes?: unknown }>(request);
+    const body = await readJson<{
+      name?: unknown;
+      discipline?: unknown;
+      role?: unknown;
+      ratings?: unknown;
+      notes?: unknown;
+    }>(request);
     const name = typeof body.name === "string" ? body.name.trim() : "";
     const discipline = typeof body.discipline === "string" ? body.discipline.trim() : "";
     if (!name || name.length > 80) throw new ApiError(400, "A registration needs a name (at most 80 characters).");
@@ -384,16 +394,31 @@ async function route(db: Database, request: Request, env: Env, pathname: string)
     // convenience, not the validation, so the server checks the name against
     // the catalog rather than trusting the request.
     const disciplines = await accountDisciplines(db, record.accountId);
-    if (!disciplines.some((d) => d.name === discipline))
-      throw new ApiError(400, "That discipline is not one this community offers.");
+    const offered = disciplines.filter((d) => d.name === discipline);
+    if (offered.length === 0) throw new ApiError(400, "That discipline is not one this community offers.");
     const role = typeof body.role === "string" && body.role.trim() ? body.role.trim() : null;
-    if (role && !disciplines.some((d) => d.name === discipline && d.roles.includes(role)))
+    if (role && !offered.some((d) => d.roles.includes(role)))
       throw new ApiError(400, "That role is not one the discipline offers.");
+    // Self-assessed ratings, same rule as roles: every key must name an
+    // attribute the discipline defines (names merged across same-named
+    // disciplines, exactly what the form offered) and every value must sit in
+    // that attribute's bounds. Out-of-catalog keys are dropped, not rejected:
+    // a stale tab from before a catalog edit should still register.
+    const catalog = new Map<string, { min: number; max: number }>();
+    for (const d of offered) for (const a of d.attributes) catalog.set(a.name, a);
+    const ratings: Record<string, number> = {};
+    if (isRecord(body.ratings)) {
+      for (const [key, value] of Object.entries(body.ratings)) {
+        const bounds = catalog.get(key);
+        if (!bounds || typeof value !== "number" || !Number.isInteger(value)) continue;
+        ratings[key] = Math.min(bounds.max, Math.max(bounds.min, value));
+      }
+    }
     const notes = typeof body.notes === "string" && body.notes.trim() ? body.notes.trim().slice(0, 500) : null;
     const now = Date.now();
     if ((await countRegistrations(db, code, now - 60_000)) >= 20)
       throw new ApiError(429, "That community's registration form is busy. Try again in a minute.");
-    const payload: RegistrationPayload = { name, disciplineName: discipline, roleName: role, notes };
+    const payload: RegistrationPayload = { name, disciplineName: discipline, roleName: role, ratings, notes };
     const registration = await insertRegistration(db, code, payload, now);
     return json({ id: registration.id }, 201);
   }

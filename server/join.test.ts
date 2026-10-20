@@ -137,16 +137,18 @@ describe("GET /api/join/:code (public)", () => {
     expect(response.status).toBe(200);
     const body = (await response.json()) as {
       community: { name: string };
-      disciplines: Array<{ name: string; roles: string[] }>;
+      disciplines: Array<{ name: string; roles: string[]; attributes: Array<{ name: string; min: number; max: number }> }>;
     };
     expect(body.community.name).toBe("Sunday League");
     // The catalog is the ACCOUNT's (schema-v2's decision): the seed
     // disciplines ride along with the adopted document's own, and every
-    // discipline lists its roles. The doc's own Futsal is last (rowid order).
+    // discipline lists its roles and attributes. The doc's own Futsal is
+    // last (rowid order).
     expect(body.disciplines.length).toBeGreaterThanOrEqual(1);
     const last = body.disciplines[body.disciplines.length - 1];
     expect(last.name).toBe("Futsal");
     expect([...last.roles].sort()).toEqual(["Anchor", "Keeper"]);
+    expect(last.attributes).toContainEqual({ name: "Fitness", min: 1, max: 5 });
   });
 
   it("404s an unknown code", async () => {
@@ -173,6 +175,46 @@ describe("POST /api/join/:code (public)", () => {
     const form = await handler.fetch(request(`/api/join/${code}`), envFor(db));
     const body = (await form.json()) as Record<string, unknown>;
     expect(body.registrations).toBeUndefined();
+  });
+
+  it("stores self-assessed ratings, clamped to the attribute's bounds, dropping unknown keys", async () => {
+    const db = await freshDb();
+    const { token, code } = await mintedCode(db);
+    const response = await handler.fetch(
+      request(`/api/join/${code}`, {
+        method: "POST",
+        body: JSON.stringify({
+          name: "Ama",
+          discipline: "Futsal",
+          role: "Keeper",
+          ratings: { Fitness: 4, Sprint: 5, Bogus: 9, // Sprint and Bogus are not this discipline's
+          },
+        }),
+      }),
+      envFor(db),
+    );
+    expect(response.status).toBe(201);
+    const pull = await handler.fetch(authed("/api/join/registrations", token, { method: "POST", body: JSON.stringify({ code }) }), envFor(db));
+    const body = (await pull.json()) as { registrations: Array<{ payload: string }> };
+    const payload = JSON.parse(body.registrations[0].payload) as { ratings: Record<string, number> };
+    // Clamped into Fitness's 1..5, unknown attributes dropped entirely.
+    expect(payload.ratings).toEqual({ Fitness: 4 });
+  });
+
+  it("clamps an out-of-bounds rating into the attribute's range", async () => {
+    const db = await freshDb();
+    const { token, code } = await mintedCode(db);
+    await handler.fetch(
+      request(`/api/join/${code}`, {
+        method: "POST",
+        body: JSON.stringify({ name: "Ama", discipline: "Futsal", ratings: { Fitness: 99 } }),
+      }),
+      envFor(db),
+    );
+    const pull = await handler.fetch(authed("/api/join/registrations", token, { method: "POST", body: JSON.stringify({ code }) }), envFor(db));
+    const body = (await pull.json()) as { registrations: Array<{ payload: string }> };
+    const payload = JSON.parse(body.registrations[0].payload) as { ratings: Record<string, number> };
+    expect(payload.ratings).toEqual({ Fitness: 5 });
   });
 
   it("refuses a discipline the community does not offer", async () => {
