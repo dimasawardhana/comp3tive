@@ -395,6 +395,7 @@ export default function App() {
           viewTournament={viewTournament}
           setup={setup}
           activeSplit={activeSplit}
+          communities={communities.communities}
           activeCommunity={activeCommunity}
           communityPlayers={communityPlayers}
           communitySquads={communitySquads}

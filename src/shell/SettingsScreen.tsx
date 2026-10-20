@@ -1,6 +1,8 @@
+import type { Community, Discipline, Player } from "../domain/types";
 import type { AccountSync } from "../account/useAccount";
 import type { PushController } from "../account/useSync";
 import { AccountPanel } from "../account/AccountPanel";
+import { JoinPanel } from "./JoinPanel";
 import { PageHeader } from "../ui/PageHeader";
 import { Screen } from "../ui/Screen";
 
@@ -11,6 +13,11 @@ interface Props {
   onLayoutChange: (v: string) => void;
   accountSync: AccountSync;
   pushController: PushController;
+  communities: Community[];
+  activeCommunity: Community | null;
+  disciplines: Discipline[];
+  savePlayer: (player: Player) => Promise<void>;
+  notify: (text: string, type?: "success" | "error" | "info") => void;
 }
 
 /**
@@ -27,6 +34,11 @@ export function SettingsScreen({
   onLayoutChange,
   accountSync,
   pushController,
+  communities,
+  activeCommunity,
+  disciplines,
+  savePlayer,
+  notify,
 }: Props) {
   return (
     <Screen>
@@ -89,6 +101,14 @@ export function SettingsScreen({
           </button>
         </div>
       </section>
+
+      <JoinPanel
+        community={activeCommunity}
+        communities={communities}
+        disciplines={disciplines}
+        savePlayer={savePlayer}
+        notify={notify}
+      />
 
       <AccountPanel accountSync={accountSync} onSyncNow={() => pushController.syncAll()} />
     </Screen>

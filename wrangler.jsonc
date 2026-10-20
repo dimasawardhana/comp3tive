@@ -14,7 +14,9 @@
   // matches. Without this, `fetch("/api/session")` from the app reaches the
   // Worker while a browser navigating to /api/session is served the assets
   // fallback — a half-failure that looks like the API being flaky. Scoped to
-  // /api/*, so every other path keeps the assets' own behaviour.
+  // /api/* and /join/*: the join page is Worker-served HTML (per-request, not a
+  // static asset), so it must reach this script on navigation too. Every other
+  // path keeps the assets' own behaviour.
   //
   // `not_found_handling` MUST NOT be "single-page-application": that value would
   // serve dist/index.html — the Landing Page — for every unmatched path, including
@@ -61,7 +63,7 @@
   "assets": {
     "directory": "./dist",
     "not_found_handling": "404-page",
-    "run_worker_first": ["/api/*"]
+    "run_worker_first": ["/api/*", "/join/*"]
   },
   "d1_databases": [
     {

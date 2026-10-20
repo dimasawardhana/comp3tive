@@ -52,6 +52,7 @@ export interface ScreenSwitchProps {
   activeSplit: { session: Session; source: SplitSource } | null;
 
   // ---- community-scoped data ----
+  communities: Community[];
   activeCommunity: Community | null;
   communityPlayers: Player[];
   communitySquads: SavedSquad[];
@@ -158,6 +159,7 @@ export function ScreenSwitch(props: ScreenSwitchProps) {
     viewTournament,
     setup,
     activeSplit,
+    communities,
     activeCommunity,
     communityPlayers,
     communitySquads,
@@ -257,6 +259,11 @@ export function ScreenSwitch(props: ScreenSwitchProps) {
           onLayoutChange={onLayoutChange}
           accountSync={accountSync}
           pushController={pushController}
+          communities={communities}
+          activeCommunity={activeCommunity}
+          disciplines={disciplines}
+          savePlayer={savePlayer}
+          notify={notify}
         />
       )}
       {view.mode === "roster" && (
