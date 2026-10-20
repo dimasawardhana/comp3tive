@@ -97,7 +97,9 @@ Playwright 1.62, `@types/node` 22.15.
 | `npm run test:watch` | Unit tests in watch mode |
 | `npm run e2e` | The browser suite — Playwright |
 | `npm run capture:hero` | Drive a real split in Chromium and self-check the screenshots it takes |
+| `npm run db:apply` | Apply both schema files to the **remote** D1 (idempotent, `CREATE IF NOT EXISTS` throughout) |
 | `npm run e2e:live` | The same offline claim, against the **deployed** origin — needs the network |
+| `npm run deploy` | Build, apply the remote schema, then `wrangler deploy` — deploy and DB stay in lockstep |
 
 `npm test` and `npm run test:watch` are unit tests only. The `.tsx` screens have no component tests
 by design; anything that needs a real browser goes through `npm run e2e`.
