@@ -248,3 +248,40 @@ CREATE TABLE IF NOT EXISTS community_revisions (
   updated_at   INTEGER NOT NULL,
   PRIMARY KEY (account_id, community_id)
 );
+
+-- ---- Public registration (join codes) ----
+--
+-- TASK-125: an Organizer mints a code for a community and shares
+-- `https://<origin>/join/<code>`. Anyone with the link registers as a player;
+-- the registration lands here and the Organizer pulls it into the local
+-- roster. The public never writes a community document — the CAS/versioned
+-- push belongs to the Organizer alone, so a registration is a row the
+-- Organizer reads, never a document write (docs/adr/0007's write model).
+--
+-- The code is the primary key, not (account_id, community_id): a join link
+-- is looked up by code alone from the public route, with no session. The
+-- account_id column exists so the Organizer's routes can scope by tenant.
+-- Codes are unguessable by construction (encoding.ts's session-token
+-- alphabet, 10 chars ~ 60+ bits), which is the entire access control: anyone
+-- holding the code may register, exactly like anyone holding the link.
+CREATE TABLE IF NOT EXISTS join_codes (
+  code         TEXT PRIMARY KEY,
+  account_id   TEXT NOT NULL REFERENCES accounts(id),
+  community_id TEXT NOT NULL,
+  created_at   INTEGER NOT NULL
+);
+
+-- One pending registration per form submission. `payload` is JSON (name,
+-- discipline name, role, notes) rather than normalized columns: the roster
+-- import is a read-and-review flow, never a query join, and the public form's
+-- fields belong to the form, not to the players table (a registration names a
+-- discipline by NAME — the public visitor has no discipline id to send).
+-- No FK to join_codes: deleting a code must leave its registrations readable
+-- for the Organizer who is closing sign-ups (the ack route deletes them by
+-- code; the delete-cascade here would strand rows in the pull list).
+CREATE TABLE IF NOT EXISTS join_registrations (
+  id          TEXT PRIMARY KEY,
+  code        TEXT NOT NULL,
+  payload     TEXT NOT NULL,
+  created_at  INTEGER NOT NULL
+);

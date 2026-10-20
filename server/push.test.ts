@@ -99,10 +99,6 @@ describe("POST /api/documents/push", () => {
     // no-ops the batch's writes when the CAS changes nothing.
     const surviving = await reassemble(db, "a1", "c1");
     expect(surviving?.communities[0]?.name).toBe("from-alice");
-    expect((await storage.getDocument(db, "a1", "c1"))?.payload).toContain("from-alice");
-    // Guarded by the revision counter: the loser's batch must have written
-    // nothing at all - not the blob, not any decomposed row.
-    expect((await storage.getDocument(db, "a1", "c1"))?.payload).not.toContain("from-bob");
     const loserRows = await db
       .prepare("SELECT COUNT(*) AS n FROM communities WHERE account_id = 'a1' AND id = 'c1'")
       .first<{ n: number }>();
@@ -123,7 +119,6 @@ describe("POST /api/documents/push", () => {
     // And it writes nothing: no revision row, no rows, no blob.
     expect(await getRevisionOrNull(db, "a1", "c1")).toBeNull();
     expect(await reassemble(db, "a1", "c1")).toBeNull();
-    expect(await storage.getDocument(db, "a1", "c1")).toBeNull();
   });
 
   it("requires a session", async () => {

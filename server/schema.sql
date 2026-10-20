@@ -100,31 +100,13 @@ CREATE TABLE IF NOT EXISTS challenges (
   expires_at INTEGER NOT NULL
 );
 
--- The account's data, one versioned backup document per (account, community).
--- ADR-0007: nothing is normalized — the payload keeps its dangling ids by
--- design, and this table holds it as a blob with a version integer. That
--- integer is the compare-and-swap ticket 06 needs: `UPDATE ... SET payload = ?,
--- version = version + 1 WHERE account_id = ? AND community_id = ? AND version
--- = ?` either applies or refuses, and the loser is told rather than silently
--- overwritten. The primary key is the pair, so one Account's two Communities
--- are two rows and never one document.
-CREATE TABLE IF NOT EXISTS community_documents (
-  account_id   TEXT    NOT NULL REFERENCES accounts (id) ON DELETE CASCADE,
-  community_id TEXT    NOT NULL,
-  version      INTEGER NOT NULL,
-  payload      TEXT    NOT NULL,
-  updated_at   INTEGER NOT NULL,
-  PRIMARY KEY (account_id, community_id)
-);
-
--- The revision counter behind the compare-and-swap, once the document is
--- normalized (relational-backend plan). The push's gate is the FIRST statement
--- inside one atomic `batch`: `UPDATE ... SET revision = revision + 1 WHERE
--- ... AND revision = ?` either applies or refuses, and the row writes that
--- follow share the transaction, so a rejected CAS leaves zero rows behind.
--- Kept beside `community_documents` during the dual-write window: writes go to
--- both, reads come from here, and the documents table is dropped by Task 4's
--- migration after the cutover proves stable.
+-- The revision counter behind the compare-and-swap (relational-backend
+-- plan). The push's gate is the FIRST statement inside one atomic `batch`:
+-- `UPDATE ... SET revision = revision + 1 WHERE ... AND revision = ?` either
+-- applies or refuses, and the row writes that follow share the transaction,
+-- so a rejected CAS leaves zero rows behind. RB-4 dropped the dual-written
+-- `community_documents` blob after the migration verified every row; from
+-- there, rollback means restoring the pre-migration export.
 CREATE TABLE IF NOT EXISTS community_revisions (
   account_id   TEXT    NOT NULL REFERENCES accounts (id) ON DELETE CASCADE,
   community_id TEXT    NOT NULL,

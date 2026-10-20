@@ -93,7 +93,6 @@ describe("POST /api/documents/delete", () => {
       .first<{ revision: number }>();
     expect(revision).toBeNull();
     expect(await reassemble(db, "a1", "c1")).toBeNull();
-    expect(await storage.getDocument(db, "a1", "c1")).toBeNull();
     const communityRow = await db
       .prepare("SELECT COUNT(*) AS n FROM communities WHERE account_id = 'a1' AND id = 'c1'")
       .first<{ n: number }>();

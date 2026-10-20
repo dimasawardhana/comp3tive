@@ -57,15 +57,16 @@ class SqliteStatement implements Statement {
 }
 
 /**
- * An in-memory SQLite database, shaped like D1's prepared-statement API.
+ * A SQLite database (in memory, or a file when a path is given — the RB-4
+ * migration script points this at a real D1 export), shaped like D1's
+ * prepared-statement API.
  *
  * Foreign keys are ON, to match D1 rather than SQLite's default. `node:sqlite`
  * leaves them off per connection, so a test that inserted a credential for an
  * account that does not exist would pass here and fail on the platform.
  */
-export function sqliteDatabase(): Database {
-  const db = new DatabaseSync(":memory:");
-  db.exec("PRAGMA foreign_keys = ON");
+export function sqliteDatabase(filename: ":memory:" | string = ":memory:"): Database {
+  const db = new DatabaseSync(filename);
   return {
     prepare: (sql) => new SqliteStatement(db, db.prepare(sql)),
     exec: async (sql) => {

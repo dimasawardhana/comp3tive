@@ -1,25 +1,41 @@
 /**
- * The Worker's entry point: `/api/*`, and nothing else.
+ * The Worker's entry point: `/api/*`, and the public `/join/*` page.
  *
- * `wrangler.jsonc` sets `assets.run_worker_first: ["/api/*"]`, so this script
- * only ever runs for an API path — every other request is served by the static
- * assets without reaching here. That scoping is not tidiness: the compatibility
- * date is past the point where a *navigation* request no longer invokes the
- * Worker script even on a matching path, so without it a browser navigating to
- * an API path would be handed the assets' 404 page while `fetch()` to the same
- * path reached this code. The config and this file are two halves of one
- * behaviour.
+ * `wrangler.jsonc` sets `assets.run_worker_first: ["/api/*", "/join/*"]`, so
+ * this script runs for those paths and nothing else — every other request is
+ * served by the static assets without reaching here. That scoping is not
+ * tidiness: the compatibility date is past the point where a *navigation*
+ * request no longer invokes the Worker script even on a matching path, so
+ * without it a browser navigating to an API path would be handed the assets'
+ * 404 page while `fetch()` to the same path reached this code. The config and
+ * this file are two halves of one behaviour.
  *
- * No CORS headers are set, deliberately. The API is same-origin, it authenticates
- * with a bearer token rather than a cookie, and so a cross-origin page gains
- * nothing by making a request it cannot read the answer to.
+ * No CORS headers are set, deliberately. The API is same-origin, it
+ * authenticates with a bearer token rather than a cookie, and so a
+ * cross-origin page gains nothing by making a request it cannot read the
+ * answer to. The public join page is same-origin too: the Worker itself
+ * serves it at `/join/:code`.
  */
 
 import { collectDecompose, collectDeleteCommunity } from "./store/decompose";
+import { leaderboard, searchPlayers, sessionHistory } from "./store/queries";
 import { reassemble } from "./store/reassemble";
+import {
+  accountDisciplines,
+  communityName,
+  countRegistrations,
+  deleteRegistrations,
+  insertRegistration,
+  joinCodeByCode,
+  listJoinCodes,
+  listRegistrations,
+  mintJoinCode,
+  type RegistrationPayload,
+} from "./store/join";
 import { parseBackup, type BackupData } from "../src/data/transfer";
+import { joinPage } from "./join-page";
 import { collectCasRevision, collectInsertRevision, getRevision, listRevisions } from "./storage";
-import { d1Database, type Database, type Statement } from "./db";
+import { d1Database, type Database } from "./db";
 import {
   accountForToken,
   attachGoogle,
@@ -92,39 +108,6 @@ function parseOr400(payload: string): BackupData {
   } catch (error) {
     throw new ApiError(400, error instanceof Error ? error.message : "That payload is not a valid document.");
   }
-}
-
-/**
- * The `community_documents` dual-write, gated on the revision counter like
- * every other statement in the batch. During the dual-write window writes go
- * to both stores (reads come from the normalized rows), so a failed deploy can
- * be rolled back without data loss (relational plan, Task 3).
- *
- * `insert` selects the insert-or-ignore shape (adoption); otherwise the
- * versioned UPDATE (push), which only fires when the blob row exists.
- */
-function guardedDocumentUpsert(
-  db: Database,
-  accountId: string,
-  communityId: string,
-  payload: string,
-  now: number,
-  revision: number,
-  insert: boolean,
-): Statement {
-  const guard = " AND (SELECT revision FROM community_revisions WHERE account_id = ? AND community_id = ?) = ?";
-  return insert
-    ? db
-        .prepare(
-          `INSERT INTO community_documents (account_id, community_id, version, payload, updated_at)
-           SELECT ?, ?, 1, ?, ? WHERE NOT EXISTS (SELECT 1 FROM community_documents WHERE account_id = ? AND community_id = ?)${guard}`,
-        )
-        .bind(accountId, communityId, payload, now, accountId, communityId, accountId, communityId, revision)
-    : db
-        .prepare(
-          `UPDATE community_documents SET payload = ?, version = version + 1, updated_at = ? WHERE account_id = ? AND community_id = ?${guard}`,
-        )
-        .bind(payload, now, accountId, communityId, accountId, communityId, revision);
 }
 
 /**
@@ -221,7 +204,7 @@ async function route(db: Database, request: Request, env: Env, pathname: string)
     return json({ ok: true });
   }
 
-  // ---- Community documents (normalized store; dual-write window) ----
+  // ---- Community documents (the normalized store) ----
 
   if (pathname === "/api/documents" && method === "GET") {
     const accountId = await requireAccount(db, request);
@@ -229,6 +212,36 @@ async function route(db: Database, request: Request, env: Env, pathname: string)
     return json({
       documents: summaries.map((s) => ({ communityId: s.communityId, version: s.revision, updatedAt: s.updatedAt })),
     });
+  }
+
+  // ---- Cross-community queries (RB-5) ----
+  //
+  // Reads the blob store could not answer: leaderboards, player search,
+  // session history. All three take the account from the token and the
+  // selectors from the URL, never from a payload — same tenant rule as every
+  // other route. The client UI that consumes them is a separate design task
+  // (it touches the "no screen awaits a fetch" invariant), so nothing in src/
+  // calls these yet.
+
+  if (pathname.startsWith("/api/leaderboards/") && method === "GET") {
+    const accountId = await requireAccount(db, request);
+    const [disciplineId, attributeId] = pathname.slice("/api/leaderboards/".length).split("/").map(decodeURIComponent);
+    if (!disciplineId || !attributeId) throw new ApiError(400, "That request names no discipline or attribute.");
+    return json({ rows: await leaderboard(db, accountId, disciplineId, attributeId) });
+  }
+
+  if (pathname === "/api/players" && method === "GET") {
+    const accountId = await requireAccount(db, request);
+    const q = new URL(request.url).searchParams.get("q") ?? "";
+    if (!q) throw new ApiError(400, "That request names no player to search for.");
+    return json({ players: await searchPlayers(db, accountId, q) });
+  }
+
+  if (pathname === "/api/history" && method === "GET") {
+    const accountId = await requireAccount(db, request);
+    const disciplineId = new URL(request.url).searchParams.get("disciplineId") ?? "";
+    if (!disciplineId) throw new ApiError(400, "That request names no discipline.");
+    return json({ sessions: await sessionHistory(db, accountId, disciplineId) });
   }
 
   if (pathname === "/api/documents/pull" && method === "POST") {
@@ -266,11 +279,6 @@ async function route(db: Database, request: Request, env: Env, pathname: string)
     const statements = [
       collectInsertRevision(db, accountId, body.communityId, now),
       ...collectDecompose(db, accountId, body.communityId, doc, 1),
-      // Dual-write window (relational plan, Task 3): community_documents stays
-      // current so a failed deploy can be rolled back without data loss.
-      // Guarded like the rest: it applies only when the revision row was
-      // created by this batch.
-      guardedDocumentUpsert(db, accountId, body.communityId, JSON.stringify(doc), now, 1, true),
     ];
     const results = await db.batch(statements);
     // The revision insert is the gate: changes 0 means the row existed.
@@ -299,9 +307,6 @@ async function route(db: Database, request: Request, env: Env, pathname: string)
     const statements = [
       collectCasRevision(db, accountId, body.communityId, body.expectedVersion, now),
       ...collectDecompose(db, accountId, body.communityId, doc, next),
-      // Dual-write window: the blob's version is kept in step with the
-      // revision counter, in the same transaction so the two never diverge.
-      guardedDocumentUpsert(db, accountId, body.communityId, JSON.stringify(doc), now, next, false),
     ];
     const results = await db.batch(statements);
     // The CAS is the gate: changes 0 means another write won between our read
@@ -315,11 +320,107 @@ async function route(db: Database, request: Request, env: Env, pathname: string)
     }
     return json({ version: next });
   }
-  // A community deletion: remove the revision row, the decomposed rows and
-  // the dual-write blob together, so the document cannot resurrect at the
-  // next pull or sign-in. Idempotent by design — the client's local cascade
-  // already succeeded before this is called, so a retry after a lost response
-  // must succeed too.
+  // A community deletion: remove the revision row and the decomposed rows
+  // together, so the document cannot resurrect at the next pull or sign-in.
+  // Idempotent by design — the client's local cascade already succeeded
+  // before this is called, so a retry after a lost response must succeed too.
+
+  // ---- Public player registration (join codes) ----
+  //
+  // TASK-125. The Organizer mints a code per community; the public form at
+  // /join/<code> reads and writes through these routes with no session. A
+  // registration is a row, never a community-document write: the document's
+  // compare-and-swap belongs to the Organizer, so the public's entry into the
+  // roster is the Organizer pulling rows (below), not a push.
+
+  // Mint a code. Any number may exist per community — minting a new one does
+  // not invalidate the old, because "close sign-ups" is a later feature and a
+  // silent revoke would break links the Organizer has already shared.
+  if (pathname === "/api/join/codes" && method === "POST") {
+    const accountId = await requireAccount(db, request);
+    const body = await readJson<{ communityId?: string }>(request);
+    if (!body.communityId) throw new ApiError(400, "That request is missing its community.");
+    // The account must have a revision row for the community: the code points
+    // public traffic at it, and one that named an unknown community would
+    // serve a form whose registrations could never be pulled.
+    const revision = await getRevision(db, accountId, body.communityId);
+    if (!revision) throw new ApiError(404, "No such community for this Account.");
+    const code = await mintJoinCode(db, accountId, body.communityId, Date.now());
+    return json({ code: code.code, communityId: code.communityId, createdAt: code.createdAt });
+  }
+
+  if (pathname === "/api/join/codes" && method === "GET") {
+    const accountId = await requireAccount(db, request);
+    const codes = await listJoinCodes(db, accountId);
+    return json({ codes });
+  }
+
+  // The public form's data: community name and the discipline catalog with
+  // roles. No session, no account data beyond what a visitor needs to fill
+  // the form — the community's name and the catalog it offers.
+  if (pathname.startsWith("/api/join/") && method === "GET" && pathname !== "/api/join/codes") {
+    const code = decodeURIComponent(pathname.slice("/api/join/".length));
+    const record = await joinCodeByCode(db, code);
+    if (!record) throw new ApiError(404, "That join code does not exist.");
+    const name = await communityName(db, record.accountId, record.communityId);
+    if (!name) throw new ApiError(404, "That join code does not exist.");
+    const disciplines = await accountDisciplines(db, record.accountId);
+    return json({ community: { name }, disciplines });
+  }
+
+  // The public form's submission. Rate-limited per code rather than per IP:
+  // a Worker has no durable per-IP state, and the cap that matters is how
+  // many rows an Organizer must review, not who sent them.
+  if (pathname.startsWith("/api/join/") && method === "POST" && !pathname.startsWith("/api/join/registrations")) {
+    const code = decodeURIComponent(pathname.slice("/api/join/".length));
+    const record = await joinCodeByCode(db, code);
+    if (!record) throw new ApiError(404, "That join code does not exist.");
+    const body = await readJson<{ name?: unknown; discipline?: unknown; role?: unknown; notes?: unknown }>(request);
+    const name = typeof body.name === "string" ? body.name.trim() : "";
+    const discipline = typeof body.discipline === "string" ? body.discipline.trim() : "";
+    if (!name || name.length > 80) throw new ApiError(400, "A registration needs a name (at most 80 characters).");
+    if (!discipline || discipline.length > 60) throw new ApiError(400, "A registration needs a discipline.");
+    // The discipline must be one the community offers: the form's picker is a
+    // convenience, not the validation, so the server checks the name against
+    // the catalog rather than trusting the request.
+    const disciplines = await accountDisciplines(db, record.accountId);
+    if (!disciplines.some((d) => d.name === discipline))
+      throw new ApiError(400, "That discipline is not one this community offers.");
+    const role = typeof body.role === "string" && body.role.trim() ? body.role.trim() : null;
+    if (role && !disciplines.some((d) => d.name === discipline && d.roles.includes(role)))
+      throw new ApiError(400, "That role is not one the discipline offers.");
+    const notes = typeof body.notes === "string" && body.notes.trim() ? body.notes.trim().slice(0, 500) : null;
+    const now = Date.now();
+    if ((await countRegistrations(db, code, now - 60_000)) >= 20)
+      throw new ApiError(429, "That community's registration form is busy. Try again in a minute.");
+    const payload: RegistrationPayload = { name, disciplineName: discipline, roleName: role, notes };
+    const registration = await insertRegistration(db, code, payload, now);
+    return json({ id: registration.id }, 201);
+  }
+
+  // The Organizer's pull list for one code. Scoped by account: the code alone
+  // must not list registrations, or a leaked code would leak names.
+  if (pathname === "/api/join/registrations" && method === "POST") {
+    const accountId = await requireAccount(db, request);
+    const body = await readJson<{ code?: string }>(request);
+    if (!body.code) throw new ApiError(400, "That request is missing its join code.");
+    const record = await joinCodeByCode(db, body.code);
+    if (!record || record.accountId !== accountId) throw new ApiError(404, "That join code does not exist.");
+    const registrations = await listRegistrations(db, accountId, body.code);
+    return json({ registrations });
+  }
+
+  // Acknowledge: the Organizer has handled these registrations (pulled them
+  // into the roster or chosen to ignore them), so the server forgets them.
+  // Idempotent — a retry after a lost response deletes nothing that matters.
+  if (pathname === "/api/join/registrations/ack" && method === "POST") {
+    const accountId = await requireAccount(db, request);
+    const body = await readJson<{ ids?: unknown }>(request);
+    const ids = Array.isArray(body.ids) ? body.ids.filter((v): v is string => typeof v === "string") : [];
+    await deleteRegistrations(db, accountId, ids);
+    return json({ ok: true });
+  }
+
   if (pathname === "/api/documents/delete" && method === "POST") {
     const accountId = await requireAccount(db, request);
     const body = await readJson<{ communityId?: string }>(request);
@@ -338,6 +439,18 @@ export default {
     const db = d1Database(env.DB);
 
     try {
+      // The public registration page: served here rather than from the static
+      // assets because its document is per-request (the URL names the code),
+      // and reached at all because wrangler.jsonc routes /join/* to this
+      // Worker ahead of the assets. Like every asset navigation it is a GET;
+      // anything else is not a navigation and falls through to the API's 404.
+      if (request.method === "GET" && url.pathname.startsWith("/join/")) {
+        const code = decodeURIComponent(url.pathname.slice("/join/".length));
+        if (!/^[A-Za-z0-9_-]{1,64}$/.test(code)) return new Response("Not found", { status: 404 });
+        return new Response(joinPage(code), {
+          headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" },
+        });
+      }
       return await route(db, request, env, url.pathname);
     } catch (error) {
       if (error instanceof ApiError) return json({ error: error.message }, error.status);

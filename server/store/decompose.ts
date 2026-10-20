@@ -330,7 +330,6 @@ export function collectDeleteCommunity(
   const add: Add = (sql, ...values) => stmts.push(db.prepare(sql).bind(...values));
   stmtClearCommunity(add, accountId, communityId);
   add("DELETE FROM community_revisions WHERE account_id = ? AND community_id = ?", accountId, communityId);
-  add("DELETE FROM community_documents WHERE account_id = ? AND community_id = ?", accountId, communityId);
   return stmts;
 }
 
