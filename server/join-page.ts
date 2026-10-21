@@ -125,7 +125,8 @@ export function joinPage(code: string): string {
     </div>
     <label for="role">Preferred role</label>
     <select id="role" name="role"></select>
-    <p class="note">Optional: leave blank if any role suits you.</p>
+    <p class="note" id="role-note">Optional: leave blank if any role suits you.</p>
+    <p class="note" id="role-list" hidden></p>
     <fieldset id="ratings" class="ratings">
       <legend>How strong are you?</legend>
       <p class="note">Rate yourself 1 to 5. The organizer can adjust these later.</p>
@@ -184,6 +185,7 @@ export function joinPage(code: string): string {
       $("sub").textContent =
         "Register as a " + data.disciplines[0].name + " player and the organizer will add you to the roster.";
     }
+    const roleList = $("role-list"), roleNote = $("role-note");
     const fillRoles = () => {
       role.replaceChildren();
       const blank = document.createElement("option");
@@ -198,6 +200,13 @@ export function joinPage(code: string): string {
         option.value = name; option.textContent = name;
         role.appendChild(option);
       }
+      // The eligible roles, readable without opening the dropdown: the
+      // visitor sees what the discipline is looking for at a glance, the
+      // dropdown stays the single source of the submitted value.
+      const names = Array.from(seen);
+      roleList.textContent = names.length > 0 ? "Eligible roles: " + names.join(", ") : "";
+      roleList.hidden = names.length === 0;
+      roleNote.hidden = names.length === 0;
     };
     // One slider per attribute, bounded by the catalog, default the middle
     // (the same default the organizer-side import applies to old rows).
