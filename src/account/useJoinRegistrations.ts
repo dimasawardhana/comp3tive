@@ -40,6 +40,9 @@ export interface PendingRegistration {
     name: string;
     disciplineName: string;
     roleName: string | null;
+    /** Every role the visitor ticked, preferred one included; null on
+     * rows older than the multi-role form or when nothing was ticked. */
+    roles: string[] | null;
     ratings: Record<string, number> | null;
     notes: string | null;
   };
@@ -82,6 +85,9 @@ function parseRegistration(row: ServerRegistration): PendingRegistration | null 
         name: payload.name,
         disciplineName: payload.disciplineName,
         roleName: typeof payload.roleName === "string" ? payload.roleName : null,
+        roles: Array.isArray(payload.roles)
+          ? payload.roles.filter((r): r is string => typeof r === "string")
+          : null,
         ratings:
           payload.ratings && typeof payload.ratings === "object"
             ? Object.fromEntries(

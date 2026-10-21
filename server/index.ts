@@ -398,6 +398,7 @@ async function route(db: Database, request: Request, env: Env, pathname: string)
       name?: unknown;
       discipline?: unknown;
       role?: unknown;
+      roles?: unknown;
       ratings?: unknown;
       notes?: unknown;
     }>(request);
@@ -426,6 +427,25 @@ async function route(db: Database, request: Request, env: Env, pathname: string)
     const role = typeof body.role === "string" && body.role.trim() ? body.role.trim() : null;
     if (role && !offered.some((d) => d.roles.includes(role)))
       throw new ApiError(400, "That role is not one the discipline offers.");
+    // Every role the visitor says they can fill (the preferred one included,
+    // by the domain rule that a preferred role is always among the eligible).
+    // Same catalog rule as roles: offered names only, deduped, capped so a
+    // hostile request cannot bloat the payload. Absent = old form tab, which
+    // imports to eligible-for-everything exactly as before.
+    let roles: string[] | null = null;
+    if (Array.isArray(body.roles)) {
+      const allowed = new Set(offered.flatMap((d) => d.roles));
+      const seen = new Set<string>();
+      roles = [];
+      for (const entry of body.roles) {
+        if (typeof entry !== "string" || !allowed.has(entry) || seen.has(entry)) continue;
+        seen.add(entry);
+        roles.push(entry);
+        if (roles.length >= 12) break;
+      }
+      if (role && roles.length > 0 && !roles.includes(role)) roles.unshift(role);
+      if (roles.length === 0) roles = null;
+    }
     // Self-assessed ratings, same rule as roles: every key must name an
     // attribute the discipline defines (names merged across same-named
     // disciplines, exactly what the form offered) and every value must sit in
@@ -445,7 +465,7 @@ async function route(db: Database, request: Request, env: Env, pathname: string)
     const now = Date.now();
     if ((await countRegistrations(db, code, now - 60_000)) >= 20)
       throw new ApiError(429, "That community's registration form is busy. Try again in a minute.");
-    const payload: RegistrationPayload = { name, disciplineName: discipline, roleName: role, ratings, notes };
+    const payload: RegistrationPayload = { name, disciplineName: discipline, roleName: role, roles, ratings, notes };
     const registration = await insertRegistration(db, code, payload, now);
     return json({ id: registration.id }, 201);
   }

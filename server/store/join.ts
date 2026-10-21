@@ -43,6 +43,10 @@ export interface RegistrationPayload {
   name: string;
   disciplineName: string;
   roleName: string | null;
+  /** Every role the visitor said they can fill, preferred one included.
+   * Null on rows older than the multi-role form (and on visitors who
+   * ticked none) — imports to eligible-for-everything. */
+  roles: string[] | null;
   ratings: Record<string, number> | null;
   notes: string | null;
 }

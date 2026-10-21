@@ -248,6 +248,29 @@ describe("POST /api/join/:code (public)", () => {
     expect(payload.ratings).toEqual({ Fitness: 4 });
   });
 
+  it("stores the ticked roles, catalog-filtered, with the preferred role forced among them", async () => {
+    const db = await freshDb();
+    const { token, code } = await mintedCode(db);
+    const response = await handler.fetch(
+      request(`/api/join/${code}`, {
+        method: "POST",
+        body: JSON.stringify({
+          name: "Ama",
+          discipline: "Futsal",
+          role: "Keeper",
+          roles: ["Keeper", "Bogus", "Keeper", "Anchor"],
+        }),
+      }),
+      envFor(db),
+    );
+    expect(response.status).toBe(201);
+    const pull = await handler.fetch(authed("/api/join/registrations", token, { method: "POST", body: JSON.stringify({ code }) }), envFor(db));
+    const body = (await pull.json()) as { registrations: Array<{ payload: string }> };
+    const payload = JSON.parse(body.registrations[0].payload) as { roleName: string | null; roles: string[] | null };
+    expect(payload.roles).toEqual(["Keeper", "Anchor"]);
+    expect(payload.roleName).toBe("Keeper");
+  });
+
   it("clamps an out-of-bounds rating into the attribute's range", async () => {
     const db = await freshDb();
     const { token, code } = await mintedCode(db);

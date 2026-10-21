@@ -188,6 +188,7 @@ export function registrationToPlayer(
       name: string;
       disciplineName: string;
       roleName: string | null;
+      roles: string[] | null;
       ratings: Record<string, number> | null;
       notes: string | null;
     };
@@ -200,7 +201,14 @@ export function registrationToPlayer(
   const roleId = registration.payload.roleName
     ? (discipline.roles.find((r) => r.name === registration.payload.roleName)?.id ?? null)
     : null;
-  const eligible = roleId ? [roleId] : discipline.roles.map((r) => r.id);
+  // Ticked roles become the player's eligibility; the preferred role must be
+  // among them (the domain rule). No ticks = eligible for everything the
+  // discipline offers, the pre-multi-role behavior.
+  const ticked = (registration.payload.roles ?? [])
+    .map((name) => discipline.roles.find((r) => r.name === name)?.id)
+    .filter((id): id is Id => typeof id === "string");
+  const eligible = ticked.length > 0 ? [...new Set(ticked)] : roleId ? [roleId] : discipline.roles.map((r) => r.id);
+  const preferred = roleId && eligible.includes(roleId) ? roleId : null;
   // A discipline with no roles produces a player eligible for nothing, which
   // `validatePlayer` rejects; the CSV import skips those rows and so does this.
   if (eligible.length === 0) return null;
@@ -221,7 +229,7 @@ export function registrationToPlayer(
           discipline.attributes.map((a) => [a.id, submitted[a.name] ?? 3]),
         ),
         eligibleRoles: eligible,
-        preferredRole: roleId,
+        preferredRole: preferred,
       },
     ],
   };

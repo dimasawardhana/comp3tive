@@ -123,10 +123,14 @@ export function joinPage(code: string): string {
       <label for="discipline">Discipline</label>
       <select id="discipline" name="discipline" required></select>
     </div>
+    <fieldset id="roles-box" class="ratings">
+      <legend>Which roles can you play?</legend>
+      <p class="note">Tick every role you can fill. Leave all blank if any role suits you.</p>
+      <div id="roles"></div>
+    </fieldset>
     <label for="role">Preferred role</label>
     <select id="role" name="role"></select>
-    <p class="note" id="role-note">Optional: leave blank if any role suits you.</p>
-    <p class="note" id="role-list" hidden></p>
+    <p class="note" id="role-note">Optional: among the roles you ticked.</p>
     <fieldset id="ratings" class="ratings">
       <legend>How strong are you?</legend>
       <p class="note">Rate yourself 1 to 5. The organizer can adjust these later.</p>
@@ -185,28 +189,47 @@ export function joinPage(code: string): string {
       $("sub").textContent =
         "Register as a " + data.disciplines[0].name + " player and the organizer will add you to the roster.";
     }
-    const roleList = $("role-list"), roleNote = $("role-note");
+    const rolesBox = $("roles"), roleNote = $("role-note");
+    // One checkbox per offered role: ticking IS the eligibility claim, and
+    // the preferred-role select offers only the ticked ones (the domain
+    // rule that a preferred role is always among the eligible). All blank
+    // means "any role suits me" — nothing submitted, import unchanged.
     const fillRoles = () => {
+      rolesBox.replaceChildren();
       role.replaceChildren();
       const blank = document.createElement("option");
-      blank.value = ""; blank.textContent = "Any role";
+      blank.value = ""; blank.textContent = "Any ticked role";
       role.appendChild(blank);
       const d = byName.get(discipline.value);
       const seen = new Set();
       for (const name of d ? d.roles : []) {
         if (seen.has(name)) continue;
         seen.add(name);
+        const label = document.createElement("label");
+        label.className = "rating-row";
+        const box = document.createElement("input");
+        box.type = "checkbox";
+        box.value = name;
+        box.addEventListener("change", fillPreferred);
+        label.appendChild(box);
+        label.appendChild(document.createTextNode(name));
+        rolesBox.appendChild(label);
+      }
+      $("roles-box").hidden = seen.size === 0;
+      role.hidden = seen.size === 0;
+      roleNote.hidden = seen.size === 0;
+    };
+    const fillPreferred = () => {
+      const ticked = [...rolesBox.querySelectorAll("input:checked")].map((b) => b.value);
+      role.replaceChildren();
+      const blank = document.createElement("option");
+      blank.value = ""; blank.textContent = "Any ticked role";
+      role.appendChild(blank);
+      for (const name of ticked) {
         const option = document.createElement("option");
         option.value = name; option.textContent = name;
         role.appendChild(option);
       }
-      // The eligible roles, readable without opening the dropdown: the
-      // visitor sees what the discipline is looking for at a glance, the
-      // dropdown stays the single source of the submitted value.
-      const names = Array.from(seen);
-      roleList.textContent = names.length > 0 ? "Eligible roles: " + names.join(", ") : "";
-      roleList.hidden = names.length === 0;
-      roleNote.hidden = names.length === 0;
     };
     // One slider per attribute, bounded by the catalog, default the middle
     // (the same default the organizer-side import applies to old rows).
@@ -266,8 +289,7 @@ export function joinPage(code: string): string {
             name: $("name").value,
             discipline: discipline.value,
             role: role.value,
-            // Keyed by attribute name (the slider's data), not its label's
-            // text: the name is the wire contract the server validates.
+            roles: [...rolesBox.querySelectorAll("input:checked")].map((b) => b.value),
             ratings: Object.fromEntries(
               [...ratings.querySelectorAll("input[type=range]")].map((s) => [s.dataset.name, Number(s.value)])
             ),
