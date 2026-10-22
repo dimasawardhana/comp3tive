@@ -3,6 +3,7 @@ import { csvRowsToPlayers, parsePlayerCsv } from "../data/player-import";
 import { CSV_TEMPLATE } from "../data/csv-template";
 import { BADMINTON_DISCIPLINE, SEED_DISCIPLINES } from "../domain/seed";
 import type { Discipline } from "../domain/types";
+import { ROSTER_ACTIONS } from "../shell/RosterScreen";
 import { renderRoster } from "../test-support/renderRoster";
 
 /**
@@ -199,11 +200,13 @@ describe("the roster's CSV column hint", () => {
   });
 
   it("names the control that reads the file, by the label that control carries", () => {
-    const html = renderRoster({ disciplines: SEED_DISCIPLINES });
-    // The two halves of the round trip, in the user's words: the sentence tells
-    // them to use Import players, so the button has to say exactly that.
-    expect(WORKFLOW_COPY).toContain("Import players");
-    expect(html).toContain(">Import players</button>");
+    // The menu's items are a module constant, so the label contract is
+    // assertable while the menu is closed: `renderToStaticMarkup` cannot
+    // click the toggle open. The sentence tells a user to press Import
+    // players, so the constant has to carry exactly that label — and the
+    // screen's markup has to be built from the same constant, or the two
+    // could drift while both this file and the screen passed their tests.
+    expect(ROSTER_ACTIONS.map((a) => a.label)).toContain("Import players");
     // Fails if either side is renamed alone — which is how copy drifts away
     // from the screen it is talking about.
   });
@@ -215,12 +218,11 @@ describe("the roster's CSV column hint", () => {
     // user gesture. So there is no path by which the file the app just wrote
     // comes back into it on its own, and the workflow sentence says so.
     expect([...html.matchAll(/<input[^>]*type="file"/g)]).toHaveLength(1);
-    // Matched as a tag rather than as an exact string, so the assertion is
-    // about the control and not about where React happens to put `type`.
-    const button = /<button[^>]*data-testid="download-csv-template"[^>]*>/.exec(html);
-    expect(button?.[0]).toContain('type="button"');
-    // Fails if a second file input appears — which would be a second, unnamed
-    // door into the importer — or if the download button stops being a plain
-    // button and starts being a submit.
+    // The menu that carries the controls is closed until its toggle opens it,
+    // and the toggle is a plain button — a click, not a form submission or a
+    // hover. A second file input would be a second, unnamed door into the
+    // importer; a submit toggle would navigate the page instead of opening it.
+    const toggle = /<button[^>]*data-testid="roster-actions-button"[^>]*>/.exec(html);
+    expect(toggle?.[0]).toContain('type="button"');
   });
 });

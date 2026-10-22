@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Community, Discipline, Id, Player } from "../domain/types";
 import { PageHeader } from "../ui/PageHeader";
 import { Screen } from "../ui/Screen";
@@ -213,6 +213,21 @@ const CSV_FORMAT_COPY: readonly string[] = [
   "Fill the template in and save it, then press Import players and pick that file. Nothing here is read until you choose it.",
   "CSV columns, in this order: name, discipline, strength. Any value with a comma in it goes in quotes. The last example row in the template shows one in the name column.",
   "Strength is a number from 1 to 5. Leave it blank and it is read as 3; text there skips the row.",
+];
+
+/**
+ * The actions menu's items, in the order they are offered.
+ *
+ * Module-level so the label contract is testable while the menu itself is
+ * closed: `renderToStaticMarkup` cannot click, so a label that only existed
+ * inside the open menu was a label no node test could reach. The ids are
+ * stable keys, not CSS hooks — the tests assert on `label`, the same string
+ * the copy names.
+ */
+export const ROSTER_ACTIONS: ReadonlyArray<{ id: string; label: string }> = [
+  { id: "add-player", label: "+ Add Player" },
+  { id: "import-players", label: "Import players" },
+  { id: "download-csv-template", label: "Download CSV template" },
 ];
 
 /** `1 player row` / `3 player rows`, so no sentence in the panel miscounts. */
@@ -494,14 +509,39 @@ export function RosterScreen(props: RosterScreenProps) {
    */
   const [selection, setSelection] = useState<Selection>(NO_SELECTION);
   const [rateOpen, setRateOpen] = useState(false);
+  /** The actions menu: closed until the Actions button asks for it. */
+  const [menuOpen, setMenuOpen] = useState(false);
   /**
-   * The CSV format panel: closed until the template button asks for it —
-   * except on an empty roster, where the organizer is about to need it and
-   * has nothing below to push out of the way. `players` is a prop, so this
-   * initial value is a one-time reading of the roster the screen was born
-   * with; toggling afterwards is the button's business.
+   * The CSV format panel: closed until the menu item asks for it — except on
+   * an empty roster, where the organizer is about to need it and has nothing
+   * below to push out of the way. `players` is a prop, so this initial value
+   * is a one-time reading of the roster the screen was born with; toggling
+   * afterwards is the menu item's business.
    */
   const [csvPanelOpen, setCsvPanelOpen] = useState(players.length === 0);
+  /**
+   * The menu closes on a click anywhere outside it. The ref is the dropdown's
+   * own box, so a click on the toggle itself is handled by React's state
+   * toggle and not double-handled here; Escape is the keyboard's way out.
+   */
+  const dropdownRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onPointerDown = (e: PointerEvent): void => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setMenuOpen(false);
+      }
+    };
+    const onKeyDown = (e: KeyboardEvent): void => {
+      if (e.key === "Escape") setMenuOpen(false);
+    };
+    document.addEventListener("pointerdown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [menuOpen]);
   const selectedIds = idsIn(selection, activeCommunity?.id);
   const selectedPlayers = selectedIn(selection, activeCommunity?.id, visiblePlayers);
   const allSelected = visiblePlayers.length > 0 && selectedPlayers.length === visiblePlayers.length;
@@ -636,24 +676,27 @@ export function RosterScreen(props: RosterScreenProps) {
       )}
               
           {/*
-           * Player actions, as one segmented group: add one by hand, add many
-           * from a file, or take a blank form. The group's shape says these
-           * are alternatives about the same thing — the roster's rows — which
-           * four same-styled buttons scattered across a row did not.
+           * Player actions, as one dropdown. A single control keeps the
+           * toolbar to two buttons on any screen width: the menu carries the
+           * three ways a roster grows, and the primary — adding a player —
+           * stays a first-class item at the top of the menu rather than
+           * hidden behind a second click when the user is on the empty
+           * roster they are about to fill. The format panel opens from the
+           * menu item instead of a caret, so the reference copy and the
+           * download it explains arrive together.
            */}
           <div className="roster-toolbar">
-            <div className="btn-group" role="group" aria-label="Roster actions">
+            <div className="dropdown" ref={dropdownRef}>
               <button
-                className="btn-group-item btn-group-item--primary"
-                onClick={props.onAddPlayer}
+                type="button"
+                className="btn btn-primary dropdown-toggle"
+                data-testid="roster-actions-button"
+                aria-haspopup="menu"
+                aria-expanded={menuOpen}
+                onClick={() => setMenuOpen(!menuOpen)}
               >
-                + Add Player
-              </button>
-              <button
-                className="btn-group-item"
-                onClick={() => fileInputRef.current?.click()}
-              >
-                Import players
+                Actions
+                <span className="dropdown-caret" aria-hidden="true">▾</span>
               </button>
               <input
                 ref={fileInputRef}
@@ -665,23 +708,47 @@ export function RosterScreen(props: RosterScreenProps) {
                 }}
                 style={{ display: "none" }}
               />
-              {/*
-               * Beside the import control and not beside the export control,
-               * because this is the other half of that pair: one hands the file
-               * out, the other reads it back. The caret opens the format
-               * reference beside the button — the two things a user needs
-               * before the file makes sense, on demand instead of on the page.
-               */}
-              <button
-                type="button"
-                className="btn-group-item"
-                data-testid="download-csv-template"
-                aria-expanded={csvPanelOpen}
-                aria-controls="csv-format-panel"
-                onClick={() => setCsvPanelOpen(!csvPanelOpen)}
-              >
-                Download CSV template
-              </button>
+              {menuOpen && (
+                <div className="dropdown-menu" role="menu" aria-label="Roster actions">
+                  {ROSTER_ACTIONS.map((action) => (
+                    <button
+                      key={action.id}
+                      type="button"
+                      role="menuitem"
+                      className={`dropdown-item${action.id === "add-player" ? " dropdown-item--primary" : ""}`}
+                      data-testid={action.id === "download-csv-template" ? "download-csv-template" : undefined}
+                      aria-expanded={action.id === "download-csv-template" ? csvPanelOpen : undefined}
+                      aria-controls={action.id === "download-csv-template" ? "csv-format-panel" : undefined}
+                      onClick={() => {
+                        if (action.id === "add-player") {
+                          setMenuOpen(false);
+                          props.onAddPlayer();
+                        } else if (action.id === "import-players") {
+                          setMenuOpen(false);
+                          fileInputRef.current?.click();
+                        } else {
+                          // Opening the format panel is an open command, never
+                          // a toggle: on an empty roster the panel starts
+                          // open, so a toggle here would close the thing the
+                          // item just promised to show. The menu closes with
+                          // it — every other item ends the menu, and leaving
+                          // it open would put the menu between the user and
+                          // the panel that just opened underneath it. It also
+                          // keeps the panel's DOM stable: as a sibling of the
+                          // menu in the same parent, a menu that closed later
+                          // (e.g. the outside-click handler) would shift the
+                          // panel's position in React's children array and
+                          // remount it under a press already in flight.
+                          setMenuOpen(false);
+                          setCsvPanelOpen(true);
+                        }
+                      }}
+                    >
+                      {action.label}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
             {csvPanelOpen && (
               <div className="csv-format-panel" id="csv-format-panel">

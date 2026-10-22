@@ -10,7 +10,7 @@
  * here. Tasks 16 and 17 append the import report and the merge flow to this
  * same file.
  */
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Download, type Page } from "@playwright/test";
 import { readFileSync } from "node:fs";
 import { gotoHubSeeded, type SeedWorld } from "../../support/seed";
 
@@ -38,6 +38,19 @@ const world = (): SeedWorld => ({
   activeCommunityId: "comm-fast",
 });
 
+const openMenuAndDownload = async (page: Page): Promise<Download> => {
+  // The template control lives in the actions dropdown: open the menu
+  // first, then press the item. The menu item toggles the format panel
+  // rather than downloading, so the download itself comes from the panel
+  // — the reference copy and the file it explains arrive together.
+  await page.getByTestId("roster-actions-button").click();
+  await page.getByTestId("download-csv-template").click();
+  const download = page.waitForEvent("download");
+  await page.getByTestId("csv-panel-download").click();
+  const file = await download;
+  return file;
+};
+
 test("the column contract is on the page, and the template downloads", async ({ page }) => {
   await gotoHubSeeded(page, world(), "Roster");
 
@@ -56,9 +69,7 @@ test("the column contract is on the page, and the template downloads", async ({ 
     "Badminton",
   ]);
 
-  const download = page.waitForEvent("download");
-  await page.getByTestId("download-csv-template").click();
-  const file = await download;
+  const file = await openMenuAndDownload(page);
 
   // The name is part of the file's usefulness: a blank form and a filled-in
   // roster in the same Downloads folder have to be tellable apart, and the
@@ -82,9 +93,7 @@ test("downloading the template does not put a player on the roster", async ({ pa
   await gotoHubSeeded(page, world(), "Roster");
   await expect(page.locator(".roster .row")).toHaveCount(0);
 
-  const download = page.waitForEvent("download");
-  await page.getByTestId("download-csv-template").click();
-  await download;
+  await openMenuAndDownload(page);
 
   // **This case is weaker than its name, and it is kept for what it does rule
   // out, not for what it looks like it rules out.** A count of zero resolves the
