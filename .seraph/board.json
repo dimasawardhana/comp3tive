@@ -384,6 +384,17 @@
       "updated_at": "2026-10-22T17:45:15Z"
     },
     {
+      "id": "TASK-128",
+      "title": "Roster toolbar button group + CSV format popover",
+      "goal": "Compact the roster toolbar into a segmented button group and move the CSV format reference into an on-demand popover so it reserves no page space.",
+      "acceptance": "Toolbar renders as one segmented group (Add/Import/CSV template) with Export right; no CSV format copy in the page flow; format+download reachable from the toolbar popover; unit and e2e tests pass.",
+      "status": "done",
+      "priority": "medium",
+      "claim": null,
+      "created_at": "2026-10-22T17:59:32Z",
+      "updated_at": "2026-10-22T18:06:39Z"
+    },
+    {
       "id": "TASK-107",
       "title": "Cover the roster editor's refusal with a test",
       "goal": "Cover the roster editor's refusal with a test",

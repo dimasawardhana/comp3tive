@@ -161,6 +161,12 @@ _Render format 3._
 - priority: medium
 - updated: 2026-10-22T17:45:15Z
 
+### TASK-128 · Roster toolbar button group + CSV format popover
+
+> **Goal:** Compact the roster toolbar into a segmented button group and move the CSV format reference into an on-demand popover so it reserves no page space.
+- priority: medium
+- updated: 2026-10-22T18:06:39Z
+
 ### TASK-107 · Cover the roster editor's refusal with a test
 
 > **Goal:** Cover the roster editor's refusal with a test
