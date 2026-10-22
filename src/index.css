@@ -1377,22 +1377,85 @@ h1 {
   flex: 1 1 auto;
 }
 
-/* The CSV hint, collapsed into one labelled line. A first-time organizer — an
-   empty roster — gets it open; a full roster has it as a summary line, so the
-   reference copy stops pushing the player list down the screen. */
-.import-hint-details > summary {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-2);
-  cursor: pointer;
-  user-select: none;
-  margin-bottom: 6px;
+/* The segmented action group. One control, three alternatives about the same
+   thing — the roster's rows — so the borders are shared and the radius lives
+   only at the group's ends. The primary keeps its filled treatment inside the
+   group, because "add a player" is still the action the screen exists for. */
+.btn-group {
+  display: inline-flex;
+  flex-wrap: wrap;
 }
-.import-hint-details[open] > summary {
-  margin-bottom: 10px;
-}
-.import-hint-details > summary:hover {
+.btn-group-item {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 8px 16px;
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 500;
+  background: var(--surface-2);
   color: var(--text);
+  border: 1.5px solid var(--hairline);
+  border-right-width: 0;
+  cursor: pointer;
+}
+.btn-group-item:first-child {
+  border-radius: 10px 0 0 10px;
+}
+.btn-group-item:last-child {
+  border-right-width: 1.5px;
+  border-radius: 0 10px 10px 0;
+}
+/* Only-child safety: a group that lost its siblings keeps both ends. */
+.btn-group-item:only-child {
+  border-right-width: 1.5px;
+  border-radius: 10px;
+}
+.btn-group-item + .btn-group-item {
+  border-radius: 0;
+}
+.btn-group-item:last-child:not(:only-child),
+.btn-group-item:last-child {
+  border-radius: 0 10px 10px 0;
+}
+.btn-group-item:first-child:last-child {
+  border-radius: 10px;
+}
+.btn-group-item:hover {
+  background: var(--surface-3, var(--surface-2));
+  filter: brightness(0.97);
+}
+.btn-group-item--primary {
+  background: var(--chip-on);
+  border-color: var(--chip-on);
+  color: var(--chip-on-text);
+  font-weight: 700;
+}
+.btn-group-item--primary:hover {
+  filter: brightness(1.05);
+}
+
+/* The CSV format panel. Opened from the template button, closed by it again:
+   reference copy on demand, so the page flow holds zero rows of it when the
+   user is not asking. Anchored under the toolbar, full measure, hairline box
+   like the import report. */
+.csv-format-panel {
+  flex-basis: 100%;
+  max-width: 80ch;
+  border: 1px solid var(--hairline);
+  border-radius: 10px;
+  background: var(--surface-2);
+  padding: 14px 16px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.csv-format-panel .import-hint {
+  margin: 0;
+}
+.csv-format-panel .btn {
+  align-self: flex-start;
+  margin-top: 4px;
 }
 
 /* The CSV column hint. Below the roster toolbar rather than inside it: it

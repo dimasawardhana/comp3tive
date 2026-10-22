@@ -201,6 +201,20 @@ const SKIP_GROUPS: readonly SkipGroup[] = [
 /** `1 row` / `3 rows`. */
 const rowNoun = (n: number): string => `${n} row${n === 1 ? "" : "s"}`;
 
+/**
+ * The CSV format panel's standing sentences, in reading order.
+ *
+ * Module-level and shared, so the panel renders the same copy every open and
+ * the tests can assert against the same strings the screen shows. The
+ * discipline list is *not* here — it is derived from the catalog and stays in
+ * the markup where the catalog prop is in scope.
+ */
+const CSV_FORMAT_COPY: readonly string[] = [
+  "Fill the template in and save it, then press Import players and pick that file. Nothing here is read until you choose it.",
+  "CSV columns, in this order: name, discipline, strength. Any value with a comma in it goes in quotes. The last example row in the template shows one in the name column.",
+  "Strength is a number from 1 to 5. Leave it blank and it is read as 3; text there skips the row.",
+];
+
 /** `1 player row` / `3 player rows`, so no sentence in the panel miscounts. */
 const rowWord = (n: number): string => `${n} player row${n === 1 ? "" : "s"}`;
 
@@ -480,6 +494,14 @@ export function RosterScreen(props: RosterScreenProps) {
    */
   const [selection, setSelection] = useState<Selection>(NO_SELECTION);
   const [rateOpen, setRateOpen] = useState(false);
+  /**
+   * The CSV format panel: closed until the template button asks for it —
+   * except on an empty roster, where the organizer is about to need it and
+   * has nothing below to push out of the way. `players` is a prop, so this
+   * initial value is a one-time reading of the roster the screen was born
+   * with; toggling afterwards is the button's business.
+   */
+  const [csvPanelOpen, setCsvPanelOpen] = useState(players.length === 0);
   const selectedIds = idsIn(selection, activeCommunity?.id);
   const selectedPlayers = selectedIn(selection, activeCommunity?.id, visiblePlayers);
   const allSelected = visiblePlayers.length > 0 && selectedPlayers.length === visiblePlayers.length;
@@ -613,17 +635,22 @@ export function RosterScreen(props: RosterScreenProps) {
         </div>
       )}
               
-          {/* Player actions: add/import cluster left, backup/export cluster right */}
+          {/*
+           * Player actions, as one segmented group: add one by hand, add many
+           * from a file, or take a blank form. The group's shape says these
+           * are alternatives about the same thing — the roster's rows — which
+           * four same-styled buttons scattered across a row did not.
+           */}
           <div className="roster-toolbar">
-            <div className="roster-toolbar-group">
+            <div className="btn-group" role="group" aria-label="Roster actions">
               <button
-                className="btn btn-primary"
+                className="btn-group-item btn-group-item--primary"
                 onClick={props.onAddPlayer}
               >
                 + Add Player
               </button>
               <button
-                className="btn btn-ghost"
+                className="btn-group-item"
                 onClick={() => fileInputRef.current?.click()}
               >
                 Import players
@@ -641,20 +668,46 @@ export function RosterScreen(props: RosterScreenProps) {
               {/*
                * Beside the import control and not beside the export control,
                * because this is the other half of that pair: one hands the file
-               * out, the other reads it back. It sits after the hidden input
-               * rather than before "Import players" so the control that reads a
-               * file comes first in the reading order of a screen whose left-hand
-               * cluster is: add one by hand, or add many from a file.
+               * out, the other reads it back. The caret opens the format
+               * reference beside the button — the two things a user needs
+               * before the file makes sense, on demand instead of on the page.
                */}
               <button
                 type="button"
-                className="btn btn-ghost"
+                className="btn-group-item"
                 data-testid="download-csv-template"
-                onClick={downloadCsvTemplate}
+                aria-expanded={csvPanelOpen}
+                aria-controls="csv-format-panel"
+                onClick={() => setCsvPanelOpen(!csvPanelOpen)}
               >
                 Download CSV template
               </button>
             </div>
+            {csvPanelOpen && (
+              <div className="csv-format-panel" id="csv-format-panel">
+                {CSV_FORMAT_COPY.map((text) => (
+                  <p className="import-hint" key={text.slice(0, 24)}>{text}</p>
+                ))}
+                {disciplines.length > 0 && (
+                  <>
+                    <p className="import-hint">Discipline must be one of:</p>
+                    <ul className="import-hint-list">
+                      {disciplines.map((d) => (
+                        <li key={d.id}>{disciplineSpelling(d)}</li>
+                      ))}
+                    </ul>
+                  </>
+                )}
+                <button
+                  type="button"
+                  className="btn btn-ghost small"
+                  data-testid="csv-panel-download"
+                  onClick={downloadCsvTemplate}
+                >
+                  Download template
+                </button>
+              </div>
+            )}
             <div className="roster-toolbar-spacer" />
             <div className="roster-toolbar-group">
               <span className="durability-note">
@@ -669,15 +722,16 @@ export function RosterScreen(props: RosterScreenProps) {
           </div>
 
           {/*
-           * The CSV contract, in the app rather than in the file. It cannot go in
-           * the file: the parser has no comment syntax, so an instruction line
-           * there is a data row whose strength is not a number, and it would
-           * reach the user as a skipped line on an otherwise clean import. It
-           * lives here because a user reads it before deciding to download
-           * anything, and the user who never downloads has to write the file by
-           * hand. Every claim these sentences make is checked against the parser
-           * in RosterScreen.csv-hint.test.ts, which is the only thing standing
-           * between this copy and a parser that changes under it.
+           * The CSV contract lives in the toolbar's panel now, not in the page
+           * flow: it is reference copy for the import control, and showing it
+           * permanently pushed the roster down the screen on every visit. It
+           * cannot go in the file: the parser has no comment syntax, so an
+           * instruction line there is a data row whose strength is not a
+           * number, and it would reach the user as a skipped line on an
+           * otherwise clean import. Every claim these sentences make is
+           * checked against the parser in RosterScreen.csv-hint.test.ts,
+           * which is the only thing standing between this copy and a parser
+           * that changes under it.
            *
            * The quoting sentence names a row, and the row it names is counted
            * from the end of the file. It used to say "the second row", which is
@@ -688,31 +742,6 @@ export function RosterScreen(props: RosterScreenProps) {
            * and fails when the two disagree — the two cannot now drift apart
            * quietly, which is how the wrong row survived a passing test.
            */}
-          <details className="import-hint-details" open={players.length === 0}>
-            <summary>CSV import format</summary>
-            <p className="import-hint">
-              Fill the template in and save it, then press Import players and pick that file. Nothing
-              here is read until you choose it.
-            </p>
-            <p className="import-hint">
-              CSV columns, in this order: name, discipline, strength. Any value with a comma in it goes
-              in quotes. The last example row in the template shows one in the name column.
-            </p>
-            <p className="import-hint">
-              Strength is a number from 1 to 5. Leave it blank and it is read as 3; text there skips
-              the row.
-            </p>
-            {disciplines.length > 0 && (
-              <>
-                <p className="import-hint">Discipline must be one of:</p>
-                <ul className="import-hint-list">
-                  {disciplines.map((d) => (
-                    <li key={d.id}>{disciplineSpelling(d)}</li>
-                  ))}
-                </ul>
-              </>
-            )}
-          </details>
 
           {/*
            * The import report, inline and directly under the hint it corrects.
