@@ -395,6 +395,17 @@
       "updated_at": "2026-10-22T18:06:39Z"
     },
     {
+      "id": "TASK-129",
+      "title": "Roster actions dropdown button",
+      "goal": "Replace the segmented button group on the roster toolbar with a single dropdown button holding Add Player, Import players and Download CSV template, to save horizontal space.",
+      "acceptance": "One dropdown control renders in the toolbar; its menu carries the three actions and each still works (add, file import, template download, format panel); Export stays separate; unit and e2e tests pass.",
+      "status": "done",
+      "priority": "medium",
+      "claim": null,
+      "created_at": "2026-10-22T18:28:09Z",
+      "updated_at": "2026-10-22T18:57:56Z"
+    },
+    {
       "id": "TASK-107",
       "title": "Cover the roster editor's refusal with a test",
       "goal": "Cover the roster editor's refusal with a test",

@@ -167,6 +167,12 @@ _Render format 3._
 - priority: medium
 - updated: 2026-10-22T18:06:39Z
 
+### TASK-129 · Roster actions dropdown button
+
+> **Goal:** Replace the segmented button group on the roster toolbar with a single dropdown button holding Add Player, Import players and Download CSV template, to save horizontal space.
+- priority: medium
+- updated: 2026-10-22T18:57:56Z
+
 ### TASK-107 · Cover the roster editor's refusal with a test
 
 > **Goal:** Cover the roster editor's refusal with a test
