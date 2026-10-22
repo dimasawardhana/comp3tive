@@ -69,3 +69,14 @@ export function validateCapability(cap: Capability, discipline: Discipline, path
 export function attributeRange(attribute: Attribute): string {
   return `${attribute.min ?? 1}-${attribute.max ?? 5}`;
 }
+
+/**
+ * The words an attribute gives a rating value, or null when it gives none.
+ * A partial catalog is expected: the discipline may name only some values
+ * (the ends of a 1-10 scale, say), and unnamed values have no words — the
+ * number is the whole message. A blank or whitespace label counts as none.
+ */
+export function attributeLabel(attribute: Attribute, value: number): string | null {
+  const label = attribute.labels?.[value];
+  return typeof label === "string" && label.trim().length > 0 ? label.trim() : null;
+}

@@ -5,28 +5,16 @@ _Render format 3._
 
 ## Backlog
 
-### TASK-122 · Deploy feature/account and enable Google sign-in on the live origin
+### TASK-126 · Attribute scales: per-attribute min/max the Organizer can set, and optional labels per rating value
 
-> **Goal:** Deploy the passkey fix and enable Google sign-in on the live origin. Both root causes of the passkey 500 are now fixed and the fix is committed to master (c8709dd): (a) the remote D1 had zero application tables because nothing in the deploy applies a schema -- fixed out of band on the remote DB, and still a deploy-runbook gap worth an npm script; (b) the client had no way to create an Account, because startPasskeyRegistration was wired to no UI -- fixed with a distinct Create an account button and actionable ceremony messages. Remaining: npx wrangler deploy, then the Google OAuth client and its secret.
+> **Goal:** An Organizer defining a discipline chooses each attribute's rating range (e.g. 1-5 or 1-10) and can optionally name what each value means, and every rating input, error message, and strength computation reads that scale instead of assuming 1-5.
 - priority: high
-- triage: ready-for-agent
-- updated: 2026-10-15T18:36:55Z
+- claimed by: hermes (session `hermes-telegram-dimas-1022`, until 2026-10-22T15:33:06Z)
+- updated: 2026-10-22T15:03:06Z
 
-> **Done when:** On a database with no tables, applying both schema files makes /api/passkey/register/options answer 200 rather than 500. curl /api/config returns a googleClientId, not null. In a browser on the deployed origin: Create an account registers a credential and lands signed in; Sign out then Sign in with a passkey reuses that credential and pulls the Account's data; signing in with no credential on the device shows the 'choose Create an account' message rather than a raw NotAllowedError. D1 shows one accounts row and one credentials row. The guest e2e suite stays green unedited.
+> **Done when:** 1) DisciplineEditModal exposes min/max number inputs per attribute (bounded 1-10) and an optional label text input per value in the chosen range; saving persists them. 2) PlayerEditModal and BulkRateModal rating inputs render the attribute's actual range and show the label of the currently selected value when one exists. 3) validateCapability messages use the attribute's real min/max (already true) — a test pins a 1-10 attribute accepts 7 and refuses 11. 4) A labeled attribute renders its label in at least one read path (roster detail or split screen). 5) Backup round trip preserves labels and custom ranges. 6) npx tsc -b clean; npx vitest run green; npm run e2e green unedited.
 
-> ROOT CAUSES (diagnosed and reproduced 2026-10-16), both now FIXED:
-> (a) MISSING SCHEMA. npx wrangler d1 execute comp3tive-db --remote --json --command "SELECT name FROM sqlite_master WHERE type='table'" returned only _cf_KV. Every DB-touching route answered 500 {"error":"Something went wrong on the server."}: /api/passkey/register/options, /api/passkey/signin/options, and /api/session with a bearer token all reproduced it, while /api/config and /api/session without a token answered fine -- which is what isolated it to the database. FIXED on the remote DB, in this order (schema-v2 assumes the identity tables from schema.sql exist):
->   npx wrangler d1 execute comp3tive-db --remote --file=server/schema.sql
->   npx wrangler d1 execute comp3tive-db --remote --file=server/schema-v2.sql
-> Both files are CREATE TABLE IF NOT EXISTS throughout, so re-running is safe. After applying: register + sign-in + /api/session verified 200 against the live origin, and a full register -> sign-in -> session round trip returned the same account id. STILL A DEPLOY-RUNBOOK GAP: the schema is applied out of band by hand, so a fresh database reproduces the 500 exactly. Make it a step, not folklore -- an npm script or a documented runbook.
-> (b) NO WAY TO CREATE AN ACCOUNT. git grep showed startPasskeyRegistration exported from src/account/session.ts with zero callers; the only passkey button called signInWithPasskey. A sign-in ceremony with no credential on the device fails NotAllowedError, which the user reads as 'passkeys are broken'. FIXED and COMMITTED (c8709dd): 'Create an account' (primary) and 'Sign in with a passkey' are separate buttons, and both ceremonies wrap their browser call so a failure reports an actionable sentence. Three tests pin the two routes apart and pin the guidance; both mutations verified red.
-> REMAINING STEPS:
-> 1. DONE -- the client fix is committed and pushed to master (c8709dd).
-> 2. Create the Google OAuth client (console.developers.google.com/auth/clients): type Web application; Authorized JavaScript origins http://localhost:5173 and https://comp3tive.dimasawardhana.workers.dev; no redirect URIs (the flow is a JS callback POSTed to /api/google/signin). Consent screen (auth/branding): app name comp3tive, support email; workers.dev cannot be an Authorized domain (public suffix list), so leave that empty. No extra scopes (email/profile/openid defaults only, no verification review); audience stays Testing with yourself as a test user.
-> 3. npx wrangler secret put GOOGLE_CLIENT_ID (and .dev.vars locally with the same name).
-> 4. npm run build && npx wrangler deploy, then re-run the browser checks in Done-when.
-> VERIFIED LOCALLY before deploy (wrangler dev --local on :8787 serving dist/, Chromium with a virtual authenticator): register/options+verify 200, signin/options+verify 200, documents/adopt on first sign-in then documents/pull on the second, D1 rows accounts=1 credentials=1, and the no-credential sign-in path shows the intended message rather than the raw DOMException. Full chain green at c8709dd: npx tsc -b 0; npx vitest run 915/915 (65 files); npm run e2e 124/124 with no spec edited; npm run build clean.
-> NOTE: passkeys registered on the workers.dev origin are development-disposable per ADR-0008 (a workers.dev host is on the Public Suffix List, so a credential there can never be shared with a custom domain). A custom domain must be settled before real organizers register.
+> User request 2026-10-22: attribute values are currently a bare 1-5 number; the Organizer wants meaningful values. Data model already supports per-attribute min/max (Attribute.min/max, defaults 1/5, validation reads them) but no UI sets them and there are no value labels. Plan: (a) Attribute gains optional labels?: Record<number,string>; (b) DisciplineEditModal: min/max inputs per attribute (1-10 bound) + optional label input per value in range; (c) PlayerEditModal + BulkRateModal render the real range and show the selected value's label; (d) read-path surfaces the label; (e) backup/transfer round trip keeps labels; (f) tests pin all of it, suites stay green unedited.
 
 
 ## Done
@@ -115,11 +103,17 @@ _Render format 3._
 - priority: high
 - updated: 2026-10-19T14:52:34Z
 
+### TASK-122 · Deploy feature/account and enable Google sign-in on the live origin
+
+> **Goal:** Deploy the passkey fix and enable Google sign-in on the live origin. Both root causes of the passkey 500 are now fixed and the fix is committed to master (c8709dd): (a) the remote D1 had zero application tables because nothing in the deploy applies a schema -- fixed out of band on the remote DB, and still a deploy-runbook gap worth an npm script; (b) the client had no way to create an Account, because startPasskeyRegistration was wired to no UI -- fixed with a distinct Create an account button and actionable ceremony messages. Remaining: npx wrangler deploy, then the Google OAuth client and its secret.
+- priority: high
+- updated: 2026-10-22T14:42:08Z
+
 ### TASK-123 · Fix D1 sync coverage for all client mutations and new-user UX friction
 
 > **Goal:** Fix two things reported by the Organizer: (1) D1 sync coverage - client-side mutations (player save, split-flow writes: sessions/squads/tournaments, community create, session/squad deletes) never call markDirty so they never reach D1; deleted communities have no server delete so their documents resurrect at next sign-in. Add markDirty to every mutation path, add a /api/documents/delete route, and stop deleteCommunity from pushing an empty document. (2) New-user UX: save-squad succeeds silently (no toast), the no-communities empty state points at an unlabeled topbar icon, and split-screen actions (Swap/Re-roll) and match-setup jargon (seats/eligible) are unexplained. Keep guest e2e green unedited.
 - priority: high
-- updated: 2026-10-19T08:46:21Z
+- updated: 2026-10-22T14:49:19Z
 
 ### TASK-125 · Public player registration: join codes and a public /join/:code form
 

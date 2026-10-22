@@ -258,7 +258,7 @@ const ENDORSED: readonly Endorsed[] = [
   },
   {
     file: "src/domain/DisciplineEditModal.tsx",
-    copy: "Built-in discipline — review only, not editable.",
+    copy: "Built-in discipline — editable on this device. Restoring a backup returns it to the app's own definition, and it cannot be deleted.",
     because: "the only visible line in the modal (DESIGN.md:202)",
   },
   {

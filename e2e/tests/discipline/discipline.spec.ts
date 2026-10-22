@@ -82,3 +82,35 @@ test("discipline: the catalog lede names the disciplines the seed ships", async 
   // follows the catalog — the drift that made the landing rail's "3+" false
   // cannot recur here.
 });
+
+test("discipline: a built-in discipline's attribute can be widened to 1-10 and labeled", async ({ page }) => {
+  await gotoHubSeeded(page, emptyWorld(), "Games");
+  await page.getByRole("button", { name: "Disciplines" }).click();
+  await expect(page.locator(".screen h1")).toHaveText("Disciplines");
+
+  // Open the first built-in discipline (Futsal) for editing. Editing a built-in
+  // is the point: the catalog on a device belongs to the Organizer, and only
+  // the delete is refused.
+  await page.locator(".roster .row", { hasText: "Futsal" }).first().click();
+  const modal = page.locator(".modal-card");
+  await expect(modal).toBeVisible();
+  await expect(modal.locator(".modal-title")).toHaveText("Edit discipline");
+
+  // Widen the first attribute to 1-10 and name one value.
+  const attr = modal.locator(".attr-editor").first();
+  await attr.getByLabel(/maximum/).fill("10");
+  await attr.getByLabel(/^Label for .* 10$/).fill("Elite");
+
+  await modal.getByRole("button", { name: "Save changes" }).click();
+  await expect(modal).not.toBeVisible();
+
+  // Reopen: the change persisted, and the banner still says what a backup does.
+  await page.locator(".roster .row", { hasText: "Futsal" }).first().click();
+  await expect(modal).toBeVisible();
+  await expect(modal.locator(".attr-editor").first().getByLabel(/maximum/)).toHaveValue("10");
+  await expect(modal.locator(".attr-editor").first().getByLabel(/^Label for .* 10$/)).toHaveValue("Elite");
+  await expect(modal.locator(".modal-banner")).toContainText("editable on this device");
+
+  // And the delete is still refused: no Delete button on a built-in.
+  await expect(modal.getByRole("button", { name: "Delete" })).toHaveCount(0);
+});

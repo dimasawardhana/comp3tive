@@ -97,6 +97,13 @@ export interface Attribute {
   name: string;
   min?: number; // default 1
   max?: number; // default 5
+  /**
+   * What a rating value *means*, when the discipline says so. Key = the rating
+   * value, value = the words. Any subset is fine: an attribute rated 1-10 may
+   * name only its ends (1: "Novice", 10: "Legend") and leave the middle
+   * unnamed. Absent or partial, the number speaks for itself.
+   */
+  labels?: Record<number, string>;
 }
 
 /** Team-building rules owned by a discipline. */

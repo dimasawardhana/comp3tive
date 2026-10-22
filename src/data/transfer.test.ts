@@ -116,6 +116,26 @@ describe("v5: the backup carries the discipline catalog", () => {
     expect(back.disciplines).toEqual(catalog);
   });
 
+  it("carries a 1-10 attribute with partial labels through a round trip", () => {
+    const fps = custom({
+      attributes: [
+        {
+          id: "aim",
+          name: "Aim",
+          min: 1,
+          max: 10,
+          labels: { 1: "Novice", 7: "Sharp", 10: "Legend" },
+        },
+      ],
+    });
+    const text = serializeBackup([], [], [community("c1", "Crew")], [], [], [fps]);
+    const back = parseBackup(text, SEED_DISCIPLINES);
+    const attr = back.disciplines.find((d) => d.id === "volleyball")?.attributes[0];
+    expect(attr?.min).toBe(1);
+    expect(attr?.max).toBe(10);
+    expect(attr?.labels).toEqual({ 1: "Novice", 7: "Sharp", 10: "Legend" });
+  });
+
   it("migrates a v4 file with no disciplines key to the built-in catalog", () => {
     const v4 = JSON.stringify({
       version: 4,

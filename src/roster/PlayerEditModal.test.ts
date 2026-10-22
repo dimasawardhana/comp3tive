@@ -94,7 +94,7 @@ const pressed = (html: string, name: string): string[] =>
 
 /** Every button the surface offered for an attribute, in order. */
 const offered = (html: string, name: string): string[] =>
-  [...html.matchAll(new RegExp(`aria-label="${name} (\\d+)"`, "g"))].map((m) => m[1]);
+  [...html.matchAll(new RegExp(`aria-label="${name} (\\d+)(?::[^"]*)?"`, "g"))].map((m) => m[1]);
 
 describe("a rating control asks the discipline, in both dialogs", () => {
   it("offers 4, 5 and 6 for a scale that starts at 4", () => {
@@ -194,5 +194,48 @@ describe("a rating control asks the discipline, in both dialogs", () => {
       [1, 2, 3, 4, 5],
       [1, 2, 3, 4, 5],
     ]);
+  });
+});
+
+describe("a labeled attribute", () => {
+  const aim: Attribute = {
+    id: "aim",
+    name: "Aim",
+    min: 1,
+    max: 10,
+    labels: { 1: "Novice", 10: "Legend", 7: "Sharp" },
+  };
+  const fps = disciplineOf(aim);
+
+  it("offers all ten steps on a 1-10 scale, in both dialogs", () => {
+    expect(offered(edit(fps, { aim: 7 }), "Aim")).toEqual(
+      ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10"],
+    );
+    expect(offered(bulk(fps), "Aim")).toEqual(
+      ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10"],
+    );
+  });
+
+  it("shows the current value's label in both dialogs", () => {
+    // The editor is handed 7 directly; the bulk dialog opens on the middle of
+    // the scale, so it gets a labeled middle too (7 named "Sharp").
+    const midLabeled = disciplineOf({
+      ...aim,
+      labels: { 1: "Novice", 10: "Legend", 5: "Solid", 7: "Sharp" },
+    });
+    expect(edit(fps, { aim: 7 })).toContain('class="rating-value-label">Sharp<');
+    expect(bulk(midLabeled)).toContain('class="rating-value-label">Solid<');
+  });
+
+  it("shows no label span when the value is unnamed", () => {
+    for (const html of [edit(fps, { aim: 3 }), bulk(fps)]) {
+      expect(html).not.toContain("rating-value-label");
+    }
+  });
+
+  it("names the label in the button's accessible name", () => {
+    const html = edit(fps, { aim: 7 });
+    expect(html).toContain('aria-label="Aim 10: Legend"');
+    expect(html).toContain('aria-label="Aim 3"'); // unnamed step, number only
   });
 });

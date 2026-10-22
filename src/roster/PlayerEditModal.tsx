@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import type { Capability, Discipline, Id, Player } from "../domain/types";
 import { ConfirmButton } from "../ui/ConfirmButton";
-import { validatePlayer, type ValidationIssue } from "../domain/validation";
+import { attributeLabel, validatePlayer, type ValidationIssue } from "../domain/validation";
 import { Modal } from "../ui/Modal";
 import { attributeBounds, attributeScale, middleOf } from "./BulkRateModal";
 
@@ -243,6 +243,7 @@ export function PlayerEditModal({ player, disciplines, communityId, onClose, onS
                       const steps = attributeScale(a);
                       const { min, max } = attributeBounds(a);
                       const current = cap.ratings[a.id] ?? middleOf(a);
+                      const currentLabel = attributeLabel(a, current);
                       return (
                         <div key={a.id} className="rating-row">
                           <span className="rating-label">{a.name}</span>
@@ -254,8 +255,9 @@ export function PlayerEditModal({ player, disciplines, communityId, onClose, onS
                                   type="button"
                                   className={`rating-btn ${current === n ? "on" : ""}`}
                                   onClick={() => setRating(cap.disciplineId, a.id, n)}
-                                  aria-label={`${a.name} ${n}`}
+                                  aria-label={attributeLabel(a, n) ? `${a.name} ${n}: ${attributeLabel(a, n)}` : `${a.name} ${n}`}
                                   aria-pressed={current === n}
+                                  title={attributeLabel(a, n) ?? undefined}
                                 >
                                   {n}
                                 </button>
@@ -275,6 +277,9 @@ export function PlayerEditModal({ player, disciplines, communityId, onClose, onS
                                 setRating(cap.disciplineId, a.id, next);
                               }}
                             />
+                          )}
+                          {currentLabel && (
+                            <span className="rating-value-label">{currentLabel}</span>
                           )}
                         </div>
                       );

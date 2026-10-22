@@ -1,7 +1,7 @@
 import { useState } from "react";
 import type { Attribute, Capability, Discipline, Id, Player } from "../domain/types";
 import { computeStrength } from "../domain/strength";
-import { validatePlayer } from "../domain/validation";
+import { attributeLabel, validatePlayer } from "../domain/validation";
 import { Modal } from "../ui/Modal";
 
 interface Props {
@@ -388,6 +388,8 @@ export function BulkRateModal({ disciplines, players, defaultDisciplineId, onApp
                   const steps = attributeScale(attribute);
                   const labelId = `rate-attr-${attribute.id}`;
                   const { min, max } = attributeBounds(attribute);
+                  const current = ratings[attribute.id] ?? min;
+                  const currentLabel = attributeLabel(attribute, current);
                   return (
                     <div key={attribute.id} className="rating-row">
                       <span className="rating-label" id={labelId}>{attribute.name}</span>
@@ -398,8 +400,9 @@ export function BulkRateModal({ disciplines, players, defaultDisciplineId, onApp
                               key={n}
                               type="button"
                               className={`rating-btn ${ratings[attribute.id] === n ? "on" : ""}`}
-                              aria-label={`${attribute.name} ${n}`}
+                              aria-label={attributeLabel(attribute, n) ? `${attribute.name} ${n}: ${attributeLabel(attribute, n)}` : `${attribute.name} ${n}`}
                               aria-pressed={ratings[attribute.id] === n}
+                              title={attributeLabel(attribute, n) ?? undefined}
                               onClick={() => {
                                 setIssues([]);
                                 setRatings((prev) => ({ ...prev, [attribute.id]: n }));
@@ -421,7 +424,7 @@ export function BulkRateModal({ disciplines, players, defaultDisciplineId, onApp
                           type="number"
                           min={min}
                           max={max}
-                          value={ratings[attribute.id] ?? min}
+                          value={current}
                           aria-label={`${attribute.name} rating`}
                           onChange={(e) => {
                             const next = Number(e.target.value);
@@ -430,6 +433,9 @@ export function BulkRateModal({ disciplines, players, defaultDisciplineId, onApp
                             setRatings((prev) => ({ ...prev, [attribute.id]: next }));
                           }}
                         />
+                      )}
+                      {currentLabel && (
+                        <span className="rating-value-label">{currentLabel}</span>
                       )}
                     </div>
                   );

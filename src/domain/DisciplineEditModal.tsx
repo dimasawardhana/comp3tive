@@ -31,6 +31,10 @@ export function DisciplineEditModal({
 }: Props) {
   const isEdit = discipline !== null;
   const isBuiltIn = discipline?.builtIn === true;
+  // A built-in discipline is *editable* (the Organizer owns the catalog on
+  // their device) but never *deletable*: the solver, seeded screens and sample
+  // data all assume the three named disciplines exist. Only the delete is off.
+  const canDelete = isEdit && onDelete != null && !isBuiltIn;
 
   const [name, setName] = useState(discipline?.name ?? "");
   const [shortName, setShortName] = useState(discipline?.shortName ?? "");
@@ -70,6 +74,30 @@ export function DisciplineEditModal({
     setRoles((prev) => prev.map((r, j) => (j === i ? { ...r, ...patch } : r)));
   const updateAttribute = (i: number, patch: Partial<Attribute>) =>
     setAttributes((prev) => prev.map((a, j) => (j === i ? { ...a, ...patch } : a)));
+  const setAttributeRange = (i: number, min: number, max: number) =>
+    setAttributes((prev) =>
+      prev.map((a, j) => {
+        if (j !== i) return a;
+        // Keep only the labels that still name a value on the new range, so
+        // shrinking 1-10 to 1-5 cannot carry a stray 7: "Legend" along.
+        const labels = Object.fromEntries(
+          Object.entries(a.labels ?? {})
+            .map(([k, v]) => [Number(k), v] as const)
+            .filter(([k]) => k >= min && k <= max),
+        );
+        return { ...a, min, max, labels };
+      }),
+    );
+  const setAttributeLabel = (i: number, value: number, label: string) =>
+    setAttributes((prev) =>
+      prev.map((a, j) => {
+        if (j !== i) return a;
+        const labels = { ...(a.labels ?? {}) };
+        if (label.trim().length === 0) delete labels[value];
+        else labels[value] = label;
+        return { ...a, labels };
+      }),
+    );
 
   const removeRole = (i: number) =>
     setRoles((prev) => prev.filter((_, j) => j !== i));
@@ -91,6 +119,7 @@ export function DisciplineEditModal({
         name: a.name.trim(),
         min: a.min ?? 1,
         max: a.max ?? 5,
+        ...(a.labels && Object.keys(a.labels).length > 0 ? { labels: a.labels } : {}),
       }))
       .filter((a) => a.name.length > 0);
 
@@ -114,6 +143,11 @@ export function DisciplineEditModal({
     const finalAttributes = buildAttributes();
     if (finalAttributes.length === 0) {
       setError("At least one attribute is required.");
+      return;
+    }
+    const badRange = finalAttributes.find((a) => (a.min ?? 1) < 1 || (a.max ?? 5) > 10 || (a.min ?? 1) > (a.max ?? 5));
+    if (badRange) {
+      setError(`Attribute "${badRange.name}" needs 1 ≤ min ≤ max ≤ 10.`);
       return;
     }
     if (rolesRequired && finalRoles.length === 0) {
@@ -174,12 +208,13 @@ export function DisciplineEditModal({
           &times;
         </button>
         <h1 className="modal-title">
-          {isEdit ? (isBuiltIn ? "View discipline" : "Edit discipline") : "New discipline"}
+          {isEdit ? "Edit discipline" : "New discipline"}
         </h1>
         {error && <div className="validation-errors"><li>{error}</li></div>}
         {isBuiltIn && (
           <p className="modal-banner modal-banner-info">
-            Built-in discipline — review only, not editable.
+            Built-in discipline — editable on this device. Restoring a backup returns it to the
+            app's own definition, and it cannot be deleted.
           </p>
         )}
 
@@ -191,7 +226,6 @@ export function DisciplineEditModal({
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="e.g. Badminton"
-            disabled={isBuiltIn}
             autoFocus={!isEdit}
           />
         </div>
@@ -205,7 +239,6 @@ export function DisciplineEditModal({
             onChange={(e) => setShortName(e.target.value)}
             placeholder="e.g. BDMT"
             maxLength={8}
-            disabled={isBuiltIn}
           />
         </div>
 
@@ -220,8 +253,7 @@ export function DisciplineEditModal({
               max={20}
               value={minTeamSize}
               onChange={(e) => setMinTeamSize(e.target.value)}
-              disabled={isBuiltIn}
-            />
+              />
           </div>
           <div className="field">
             <label className="field-label" htmlFor="disc-max">Max team size (empty = unlimited)</label>
@@ -233,8 +265,7 @@ export function DisciplineEditModal({
               max={20}
               value={maxTeamSize}
               onChange={(e) => setMaxTeamSize(e.target.value)}
-              disabled={isBuiltIn}
-            />
+              />
           </div>
         </div>
 
@@ -243,7 +274,6 @@ export function DisciplineEditModal({
             type="checkbox"
             checked={rolesRequired}
             onChange={(e) => setRolesRequired(e.target.checked)}
-            disabled={isBuiltIn}
           />
           <span>Roles are required on every team (hard coverage)</span>
         </label>
@@ -259,39 +289,38 @@ export function DisciplineEditModal({
               value={role.name}
               onChange={(e) => updateRole(i, { name: e.target.value })}
               placeholder="e.g. Goalkeeper"
-              disabled={isBuiltIn}
-            />
-            {!isBuiltIn && (
-              <button
-                type="button"
-                className="btn btn-ghost small"
-                onClick={() => removeRole(i)}
-              >
-                Remove
-              </button>
-            )}
+              />
+            <button
+              type="button"
+              className="btn btn-ghost small"
+              onClick={() => removeRole(i)}
+            >
+              Remove
+            </button>
           </div>
         ))}
-        {!isBuiltIn && (
-          <button type="button" className="link" onClick={addRole}>
-            + Add role
-          </button>
-        )}
+        <button type="button" className="link" onClick={addRole}>
+          + Add role
+        </button>
 
         <span className="sec">Attributes (rated per capability)</span>
         {attributes.length === 0 && (
           <p className="status">No attributes yet.</p>
         )}
-        {attributes.map((attr, i) => (
-          <div key={i} className="list-row">
-            <input
-              className="input"
-              value={attr.name}
-              onChange={(e) => updateAttribute(i, { name: e.target.value })}
-              placeholder="e.g. Skill"
-              disabled={isBuiltIn}
-            />
-            {!isBuiltIn && (
+        {attributes.map((attr, i) => {
+          const min = attr.min ?? 1;
+          const max = attr.max ?? 5;
+          const labelValues: number[] = [];
+          for (let n = min; n <= max && n - min < 10; n++) labelValues.push(n);
+          return (
+          <div key={i} className="attr-editor">
+            <div className="list-row">
+              <input
+                className="input"
+                value={attr.name}
+                onChange={(e) => updateAttribute(i, { name: e.target.value })}
+                placeholder="e.g. Skill"
+                  />
               <button
                 type="button"
                 className="btn btn-ghost small"
@@ -299,20 +328,70 @@ export function DisciplineEditModal({
               >
                 Remove
               </button>
-            )}
+            </div>
+            <>
+              <div className="field-row attr-range-row">
+                  <div className="field">
+                    <label className="field-label">Min</label>
+                    <input
+                      className="input"
+                      type="number"
+                      min={1}
+                      max={10}
+                      value={min}
+                      aria-label={`${attr.name || "Attribute"} minimum`}
+                      onChange={(e) => {
+                        const v = Number.parseInt(e.target.value, 10);
+                        if (Number.isFinite(v)) setAttributeRange(i, v, max);
+                      }}
+                    />
+                  </div>
+                  <div className="field">
+                    <label className="field-label">Max</label>
+                    <input
+                      className="input"
+                      type="number"
+                      min={1}
+                      max={10}
+                      value={max}
+                      aria-label={`${attr.name || "Attribute"} maximum`}
+                      onChange={(e) => {
+                        const v = Number.parseInt(e.target.value, 10);
+                        if (Number.isFinite(v)) setAttributeRange(i, min, v);
+                      }}
+                    />
+                  </div>
+                </div>
+                {min <= max && (
+                  <div className="attr-labels">
+                    <span className="field-label">Value labels (optional)</span>
+                    {labelValues.map((n) => (
+                      <div key={n} className="attr-label-row">
+                        <span className="attr-label-value">{n}</span>
+                        <input
+                          className="input"
+                          value={attr.labels?.[n] ?? ""}
+                          aria-label={`Label for ${attr.name || "attribute"} ${n}`}
+                          placeholder="e.g. Beginner"
+                          onChange={(e) => setAttributeLabel(i, n, e.target.value)}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </>
           </div>
-        ))}
-        {!isBuiltIn && (
-          <button type="button" className="link" onClick={addAttribute}>
-            + Add attribute
-          </button>
-        )}
+          );
+        })}
+        <button type="button" className="link" onClick={addAttribute}>
+          + Add attribute
+        </button>
 
         {error && <p className="field-error">{error}</p>}
         {error && <p className="field-error">{error}</p>}
 
         <div className="bar">
-          {isEdit && onDelete && !isBuiltIn ? (
+          {canDelete ? (
             <ConfirmButton
               disabled={saving}
               label="Delete"
@@ -327,19 +406,17 @@ export function DisciplineEditModal({
               onClick={onClose}
               disabled={saving}
             >
-              {isBuiltIn ? "Close" : "Cancel"}
+              "Cancel"
             </button>
           )}
-          {!isBuiltIn && (
-            <button
-              type="button"
-              className="btn btn-primary"
-              onClick={() => void save()}
-              disabled={saving || !name.trim()}
-            >
-              {saving ? "Saving…" : isEdit ? "Save changes" : "Add discipline"}
-            </button>
-          )}
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={() => void save()}
+            disabled={saving || !name.trim()}
+          >
+            {saving ? "Saving…" : isEdit ? "Save changes" : "Add discipline"}
+          </button>
         </div>
     </Modal>
   );
