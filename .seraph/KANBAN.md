@@ -3,20 +3,6 @@
 _Written by Seraph. Do not edit — this file is replaced on every change._
 _Render format 3._
 
-## Backlog
-
-### TASK-126 · Attribute scales: per-attribute min/max the Organizer can set, and optional labels per rating value
-
-> **Goal:** An Organizer defining a discipline chooses each attribute's rating range (e.g. 1-5 or 1-10) and can optionally name what each value means, and every rating input, error message, and strength computation reads that scale instead of assuming 1-5.
-- priority: high
-- claimed by: hermes (session `hermes-telegram-dimas-1022`, until 2026-10-22T15:33:06Z)
-- updated: 2026-10-22T15:03:06Z
-
-> **Done when:** 1) DisciplineEditModal exposes min/max number inputs per attribute (bounded 1-10) and an optional label text input per value in the chosen range; saving persists them. 2) PlayerEditModal and BulkRateModal rating inputs render the attribute's actual range and show the label of the currently selected value when one exists. 3) validateCapability messages use the attribute's real min/max (already true) — a test pins a 1-10 attribute accepts 7 and refuses 11. 4) A labeled attribute renders its label in at least one read path (roster detail or split screen). 5) Backup round trip preserves labels and custom ranges. 6) npx tsc -b clean; npx vitest run green; npm run e2e green unedited.
-
-> User request 2026-10-22: attribute values are currently a bare 1-5 number; the Organizer wants meaningful values. Data model already supports per-attribute min/max (Attribute.min/max, defaults 1/5, validation reads them) but no UI sets them and there are no value labels. Plan: (a) Attribute gains optional labels?: Record<number,string>; (b) DisciplineEditModal: min/max inputs per attribute (1-10 bound) + optional label input per value in range; (c) PlayerEditModal + BulkRateModal render the real range and show the selected value's label; (d) read-path surfaces the label; (e) backup/transfer round trip keeps labels; (f) tests pin all of it, suites stay green unedited.
-
-
 ## Done
 
 ### TASK-101 · Announce entering swap mode to assistive tech
@@ -121,6 +107,12 @@ _Render format 3._
 - priority: high
 - updated: 2026-10-19T12:15:21Z
 
+### TASK-126 · Attribute scales: per-attribute min/max the Organizer can set, and optional labels per rating value
+
+> **Goal:** An Organizer defining a discipline chooses each attribute's rating range (e.g. 1-5 or 1-10) and can optionally name what each value means, and every rating input, error message, and strength computation reads that scale instead of assuming 1-5.
+- priority: high
+- updated: 2026-10-22T15:52:12Z
+
 ### TASK-105 · Debt 26: decide the App.tsx line count, or close the row
 
 > **Goal:** Debt 26: decide the App.tsx line count, or close the row
@@ -162,6 +154,12 @@ _Render format 3._
 > **Goal:** Replace the topbar settings popover with a full Settings screen reachable from the rail and bottom nav; move the Account panel off the Dashboard into it; add a manual Sync now button for signed-in Organizers.
 - priority: medium
 - updated: 2026-10-19T09:44:54Z
+
+### TASK-127 · Roster page layout tidy-up
+
+> **Goal:** Reorganize the roster screen so filters, toolbar and CSV hints read as tidy grouped sections instead of loose floating blocks.
+- priority: medium
+- updated: 2026-10-22T17:45:15Z
 
 ### TASK-107 · Cover the roster editor's refusal with a test
 

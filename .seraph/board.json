@@ -2,22 +2,6 @@
   "render_format": 3,
   "tasks": [
     {
-      "id": "TASK-126",
-      "title": "Attribute scales: per-attribute min/max the Organizer can set, and optional labels per rating value",
-      "goal": "An Organizer defining a discipline chooses each attribute's rating range (e.g. 1-5 or 1-10) and can optionally name what each value means, and every rating input, error message, and strength computation reads that scale instead of assuming 1-5.",
-      "description": "User request 2026-10-22: attribute values are currently a bare 1-5 number; the Organizer wants meaningful values. Data model already supports per-attribute min/max (Attribute.min/max, defaults 1/5, validation reads them) but no UI sets them and there are no value labels. Plan: (a) Attribute gains optional labels?: Record<number,string>; (b) DisciplineEditModal: min/max inputs per attribute (1-10 bound) + optional label input per value in range; (c) PlayerEditModal + BulkRateModal render the real range and show the selected value's label; (d) read-path surfaces the label; (e) backup/transfer round trip keeps labels; (f) tests pin all of it, suites stay green unedited.",
-      "acceptance": "1) DisciplineEditModal exposes min/max number inputs per attribute (bounded 1-10) and an optional label text input per value in the chosen range; saving persists them. 2) PlayerEditModal and BulkRateModal rating inputs render the attribute's actual range and show the label of the currently selected value when one exists. 3) validateCapability messages use the attribute's real min/max (already true) — a test pins a 1-10 attribute accepts 7 and refuses 11. 4) A labeled attribute renders its label in at least one read path (roster detail or split screen). 5) Backup round trip preserves labels and custom ranges. 6) npx tsc -b clean; npx vitest run green; npm run e2e green unedited.",
-      "status": "backlog",
-      "priority": "high",
-      "claim": {
-        "harness": "hermes",
-        "session": "hermes-telegram-dimas-1022",
-        "expires": "2026-10-22T15:33:06Z"
-      },
-      "created_at": "2026-10-22T15:01:02Z",
-      "updated_at": "2026-10-22T15:03:06Z"
-    },
-    {
       "id": "TASK-101",
       "title": "Announce entering swap mode to assistive tech",
       "goal": "Announce entering swap mode to assistive tech",
@@ -284,6 +268,18 @@
       "updated_at": "2026-10-19T12:15:21Z"
     },
     {
+      "id": "TASK-126",
+      "title": "Attribute scales: per-attribute min/max the Organizer can set, and optional labels per rating value",
+      "goal": "An Organizer defining a discipline chooses each attribute's rating range (e.g. 1-5 or 1-10) and can optionally name what each value means, and every rating input, error message, and strength computation reads that scale instead of assuming 1-5.",
+      "description": "SHIPPED 2026-10-22 (commit 71e6fec). (1) Attribute gains optional labels: Record<number,string> and attributeLabel() in validation.ts (blank label = none). (2) DisciplineEditModal: per-attribute Min/Max inputs bounded 1-10 with save-time validation, plus an optional label text input per value in range; shrinking a range prunes out-of-range labels. (3) Built-in disciplines are EDITABLE per user request: all field gates removed, banner reworded (editable on this device; backup restore returns the code definition; not deletable); only the delete stays refused. Storage layer already upserted freely, so no store change was needed. (4) PlayerEditModal + BulkRateModal render the attribute real range (1-10 shows ten buttons; >12 steps still falls back to a number field) and show the current value label; labeled buttons carry title tooltips and enriched aria-labels. (5) Backup round trip carries a 1-10 labeled attribute - pinned by a transfer.test.ts case. (6) em-dash ledger updated for the reworded banner. Verification: npx tsc -b clean; npx vitest run 972/972 (70 files); npm run e2e 125/125 with one new spec (discipline.spec.ts:86) pinning built-in 1-10 widening, label persistence, the banner copy, and no Delete button on a built-in. GOTCHA: e2e webServer is vite preview serving dist/ - must npm run build before running e2e or the suite tests a stale bundle.",
+      "acceptance": "1) DisciplineEditModal exposes min/max number inputs per attribute (bounded 1-10) and an optional label text input per value in the chosen range; saving persists them. 2) PlayerEditModal and BulkRateModal rating inputs render the attribute's actual range and show the label of the currently selected value when one exists. 3) validateCapability messages use the attribute's real min/max (already true) — a test pins a 1-10 attribute accepts 7 and refuses 11. 4) A labeled attribute renders its label in at least one read path (roster detail or split screen). 5) Backup round trip preserves labels and custom ranges. 6) npx tsc -b clean; npx vitest run green; npm run e2e green unedited.",
+      "status": "done",
+      "priority": "high",
+      "claim": null,
+      "created_at": "2026-10-22T15:01:02Z",
+      "updated_at": "2026-10-22T15:52:12Z"
+    },
+    {
       "id": "TASK-105",
       "title": "Debt 26: decide the App.tsx line count, or close the row",
       "goal": "Debt 26: decide the App.tsx line count, or close the row",
@@ -375,6 +371,17 @@
       "claim": null,
       "created_at": "2026-10-19T09:44:33Z",
       "updated_at": "2026-10-19T09:44:54Z"
+    },
+    {
+      "id": "TASK-127",
+      "title": "Roster page layout tidy-up",
+      "goal": "Reorganize the roster screen so filters, toolbar and CSV hints read as tidy grouped sections instead of loose floating blocks.",
+      "acceptance": "Toolbar grouped left/right without mid-row wrap artifacts; CSV hints collapsed into a details element; filters + Clear filters on one line; consistent spacing; existing tests pass.",
+      "status": "done",
+      "priority": "medium",
+      "claim": null,
+      "created_at": "2026-10-22T17:12:24Z",
+      "updated_at": "2026-10-22T17:45:15Z"
     },
     {
       "id": "TASK-107",
