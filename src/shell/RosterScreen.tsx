@@ -574,91 +574,98 @@ export function RosterScreen(props: RosterScreenProps) {
       />
           
       {activeCommunity && (
-        <>
-          {/* Discipline filter chips */}
-          {disciplines.length > 0 && (
-            <div className="chips">
-              {disciplines.map((d) => (
-                <button
-                  key={d.id}
-                  type="button"
-                  className="chip"
-                  aria-pressed={filterIds.includes(d.id)}
-                  onClick={() => toggleFilter(d.id)}
-                >
-                  {d.shortName}
-                </button>
-              ))}
-            </div>
-          )}
+      <>
+      {props.pendingMerge && (
+        <div className="status-banner">
+          <span className="status-msg">
+            Import {props.pendingMerge.counts.communities} new communit{props.pendingMerge.counts.communities === 1 ? "y" : "ies"},{" "}
+            {props.pendingMerge.counts.players} new player{props.pendingMerge.counts.players === 1 ? "" : "s"},{" "}
+            {props.pendingMerge.counts.sessions} session{props.pendingMerge.counts.sessions === 1 ? "" : "s"},{" "}
+            {props.pendingMerge.counts.tournaments} tournament{props.pendingMerge.counts.tournaments === 1 ? "" : "s"},{" "}
+            {props.pendingMerge.counts.disciplines} new discipline{props.pendingMerge.counts.disciplines === 1 ? "" : "s"} and{" "}
+            {props.pendingMerge.counts.squads} saved squad{props.pendingMerge.counts.squads === 1 ? "" : "s"}? (Existing records with the
+            same id are kept.)
+          </span>
+          <button type="button" className="btn btn-ghost" onClick={props.onCancelMerge}>Cancel</button>
+          <button type="button" className="btn btn-primary" onClick={props.onConfirmMerge}>Import</button>
+        </div>
+      )}
+
+      {/* Discipline filter chips + clear, on one line */}
+      {disciplines.length > 0 && (
+        <div className="roster-filters">
+          <div className="chips">
+            {disciplines.map((d) => (
+              <button
+                key={d.id}
+                type="button"
+                className="chip"
+                aria-pressed={filterIds.includes(d.id)}
+                onClick={() => toggleFilter(d.id)}
+              >
+                {d.shortName}
+              </button>
+            ))}
+          </div>
           {filterIds.length > 0 && (
-            <button className="btn btn-ghost" onClick={clearFilters}>Clear filters</button>
+            <button className="btn btn-ghost small" onClick={clearFilters}>Clear filters</button>
           )}
-          {props.pendingMerge && (
-            <div className="status-banner">
-              <span className="status-msg">
-                Import {props.pendingMerge.counts.communities} new communit{props.pendingMerge.counts.communities === 1 ? "y" : "ies"},{" "}
-                {props.pendingMerge.counts.players} new player{props.pendingMerge.counts.players === 1 ? "" : "s"},{" "}
-                {props.pendingMerge.counts.sessions} session{props.pendingMerge.counts.sessions === 1 ? "" : "s"},{" "}
-                {props.pendingMerge.counts.tournaments} tournament{props.pendingMerge.counts.tournaments === 1 ? "" : "s"},{" "}
-                {props.pendingMerge.counts.disciplines} new discipline{props.pendingMerge.counts.disciplines === 1 ? "" : "s"} and{" "}
-                {props.pendingMerge.counts.squads} saved squad{props.pendingMerge.counts.squads === 1 ? "" : "s"}? (Existing records with the
-                same id are kept.)
-              </span>
-              <button type="button" className="btn btn-ghost" onClick={props.onCancelMerge}>Cancel</button>
-              <button type="button" className="btn btn-primary" onClick={props.onConfirmMerge}>Import</button>
-            </div>
-          )}
+        </div>
+      )}
               
-          {/* Player actions */}
+          {/* Player actions: add/import cluster left, backup/export cluster right */}
           <div className="roster-toolbar">
-            <button
-              className="btn btn-primary"
-              onClick={props.onAddPlayer}
-            >
-              + Add Player
-            </button>
-            <button
-              className="btn btn-ghost"
-              onClick={() => fileInputRef.current?.click()}
-            >
-              Import players
-            </button>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".json,.csv,.txt"
-              onChange={(e) => {
-                const f = e.target.files?.[0];
-                if (f) void props.importFile(f);
-              }}
-              style={{ display: "none" }}
-            />
-            {/*
-             * Beside the import control and not beside the export control,
-             * because this is the other half of that pair: one hands the file
-             * out, the other reads it back. It sits after the hidden input
-             * rather than before "Import players" so the control that reads a
-             * file comes first in the reading order of a screen whose left-hand
-             * cluster is: add one by hand, or add many from a file.
-             */}
-            <button
-              type="button"
-              className="btn btn-ghost"
-              data-testid="download-csv-template"
-              onClick={downloadCsvTemplate}
-            >
-              Download CSV template
-            </button>
+            <div className="roster-toolbar-group">
+              <button
+                className="btn btn-primary"
+                onClick={props.onAddPlayer}
+              >
+                + Add Player
+              </button>
+              <button
+                className="btn btn-ghost"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                Import players
+              </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".json,.csv,.txt"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) void props.importFile(f);
+                }}
+                style={{ display: "none" }}
+              />
+              {/*
+               * Beside the import control and not beside the export control,
+               * because this is the other half of that pair: one hands the file
+               * out, the other reads it back. It sits after the hidden input
+               * rather than before "Import players" so the control that reads a
+               * file comes first in the reading order of a screen whose left-hand
+               * cluster is: add one by hand, or add many from a file.
+               */}
+              <button
+                type="button"
+                className="btn btn-ghost"
+                data-testid="download-csv-template"
+                onClick={downloadCsvTemplate}
+              >
+                Download CSV template
+              </button>
+            </div>
             <div className="roster-toolbar-spacer" />
-            <span className="durability-note">
-              {props.persisted === true && "This browser reported persistent storage for this app on this visit. Keep a backup anyway."}
-              {props.persisted === false && "This browser reports this app's data is not stored persistently. Keep a backup."}
-              {props.persisted === null && "This app could not confirm persistent storage here. Keep a backup."}
-            </span>
-            <button className="btn btn-ghost" onClick={props.onExport}>
-              Export
-            </button>
+            <div className="roster-toolbar-group">
+              <span className="durability-note">
+                {props.persisted === true && "This browser reported persistent storage for this app on this visit. Keep a backup anyway."}
+                {props.persisted === false && "This browser reports this app's data is not stored persistently. Keep a backup."}
+                {props.persisted === null && "This app could not confirm persistent storage here. Keep a backup."}
+              </span>
+              <button className="btn btn-ghost" onClick={props.onExport}>
+                Export
+              </button>
+            </div>
           </div>
 
           {/*
@@ -681,28 +688,31 @@ export function RosterScreen(props: RosterScreenProps) {
            * and fails when the two disagree — the two cannot now drift apart
            * quietly, which is how the wrong row survived a passing test.
            */}
-          <p className="import-hint">
-            Fill the template in and save it, then press Import players and pick that file. Nothing
-            here is read until you choose it.
-          </p>
-          <p className="import-hint">
-            CSV columns, in this order: name, discipline, strength. Any value with a comma in it goes
-            in quotes. The last example row in the template shows one in the name column.
-          </p>
-          <p className="import-hint">
-            Strength is a number from 1 to 5. Leave it blank and it is read as 3; text there skips
-            the row.
-          </p>
-          {disciplines.length > 0 && (
-            <>
-              <p className="import-hint">Discipline must be one of:</p>
-              <ul className="import-hint-list">
-                {disciplines.map((d) => (
-                  <li key={d.id}>{disciplineSpelling(d)}</li>
-                ))}
-              </ul>
-            </>
-          )}
+          <details className="import-hint-details" open={players.length === 0}>
+            <summary>CSV import format</summary>
+            <p className="import-hint">
+              Fill the template in and save it, then press Import players and pick that file. Nothing
+              here is read until you choose it.
+            </p>
+            <p className="import-hint">
+              CSV columns, in this order: name, discipline, strength. Any value with a comma in it goes
+              in quotes. The last example row in the template shows one in the name column.
+            </p>
+            <p className="import-hint">
+              Strength is a number from 1 to 5. Leave it blank and it is read as 3; text there skips
+              the row.
+            </p>
+            {disciplines.length > 0 && (
+              <>
+                <p className="import-hint">Discipline must be one of:</p>
+                <ul className="import-hint-list">
+                  {disciplines.map((d) => (
+                    <li key={d.id}>{disciplineSpelling(d)}</li>
+                  ))}
+                </ul>
+              </>
+            )}
+          </details>
 
           {/*
            * The import report, inline and directly under the hint it corrects.
