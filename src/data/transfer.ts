@@ -133,17 +133,23 @@ function isDiscipline(v: unknown): v is Discipline {
 }
 
 /**
- * The catalog a parsed file yields: the code's built-ins, plus the file's own
- * entries, merged by id.
+ * The catalog a parsed file yields: the file's own entries, plus any built-in
+ * the file omitted, merged by id.
  *
- * **The code wins for a built-in's id, and this is the whole rule.** A built-in
- * is immutable by construction — `builtIn: true` exists so it cannot be edited
- * (`DisciplineEditModal` disables every field and refuses the delete), and
- * `src/domain/seed.ts` is the only authority for its roles and attributes. A
- * file authored by a newer build, or hand-edited, must not be able to redefine
- * futsal. So the merge is by id and not a filter: taking the file's list
- * wholesale would let it redefine a built-in, and filtering the file's entries
- * out would let it *delete* one by omitting it.
+ * **The file wins for a built-in's id, and this is the whole rule.** The
+ * catalog on a device belongs to the Organizer: built-in disciplines are
+ * editable there (only the delete is refused, `DisciplineEditModal`), and the
+ * sync path and the app's own import both treat the device's catalog as the
+ * source of truth. A file authored by another device carries that device's
+ * edited catalog, so honoring it — not reverting it to the code's seeds — is
+ * what makes a round trip lossless. Shape is still enforced (`isDiscipline`),
+ * so a hand-edited file cannot smuggle in a malformed definition.
+ *
+ * **A built-in cannot be deleted by omission.** A v4 file carries no catalog
+ * at all, and a file that predates an edit would otherwise delete the
+ * built-in outright. So the seeds are unioned in first and every file entry
+ * overrides by id; what survives is the file's version when it has one and
+ * the code's when it does not.
  *
  * **A discipline the code does not know is taken as written.** That is the
  * entire point of the field: a custom catalog entry is not something the build
@@ -154,12 +160,14 @@ function isDiscipline(v: unknown): v is Discipline {
  * new-tournament default — is the same before and after a restore.
  */
 function mergeDisciplines(fromFile: Discipline[]): Discipline[] {
+  // Seeds first as the floor: a built-in is present even when the file (say a
+  // v4 import, or one authored before an attribute edit) omits or predates it.
   const merged = new Map<string, Discipline>();
   for (const seed of SEED_DISCIPLINES) merged.set(seed.id, seed);
   for (const d of fromFile) {
-    // `has` rather than an overwrite: a built-in key is already the code's and
-    // stays the code's, whatever the file says.
-    if (!merged.has(d.id)) merged.set(d.id, d);
+    // Overwrite by id: the file's definition is the newer one — it is what the
+    // exporting device was running, edited catalog included.
+    merged.set(d.id, d);
   }
   return orderDisciplines([...merged.values()]);
 }

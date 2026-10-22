@@ -161,22 +161,32 @@ describe("v5: the backup carries the discipline catalog", () => {
     expect(parseBackup(v4).disciplines.map((d) => d.id)).toEqual(SEED_DISCIPLINES.map((d) => d.id));
   });
 
-  it("takes the code's definition of a built-in, never the file's", () => {
+  it("takes the file's definition of a built-in — the exporting device's edits win", () => {
     const futsal = SEED_DISCIPLINES.find((d) => d.id === "futsal")!;
-    const tampered = { ...futsal, roles: [{ id: "hacked", name: "Hacked" }] };
-    const back = parseBackup(v5([tampered]), SEED_DISCIPLINES);
+    const edited = {
+      ...futsal,
+      attributes: [{ id: "aim", name: "Aim", min: 1, max: 10, labels: { 10: "Elite" } }],
+    };
+    const back = parseBackup(v5([edited]), SEED_DISCIPLINES);
     const restored = back.disciplines.find((d) => d.id === "futsal");
-    // The seed's roles, not the file's: a newer build, or a hand-edited file,
-    // must not be able to redefine a built-in's roles or attributes.
+    // The file's attributes, not the seeds': built-ins are editable on a device
+    // (only the delete is refused), so a file from that device carries the edit
+    // and a round trip must be lossless. Shape is still enforced by
+    // isDiscipline, so the file cannot smuggle in a malformed definition.
+    expect(restored?.attributes).toEqual(edited.attributes);
     expect(restored?.roles).toEqual(futsal.roles);
-    expect(restored?.attributes).toEqual(futsal.attributes);
+  });
+
+  it("still rejects a malformed element that claims a built-in's id", () => {
+    // The file wins, but only over well-formed entries: `isDiscipline` runs
+    // before the merge, so a hand-edited file cannot poison futsal.
+    expect(() => parseBackup(v5([{ id: "futsal", name: "Futsal" }]))).toThrow(/malformed discipline/);
   });
 
   it("cannot drop a built-in by omitting it from the file", () => {
-    // Merge by id against `SEED_DISCIPLINES`, not a filter over the file: the
-    // code's built-ins are always present, so a file listing one custom
-    // discipline cannot delete futsal, and a hand-edited or truncated file
-    // cannot leave the app without its constants. The custom entry still
+    // Merge against `SEED_DISCIPLINES` as the floor, not a filter over the
+    // file: a file omitting a built-in (a v4 import, or one authored before an
+    // edit) yields the seed rather than a deletion. The custom entry still
     // arrives - this is a merge, not a substitution in either direction.
     const ids = parseBackup(v5([custom()])).disciplines.map((d) => d.id);
     for (const seed of SEED_DISCIPLINES) expect(ids).toContain(seed.id);
