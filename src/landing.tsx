@@ -50,7 +50,32 @@ const session: Session = {
 
 const noop = async () => {};
 
+/**
+ * The bracket the Play row shows: two first-round matches, then the final.
+ *
+ * Who won is a fact the reader can already see (the winner is named in the next
+ * column), so it is said in words rather than drawn as a tick. A check mark in
+ * the margin is decoration standing in for something the page has already
+ * stated, and it is the one glyph this page refuses.
+ */
 function BracketPreview() {
+  const match = (
+    a: { name: string; bib: string; won: boolean },
+    b: { name: string; bib: string; won: boolean },
+  ) => (
+    <div className="landing-bracket-match">
+      {[a, b].map((team) => (
+        <span key={team.name} className="landing-bteam" data-won={team.won ? "yes" : "no"}>
+          <span className="landing-bteam-team">
+            <span className="landing-bteam-dot" style={{ background: team.bib }} />
+            <span className="landing-bteam-name">{team.name}</span>
+          </span>
+          {team.won && <span className="landing-bteam-state">Won</span>}
+        </span>
+      ))}
+    </div>
+  );
+
   return (
     <section className="landing-tournament" aria-label="Tournament preview">
       <p className="landing-tournament-head">
@@ -59,37 +84,21 @@ function BracketPreview() {
       <div className="landing-bracket">
         <div className="landing-bracket-column">
           <p className="landing-bracket-round">Round 1</p>
-          <div className="landing-bracket-match">
-            <span className="landing-bteam">
-              <span><span className="landing-bteam-dot" style={{ background: "var(--bib-a)" }}></span><span className="landing-bteam-name">Eka</span></span>
-              <span className="landing-bteam-check">✓</span>
-            </span>
-            <span className="landing-bteam">
-              <span><span className="landing-bteam-dot" style={{ background: "var(--bib-c)" }}></span><span className="landing-bteam-name">Irfan</span></span>
-            </span>
-          </div>
-          <div className="landing-bracket-match">
-            <span className="landing-bteam">
-              <span><span className="landing-bteam-dot" style={{ background: "var(--bib-b)" }}></span><span className="landing-bteam-name">Citra</span></span>
-              <span className="landing-bteam-check">✓</span>
-            </span>
-            <span className="landing-bteam">
-              <span><span className="landing-bteam-dot" style={{ background: "var(--bib-d)" }}></span><span className="landing-bteam-name">Gita</span></span>
-            </span>
-          </div>
+          {match(
+            { name: "Eka", bib: "var(--bib-a)", won: true },
+            { name: "Irfan", bib: "var(--bib-c)", won: false },
+          )}
+          {match(
+            { name: "Citra", bib: "var(--bib-b)", won: true },
+            { name: "Gita", bib: "var(--bib-d)", won: false },
+          )}
         </div>
-        <div className="landing-bracket-advancing" aria-hidden="true">→</div>
         <div className="landing-bracket-column">
           <p className="landing-bracket-round">Final</p>
-          <div className="landing-bracket-match">
-            <span className="landing-bteam">
-              <span><span className="landing-bteam-dot" style={{ background: "var(--bib-a)" }}></span><span className="landing-bteam-name">Eka</span></span>
-              <span className="landing-bteam-check">✓</span>
-            </span>
-            <span className="landing-bteam">
-              <span><span className="landing-bteam-dot" style={{ background: "var(--bib-b)" }}></span><span className="landing-bteam-name">Citra</span></span>
-            </span>
-          </div>
+          {match(
+            { name: "Eka", bib: "var(--bib-a)", won: true },
+            { name: "Citra", bib: "var(--bib-b)", won: false },
+          )}
         </div>
       </div>
     </section>
@@ -99,21 +108,21 @@ function BracketPreview() {
 const DISCIPLINES = [
   {
     name: "Futsal",
-    desc: "Indoor football on a smaller pitch — fast, technical, and built around tight spaces.",
+    desc: "Indoor football on a smaller pitch. Fast, technical, and built around tight spaces.",
     roles: ["Goalkeeper", "Defender", "Winger", "Pivot"],
     attributes: ["Technical", "Fitness", "Game IQ"],
     teamSize: "5+ a side",
   },
   {
     name: "Mobile Legends",
-    desc: "5v5 MOBA — roles define your lane, and the strength model accounts for every attribute.",
+    desc: "5v5 MOBA. Roles define your lane, and the strength model accounts for every attribute.",
     roles: ["Gold Laner", "Exp Laner", "Mid Laner", "Jungler", "Roamer"],
     attributes: ["Mechanics", "Game Sense", "Hero Pool", "Teamwork"],
     teamSize: "5 a side",
   },
   {
     name: "Badminton",
-    desc: "Doubles on a badminton court — pairs balanced by strength, one at the front and one at the back.",
+    desc: "Doubles on a badminton court. Pairs balanced by strength, one at the front and one at the back.",
     roles: ["Front court", "Rear court"],
     attributes: ["Technical", "Fitness", "Game IQ"],
     teamSize: "2 v 2",
@@ -215,7 +224,9 @@ if (rows.length > 0 && "IntersectionObserver" in window) {
 const railFacts: Array<[string, string]> = [
   ["[data-landing-players]", String(ROSTER.length)],
   ["[data-landing-teams]", String(result.teams.length)],
-  ["[data-landing-gap]", result.gap.toFixed(2)],
+  // One decimal, matching the gap plate inside the panel above it. The rail
+  // repeats the panel's figure, so a second precision reads as a second number.
+  ["[data-landing-gap]", result.gap.toFixed(1)],
 ];
 
 for (const [selector, value] of railFacts) {

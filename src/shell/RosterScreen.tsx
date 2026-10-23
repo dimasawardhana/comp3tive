@@ -623,7 +623,6 @@ export function RosterScreen(props: RosterScreenProps) {
   return (
     <Screen>
       <PageHeader
-        kicker="Match sheet"
         title="comp3tive"
         lede={
           activeCommunity && (
@@ -696,7 +695,11 @@ export function RosterScreen(props: RosterScreenProps) {
                 onClick={() => setMenuOpen(!menuOpen)}
               >
                 Actions
-                <span className="dropdown-caret" aria-hidden="true">▾</span>
+                <span className="dropdown-caret" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M6 9l6 6 6-6" />
+                  </svg>
+                </span>
               </button>
               <input
                 ref={fileInputRef}
@@ -929,7 +932,6 @@ export function RosterScreen(props: RosterScreenProps) {
           {/* Player list */}
           {players.length === 0 ? (
             <div className="empty">
-              <div className="kicker">Empty bench</div>
               <div className="big">No players in this community</div>
               <p>Add the first player manually, or import a JSON / CSV roster.</p>
               <button
@@ -953,7 +955,7 @@ export function RosterScreen(props: RosterScreenProps) {
                   <div
                     key={player.id}
                     className="row row-clickable row-has-select"
-                    style={{ "--stripe": bibVar } as React.CSSProperties}
+                    style={{ "--stripe": bibVar, "--i": i } as React.CSSProperties}
                   >
                     {/*
                      * The checkbox is a *sibling* of the row's button, not a
@@ -984,12 +986,8 @@ export function RosterScreen(props: RosterScreenProps) {
                         }
                       }}
                     >
-                      <span className="lineup-no">{String(i + 1).padStart(2, "0")}</span>
                       <div className="who">
                         <div className="name">{player.name}</div>
-                        {player.notes && (
-                          <div className="note">{player.notes}</div>
-                        )}
                         <div className="badges">
                           {player.capabilities.map(cap => {
                             const discipline = disciplinesById.get(cap.disciplineId);

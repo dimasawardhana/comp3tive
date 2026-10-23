@@ -58,11 +58,10 @@ interface Props {
  * so the counts always match what each hub shows. Stat cards reuse the
  * tournament meta-card styling.
  *
- * The header follows the hub convention: kicker + h1 + a lede naming the
- * active community. The actions are the hub's exits: the primary CTA starts
- * the ad-hoc split and the secondary links reach the other main flows. All
- * navigation is delegated to App via the callback props — this screen never
- * reimplements a flow.
+ * The header is an h1 and one lede line naming the active community. The
+ * actions are the hub's exits: the primary CTA starts the ad-hoc split and the
+ * secondary links reach the other main flows. All navigation is delegated to
+ * App via the callback props, so this screen never reimplements a flow.
  */
 export function DashboardScreen({
   community,
@@ -90,7 +89,6 @@ export function DashboardScreen({
   return (
     <Screen>
       <PageHeader
-        kicker="State of play"
         title="Dashboard"
         lede={
           <>
@@ -98,19 +96,60 @@ export function DashboardScreen({
             {players.length === 1 ? "" : "s"} on the roster
           </>
         }
+        action={
+          players.length > 0 ? (
+            <button type="button" className="btn btn-primary" onClick={onSplitMatch}>
+              Split match
+            </button>
+          ) : undefined
+        }
       />
 
       {players.length === 0 ? (
-        <div className="empty dashboard-empty">
-          <div className="kicker">First run</div>
-          <div className="big">Run your first split</div>
-          <p>Add players to the roster, then split them into fair teams for a match.</p>
-          <div className="actions">
-            <button type="button" className="btn btn-primary" onClick={onAddPlayer}>
-              + Add players
-            </button>
+        <section className="dashboard-first-run">
+          <div className="empty dashboard-empty">
+            <div className="big">Run your first split</div>
+            <p>Add players to the roster, then split them into fair teams for a match.</p>
+            <div className="actions">
+              <button type="button" className="btn btn-primary" onClick={onAddPlayer}>
+                + Add players
+              </button>
+            </div>
           </div>
-        </div>
+          {/* The first-run screen answers "what do I do next" in full rather
+              than leaving one card in an empty canvas: the roster is the first
+              step, and the rest are the real destinations that already work
+              with an empty roster. */}
+          <div className="dashboard-first-run-next">
+            <h2 className="dashboard-teasers-head">After the roster</h2>
+            <ul className="dashboard-next-list">
+              <li>
+                <span className="dashboard-next-title">Rate what each player is good at</span>
+                <span className="dashboard-next-note">
+                  The split reads roles and attributes, so a rated roster gets a fairer result.
+                </span>
+              </li>
+              <li>
+                <span className="dashboard-next-title">Split for tonight</span>
+                <span className="dashboard-next-note">
+                  Pick the discipline and the team count, then compare the gap it proves.
+                </span>
+              </li>
+              <li>
+                <span className="dashboard-next-title">Run a tournament</span>
+                <span className="dashboard-next-note">
+                  Round robin, Swiss or single elimination, recorded as you play.
+                </span>
+              </li>
+              <li>
+                <span className="dashboard-next-title">Keep a backup</span>
+                <span className="dashboard-next-note">
+                  Export a JSON file from Roster. It is the only copy you control.
+                </span>
+              </li>
+            </ul>
+          </div>
+        </section>
       ) : (
         <>
           <div className="dashboard-stats">
@@ -139,7 +178,6 @@ export function DashboardScreen({
           <section className="dashboard-teasers" aria-label="Recent players">
             <div className="dashboard-teasers-head">
               <h2>Recent players</h2>
-              <span className="kicker">Newest first</span>
             </div>
             <ul className="roster dashboard-teaser-list">
               {recentPlayersList.map((player) => {
@@ -198,7 +236,6 @@ export function DashboardScreen({
           <section className="dashboard-teasers" aria-label="Active tournaments">
             <div className="dashboard-teasers-head">
               <h2>Active tournaments</h2>
-              <span className="kicker">Teams submitted</span>
             </div>
             {recentTournaments.length === 0 ? (
               <p className="dashboard-teasers-empty">
@@ -258,15 +295,7 @@ export function DashboardScreen({
         </>
       )}
 
-      <div className="dashboard-actions">
-        <button
-          type="button"
-          className="btn btn-primary"
-          onClick={onSplitMatch}
-          disabled={players.length === 0}
-        >
-          Split match
-        </button>
+      {players.length > 0 && (
         <div className="dashboard-links">
           <button type="button" className="link" onClick={onNewTournament}>
             + New tournament
@@ -278,7 +307,7 @@ export function DashboardScreen({
             + Add player
           </button>
         </div>
-      </div>
+      )}
     </Screen>
   );
 }

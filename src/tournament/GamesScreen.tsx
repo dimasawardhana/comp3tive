@@ -155,7 +155,6 @@ export function GamesScreen({ tournaments, disciplines, onCreate, onOpen, onDele
   return (
     <>
       <PageHeader
-        kicker="Tournaments"
         title="Games"
         lede={
           activeCommunity && (
@@ -173,7 +172,6 @@ export function GamesScreen({ tournaments, disciplines, onCreate, onOpen, onDele
       </div>
       {tournaments.length === 0 ? (
         <div className="empty">
-          <div className="kicker">No games yet</div>
           <div className="big">Run a competition</div>
           <p>Create a tournament, set the format, and split your teams inside it.</p>
           <div className="actions">

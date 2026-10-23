@@ -20,7 +20,6 @@ export function HistoryScreen({ sessions, loading, disciplines, onReopen, onDele
   return (
     <Screen>
       <PageHeader
-        kicker="Game tape"
         title="History"
         lede="Every team-building run you&apos;ve done. Reopen one to re-split the same pool."
       />
@@ -29,7 +28,6 @@ export function HistoryScreen({ sessions, loading, disciplines, onReopen, onDele
         <p className="status">Loading&hellip;</p>
       ) : sessions.length === 0 ? (
         <div className="empty">
-          <div className="kicker">No history</div>
           <div className="big">Sessions appear here</div>
           <p>Split your first teams and they&apos;ll be saved automatically.</p>
         </div>

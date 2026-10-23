@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { gotoSeeded, hubButton, type SeedWorld } from "../../support/seed";
+import { gotoSeeded, openSettings, type SeedWorld } from "../../support/seed";
 
 test.use({ viewport: { width: 390, height: 844 } });
 
@@ -35,10 +35,10 @@ test("settings screen and navigation stay on viewport", async ({ page }) => {
     expect(navBox.y + navBox.height).toBeGreaterThanOrEqual(viewportSize.height - 5);
   }
 
-  // 3. Settings is a hub now: the nav button lands on the screen, whose
-  // content sits inside the scrolling column (below the sticky topbar).
-  await hubButton(page, "Settings").click();
-  await expect(page.locator(".screen h1")).toHaveText("Settings");
+  // 3. Settings is a destination but not one of the five hubs, so at 390 it is
+  // inside the menu sheet rather than in the bottom bar. openSettings opens
+  // whichever surface holds it and waits for the screen.
+  await openSettings(page);
   const screenBox = await page.locator(".screen").boundingBox();
   const topbarBox2 = await topbar.boundingBox();
   if (screenBox && topbarBox2) {

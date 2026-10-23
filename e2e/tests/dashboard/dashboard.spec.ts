@@ -20,16 +20,18 @@ const twoCommunities = (): SeedWorld => ({
   activeCommunityId: "comm-alpha",
 });
 
-test("fresh load lands on the Dashboard with the six hub tabs", async ({ page }) => {
+test("fresh load lands on the Dashboard with the five hub tabs", async ({ page }) => {
   await gotoSeeded(page, twoCommunities());
 
   // ADR-0005: the view stack root is the dashboard view; every fresh load lands here.
   await expect(page.locator(".screen h1")).toHaveText("Dashboard");
 
-  // The six-slot layout. The nav buttons carry no aria-label: their accessible
-  // name IS their visible label (the icon span is aria-hidden), which is what
-  // hubButton resolves. Exactly one control matches each name at this width.
-  for (const hub of ["Home", "Roster", "Games", "History", "Squads", "Settings"] as const) {
+  // Five slots. Settings is a destination but a utility, so it is not one of
+  // them: it lives in the sidebar footer and in the phone menu sheet, which
+  // `openSettings` in the seed helpers covers. The nav buttons carry no
+  // aria-label: their accessible name IS their visible label (the icon is
+  // aria-hidden), which is what hubButton resolves.
+  for (const hub of ["Home", "Roster", "Games", "History", "Squads"] as const) {
     await expect(hubButton(page, hub)).toHaveCount(1);
     await expect(hubButton(page, hub)).toBeVisible();
   }
@@ -143,11 +145,16 @@ test("a fresh community shows the guided empty state instead of stat cards", asy
   // The stat cards are gone (zero cards would otherwise read as empty zeros).
   await expect(page.locator(".dashboard-stats")).not.toBeVisible();
 
-  // Without players nothing can be split yet: the primary CTA is disabled and
-  // the guided empty state offers the add-players entry instead.
-  const split = page.getByRole("button", { name: "Split match", exact: true });
-  await expect(split).toBeDisabled();
+  // Without players there is nothing to split, so the screen does not offer the
+  // action at all: a disabled button with no way to satisfy it is a dead
+  // control, and the empty state already names the step that unblocks it.
+  await expect(page.getByRole("button", { name: "Split match", exact: true })).toHaveCount(0);
   await expect(page.locator(".dashboard-empty .btn-primary")).toHaveText("+ Add players");
+
+  // The screen answers "what next" in full rather than leaving one card in an
+  // empty canvas: the steps after the roster ride alongside it.
+  await expect(page.locator(".dashboard-first-run-next")).toBeVisible();
+  await expect(page.locator(".dashboard-next-list li")).toHaveCount(4);
 
   // Home still marks the dashboard as current (the dashboard is the root hub).
   await expect(hubButton(page, "Home")).toHaveAttribute("aria-current", "page");

@@ -20,7 +20,6 @@ export function DisciplinesScreen({ disciplines, loading, onSave, onDelete, onBa
   return (
     <Screen>
       <PageHeader
-        kicker="Catalog"
         title="Disciplines"
         lede="The activities you build teams for. Futsal, MLBB and Badminton ship built-in; add your own."
       />
@@ -76,10 +75,10 @@ export function DisciplinesScreen({ disciplines, loading, onSave, onDelete, onBa
                         onDownloadSample(d.id);
                       }}
                     >
-                      ⬇ {downloadingId === d.id ? "..." : "Sample"}
+                      {downloadingId === d.id ? "Downloading" : "Sample"}
                     </button>
                   )}
-                  <span className="row-edit" aria-hidden="true">✎</span>
+                  <span className="row-edit" aria-hidden="true">Edit</span>
                 </div>
               </li>
             );

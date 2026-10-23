@@ -94,7 +94,7 @@ test("a 3-team round robin is selectable, runs, and crowns a champion from the s
   await expect(page.locator(".split-screen")).toBeVisible({ timeout: 15000 });
   // Reach it by role and label: the `submit-tournament-squad` testid was removed
   // as dead, not renamed, so there is nothing to grep for. See .scratch/debt/issues/31.
-  await page.getByRole("button", { name: "Save teams to tournament →" }).click();
+  await page.getByRole("button", { name: "Save teams to tournament" }).click();
 
   // The saved teams open for review and the bracket sits behind its confirmation,
   // so wait for whichever of the two the app has landed on rather than assuming.

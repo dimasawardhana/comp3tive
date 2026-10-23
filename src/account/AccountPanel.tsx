@@ -99,7 +99,6 @@ export function AccountPanel({ accountSync, onSyncNow }: { accountSync: AccountS
     <section className="account-panel" aria-label="Account">
       <div className="dashboard-teasers-head">
         <h2>Account</h2>
-        <span className="kicker">Optional</span>
       </div>
 
       {session ? (

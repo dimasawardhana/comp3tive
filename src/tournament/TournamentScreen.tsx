@@ -333,7 +333,7 @@ export function TournamentScreen({ tournament, disciplines, matchingSquads, rost
           {hasAnyGames && (
             <div className="status-banner">
               <button type="button" className="btn btn-ghost" onClick={() => void onUndo()}>
-                ↶ Undo last game
+                Undo last game
               </button>
             </div>
           )}
@@ -383,7 +383,7 @@ export function TournamentScreen({ tournament, disciplines, matchingSquads, rost
               </button>
             )}
             <button type="button" className="btn btn-primary" onClick={() => setReviewing(false)} data-testid="confirm-teams">
-              Confirm teams →
+              Confirm teams
             </button>
           </>
         ) : (

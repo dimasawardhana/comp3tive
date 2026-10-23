@@ -125,11 +125,11 @@ describe("layoutShareImage", () => {
     // A canvas cannot resolve `var(--accent)`, so a token string here would be
     // painted as nothing at all. Fails if any fill is a `var(...)` or a name.
     const fills = layoutShareImage(input(2, 5)).ops.map((op) => op.fill);
-    expect(fills).toContain("#FAF8F5");
-    expect(fills).toContain("#1C1917");
-    expect(fills).toContain("#57534E");
+    expect(fills).toContain("#F9FAFB");
+    expect(fills).toContain("#111827");
+    expect(fills).toContain("#5F6672");
     expect(fills).toContain("#C2410C");
-    expect(fills).toContain("#E7E3DC");
+    expect(fills).toContain("#E5E7EB");
     expect(fills.some((f) => f.startsWith("var("))).toBe(false);
   });
 
@@ -148,11 +148,11 @@ describe("layoutShareImage", () => {
   it("is the light theme, and the dark accent is a different colour", () => {
     // The reason the choice is pinned rather than assumed: a poster is a file,
     // not a view, so it cannot answer a media query, and the two themes do not
-    // agree — `tokens.css` re-declares `--accent` as the brighter amber at
-    // `:47`. Fails if the sheet's two accents are ever merged into one, which
-    // would leave the choice unpinnable rather than merely wrong.
+    // agree — `tokens.css` re-declares `--accent` as the lifted hue for a true
+    // black ground. Fails if the sheet's two accents are ever merged into one,
+    // which would leave the choice unpinnable rather than merely wrong.
     expect(LIGHT["--accent"]).toBe("#c2410c");
-    expect(DARK["--accent"]).toBe("#ea580c");
+    expect(DARK["--accent"]).toBe("#f97316");
   });
 
   it("gives each team its bib colour, in the order BIB defines", () => {

@@ -46,7 +46,6 @@ export function SquadsScreen({ squads, loading, disciplines, roster, onBack, onR
     return (
       <Screen>
         <PageHeader
-          kicker="Saved squad"
           title={open.name}
           lede={
             <>
@@ -78,7 +77,7 @@ export function SquadsScreen({ squads, loading, disciplines, roster, onBack, onR
             rather than in index.css, which this task does not touch. */}
         <div className="bar" style={{ flexWrap: "wrap" }}>
           <button type="button" className="btn btn-ghost" onClick={() => setOpenId(null)}>
-            ← Squads
+            Squads
           </button>
           <button type="button" className="btn btn-ghost" onClick={() => onReSplit(open)}>
             Re-split
@@ -101,7 +100,6 @@ export function SquadsScreen({ squads, loading, disciplines, roster, onBack, onR
   return (
     <Screen>
       <PageHeader
-        kicker="Squad bank"
         title="Saved squads"
         lede="Named team sets you saved from a split. Drop one into a tournament or re-split it."
       />
@@ -110,7 +108,6 @@ export function SquadsScreen({ squads, loading, disciplines, roster, onBack, onR
         <p className="status">Loading&hellip;</p>
       ) : squads.length === 0 ? (
         <div className="empty">
-          <div className="kicker">Nothing saved yet</div>
           <div className="big">No saved squads</div>
           <p>Run a split and hit Save squad. It shows up here, ready for a tournament.</p>
         </div>

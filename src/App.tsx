@@ -381,7 +381,6 @@ export default function App() {
         {communities.loading && <p className="status">Loading&hellip;</p>}
         {!communities.loading && communities.communities.length === 0 && !showAddCommunity && (
           <div className="empty">
-            <div className="kicker">First whistle</div>
             <div className="big">No communities yet</div>
             <p>A community holds one roster: the players, teams and history of one group.</p>
             <button type="button" className="btn btn-primary" onClick={() => setShowAddCommunity(true)}>

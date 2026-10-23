@@ -18,17 +18,6 @@ body {
   min-height: 100vh;
   min-height: 100dvh;
 }
-html {
-  -webkit-text-size-adjust: 100%;
-}
-body {
-  font-family: var(--font-body);
-  background: var(--surface);
-  color: var(--text);
-  line-height: 1.5;
-  min-height: 100vh;
-  min-height: 100dvh;
-}
 #root {
   min-height: 100vh;
   min-height: 100dvh;
@@ -58,10 +47,14 @@ body {
   top: 8px;
 }
 
-/* Below 1024px: a single centred column, like a phone. */
+/* ---------- the frame ----------
+   The dealt "Open plane": a 230px sidebar on the page ground with nothing but
+   a 1px hairline between it and the canvas, and no band of chrome above the
+   content. The phone is the base layout and the sidebar is the state that
+   arrives when there is room for it, so the narrow case is designed first
+   rather than patched afterwards. */
 .app {
   width: 100%;
-  max-width: 640px;
   min-height: 100vh;
   min-height: 100dvh;
   display: flex;
@@ -77,128 +70,151 @@ body {
   flex: 1;
   min-width: 0;
 }
+/* The canvas fills its column. The cap exists for a 1920 screen, where a line
+   of text past ~1240px stops being readable; below it the column is the width,
+   so the content never stops short of the edge with a dead strip beside it. */
+.shell-main {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+.shell-main > .screen {
+  width: 100%;
+  max-width: 1240px;
+  margin-inline: auto;
+}
 
-@media (min-width: 1024px) {
-  body {
-    background: color-mix(in srgb, var(--surface-2) 50%, var(--surface));
-  }
-  /* Two columns: a fixed rail beside the content. The rail replaces the
-     bottom nav, so this is also where the tab bar disappears. */
+/* ---------- navigation rows ----------
+   One row definition for the sidebar, the phone sheet and their hover, active
+   and focus states, so a destination looks and behaves the same wherever the
+   reader meets it. */
+.rail-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.rail-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 32px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: var(--text-2);
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+.rail-link .nav-icon {
+  display: inline-flex;
+  flex: 0 0 16px;
+}
+.rail-link:hover {
+  background: var(--surface-alt);
+  color: var(--text);
+}
+/* The active row is a neutral pill: the fill steps one tone and the label goes
+   to ink. No accent fill and no left bar, so the one hue stays on data. */
+.rail-link.nav-active {
+  background: var(--surface-alt);
+  color: var(--text);
+  font-weight: 600;
+}
+.rail-link:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+.rail-head {
+  padding: 2px 8px 16px;
+}
+.rail-foot {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-top: 12px;
+  border-top: 1px solid var(--hairline);
+}
+
+/* Sixteen pixels, at the weight the rest of the shell is drawn at. */
+.nav-icon svg {
+  width: 16px;
+  height: 16px;
+}
+
+@media (min-width: 641px) {
+  /* Two columns: a labelled sidebar beside a fluid canvas. From here up the
+     sidebar is the only navigation, so the tab bar and the phone bar leave the
+     layout rather than hiding inside it. */
   .app {
     display: grid;
-    grid-template-columns: 248px minmax(0, 1fr);
-    max-width: 1200px;
-    margin: 24px auto;
-    min-height: calc(100vh - 48px);
-    border-radius: var(--r-lg);
-    border: 1.5px solid var(--hairline);
-    box-shadow: var(--shadow);
+    grid-template-columns: 230px minmax(0, 1fr);
     align-items: start;
   }
   .rail {
     display: flex;
     flex-direction: column;
-    gap: 8px;
-    padding: 22px 16px;
-    border-right: 1.5px solid var(--hairline);
-    position: sticky;
-    top: 24px;
-    align-self: start;
-  }
-  .rail-brand {
-    padding: 0 8px 12px;
-    font-size: 19px;
-  }
-  .rail-nav {
-    display: flex;
-    flex-direction: column;
     gap: 2px;
+    position: sticky;
+    top: 0;
+    height: 100dvh;
+    padding: 16px 12px 14px;
+    background: var(--surface);
+    border-right: 1px solid var(--hairline);
+    overflow-y: auto;
   }
-  .rail-link {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    width: 100%;
-    min-height: 44px;
-    padding: 10px 12px;
-    border: none;
-    border-radius: var(--r-sm);
-    background: transparent;
-    color: var(--text-2);
-    font-family: var(--font-body);
-    font-size: 14px;
-    font-weight: 600;
-    text-align: left;
-    cursor: pointer;
-    transition: background 0.12s, color 0.12s;
-  }
-  .rail-link .nav-icon {
-    font-size: 18px;
-    line-height: 1;
-    color: inherit;
-  }
-  .rail-link:hover {
-    background: var(--surface-2);
-    color: var(--text);
-  }
-  .rail-link.nav-active {
-    background: var(--surface-2);
-    color: var(--text);
-    box-shadow: inset 3px 0 0 var(--whistle);
-  }
-  .rail-link:focus-visible {
-    outline: 2px solid var(--accent);
-    outline-offset: -2px;
-  }
-  .rail-toggle {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    width: 100%;
-    min-height: 44px;
-    margin-top: auto;
-    padding: 10px 12px;
-    border: none;
-    border-top: 1.5px solid var(--hairline);
-    border-radius: 0;
-    background: transparent;
-    color: var(--text-2);
-    font-family: var(--font-body);
-    font-size: 13px;
-    font-weight: 600;
-    text-align: left;
-    cursor: pointer;
-    transition: color 0.12s;
-  }
-  .rail-toggle:hover {
-    color: var(--text);
-  }
-  .rail-toggle:focus-visible {
-    outline: 2px solid var(--accent);
-    outline-offset: -2px;
-  }
-
-  /* Collapsed: icons only. The rail shrinks and every label is removed, so the
-     glyph becomes the sole affordance and needs its title/aria-label. */
-  .app[data-rail="collapsed"] {
-    grid-template-columns: 76px minmax(0, 1fr);
-  }
-  .app[data-rail="collapsed"] .rail {
-    padding-inline: 10px;
-  }
-  .app[data-rail="collapsed"] .rail-brand {
-    justify-content: center;
-    padding-inline: 0;
-  }
-  .app[data-rail="collapsed"] .rail-brand > span:last-child,
-  .app[data-rail="collapsed"] .rail-link-label {
+  /* Scoped to the app root so the base rules further down cannot win the tie.
+     Between 641px and the desktop breakpoint the sidebar is the only
+     navigation, so the phone bar and the sheet leave the layout entirely. */
+  .app .topbar-wrap,
+  .app > .bottom-nav,
+  .app .menu-sheet {
     display: none;
   }
-  .app[data-rail="collapsed"] .rail-link,
-  .app[data-rail="collapsed"] .rail-toggle {
+  .rail .squad-switcher {
+    margin: 0 4px 16px;
+  }
+
+  /* Collapsed: marks only. The label column goes and the rail shrinks, but the
+     community switcher stays: it is the scope every screen is read in, so
+     folding it away would leave the collapsed rail unable to change community
+     at all. It stacks into 48px, the name becoming its caret. */
+  .app[data-rail="collapsed"] {
+    grid-template-columns: 64px minmax(0, 1fr);
+  }
+  .app[data-rail="collapsed"] .rail {
+    padding-inline: 8px;
+  }
+  .app[data-rail="collapsed"] .rail-head {
+    display: none;
+  }
+  .app[data-rail="collapsed"] .rail .squad-switcher {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+    margin: 0 0 12px;
+  }
+  .app[data-rail="collapsed"] .squad-select {
+    justify-content: center;
+    padding: 0;
+  }
+  .app[data-rail="collapsed"] .squad-select-value {
+    display: none;
+  }
+  .app[data-rail="collapsed"] .rail-link {
     justify-content: center;
     gap: 0;
     padding-inline: 0;
+  }
+  .app[data-rail="collapsed"] .rail-link-label {
+    display: none;
   }
 }
 .settings-section {
@@ -207,12 +223,12 @@ body {
   gap: 6px;
   margin-bottom: 18px;
 }
+/* The section label the Settings rows and the join panel share. Sentence case at
+   13px, the same register as a nav label: this is a grouping, not a kicker. */
 .settings-label {
-  font-family: var(--font-display);
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 600;
   color: var(--text-2);
 }
 .settings-options {
@@ -299,134 +315,103 @@ body {
   position: sticky;
   top: 0;
   z-index: 40;
+  height: 48px;
   background: var(--surface);
+  border-bottom: 1px solid var(--hairline);
 }
 
-/* ---------- top bar ---------- */
+/* ---------- top bar: the phone's only chrome ----------
+   Forty-eight pixels all in, hairline included, holding the current screen's
+   name and the menu. It does not exist from 641px up, where the sidebar carries
+   navigation and the canvas runs to the top of the window. */
 .topbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 12px 20px;
-  border-bottom: 1.5px solid var(--hairline);
+  height: 100%;
+  padding: 0 16px;
 }
-.wordmark {
+.topbar-title {
   font-family: var(--font-display);
-  font-weight: 700;
-  font-size: 21px;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--text);
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  line-height: 1;
-  flex-shrink: 0;
-}
-.wordmark .sq {
-  color: var(--whistle);
-  font-size: 16px;
-  line-height: 1;
-  display: inline-block;
-  transform: translateY(-1px);
-  animation: pulse 2.5s ease-in-out infinite;
-}
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
-}
-.wordmark .issue {
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.12em;
-  color: var(--text-2);
-  margin-left: 4px;
-  padding-left: 10px;
-  border-left: 1.5px solid var(--hairline);
-}
-.back {
-  width: 34px;
-  height: 34px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 1.5px solid var(--hairline);
-  background: var(--surface-2);
-  color: var(--text);
-  border-radius: var(--r-sm);
   font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.topbar-menu {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  margin-right: -6px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: var(--text-2);
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 500;
   cursor: pointer;
+  transition: background 0.12s, color 0.12s;
 }
-.topbar-right {
-  display: flex;
-  align-items: center;
-  gap: 12px;
+.topbar-menu:hover,
+.topbar-menu[aria-expanded="true"] {
+  background: var(--surface-alt);
+  color: var(--text);
 }
-/* The right side of the bar: community switcher and the settings control,
-   spaced by gap so no button ever overlaps its neighbour. */
-.topbar-tools {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-width: 0;
+.topbar-menu:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
-.squad-switcher {
+/* ---------- the product's mark ---------- */
+.wordmark {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 0 4px 0 14px;
-  background: var(--surface-2);
-  border: 1.5px solid var(--hairline);
-  border-radius: var(--r-md);
-  flex: 0 1 auto;
-  max-width: 340px;
-  min-width: 0;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 16px;
+  letter-spacing: -0.01em;
+  line-height: 1;
+  color: var(--text);
 }
-/* Every link in the shrink chain needs min-width:0, otherwise the select's
-   intrinsic width propagates up and pushes the trailing actions off-screen. */
-.squad-dropdown {
-  /* Positioned so .squad-menu anchors to the select. Without it the menu
-     resolves against the sticky topbar and lands over the icon buttons. */
+.brand-mark {
+  display: inline-flex;
+  width: 18px;
+  height: 18px;
+  color: var(--text);
+}
+.brand-mark svg {
+  width: 100%;
+  height: 100%;
+}
+/* The one place the shell spends the hue: the needle between the two columns in
+   the mark. It is the product's own object, drawn at the size of a glyph. */
+.brand-needle {
+  stroke: var(--accent);
+}
+/* ---------- the community switcher ----------
+   At the top of the sidebar and at the top of the phone sheet, so it is written
+   once and sized by whichever container it lands in. */
+.squad-switcher {
+  /* The containing block for the menu, so the menu is exactly as wide as the
+     control it belongs to and can never hang past the sidebar's edge. */
   position: relative;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   min-width: 0;
+}
+.squad-dropdown {
+  display: flex;
+  align-items: center;
   flex: 1 1 auto;
-}
-.squad-switcher .kicker {
-  margin: 0;
-  flex-shrink: 0;
-}
-@media (max-width: 560px) {
-  /* The select already shows the active community, so the label is redundant
-     on a phone and the width is better spent on the name. */
-  .squad-switcher .kicker {
-    display: none;
-  }
-  .squad-switcher {
-    margin: 0 10px;
-    padding-left: 8px;
-  }
-  .wordmark {
-    font-size: 17px;
-  }
-}
-@media (max-width: 460px) {
-  /* On a phone the toolbar has to fit a community switcher plus three icon
-     buttons. The brand yields: it is already the roster heading, and the rail
-     carries it on desktop. */
-  .topbar .wordmark {
-    display: none;
-  }
-  .squad-switcher {
-    margin-right: 4px;
-  }
-}
-.squad-switcher .kicker::before {
-  content: "";
+  min-width: 0;
 }
 .squad-select {
   display: flex;
@@ -434,33 +419,40 @@ body {
   justify-content: space-between;
   gap: 8px;
   width: 100%;
-  min-height: 44px;
-  border: none;
-  background: transparent;
+  min-height: 36px;
+  padding: 0 8px;
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-sm);
+  background: var(--surface-2);
   appearance: none;
   -webkit-appearance: none;
   font-family: var(--font-body);
+  /* 15px, not the 12px floor: this is the control that names the active
+     community, and a switcher is read at a glance from across a table. */
   font-size: 15px;
   font-weight: 600;
   color: var(--text);
-  padding: 4px 4px 4px 2px;
-  cursor: pointer;
-  outline: none;
-  letter-spacing: 0;
   text-align: left;
+  cursor: pointer;
+}
+.squad-select:hover {
+  border-color: var(--border);
 }
 .squad-select-value {
-  flex: 1 1 auto;
-  min-width: 56px;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 .squad-select-caret {
-  flex-shrink: 0;
-  font-size: 10px;
+  display: inline-flex;
+  flex: 0 0 14px;
   color: var(--text-2);
   transition: transform 0.15s;
+}
+.squad-select-caret svg {
+  width: 14px;
+  height: 14px;
 }
 .squad-select[aria-expanded="true"] .squad-select-caret {
   transform: rotate(180deg);
@@ -468,7 +460,6 @@ body {
 .squad-select:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
-  border-radius: 4px;
 }
 .squad-menu-backdrop {
   position: fixed;
@@ -478,24 +469,22 @@ body {
 .squad-menu {
   position: absolute;
   top: calc(100% + 6px);
+  left: 0;
   right: 0;
   z-index: 59;
-  min-width: 240px;
   background: var(--surface);
-  border: 1.5px solid var(--hairline);
+  border: 1px solid var(--hairline);
   border-radius: var(--r-md);
   box-shadow: var(--shadow);
   overflow: hidden;
 }
 .squad-menu-heading {
-  padding: 10px 14px 8px;
-  font-family: var(--font-display);
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
+  padding: 10px 12px 8px;
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 600;
   color: var(--text-2);
-  border-bottom: 1.5px solid var(--hairline);
+  border-bottom: 1px solid var(--hairline);
 }
 .squad-menu-list {
   list-style: none;
@@ -532,34 +521,47 @@ body {
   background: var(--surface-2);
 }
 .squad-menu-check {
-  flex-shrink: 0;
-  color: var(--whistle);
-  font-weight: 700;
+  display: inline-flex;
+  flex: 0 0 16px;
+  color: var(--text);
+}
+.squad-menu-check svg {
+  width: 16px;
+  height: 16px;
 }
 /* Destructive action lives in the menu rather than beside the switcher, where
-   it crowded the primary control. */
+   it crowded the primary control. The menu is only as wide as the switcher, so
+   the armed state stacks: the warning gets the full width on its own line and
+   the two buttons share the row beneath it. Side by side, a sentence and two
+   buttons in 197px broke the warning into eight two-word lines. */
 .squad-menu-footer {
-  /* A row, so the armed pair (Cancel + confirm) lays out instead of stacking
-     under the idle button's dropped class. */
   display: flex;
+  flex-wrap: wrap;
   gap: 6px;
   padding: 6px;
-  border-top: 1.5px solid var(--hairline);
+  border-top: 1px solid var(--hairline);
+}
+.squad-menu-footer .status-msg {
+  flex: 1 1 100%;
+  padding: 4px 6px 2px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--text-2);
 }
 .squad-menu-danger {
   /* `flex: 1` fills the footer when this is the only child, and takes the
      remaining width beside Cancel once armed. `min-width: 0` is what lets the
      ellipsis below work — a flex item defaults to min-width:auto. */
-  flex: 1;
+  flex: 1 1 auto;
   min-width: 0;
-  min-height: 44px;
-  padding: 10px 12px;
+  min-height: 36px;
+  padding: 8px 10px;
   border: none;
   border-radius: var(--r-sm);
   background: transparent;
   color: var(--danger);
   font-family: var(--font-body);
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   text-align: left;
   cursor: pointer;
@@ -623,15 +625,16 @@ body {
   border: 1.5px solid var(--hairline);
   border-radius: var(--r-md);
   margin: 0 16px;
-  min-width: 280px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  min-width: 0;
 }
+/* The new-community form is rendered by App inside `<main>`, so it is styled in
+   the region that already owns the chrome it sits in. The label is sentence
+   case at 13px: an uppercase tracked label above a field is the one piece of
+   this shell that was still reading as a template. */
 .add-community .form-label {
-  font-family: var(--font-display);
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 600;
   color: var(--text-2);
 }
 .add-community .form-row {
@@ -683,17 +686,16 @@ body {
   padding: 8px 12px;
   border-radius: var(--r-sm);
 }
-/* ---------- bottom tab nav ---------- */
+/* ---------- bottom tab nav: five destinations, thumb reach ---------- */
 .bottom-nav {
   display: flex;
   flex-direction: row;
   align-items: stretch;
-  justify-content: space-around;
-  gap: 0;
-  padding: 4px 5px calc(4px + env(safe-area-inset-bottom));
+  gap: 2px;
+  padding: 6px 6px calc(6px + env(safe-area-inset-bottom));
   width: 100%;
   background: var(--surface);
-  border-top: 1.5px solid var(--hairline);
+  border-top: 1px solid var(--hairline);
   flex-shrink: 0;
   margin-top: auto;
   /* Sticky rather than fixed: the bar keeps its width, so it never has to be
@@ -707,60 +709,104 @@ body {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 4px;
+  gap: 3px;
   flex: 1 1 0;
   min-width: 0;
-  padding: 10px 3px 8px;
-  border-radius: 0;
-  text-decoration: none;
+  min-height: 52px;
+  padding: 6px 2px;
+  border: 0;
+  border-radius: var(--r-sm);
+  background: transparent;
   color: var(--text-2);
   font-family: var(--font-body);
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  transition: color 0.15s;
-  border: none;
-  background: transparent;
-  position: relative;
+  font-size: 13px;
+  font-weight: 500;
   cursor: pointer;
+  transition: color 0.15s;
   -webkit-tap-highlight-color: transparent;
 }
 .bottom-nav .nav-link .nav-icon {
-  font-size: 20px;
-  line-height: 1;
+  display: inline-flex;
   color: var(--text-2);
-  transition: color 0.15s, transform 0.15s;
+  transition: color 0.15s;
 }
-.bottom-nav .nav-link:hover {
-  color: var(--text);
-}
+.bottom-nav .nav-link:hover,
 .bottom-nav .nav-link:hover .nav-icon {
   color: var(--text);
 }
 .bottom-nav .nav-link:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: -2px;
-  border-radius: var(--r-sm);
 }
-/* the live indicator: an amber dot above the active tab */
-.bottom-nav .nav-link.nav-active {
+/* Active is a change of ink and weight, not a mark drawn over the content. The
+   bar is read at a glance; it does not need a second signal competing with it. */
+.bottom-nav .nav-link.nav-active,
+.bottom-nav .nav-link.nav-active .nav-icon {
   color: var(--text);
 }
-.bottom-nav .nav-link.nav-active .nav-icon {
-  color: var(--whistle);
-  transform: scale(1.08);
+.bottom-nav .nav-link.nav-active {
+  font-weight: 600;
 }
-.bottom-nav .nav-link.nav-active::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 24px;
-  height: 3px;
-  background: var(--whistle);
-  border-radius: 0 0 3px 3px;
+
+/* ---------- the phone menu sheet ----------
+   A full screen of navigation, not a drawer: the same five destinations, the
+   community switcher and Settings at thumb size. The sheet is the only overlay
+   the shell paints, so it is the only shell surface that sits above everything. */
+.menu-sheet {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 12px 16px calc(20px + env(safe-area-inset-bottom));
+  background: var(--surface);
+  overflow-y: auto;
+}
+.menu-sheet-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 44px;
+}
+.menu-sheet-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  margin-right: -10px;
+  border: 0;
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: var(--text-2);
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+.menu-sheet-close:hover {
+  background: var(--surface-alt);
+  color: var(--text);
+}
+.menu-sheet-close:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.menu-sheet-close svg {
+  width: 16px;
+  height: 16px;
+}
+/* The same rows as the sidebar, at thumb size. */
+.menu-sheet .rail-link {
+  gap: 12px;
+  min-height: 46px;
+  padding: 0 10px;
+  font-size: 15px;
+}
+.menu-sheet-foot {
+  margin-top: auto;
+  padding-top: 12px;
+  border-top: 1px solid var(--hairline);
 }
 
 /* Keep focused rows clear of the sticky tab bar without enumerating every
@@ -769,24 +815,41 @@ body {
   scroll-margin-bottom: 96px;
 }
 /* The shared masthead. It is one flex child of .screen, so it owns its own
-   internal rhythm instead of inheriting the screen's 22px gap. */
+   internal rhythm instead of inheriting the screen's 22px gap. The title and
+   its lede sit in one column and the screen's primary action sits at the far
+   side, bottom-aligned with the lede: that is what closes the void a title row
+   otherwise leaves on the right. */
 .page-header {
   display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+.page-header-main {
+  display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
+  min-width: 0;
+}
+.page-header-action {
+  flex: 0 0 auto;
+  padding-bottom: 2px;
 }
 .page-header h1 {
   margin: 0;
 }
 
+/* The app's title. 24px is the study's median for a working screen and the
+   top of the 18-32px band: this is a tool, not a landing page. The landing
+   page sets its own display size on h1. */
 h1 {
   font-family: var(--font-display);
   font-weight: 600;
-  font-size: 36px;
-  line-height: 1;
-  letter-spacing: -0.01em;
+  font-size: 24px;
+  line-height: 1.15;
+  letter-spacing: -0.015em;
   color: var(--text);
-  text-transform: uppercase;
 }
 
 .lede {
@@ -795,10 +858,8 @@ h1 {
   max-width: 34ch;
 }
 .sec {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
   color: var(--text-2);
 }
 .status {
@@ -845,7 +906,7 @@ h1 {
 .history-time {
   display: block;
   font-family: var(--font-body);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 500;
   color: var(--text-2);
   letter-spacing: 0.02em;
@@ -889,16 +950,6 @@ h1 {
   max-width: 34ch;
   font-style: italic;
 }
-.row .lineup-no {
-  font-family: var(--font-display);
-  font-weight: 700;
-  font-size: 14px;
-  color: var(--text-2);
-  width: 28px;
-  text-align: center;
-  flex-shrink: 0;
-  letter-spacing: 0.04em;
-}
 .badges {
   display: flex;
   gap: 6px;
@@ -914,14 +965,20 @@ h1 {
   color: var(--accent);
 }
 
-.badge--a { border-color: var(--bib-a); color: var(--bib-a); }
-.badge--b { border-color: var(--bib-b); color: var(--bib-b); }
-.badge--c { border-color: var(--bib-c); color: var(--bib-c); }
-.badge--d { border-color: var(--bib-d); color: var(--bib-d); }
-.badge--e { border-color: var(--bib-e); color: var(--bib-e); }
+/* A bib hue is far too light to BE text on the ground (white-bg ratios are
+  1.60:1 to 3.35:1), so the hue carries the border and the ink carries the
+  label. The dot keeps the identity; the word stays readable. */
+.badge--a { border-color: var(--bib-a); }
+.badge--b { border-color: var(--bib-b); }
+.badge--c { border-color: var(--bib-c); }
+.badge--d { border-color: var(--bib-d); }
+.badge--e { border-color: var(--bib-e); }
+.badge--a, .badge--b, .badge--c, .badge--d, .badge--e {
+  color: var(--text);
+}
 .badge .num {
   font-weight: 600;
-  font-size: 11px;
+  font-size: 12px;
   letter-spacing: 0;
 }
 .row .chev {
@@ -992,10 +1049,8 @@ h1 {
 }
 .tournament-meta-card-label {
   font-family: var(--font-display);
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
   color: var(--text-2);
   display: block;
 }
@@ -1018,7 +1073,7 @@ h1 {
   padding: 18px 10px 16px;
 }
 .dashboard-stat .tournament-meta-card-label {
-  font-size: 9px;
+  font-size: 12px;
 }
 .dashboard-stat .tournament-meta-card-value {
   font-size: 30px;
@@ -1050,8 +1105,64 @@ h1 {
   margin-left: auto;
   font-size: 12px;
 }
+/* The first-run screen is a two-column answer, not one card in an empty
+   canvas: the action you have to take closes the left, and what comes after
+   closes the right, so the screen has no dead half. Collapses to one column
+   under 900px, where the right column would be under about 320px. */
+.dashboard-first-run {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
+}
 .dashboard-empty {
-  margin-top: 6px;
+  margin: 0;
+}
+.dashboard-first-run-next {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 2px;
+}
+.dashboard-next-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.dashboard-next-list li {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-left: 14px;
+  position: relative;
+}
+.dashboard-next-list li::before {
+  /* A mark, not an index: a 2px dash in the accent, which is the one place
+     this screen spends the hue. Numbering the steps would be the 01/02/03
+     tell, and the order is already carried by position. */
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 8px;
+  width: 6px;
+  height: 2px;
+  background: var(--accent);
+}
+.dashboard-next-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+.dashboard-next-note {
+  font-size: 13px;
+  color: var(--text-2);
+  line-height: 1.5;
+}
+@media (max-width: 900px) {
+  .dashboard-first-run {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 .dashboard-teasers {
   display: flex;
@@ -1068,18 +1179,7 @@ h1 {
   font-family: var(--font-display);
   font-size: 13px;
   font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
   color: var(--text);
-}
-.dashboard-teasers-head .kicker {
-  margin: 0;
-  color: var(--text-2);
-  font-size: 9px;
-  letter-spacing: 0.14em;
-}
-.dashboard-teasers-head .kicker::before {
-  content: "";
 }
 .dashboard-teasers-empty {
   font-size: 14px;
@@ -1212,7 +1312,7 @@ h1 {
   border-bottom: 1px solid var(--hairline);
 }
 .cap-head .chip {
-  font-size: 11px;
+  font-size: 12px;
   padding: 4px 10px;
 }
 .cap-ratings {
@@ -1391,7 +1491,8 @@ h1 {
   gap: 8px;
 }
 .dropdown-caret {
-  font-size: 10px;
+  display: inline-flex;
+  align-items: center;
   line-height: 1;
   opacity: 0.8;
 }
@@ -1526,9 +1627,7 @@ h1 {
 }
 .import-report-title {
   margin: 0;
-  font-size: 11px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  font-size: 12px;
   color: var(--text-2);
   font-weight: 600;
 }
@@ -1674,10 +1773,8 @@ h1 {
   border-top: 1px solid var(--hairline);
 }
 .derived-label {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
   color: var(--text-2);
 }
 .derived-value {
@@ -1790,7 +1887,7 @@ h1 {
 }
 .attr-range {
   font-family: var(--font-display);
-  font-size: 11px;
+  font-size: 12px;
   color: var(--text-2);
 }
 .rating {
@@ -1866,16 +1963,14 @@ h1 {
   align-items: center;
   justify-content: space-between;
   font-family: var(--font-display);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
   color: var(--text-2);
   margin: 0;
 }
 .modal-section-title .count {
   font-family: var(--font-display);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--text-2);
   opacity: 0.6;
@@ -1909,22 +2004,11 @@ h1 {
 
 /* ---------- desktop content layout (toggled via data-layout) ---------- */
 /* Gated on the attribute so an explicit "Mobile" preference still wins on a
-   wide screen, and on the media query so "Desktop" on a phone is a no-op. */
+   wide screen, and on the media query so "Desktop" on a phone is a no-op.
+   The shell's own half of this lives in the frame section at the top of the
+   file: the sidebar replaces the bar at 641px, and the phone bar is gone before
+   this block can reach it, so nothing here has to restate either. */
 @media (min-width: 1024px) {
-  /* The rail replaces the tab bar, so the bar is removed from the layout
-     entirely rather than merely hidden. */
-  .bottom-nav {
-    display: none;
-  }
-
-  /* The rail owns the brand on desktop, so the bar only carries controls. */
-  .app[data-layout="desktop"] .topbar {
-    padding-inline: 30px;
-    justify-content: flex-end;
-  }
-  .app[data-layout="desktop"] .topbar .wordmark {
-    display: none;
-  }
   .app[data-layout="desktop"] .screen {
     padding: 24px 30px 32px;
   }
@@ -1944,9 +2028,13 @@ h1 {
   }
 }
 
-/* ---------- match setup ---------- */
+/* ---------- match setup ----------
+   Three numbered steps, each a head with its own count. The heads are sentence
+   case at the section size: the titles were 15px uppercase at 0.04em, which is
+   the tracked-uppercase tell and the one place on this screen where the type
+   scale was decorative rather than a hierarchy. */
 .match-setup {
-  gap: 28px;
+  gap: var(--gap);
 }
 .match-section {
   display: flex;
@@ -1958,8 +2046,12 @@ h1 {
   align-items: center;
   gap: 10px;
   padding-bottom: 8px;
-  border-bottom: 1.5px solid var(--hairline);
+  border-bottom: 1px solid var(--hairline);
 }
+/* The step number is data: a rank, in the sequence it names. It is a filled
+   disc because a bare "1" beside a title reads as a footnote marker rather
+   than a step, and the disc is the same tone as the primary control so the
+   three of them scan as one system. */
 .match-step {
   display: inline-flex;
   align-items: center;
@@ -1970,29 +2062,31 @@ h1 {
   background: var(--text);
   color: var(--surface);
   font-family: var(--font-display);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
+  font-variant-numeric: tabular-nums;
   flex-shrink: 0;
 }
 .match-section-title {
   font-family: var(--font-display);
   font-weight: 600;
-  font-size: 15px;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+  font-size: var(--fs-section);
+  letter-spacing: -0.005em;
   color: var(--text);
   margin: 0;
   flex: 1 1 auto;
+  min-width: 0;
 }
 .match-count {
   font-family: var(--font-body);
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 500;
   color: var(--text-2);
   background: var(--surface-2);
-  padding: 3px 8px;
-  border-radius: 999px;
-  border: 1.5px solid var(--hairline);
+  padding: 2px 8px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--hairline);
+  flex-shrink: 0;
 }
 .match-setup .games {
   display: grid;
@@ -2017,20 +2111,20 @@ h1 {
   background: var(--text);
   color: var(--surface);
 }
-.match-setup .game.active .game-sub {
-  color: var(--surface);
-  opacity: 0.8;
-}
 .match-setup .game:disabled {
   opacity: 0.4;
   cursor: not-allowed;
 }
+/* The game's own name, sentence case at the control size. It was 14px
+   uppercase at 0.02em: the discipline names are proper nouns ("Futsal",
+   "Mobile Legends"), and uppercasing a proper noun is a style applied over
+   text that already had one. */
 .match-setup .game-name {
-  font-family: var(--font-display);
-  font-weight: 700;
+  font-family: var(--font-body);
+  font-weight: 600;
   font-size: 14px;
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
+  line-height: 1.3;
+  color: inherit;
 }
 .match-setup .game-sub {
   font-family: var(--font-body);
@@ -2038,16 +2132,21 @@ h1 {
   color: var(--text-2);
   margin-top: 4px;
 }
+/* The active card inverts its fill, and "inverted" is colour: a reader who
+   cannot separate the two tones gets nothing from it. This is the same fact as
+   a word, so the state survives that reader and forced colours. Sized and
+   weighted like the sub line so it reads as a caption on the card rather than
+   as a badge. */
 .match-setup .game-check {
-  position: absolute;
-  top: 8px;
-  right: 10px;
+  margin-top: 6px;
   font-size: 12px;
-  color: var(--whistle);
-  font-weight: 700;
+  font-weight: 600;
+  color: inherit;
+  opacity: 0.85;
 }
-.match-setup .game.active .game-check {
+.match-setup .game.active .game-sub {
   color: var(--surface);
+  opacity: 0.85;
 }
 .match-setup .chip {
   display: flex;
@@ -2055,6 +2154,7 @@ h1 {
   align-items: flex-start;
   gap: 2px;
   padding: 10px 14px;
+  border-radius: var(--r-sm);
 }
 .match-setup .chip-name {
   font-family: var(--font-body);
@@ -2063,11 +2163,9 @@ h1 {
 }
 .match-setup .chip-note {
   font-family: var(--font-body);
-  font-size: 11px;
+  font-size: 12px;
   color: var(--text-2);
   font-weight: 500;
-  text-transform: none;
-  letter-spacing: 0;
 }
 .match-setup .chip[aria-pressed="true"] .chip-note {
   color: var(--chip-on-text);
@@ -2079,19 +2177,21 @@ h1 {
   gap: 3px;
   margin-top: 4px;
 }
+/* A role is a word ("Goalkeeper", "Winger"), not a code. It was 9px uppercase
+   at 0.08em on a 3px radius: under the type floor, tracked, and pill-shaped
+   beside a square card. It is now the small size in sentence case on the
+   control radius, which is what a reader can scan at arm's length. */
 .match-setup .chip-role {
   display: inline-block;
-  font-family: var(--font-display);
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  padding: 2px 6px;
-  border-radius: 3px;
-  background: var(--surface-2);
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 500;
+  padding: 1px 6px;
+  border-radius: var(--r-sm);
+  background: var(--surface-alt);
   color: var(--text-2);
   border: 1px solid var(--hairline);
-  line-height: 1.2;
+  line-height: 1.4;
 }
 .match-setup .chip-role--preferred {
   background: var(--text);
@@ -2230,9 +2330,7 @@ h1 {
 .rlabel {
   font-family: var(--font-display);
   font-weight: 600;
-  font-size: 11px;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
+  font-size: 12px;
   color: var(--text-2);
   white-space: nowrap;
 }
@@ -2359,22 +2457,10 @@ h1 {
   position: relative;
   overflow: hidden;
 }
-.champ::before {
-  content: "★";
-  position: absolute;
-  right: 16px;
-  top: 50%;
-  transform: translateY(-50%);
-  font-size: 56px;
-  opacity: 0.18;
-  color: var(--bib-a);
-}
 .champ-label {
   font-family: var(--font-display);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
   color: var(--whistle);
 }
 .champ-name {
@@ -2383,7 +2469,6 @@ h1 {
   font-size: 28px;
   letter-spacing: -0.01em;
   line-height: 1.1;
-  text-transform: uppercase;
 }
 
 .tournament-header {
@@ -2428,10 +2513,8 @@ h1 {
 }
 .tms-label {
   font-family: var(--font-display);
-  font-size: 9px;
+  font-size: 12px;
   font-weight: 700;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
   color: var(--text-2);
 }
 .tms-value {
@@ -2440,7 +2523,6 @@ h1 {
   font-weight: 600;
   color: var(--text);
   letter-spacing: 0.01em;
-  text-transform: uppercase;
 }
 .tournament-preview {
   display: flex;
@@ -2453,10 +2535,8 @@ h1 {
 }
 .tournament-preview-label {
   font-family: var(--font-display);
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
   color: var(--text-2);
 }
 .tournament-preview-text {
@@ -2494,8 +2574,6 @@ h1 {
   font-family: var(--font-display);
   font-size: 16px;
   font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
   color: var(--text);
   margin: 0;
 }
@@ -2547,8 +2625,6 @@ h1 {
   font-family: var(--font-display);
   font-size: 13px;
   font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
   color: var(--text);
 }
 .review-team-avg {
@@ -2598,8 +2674,6 @@ h1 {
   font-family: var(--font-display);
   font-weight: 600;
   font-size: 12px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
   color: var(--text-2);
 }
 .record-game-picks {
@@ -2625,10 +2699,8 @@ h1 {
 .bracket-tag {
   align-self: flex-start;
   font-family: var(--font-display);
-  font-size: 9px;
+  font-size: 12px;
   font-weight: 600;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
   color: var(--text-2);
   border: 1px solid var(--hairline);
   border-radius: 999px;
@@ -2772,8 +2844,6 @@ h1 {
 }
 .ai-assistant-who {
   font-size: 0.7rem;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
   opacity: 0.55;
 }
 .ai-assistant-assistant .ai-assistant-content {
@@ -2831,12 +2901,90 @@ h1 {
   padding: 8px 16px;
   border: none;
   border-radius: 8px;
-  background: var(--accent, #2563eb);
-  color: #fff;
+  background: var(--whistle);
+  color: var(--whistle-ink);
   font: inherit;
   cursor: pointer;
 }
 .ai-assistant-composer button:disabled {
   opacity: 0.5;
   cursor: default;
+}
+
+/* ---------- motion ---------- */
+/*
+ * One authored entrance, then restraint. Everything here is transform and
+ * opacity only, so nothing reflows mid-flight, and every rule is opt-in from
+ * the stylesheet rather than from script.
+ *
+ * The whole layer sits inside `prefers-reduced-motion: no-preference`, which is
+ * the pattern the motion reference requires: the reduced page is the finished
+ * page, not a page waiting on an animation that will never run. Outside this
+ * block the resting state is the visible state, so a reader who asked for
+ * stillness, or a module that never ran, sees the content.
+ *
+ * The app is a surface people work in, so the entrance is one short rise per
+ * block, not a choreography: this is a tool opened in the middle of a
+ * conversation with fourteen people waiting, not a page to be read once.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  /* Section entrance. The stagger is carried by `--i`, which the markup sets
+     per item, so one keyframe serves a whole list. */
+  @keyframes section-rise {
+    from {
+      opacity: 0;
+      transform: translateY(16px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  /* The sticky action bar is excluded: a transform on a `position: sticky`
+     element moves its own box, so a rise would lift the bar off the tab bar it
+     is seated above for the length of the entrance. It fades only. */
+  .screen > *:not(.bar, .split-bar, .cta-bar) {
+    animation: section-rise 0.9s cubic-bezier(0.16, 1, 0.3, 1) both;
+    animation-delay: calc(var(--i, 0) * 90ms);
+  }
+  .screen > :is(.bar, .split-bar, .cta-bar) {
+    animation: needle-appear 0.4s ease-out both;
+  }
+  /* The children of a block that already rose do not rise again. */
+  .screen > * > * {
+    animation: none;
+  }
+
+  /* Long lists enter as a group rather than ninety rows at 60ms each: past the
+     sixth item a stagger reads as a slow page, not a considered one. */
+  .roster .row,
+  .chip {
+    animation: section-rise 0.75s cubic-bezier(0.16, 1, 0.3, 1) both;
+    animation-delay: calc(var(--i, 0) * 60ms);
+  }
+
+  /* The signature move: the split lands. The needle's lean is already a
+     transition on its inline transform (`src/split.css`), so re-solving
+     animates it from where it stood to where it now points, which is the moment
+     the screen is for. This only fades it in on first paint, and deliberately
+     animates opacity alone: a keyframe touching `transform` here would fight
+     the inline value that carries the degree of lean. */
+  @keyframes needle-appear {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+  .scale .needle {
+    animation: needle-appear 0.45s ease-out both;
+  }
+}
+
+/* Control feedback. Press is 1px of travel and it is not motion in the sense
+   above: it is the acknowledgement a touch gets, so it stays outside the media
+   query and is cut by the universal reduced-motion rule in `tokens.css`. */
+.btn:active,
+.nav-link:active,
+.rail-link:active,
+.dropdown-item:active {
+  transform: translateY(1px);
 }

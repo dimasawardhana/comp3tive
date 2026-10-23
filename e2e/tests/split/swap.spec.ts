@@ -192,7 +192,7 @@ test("the bar's Swap button starts a swap, and two taps trade the players and mo
   // cards are not targets.
   await expect(page.locator(".swap-banner")).toContainText("Tap one player on each team to swap them.");
   await expect(card(page, "Alfa")).toHaveAttribute("role", "button");
-  await expect(page.getByRole("button", { name: "Done swapping", exact: true })).toBeVisible();
+  await expect(page.locator(".split-bar").getByRole("button", { name: "Done swapping", exact: true })).toBeVisible();
 
   // First pick.
   await card(page, "Alfa").click();
@@ -280,7 +280,7 @@ test("a player can be picked with Enter and with Space, and both are real contro
   await expect(alfa).toHaveAttribute("tabindex", "0");
   // Outside swap mode a card is not a control at all, which is the same
   // assertion's other half: the affordances belong to the mode, not to the card.
-  await page.getByRole("button", { name: "Done swapping", exact: true }).click();
+  await page.locator(".split-bar").getByRole("button", { name: "Done swapping", exact: true }).click();
   await expect(card(page, "Alfa")).not.toHaveAttribute("role", "button");
   await page.getByTestId("swap-mode").click();
 
@@ -307,8 +307,10 @@ test("entering the mode hides the bar's other actions, and leaving restores all 
 
   // Out of the mode: the three actions that compete with "pick two players" are
   // all on screen, and so is the way in.
-  for (const label of ["← History", "Save squad", "Share", "Swap", "Re-roll"]) {
-    await expect(page.getByRole("button", { name: label, exact: true }), label).toBeVisible();
+  // Scoped to the bar: "History" is also a nav destination, so an unscoped
+  // role lookup would match two controls.
+  for (const label of ["History", "Save squad", "Share", "Swap", "Re-roll"]) {
+    await expect(page.locator(".split-bar").getByRole("button", { name: label, exact: true }), label).toBeVisible();
   }
 
   await page.getByTestId("swap-mode").click();
@@ -319,13 +321,13 @@ test("entering the mode hides the bar's other actions, and leaving restores all 
   // away is a mis-tap that throws the arrangement away. Pinned by count as well
   // as by name, so a bar that grew an action here would fail rather than pass.
   await expect(page.locator(".split-bar button")).toHaveCount(1);
-  await expect(page.getByRole("button", { name: "Done swapping", exact: true })).toBeVisible();
+  await expect(page.locator(".split-bar").getByRole("button", { name: "Done swapping", exact: true })).toBeVisible();
 
   // Leaving restores every action, in the order it was there before.
-  await page.getByRole("button", { name: "Done swapping", exact: true }).click();
+  await page.locator(".split-bar").getByRole("button", { name: "Done swapping", exact: true }).click();
   await expect(page.locator(".swap-banner")).toHaveCount(0);
   expect(await page.locator(".split-bar button").allTextContents()).toEqual([
-    "← History",
+    "History",
     "Save squad",
     "Share",
     "Swap",

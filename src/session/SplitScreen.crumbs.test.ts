@@ -71,7 +71,7 @@ describe("SplitScreen breadcrumb", () => {
       `<div class="breadcrumb"><a href="#">${label}</a><span class="sep">/</span><span>Split result</span></div>`,
     );
     // The crumb and the button claim the same destination, from one source.
-    expect(backButtonOf(html)).toBe(`← ${label}`);
+    expect(backButtonOf(html)).toBe(label);
   });
 
   it("renders the first crumb as text when there is nowhere to go back to", () => {

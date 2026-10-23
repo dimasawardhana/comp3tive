@@ -44,7 +44,6 @@ export function SettingsScreen({
   return (
     <Screen>
       <PageHeader
-        kicker="Preferences"
         title="Settings"
         lede="How the app looks, and where your data lives."
       />

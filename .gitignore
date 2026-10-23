@@ -20,3 +20,6 @@ test-results/
 !.env.example
 .dev.vars*
 .wrangler/
+
+# Design-tool scratch (taste-skill inspector output, antislop audits are committed)
+.taste-skill/
