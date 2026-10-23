@@ -3,6 +3,7 @@ import type { AccountSync } from "../account/useAccount";
 import type { PushController } from "../account/useSync";
 import { AccountPanel } from "../account/AccountPanel";
 import { JoinPanel } from "./JoinPanel";
+import AiAssistantScreen from "./AiAssistantScreen";
 import { PageHeader } from "../ui/PageHeader";
 import { Screen } from "../ui/Screen";
 
@@ -111,6 +112,8 @@ export function SettingsScreen({
       />
 
       <AccountPanel accountSync={accountSync} onSyncNow={() => pushController.syncAll()} />
+
+      <AiAssistantScreen />
     </Screen>
   );
 }

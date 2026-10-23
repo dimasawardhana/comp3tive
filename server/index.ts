@@ -17,6 +17,8 @@
  * serves it at `/join/:code`.
  */
 
+import { ApiError, json, type Env } from "./shared";
+import { handleAiChat } from "./ai";
 import { collectDecompose, collectDeleteCommunity } from "./store/decompose";
 import { leaderboard, searchPlayers, sessionHistory } from "./store/queries";
 import { reassemble } from "./store/reassemble";
@@ -58,23 +60,10 @@ import {
  * optional, so a deployment without it answers 503 on the Google routes instead
  * of failing to start.
  */
-type Env = Cloudflare.Env & { GOOGLE_CLIENT_ID?: string };
+export type { Env } from "./shared";
+export { ApiError, json } from "./shared";
 
-/** A refusal with an HTTP status. Anything else reaching the top is a 500. */
-class ApiError extends Error {
-  constructor(
-    readonly status: number,
-    message: string,
-  ) {
-    super(message);
-  }
-}
 
-const json = (body: unknown, status = 200): Response =>
-  new Response(JSON.stringify(body), {
-    status,
-    headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" },
-  });
 
 /**
  * The bearer token, if the request carries one.
@@ -328,6 +317,16 @@ async function route(db: Database, request: Request, env: Env, pathname: string)
   // together, so the document cannot resurrect at the next pull or sign-in.
   // Idempotent by design — the client's local cascade already succeeded
   // before this is called, so a retry after a lost response must succeed too.
+
+  // ---- AI chat (TASK-130) ----
+  //
+  // One route: the client posts its recent turns, the Worker runs the
+  // tool-calling loop server-side with the account from the token. Reads
+  // only — every tool is an Account-scoped query, never a write.
+  if (pathname === "/api/ai/chat" && method === "POST") {
+    const accountId = await requireAccount(db, request);
+    return handleAiChat(db, request, env, accountId);
+  }
 
   // ---- Public player registration (join codes) ----
   //

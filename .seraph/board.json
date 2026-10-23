@@ -2,6 +2,21 @@
   "render_format": 3,
   "tasks": [
     {
+      "id": "TASK-130",
+      "title": "AI chatbot in the app",
+      "goal": "Organizers can ask an AI assistant questions about their players/teams and get answers grounded in their data, via tool calls over the Account-scoped API.",
+      "acceptance": "A chat UI in the app talks to /api/ai/chat; the Worker route calls an LLM with tool schemas for roster/leaderboard/history queries; tool calls execute server-side with account scoping; answers cite real data; unit tests cover the tool layer.",
+      "status": "backlog",
+      "priority": "high",
+      "claim": {
+        "harness": "hermes",
+        "session": "hermes-dimas-ai-20261023",
+        "expires": "2026-10-23T04:52:59Z"
+      },
+      "created_at": "2026-10-23T04:22:46Z",
+      "updated_at": "2026-10-23T04:22:59Z"
+    },
+    {
       "id": "TASK-101",
       "title": "Announce entering swap mode to assistive tech",
       "goal": "Announce entering swap mode to assistive tech",

@@ -3,6 +3,18 @@
 _Written by Seraph. Do not edit — this file is replaced on every change._
 _Render format 3._
 
+## Backlog
+
+### TASK-130 · AI chatbot in the app
+
+> **Goal:** Organizers can ask an AI assistant questions about their players/teams and get answers grounded in their data, via tool calls over the Account-scoped API.
+- priority: high
+- claimed by: hermes (session `hermes-dimas-ai-20261023`, until 2026-10-23T04:52:59Z)
+- updated: 2026-10-23T04:22:59Z
+
+> **Done when:** A chat UI in the app talks to /api/ai/chat; the Worker route calls an LLM with tool schemas for roster/leaderboard/history queries; tool calls execute server-side with account scoping; answers cite real data; unit tests cover the tool layer.
+
+
 ## Done
 
 ### TASK-101 · Announce entering swap mode to assistive tech
