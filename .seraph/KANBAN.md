@@ -3,21 +3,6 @@
 _Written by Seraph. Do not edit — this file is replaced on every change._
 _Render format 3._
 
-## Backlog
-
-### TASK-139 · UIUX-09 Records and PR to master
-
-> **Goal:** Update the documents the revamp falsifies and open the reviewed PR into master with before and after side by side.
-- priority: medium
-- triage: ready-for-agent
-- claimed by: omp (session `omp-uiux-revamp-2026-10-23`, until 2026-10-23T20:38:55Z)
-- updated: 2026-10-23T20:08:55Z
-
-> **Done when:** README.md, DESIGN.md, CONTEXT.md, docs/ROADMAP.md and IMPLEMENTATION_PLAN.md describe the shipped design and contain no claim the tree contradicts; .taste-skill/ and anti-slop/ either committed deliberately or gitignored; PR opened from uiux-revamp into master containing the before and after inspect.mjs measurements per viewport, the R-XX findings closed, and one-line reasons for each major decision (R-31); master is unchanged until the PR is reviewed.
-
-> P6. SERIAL after UIUX-08. Depends on UIUX-08. The repo rule is that a document claim names the tree it was checked against, so every edited sentence is read against the tree, not grepped.
-
-
 ## Done
 
 ### TASK-101 · Announce entering swap mode to assistive tech
@@ -241,6 +226,12 @@ _Render format 3._
 > **Goal:** Add the motion layer the taste skill requires: one signature move, a staggered entrance per section, feedback on every control, and a reduced-motion fallback that keeps all content.
 - priority: medium
 - updated: 2026-10-23T19:51:15Z
+
+### TASK-139 · UIUX-09 Records and PR to master
+
+> **Goal:** Update the documents the revamp falsifies and open the reviewed PR into master with before and after side by side.
+- priority: medium
+- updated: 2026-10-23T20:40:28Z
 
 ### TASK-107 · Cover the roster editor's refusal with a test
 

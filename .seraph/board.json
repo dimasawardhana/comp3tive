@@ -2,23 +2,6 @@
   "render_format": 3,
   "tasks": [
     {
-      "id": "TASK-139",
-      "title": "UIUX-09 Records and PR to master",
-      "goal": "Update the documents the revamp falsifies and open the reviewed PR into master with before and after side by side.",
-      "description": "P6. SERIAL after UIUX-08. Depends on UIUX-08. The repo rule is that a document claim names the tree it was checked against, so every edited sentence is read against the tree, not grepped.",
-      "acceptance": "README.md, DESIGN.md, CONTEXT.md, docs/ROADMAP.md and IMPLEMENTATION_PLAN.md describe the shipped design and contain no claim the tree contradicts; .taste-skill/ and anti-slop/ either committed deliberately or gitignored; PR opened from uiux-revamp into master containing the before and after inspect.mjs measurements per viewport, the R-XX findings closed, and one-line reasons for each major decision (R-31); master is unchanged until the PR is reviewed.",
-      "status": "backlog",
-      "triage": "ready-for-agent",
-      "priority": "medium",
-      "claim": {
-        "harness": "omp",
-        "session": "omp-uiux-revamp-2026-10-23",
-        "expires": "2026-10-23T20:38:55Z"
-      },
-      "created_at": "2026-10-23T12:48:56Z",
-      "updated_at": "2026-10-23T20:08:55Z"
-    },
-    {
       "id": "TASK-101",
       "title": "Announce entering swap mode to assistive tech",
       "goal": "Announce entering swap mode to assistive tech",
@@ -537,6 +520,19 @@
       "claim": null,
       "created_at": "2026-10-23T12:48:56Z",
       "updated_at": "2026-10-23T19:51:15Z"
+    },
+    {
+      "id": "TASK-139",
+      "title": "UIUX-09 Records and PR to master",
+      "goal": "Update the documents the revamp falsifies and open the reviewed PR into master with before and after side by side.",
+      "description": "COMPLETE. RECORDS: README.md's design row now names Accent Ladder instead of Paper & Pencil; DESIGN.md was rewritten earlier in the run and describes only what ships, with the old doc preserved at .scratch/backups-2026-10-19/DESIGN-paper-pencil.md; the manifest, both documents' theme-color, the share-image palette and its pins, and the em-dash ledger all moved with the tokens. Historical plans under docs/superpowers/ were deliberately left alone, since they are dated records of work that happened rather than claims about the current tree. GITIGNORE: .taste-skill/ covers the inspector's scratch output; anti-slop/ is committed on purpose because it is the before/after evidence the review rests on. MASTER UNTOUCHED: master is still 442d6c4 and origin/master still d2897d1; branch uiux-revamp is 2 commits ahead. PUSHED to origin/uiux-revamp. The PR body is committed at anti-slop/PR-UIUX-REVAMP.md with the before/after table, the two recorded redraws with their reasons, the five review points, and the defended WARNs. A GitHub PR was NOT auto-opened: gh is not installed (`which gh` returns nothing), so the create URL the push printed must be clicked by the owner. Everything the PR needs is in the two anti-slop files and the body file.",
+      "acceptance": "README.md, DESIGN.md, CONTEXT.md, docs/ROADMAP.md and IMPLEMENTATION_PLAN.md describe the shipped design and contain no claim the tree contradicts; .taste-skill/ and anti-slop/ either committed deliberately or gitignored; PR opened from uiux-revamp into master containing the before and after inspect.mjs measurements per viewport, the R-XX findings closed, and one-line reasons for each major decision (R-31); master is unchanged until the PR is reviewed.",
+      "status": "done",
+      "triage": "ready-for-agent",
+      "priority": "medium",
+      "claim": null,
+      "created_at": "2026-10-23T12:48:56Z",
+      "updated_at": "2026-10-23T20:40:28Z"
     },
     {
       "id": "TASK-107",
