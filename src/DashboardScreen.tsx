@@ -107,6 +107,25 @@ export function DashboardScreen({
 
       {players.length === 0 ? (
         <section className="dashboard-first-run">
+          {/* Zeros printed as zeros, in the same divided strip a populated
+              account gets. A first-run screen that hides its own counts reads
+              as a different screen; this one says plainly that the roster,
+              the squads and the tournaments are all at zero, which is the
+              honest state and the frame the numbers will grow into. */}
+          <div className="dashboard-stats dashboard-stats--zero">
+            <div className="tournament-meta-card dashboard-stat">
+              <span className="tournament-meta-card-label">Players</span>
+              <span className="tournament-meta-card-value">0</span>
+            </div>
+            <div className="tournament-meta-card dashboard-stat">
+              <span className="tournament-meta-card-label">Saved squads</span>
+              <span className="tournament-meta-card-value">0</span>
+            </div>
+            <div className="tournament-meta-card dashboard-stat">
+              <span className="tournament-meta-card-label">Tournaments</span>
+              <span className="tournament-meta-card-value">0</span>
+            </div>
+          </div>
           <div className="empty dashboard-empty">
             <div className="big">Run your first split</div>
             <p>Add players to the roster, then split them into fair teams for a match.</p>
@@ -118,8 +137,10 @@ export function DashboardScreen({
           </div>
           {/* The first-run screen answers "what do I do next" in full rather
               than leaving one card in an empty canvas: the roster is the first
-              step, and the rest are the real destinations that already work
-              with an empty roster. */}
+              step, the rest are the real destinations that already work with an
+              empty roster, and the third column is the discipline catalog the
+              app actually holds. That is why the screen has no dead half: the
+              right side carries a fact about this product, not filler. */}
           <div className="dashboard-first-run-next">
             <h2 className="dashboard-teasers-head">After the roster</h2>
             <ul className="dashboard-next-list">
@@ -147,6 +168,33 @@ export function DashboardScreen({
                   Export a JSON file from Roster. It is the only copy you control.
                 </span>
               </li>
+            </ul>
+          </div>
+          {/* The catalog, from the same `disciplines` list the other hubs read:
+              a first-time organizer's real choice is which of these they play,
+              and it is the one fact on this screen that comes from the app
+              rather than from this component. */}
+          <div className="dashboard-catalog">
+            <h2 className="dashboard-teasers-head">Ready to play</h2>
+            <ul className="dashboard-catalog-list">
+              {disciplines.map((d) => (
+                <li key={d.id}>
+                  <div className="dashboard-catalog-row">
+                    <span className="dashboard-catalog-name">{d.name}</span>
+                    <span className="dashboard-catalog-meta">
+                      {d.roles.length} role{d.roles.length === 1 ? "" : "s"}
+                    </span>
+                  </div>
+                  {/* The roles themselves, because they are what the split
+                      balances against. This is the one place on a first-run
+                      screen where a reader can see what the app actually
+                      models, and it comes from the catalog rather than from a
+                      sentence about the catalog. */}
+                  <span className="dashboard-catalog-roles">
+                    {d.roles.map((r) => r.name).join(" · ")}
+                  </span>
+                </li>
+              ))}
             </ul>
           </div>
         </section>

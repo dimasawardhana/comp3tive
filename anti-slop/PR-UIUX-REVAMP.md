@@ -6,7 +6,7 @@ Full visual rebuild of the app and the landing page on the `accent-ladder` app s
 
 | Gate | Before | After |
 |---|---|---|
-| `inspect.mjs --app` (app) | **5 FAIL**, 5 WARN | **0 FAIL**, 2 WARN |
+| `inspect.mjs --app` (app) | **5 FAIL**, 5 WARN | **0 FAIL**, 0 WARN |
 | `inspect.mjs` (landing) | **7 FAIL**, 3 WARN | **0 FAIL**, 2 WARN |
 | `lint.mjs --app src` | **15 FAIL**, 33 WARN | **0 FAIL**, 9 WARN |
 | Real accessibility defect | white on `--bib-a` = **1.60:1** | `--bib-ink` on all five bibs = **5.23–10.95:1** |
@@ -59,7 +59,7 @@ Baseline is `anti-slop/audit-001-2026-10-23.md` (20 numbered findings); the PASS
 
 ## Defended warnings
 
-- **`hero-void` / `unused-canvas` (app):** measured on the **first-run** screen, which the inspector sees because it uses a clean browser profile. A populated account shows the stat strip, both teaser lists and the action links.
+- **`hero-void` / `unused-canvas` (app):** these were in the first cut of this PR and are now **fixed**, not defended. The two were real: `.screen` measured 469px on a 900px viewport because the height chain stopped at `.shell`, and the first-run right column's text ended 191px short of the edge because it was two stacked lines. See the Correction section of `delivery-gate-2026-10-23.md`.
 - **`font-not-dealt`:** the recorded DM Sans redraw above.
 - **`no-real-pictures` / `no-footage` (landing):** impossible here — no DNS, and the project forbids runtime fetches.
 - **9 lint WARNs:** 4 shadows all on real overlays (`.squad-menu`, `.dropdown-menu`, `.modal-card`, `.toast`) or an inset selection ring; 4 `.kicker` mentions now only in comments explaining why there is no kicker; 1 em-dash count note (68 dashes across the tree, all in code comments, which R-02 carves out).

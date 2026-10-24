@@ -118,16 +118,20 @@ test("dashboard stat cards are community-scoped and update on community switch",
   await page.locator(".squad-menu-item", { hasText: "Beta Guild" }).click();
   await expect(page.locator(".squad-select-value")).toHaveText("Beta Guild");
 
-  // Beta has no players: the guided empty state replaces the stat cards, and
-  // the lede names the newly active community.
+  // Beta has no players: it shows the first-run state, and the lede names the
+  // newly active community. The counts are still printed, as zeros: an app
+  // screen keeps its frame and prints a real zero rather than hiding the strip,
+  // which is what makes the numbers believable once they arrive.
   await expect(page.locator(".screen h1")).toHaveText("Dashboard");
   await expect(lede).toContainText("Beta Guild");
-  await expect(page.locator(".dashboard-stats")).not.toBeVisible();
   await expect(page.locator(".dashboard-empty")).toBeVisible();
   await expect(page.locator(".dashboard-empty .big")).toHaveText("Run your first split");
+  expect(await statValue(page, "Players")).toBe("0");
+  expect(await statValue(page, "Saved squads")).toBe("0");
+  expect(await statValue(page, "Tournaments")).toBe("0");
 });
 
-test("a fresh community shows the guided empty state instead of stat cards", async ({ page }) => {
+test("a fresh community shows the guided empty state with its zero counts", async ({ page }) => {
   // One community, zero players: the first-run state on the landing hub.
   await gotoSeeded(page, {
     communities: [{ id: "comm-fresh", name: "Fresh Start", createdAt: 100 }],
@@ -142,8 +146,12 @@ test("a fresh community shows the guided empty state instead of stat cards", asy
   await expect(page.locator(".dashboard-empty")).toBeVisible();
   await expect(page.locator(".dashboard-empty .big")).toHaveText("Run your first split");
   await expect(page.locator(".dashboard-empty")).toContainText("Add players to the roster");
-  // The stat cards are gone (zero cards would otherwise read as empty zeros).
-  await expect(page.locator(".dashboard-stats")).not.toBeVisible();
+  // The counts are present and honestly zero, in the same strip a populated
+  // account gets: the frame is what the numbers grow into.
+  await expect(page.locator(".dashboard-stats")).toBeVisible();
+  expect(await statValue(page, "Players")).toBe("0");
+  expect(await statValue(page, "Saved squads")).toBe("0");
+  expect(await statValue(page, "Tournaments")).toBe("0");
 
   // Without players there is nothing to split, so the screen does not offer the
   // action at all: a disabled button with no way to satisfy it is a dead

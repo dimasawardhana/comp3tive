@@ -152,3 +152,33 @@ Driven in a real browser against `http://localhost:5173`.
 ## Closing
 
 The two numbers that moved: the app went from **5 FAIL to 0**, the landing from **7 FAIL to 0**, and lint from **15 FAIL to 0**. The one accessibility bug that was empirically real, white text on a bib at 1.60:1, is fixed at the token so no screen can reintroduce it.
+
+---
+
+## Correction (2026-10-24): two defended WARNs were real
+
+The first version of this report defended the app gate's two warnings as
+artefacts of the inspector's clean profile. That defence was wrong, and
+measuring the geometry showed it:
+
+| Claim in the first report | What the measurement showed |
+|---|---|
+| "a live account shows the stat strip, so the void does not exist in the state the app is used in" | The void was **independent of data**. `.screen` measured 469px on a 900px viewport because the height chain stopped at `.shell`, so every short screen hugged the top and left a dead band. Fixed by giving `.shell` `min-height: 100dvh` and letting `.screen` take the remainder. |
+| "the remaining right-hand inset is the screen's own 30px padding, matching on both sides" | The inspector measures **text extents**, not boxes. The first-run block's right column was two stacked lines, so its text ended at **x=1249**, 191px short of the edge. Fixed by making the catalog rows label/value (name left, count right) and adding a third column. |
+
+Two further defects were introduced and caught during the fix:
+
+- The catalog pushed "Ready to play" under the sticky tab bar at 390px
+  (`covered-text`, 100% hidden). The catalog is now withheld below 640px,
+  where the first-run question is "how do I start" and the steps answer it.
+- `align-content: center` produced a ~230px gap between the title and the work,
+  because the rows were centred inside the 762px block. The block is now
+  start-aligned and its rows fill from the top.
+
+**Final measurements.** App gate: **0 FAIL, 0 WARN** at 1440/768/390. The
+first-run screen now prints its counts as real zeros in the same divided strip a
+populated account gets, carries the four steps and the discipline catalog with
+each discipline's roles, and fills the canvas from the title down.
+
+Verified after the change: `tsc` 0, `vitest` 984/984, `e2e` **127/127**,
+`build` clean, page gate unchanged at 0 FAIL.

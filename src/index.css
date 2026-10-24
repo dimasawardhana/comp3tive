@@ -69,6 +69,12 @@ body {
   flex-direction: column;
   flex: 1;
   min-width: 0;
+  /* The height chain, and it is what makes a short screen sit in its canvas
+     rather than hug the top: `.app` is at least the viewport, `.shell` and
+     `.shell-main` stretch to it, and `.screen` takes the remainder. Without
+     this the canvas measures to its content, so a first-run screen ends at
+     469px on a 900px display and the lower half reads as a dead band. */
+  min-height: 100dvh;
 }
 /* The canvas fills its column. The cap exists for a 1920 screen, where a line
    of text past ~1240px stops being readable; below it the column is the width,
@@ -78,6 +84,7 @@ body {
   flex-direction: column;
   flex: 1;
   min-width: 0;
+  min-height: 0;
 }
 .shell-main > .screen {
   width: 100%;
@@ -1105,15 +1112,38 @@ h1 {
   margin-left: auto;
   font-size: 12px;
 }
-/* The first-run screen is a two-column answer, not one card in an empty
-   canvas: the action you have to take closes the left, and what comes after
-   closes the right, so the screen has no dead half. Collapses to one column
-   under 900px, where the right column would be under about 320px. */
+/* The first-run screen is a three-column answer, not one card in an empty
+   canvas. The action you must take closes the left, the steps after it sit in
+   the middle, and the discipline catalog closes the right with a fact the app
+   actually holds. Three columns rather than two because at 1440 a two-column
+   split left the right column's text ending ~190px short of the canvas edge
+   with nothing to close it, which reads as unfinished rather than as space.
+   Under 1100px the catalog drops below the steps, and under 900px everything
+   stacks, where each column would otherwise be thinner than about 300px. */
 .dashboard-first-run {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 24px;
+  /* The zero strip spans the full width above the three answers; the columns
+     below it are the decision, the steps and the catalog. */
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr) minmax(0, 0.8fr);
+  gap: 32px;
   align-items: start;
+  /* A first-run screen has little to say and the whole canvas to say it in.
+     Rather than hug the top and leave a dead band beneath, the block sits in the
+     middle of the space it has: the margin above and below is then structural
+     and equal, which is a placed rest rather than leftover room. `flex: 1` is
+     what gives it the room to centre in; `min-height` stops a short canvas from
+     squeezing it. */
+  /* The block takes the canvas and puts its rows at the TOP of that space.
+     `align-content: center` inside a 762px box is what produced the ~230px gap
+     between the title and the work: the rows were centred in the box, so the
+     leftover room appeared above them. Start-aligned, the extra space falls
+     below the content, which is where the roster will grow into it. */
+  flex: 1;
+  align-content: start;
+  padding-block: 8px 24px;
+}
+.dashboard-stats--zero {
+  grid-column: 1 / -1;
 }
 .dashboard-empty {
   margin: 0;
@@ -1138,7 +1168,7 @@ h1 {
   position: relative;
 }
 .dashboard-next-list li::before {
-  /* A mark, not an index: a 2px dash in the accent, which is the one place
+  /* A mark, not an index: a 6px dash in the accent, which is the one place
      this screen spends the hue. Numbering the steps would be the 01/02/03
      tell, and the order is already carried by position. */
   content: "";
@@ -1159,9 +1189,78 @@ h1 {
   color: var(--text-2);
   line-height: 1.5;
 }
+/* The catalog column: the disciplines this app ships, read from the same list
+   the other hubs receive. Two lines each, name over its shape, so the column
+   carries information rather than repeating the steps beside it. */
+.dashboard-catalog {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 2px;
+}
+.dashboard-catalog-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+/* A label/value row, not two stacked lines: the name sits at the left of the
+   column and its shape sits at the right, which is what makes the column span
+   the width it was given instead of ending in a ragged half-line. Right-aligned
+   values are also the table convention this app already uses. */
+.dashboard-catalog-list li {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--hairline);
+}
+.dashboard-catalog-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+.dashboard-catalog-roles {
+  font-size: 12px;
+  color: var(--text-2);
+  line-height: 1.45;
+}
+.dashboard-catalog-list li:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+.dashboard-catalog-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+.dashboard-catalog-meta {
+  font-size: 12px;
+  color: var(--text-2);
+  font-variant-numeric: tabular-nums;
+}
+@media (max-width: 1100px) {
+  .dashboard-first-run {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+  .dashboard-catalog {
+    grid-column: 1 / -1;
+  }
+}
 @media (max-width: 900px) {
   .dashboard-first-run {
     grid-template-columns: minmax(0, 1fr);
+  }
+}
+/* On a phone the catalog is withheld. The first-run answer there has to fit
+   above the sticky tab bar without the reader scrolling into it, and the
+   question a phone user is answering is "how do I start", which the action and
+   the four steps answer on their own. The catalog returns at 900px, where the
+   canvas has the room and the desktop void needs closing. */
+@media (max-width: 640px) {
+  .dashboard-catalog {
+    display: none;
   }
 }
 .dashboard-teasers {
@@ -2987,4 +3086,14 @@ h1 {
 .rail-link:active,
 .dropdown-item:active {
   transform: translateY(1px);
+}
+
+/* On a phone the tab bar sits in normal flow at the foot of the column, so a
+   screen never has to reserve space for it. What it does need is a pocket at
+   the very bottom: the last block would otherwise end flush against the bar and
+   read as cut off rather than finished. */
+@media (max-width: 640px) {
+  .shell-main > .screen {
+    padding-bottom: calc(28px + 12px);
+  }
 }
