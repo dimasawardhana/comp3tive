@@ -4,6 +4,7 @@ import type { HubMode, View } from "./useNavigation";
 import { NAV_ITEMS } from "./nav-items";
 import { Toasts } from "../ui/Toasts";
 import { ConfirmButton } from "../ui/ConfirmButton";
+import AiAssistant from "./AiAssistant";
 import type { ToastType } from "./useToasts";
 
 export interface AppChromeProps {
@@ -31,9 +32,10 @@ export interface AppChromeProps {
 
 /**
  * The shell around every screen: skip link, desktop rail, topbar (community
- * switcher with its delete confirm, ✚), the live region and the handheld
- * bottom nav. It owns the one menu that opens and closes inside the chrome
- * itself — the community menu — and nothing outside the chrome reads it.
+ * switcher with its delete confirm, ✚), the live region, the AI assistant's
+ * balloon and the handheld bottom nav. It owns the two things that open and
+ * close inside the chrome itself — the community menu and the assistant panel —
+ * and nothing outside the chrome reads either.
  */
 export function AppChrome(props: AppChromeProps) {
   const [showCommunityMenu, setShowCommunityMenu] = useState(false);
@@ -160,6 +162,7 @@ export function AppChrome(props: AppChromeProps) {
         </main>
       </div>
       <Toasts toasts={props.toasts} />
+      <AiAssistant />
       <nav className="bottom-nav" aria-label="Primary">
         {NAV_ITEMS.map((item) => (
           <button

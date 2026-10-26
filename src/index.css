@@ -2723,68 +2723,168 @@ h1 {
 }
 
 /* ── AI assistant (TASK-130) ─────────────────────────────────────────── */
-.ai-assistant {
-  margin-top: 24px;
-  border-top: 1px solid var(--border, #ddd);
-  padding-top: 16px;
+/* The balloon floats at the right end of the bottom edge. It clears the tab bar
+   (`--tabbar-h`, which is where `.split-bar`/`.match-bar` stack) so it never
+   covers the nav itself, and on desktop it sits on the app card's own bottom
+   inset. `right` follows the card's edge too (max-width 640 below 1024, 1200
+   above) so the balloon stays beside the content instead of drifting out to the
+   window edge on a wide monitor.
+
+   The cost is deliberate and visible: on Split and Match the sticky action bar
+   occupies that same corner above the tab bar, so the balloon covers the right
+   end of it while you are on those screens. Closing the panel and ignoring the
+   balloon leaves the bar's own buttons reachable; the balloon never takes the
+   click that starts a split. */
+.ai-chat {
+  position: fixed;
+  right: max(16px, calc((100vw - 640px) / 2 + 16px));
+  bottom: var(--ai-bottom);
+  /* Above the shell's own chrome (bottom nav 50, topbar 40), below the
+     community menu (58) and the modal overlay (100). */
+  z-index: 55;
+  /* The panel is a child, so it reads this for its own max-height. */
+  --ai-bottom: calc(var(--tabbar-h) + 16px);
+}
+@media (min-width: 1024px) {
+  .ai-chat {
+    right: max(16px, calc((100vw - 1200px) / 2 + 16px));
+    /* The rail replaces the tab bar, so only the card's 24px inset is left. */
+    --ai-bottom: 24px;
+  }
+}
+.ai-launcher {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  padding: 0;
+  border: 1.5px solid transparent;
+  border-radius: 999px;
+  background: var(--text);
+  color: var(--surface);
+  font-size: 17px;
+  line-height: 1;
+  box-shadow: var(--shadow);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.ai-launcher:hover {
+  background: color-mix(in srgb, var(--text) 88%, var(--surface-2));
+}
+.ai-launcher:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}
+.ai-launcher svg {
+  display: block;
+  width: 26px;
+  height: 26px;
+}
+/* Open: the same chip turns into the close affordance, so the balloon never
+   moves when the panel appears beside it. */
+.ai-launcher[aria-expanded="true"] {
+  background: var(--surface-2);
+  border-color: var(--hairline);
+  color: var(--text);
+}
+.ai-panel {
+  /* Out of flow, so opening the panel cannot move the balloon: the container is
+     the balloon's own 52px box and the panel hangs off its left edge, its bottom
+     flush with the balloon's, growing upward. */
+  position: absolute;
+  right: calc(100% + 12px);
+  bottom: 0;
   display: flex;
   flex-direction: column;
   gap: 10px;
+  width: min(380px, calc(100vw - 100px));
+  /* Everything above the balloon, less a 16px top margin, so a short viewport
+     shortens the panel instead of pushing it off the top edge. */
+  max-height: min(560px, calc(100dvh - var(--ai-bottom) - 16px));
+  padding: 14px;
+  background: var(--surface-2);
+  border: 1.5px solid var(--hairline);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow);
 }
-.ai-assistant h2 {
-  font-size: 1.05rem;
-  margin: 0;
+/* `display: flex` above outranks the UA's `[hidden]`, so the closed panel needs
+   the rule stated. It stays mounted while closed: the launcher's `aria-controls`
+   has to name something, and the log keeps its scroll position. */
+.ai-panel[hidden] {
+  display: none;
 }
-.ai-assistant-hint {
-  margin: 0;
-  font-size: 0.85rem;
-  opacity: 0.7;
-}
-.ai-assistant-log {
+.ai-head {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  max-height: 340px;
+  gap: 3px;
+}
+.ai-title {
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-2);
+}
+.ai-sub {
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--text-2);
+}
+.ai-log {
+  flex: 1;
+  min-height: 132px;
   overflow-y: auto;
-  padding: 8px;
-  border: 1px solid var(--border, #ddd);
-  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px;
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-sm);
 }
-.ai-assistant-empty {
-  font-size: 0.85rem;
-  opacity: 0.6;
+.ai-empty {
   margin: 0;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--text-2);
 }
-.ai-assistant-turn {
+.ai-turn {
   display: flex;
   flex-direction: column;
   gap: 4px;
 }
-.ai-assistant-user {
+.ai-turn-user {
   align-items: flex-end;
 }
-.ai-assistant-user .ai-assistant-content {
-  background: var(--accent-soft, #e8f0fe);
-  border-radius: 12px 12px 2px 12px;
-  padding: 8px 12px;
-  margin: 0;
-  max-width: 85%;
-}
-.ai-assistant-who {
-  font-size: 0.7rem;
+.ai-who {
+  font-family: var(--font-display);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
-  opacity: 0.55;
+  color: var(--text-2);
 }
-.ai-assistant-assistant .ai-assistant-content {
-  background: var(--surface-alt, #f5f5f5);
-  border-radius: 12px 12px 12px 2px;
-  padding: 8px 12px;
+.ai-content {
   margin: 0;
   max-width: 90%;
+  padding: 8px 12px;
+  font-size: 13px;
+  line-height: 1.45;
   white-space: pre-wrap;
 }
-.ai-assistant-tools {
+.ai-turn-user .ai-content {
+  background: color-mix(in srgb, var(--text) 8%, var(--surface));
+  border-radius: 12px 12px 2px 12px;
+}
+.ai-turn-assistant .ai-content {
+  background: var(--surface-2);
+  border: 1px solid var(--hairline);
+  border-radius: 12px 12px 12px 2px;
+}
+.ai-tools {
   list-style: none;
   margin: 0;
   padding: 0;
@@ -2792,51 +2892,40 @@ h1 {
   flex-wrap: wrap;
   gap: 6px;
 }
-.ai-assistant-tools li {
-  font-size: 0.72rem;
-  border: 1px solid var(--border, #ddd);
-  border-radius: 999px;
-  padding: 2px 10px;
+.ai-tools li {
   display: inline-flex;
-  gap: 6px;
   align-items: center;
+  gap: 6px;
+  padding: 2px 10px;
+  border: 1px solid var(--hairline);
+  border-radius: 999px;
+  font-size: 11px;
 }
-.ai-assistant-tool-args {
-  opacity: 0.55;
+.ai-tool-args {
+  color: var(--text-2);
 }
-.ai-assistant-thinking {
+.ai-thinking {
   animation: ai-pulse 1.2s ease-in-out infinite;
 }
 @keyframes ai-pulse {
   0%, 100% { opacity: 0.5; }
   50% { opacity: 1; }
 }
-.ai-assistant-error {
-  color: var(--danger, #c0392b);
-  font-size: 0.85rem;
+.ai-error {
   margin: 0;
+  font-size: 12px;
+  color: var(--danger);
 }
-.ai-assistant-composer {
+.ai-composer {
   display: flex;
   gap: 8px;
 }
-.ai-assistant-composer input {
+.ai-composer .input {
   flex: 1;
-  padding: 8px 12px;
-  border: 1px solid var(--border, #ddd);
-  border-radius: 8px;
-  font: inherit;
+  min-width: 0;
+  font-size: 14px;
+  background: var(--surface);
 }
-.ai-assistant-composer button {
-  padding: 8px 16px;
-  border: none;
-  border-radius: 8px;
-  background: var(--accent, #2563eb);
-  color: #fff;
-  font: inherit;
-  cursor: pointer;
-}
-.ai-assistant-composer button:disabled {
-  opacity: 0.5;
-  cursor: default;
+.ai-composer .btn {
+  flex: 0 0 auto;
 }
