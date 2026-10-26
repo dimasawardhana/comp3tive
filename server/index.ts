@@ -257,11 +257,13 @@ async function route(db: Database, request: Request, env: Env, pathname: string)
   }
 
   // Adoption's first write: create the revision row at 1 and decompose the
-  // document into rows, one atomic batch. Insert-only: an Account that already
-  // has a revision for this community gets a 409 rather than an overwrite,
-  // because the overwrite path runs through the compare-and-swap and never
-  // through an adoption. The parse is validation, not normalization: a payload
-  // that fails it applies nothing.
+  // document into rows, one atomic batch. Insert-only: the revision row's
+  // primary key is the gate, so an Account that already has a revision for
+  // this community gets a 409 rather than an overwrite, because the overwrite
+  // path runs through the compare-and-swap and never through an adoption.
+  // The failed insert aborts the batch, so nothing of the losing document is
+  // written. The parse is validation, not normalization: a payload that fails
+  // it applies nothing.
   if (pathname === "/api/documents/adopt" && method === "POST") {
     const accountId = await requireAccount(db, request);
     const body = await readJson<{ communityId?: string; payload?: string }>(request);
@@ -273,10 +275,20 @@ async function route(db: Database, request: Request, env: Env, pathname: string)
       collectInsertRevision(db, accountId, body.communityId, now),
       ...collectDecompose(db, accountId, body.communityId, doc, 1),
     ];
-    const results = await db.batch(statements);
-    // The revision insert is the gate: changes 0 means the row existed.
-    if (results[0].changes !== 1)
-      return json({ error: "This Account already has data for that community." }, 409);
+    try {
+      await db.batch(statements);
+    } catch (error) {
+      // The revision row is already there, or another adoption created it
+      // between our insert and the commit: either way this community is taken,
+      // and the batch wrote nothing.
+      if (await getRevision(db, accountId, body.communityId))
+        return json({ error: "This Account already has data for that community." }, 409);
+      // A constraint the document's own rows break — a player id another
+      // community already holds — is the document's fault, not a server bug.
+      if (error instanceof Error && /constraint failed/i.test(error.message))
+        throw new ApiError(400, "That document conflicts with this Account's other data.");
+      throw error;
+    }
     return json({ version: 1 });
   }
   // The compare-and-swap push: the CAS UPDATE on community_revisions is the

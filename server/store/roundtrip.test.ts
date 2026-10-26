@@ -68,7 +68,7 @@ describe("round-trip law", () => {
             { id: "roam", name: "Roam" },
           ],
           attributes: [
-            { id: "mechanics", name: "Mechanics", min: 1, max: 10 },
+            { id: "mechanics", name: "Mechanics", min: 1, max: 10, labels: { 1: "Novice", 10: "Legend" } },
             { id: "gameSense", name: "Game sense" },
           ],
           strengthModel: { kind: "mean" },
@@ -236,6 +236,111 @@ describe("round-trip law", () => {
     const back = await reassemble(db, ACCOUNT, COMMUNITY);
     expect(back).toEqual(second);
   });
+
+  it("a second push of a document with capabilities replaces, not collides", async () => {
+    const db = await freshDb();
+    const doc = emptyDoc();
+    doc.disciplines = [
+      {
+        id: "futsal",
+        name: "Futsal",
+        shortName: "FUT",
+        roles: [{ id: "keeper", name: "Keeper" }],
+        attributes: [{ id: "pace", name: "Pace" }],
+        strengthModel: { kind: "mean" },
+        team: { minTeamSize: 1, maxTeamSize: 5, rolesRequired: true },
+      },
+    ];
+    doc.players = [
+      {
+        id: "p1",
+        communityId: COMMUNITY,
+        name: "One",
+        createdAt: 1,
+        capabilities: [
+          {
+            disciplineId: "futsal",
+            attributeRatings: { pace: 4 },
+            eligibleRoles: ["keeper"],
+            preferredRole: "keeper",
+          },
+        ],
+      },
+    ];
+
+    // The same document twice is what a client does after a local edit: the
+    // ids are identical, so every replaced row must be gone before the
+    // identical row is inserted. The capability chain carries no community
+    // column, so it is exactly the chain a `players` delete does not reach.
+    await decompose(db, ACCOUNT, COMMUNITY, doc);
+    await decompose(db, ACCOUNT, COMMUNITY, doc);
+
+    await expect(reassemble(db, ACCOUNT, COMMUNITY)).resolves.toEqual(doc);
+    // And no leftovers behind the rows: an orphan is invisible to `reassemble`
+    // but collides with the next push, which is the failure this test is for.
+    for (const table of ["capability_roles", "capability_ratings", "player_capabilities"] as const) {
+      const row = await db
+        .prepare(`SELECT COUNT(*) AS n FROM ${table} WHERE account_id = ?`)
+        .bind(ACCOUNT)
+        .first<{ n: number }>();
+      expect({ table, rows: row!.n }).toEqual({ table, rows: 1 });
+    }
+  });
+
+  it("sweeps capabilities an earlier broken push orphaned, without touching another community", async () => {
+    const db = await freshDb();
+    // A second community, with a player whose capability rows must survive:
+    // the sweep is scoped by player, and that player is not this community's.
+    await db
+      .prepare("INSERT INTO communities (account_id, id, name, created_at, exported_at) VALUES (?, ?, ?, ?, ?)")
+      .bind(ACCOUNT, "com-2", "Other", 20, "2026-10-15T00:00:00.000Z")
+      .run();
+    await db
+      .prepare("INSERT INTO players (account_id, community_id, id, name, created_at) VALUES (?, ?, ?, ?, ?)")
+      .bind(ACCOUNT, "com-2", "p2", "Two", 2)
+      .run();
+
+    // Capability rows for `player`: one in each table, the shape a player with
+    // a rated, role-eligible capability produces.
+    const capabilityRows = async (player: string): Promise<void> => {
+      await db
+        .prepare("INSERT INTO player_capabilities (account_id, player_id, discipline_id) VALUES (?, ?, ?)")
+        .bind(ACCOUNT, player, "futsal")
+        .run();
+      await db
+        .prepare("INSERT INTO capability_ratings (account_id, player_id, discipline_id, attribute_id, rating) VALUES (?, ?, ?, ?, ?)")
+        .bind(ACCOUNT, player, "futsal", "pace", 3)
+        .run();
+      await db
+        .prepare("INSERT INTO capability_roles (account_id, player_id, discipline_id, role_id, position) VALUES (?, ?, ?, ?, ?)")
+        .bind(ACCOUNT, player, "futsal", "keeper", 0)
+        .run();
+    };
+    await capabilityRows("p2");
+
+    // What the pre-fix code left behind: capability rows whose player is gone.
+    // The current schema cascades those away, so the state is unreachable by
+    // ordinary writes - but it is the state the deployed database is actually
+    // in, and it wedges the next push. Foreign keys go off for the fixture,
+    // which is how the legacy tables behaved.
+    await db.exec("PRAGMA foreign_keys = OFF");
+    await capabilityRows("gone");
+    await db.exec("PRAGMA foreign_keys = ON");
+
+    const doc = emptyDoc();
+    doc.players = [{ id: "p1", communityId: COMMUNITY, name: "One", createdAt: 1, capabilities: [] }];
+    await decompose(db, ACCOUNT, COMMUNITY, doc);
+
+    for (const table of ["capability_roles", "capability_ratings", "player_capabilities"] as const) {
+      const rows = await db
+        .prepare(`SELECT player_id FROM ${table} WHERE account_id = ? ORDER BY player_id`)
+        .bind(ACCOUNT)
+        .all<{ player_id: string }>();
+      // The orphan is gone, and com-2's player is untouched.
+      expect({ table, players: rows.map((r) => r.player_id) }).toEqual({ table, players: ["p2"] });
+    }
+  });
+
 
   it("rejects a payload carrying a sibling community", async () => {
     const db = await freshDb();

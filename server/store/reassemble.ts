@@ -61,12 +61,28 @@ export async function reassemble(
       .prepare("SELECT id, name, min_def, max_def FROM discipline_attributes WHERE account_id = ? AND discipline_id = ? ORDER BY position")
       .bind(accountId, d.id)
       .all<{ id: string; name: string; min_def: number | null; max_def: number | null }>();
-    const attributes: Attribute[] = attributeRows.map((a) => ({
-      id: a.id,
-      name: a.name,
-      ...(a.min_def !== null ? { min: a.min_def } : {}),
-      ...(a.max_def !== null ? { max: a.max_def } : {}),
-    }));
+    const labelRows = await db
+      .prepare(
+        "SELECT attribute_id, value, label FROM discipline_attribute_labels WHERE account_id = ? AND discipline_id = ? ORDER BY attribute_id, value",
+      )
+      .bind(accountId, d.id)
+      .all<{ attribute_id: string; value: number; label: string }>();
+    const labelsByAttribute = new Map<string, Record<number, string>>();
+    for (const row of labelRows) {
+      let labels = labelsByAttribute.get(row.attribute_id);
+      if (!labels) labelsByAttribute.set(row.attribute_id, (labels = {}));
+      labels[row.value] = row.label;
+    }
+    const attributes: Attribute[] = attributeRows.map((a) => {
+      const labels = labelsByAttribute.get(a.id);
+      return {
+        id: a.id,
+        name: a.name,
+        ...(a.min_def !== null ? { min: a.min_def } : {}),
+        ...(a.max_def !== null ? { max: a.max_def } : {}),
+        ...(labels ? { labels } : {}),
+      };
+    });
     disciplines.push({
       id: d.id,
       name: d.name,

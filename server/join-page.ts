@@ -256,13 +256,19 @@ export function joinPage(code: string): string {
         const label = document.createElement("label");
         label.textContent = a.name;
         const out = document.createElement("output");
-        out.textContent = String(mid);
+        // The catalog may name a value ("3 · Solid"); the words ride with the
+        // number so a visitor rates against the same scale the Organizer sees.
+        const describe = (value) => {
+          const word = a.labels[value];
+          return typeof word === "string" && word.trim() ? value + " · " + word.trim() : value;
+        };
+        out.textContent = describe(String(mid));
         head.appendChild(label); head.appendChild(out);
         const slider = document.createElement("input");
         slider.type = "range";
         slider.min = min; slider.max = max; slider.step = 1; slider.value = mid;
         slider.dataset.name = a.name;
-        slider.addEventListener("input", () => { out.textContent = slider.value; });
+        slider.addEventListener("input", () => { out.textContent = describe(slider.value); });
         const ticks = document.createElement("div");
         ticks.className = "rating-ticks";
         const lo = document.createElement("span"); lo.textContent = String(min);

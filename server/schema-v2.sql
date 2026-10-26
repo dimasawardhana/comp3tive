@@ -96,6 +96,22 @@ CREATE TABLE IF NOT EXISTS discipline_attributes (
   FOREIGN KEY (account_id, discipline_id) REFERENCES disciplines (account_id, id) ON DELETE CASCADE
 );
 
+-- An attribute's scale may name some of its values ("1 = Novice"); the words
+-- are part of the catalog, so they sync with it. One row per named value, not
+-- a JSON column: a label is keyed by (attribute, value), and the client's
+-- record is sparse and unordered, so rows reassemble into the same object the
+-- document carried.
+CREATE TABLE IF NOT EXISTS discipline_attribute_labels (
+  account_id    TEXT NOT NULL,
+  discipline_id TEXT NOT NULL,
+  attribute_id  TEXT NOT NULL,
+  value         INTEGER NOT NULL,
+  label         TEXT NOT NULL,
+  PRIMARY KEY (account_id, discipline_id, attribute_id, value),
+  FOREIGN KEY (account_id, discipline_id, attribute_id)
+    REFERENCES discipline_attributes (account_id, discipline_id, id) ON DELETE CASCADE
+);
+
 -- ---- Roster (the tables the queries join) ----
 
 CREATE TABLE IF NOT EXISTS players (

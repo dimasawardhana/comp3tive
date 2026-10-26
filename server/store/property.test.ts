@@ -55,9 +55,14 @@ function genDoc(r: () => number, i: number): BackupData {
       name: `Custom ${k}`,
       shortName: `C${k}`,
       roles: Array.from({ length: randInt(r, 1, 3) }, (_, j) => ({ id: `role-${k}${j}`, name: `Role ${j}` })),
-      attributes: Array.from({ length: randInt(r, 0, 3) }, (_, j) =>
-        chance(r, 0.5) ? { id: `attr-${k}${j}`, name: `Attr ${j}`, min: 1, max: 5 } : { id: `attr-${k}${j}`, name: `Attr ${j}` },
-      ),
+      attributes: Array.from({ length: randInt(r, 0, 3) }, (_, j) => {
+        const attr: Discipline["attributes"][number] = { id: `attr-${k}${j}`, name: `Attr ${j}` };
+        if (chance(r, 0.5)) attr.min = 1;
+        if (chance(r, 0.5)) attr.max = 5;
+        // A sparse, partial naming of the scale, the shape the editor writes.
+        if (chance(r, 0.4)) attr.labels = { [randInt(r, 1, 5)]: `Word ${j}` };
+        return attr;
+      }),
       strengthModel: { kind: "mean" },
       team: {
         minTeamSize: randInt(r, 1, 5),

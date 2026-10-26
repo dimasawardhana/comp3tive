@@ -135,14 +135,15 @@ export async function communityName(db: Database, accountId: string, communityId
  * the catalog is shared, so the public form offers the whole catalog. Role and
  * attribute names ride along (newline-joined) so the form needs no second
  * query. An attribute's bounds come too: the form's rating controls and the
- * POST's validation share one definition of a legal rating.
+ * POST's validation share one definition of a legal rating, and so do its
+ * labels — a visitor sees "3 · Solid", the same words the Organizer sees.
  */
 export interface JoinDiscipline {
   id: string;
   name: string;
   shortName: string;
   roles: string[];
-  attributes: Array<{ name: string; min: number; max: number }>;
+  attributes: Array<{ name: string; min: number; max: number; labels: Record<string, string> }>;
 }
 
 export async function accountDisciplines(db: Database, accountId: string): Promise<JoinDiscipline[]> {
@@ -152,7 +153,13 @@ export async function accountDisciplines(db: Database, accountId: string): Promi
               (SELECT GROUP_CONCAT(r.name, '\n') FROM discipline_roles r
                 WHERE r.account_id = d.account_id AND r.discipline_id = d.id
                 ORDER BY r.position) AS roles,
-              (SELECT GROUP_CONCAT(a.name || '\t' || COALESCE(a.min_def, 1) || '\t' || COALESCE(a.max_def, 5), '\n')
+             (SELECT GROUP_CONCAT(
+                       a.name || '\t' || COALESCE(a.min_def, 1) || '\t' || COALESCE(a.max_def, 5) || '\t' ||
+                       COALESCE((SELECT json_group_object(l.value, l.label)
+                                   FROM discipline_attribute_labels l
+                                  WHERE l.account_id = a.account_id
+                                    AND l.discipline_id = a.discipline_id
+                                    AND l.attribute_id = a.id), '{}'), '\n')
                 FROM discipline_attributes a
                 WHERE a.account_id = d.account_id AND a.discipline_id = d.id
                 ORDER BY a.position) AS attributes
@@ -177,8 +184,13 @@ export async function accountDisciplines(db: Database, accountId: string): Promi
       r.attributes === null
         ? []
         : r.attributes.split("\n").map((line) => {
-            const [name, min, max] = line.split("\t");
-            return { name, min: Number(min), max: Number(max) };
+            const [name, min, max, labels] = line.split("\t");
+            return {
+              name,
+              min: Number(min),
+              max: Number(max),
+              labels: JSON.parse(labels ?? "{}") as Record<string, string>,
+            };
           }),
   }));
 }
