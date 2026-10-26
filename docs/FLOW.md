@@ -256,3 +256,5 @@ The two rows this correction does not touch are correct as written: `Re-roll` (`
   Split result, which is a leaf pair, not a modal.
 - No implicit cross-feature jumps: the single sanctioned cross-hub CTA is
   Squads → Games (prefilled create), and it is labeled and user-initiated.
+- No assistant destination: the AI assistant is a panel in the shared chrome, reachable on every
+  screen, not a hub or a leaf. It has no breadcrumb because it is not a place you go.

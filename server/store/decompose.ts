@@ -168,6 +168,16 @@ function buildDocStatements(
         attr.max ?? null,
         i,
       );
+      for (const [value, label] of Object.entries(attr.labels ?? {})) {
+        add(
+          "INSERT INTO discipline_attribute_labels (account_id, discipline_id, attribute_id, value, label) VALUES (?, ?, ?, ?, ?)",
+          accountId,
+          d.id,
+          attr.id,
+          Number(value),
+          label,
+        );
+      }
     }
   }
 
@@ -339,8 +349,29 @@ export function collectDeleteCommunity(
  * round-trip test (leftover rows leak into the next reassemble) rather than
  * being silently swept. Guarded when built through `collectDecompose` with a
  * revision, for the same compare-and-swap reason as the inserts.
+ *
+ * The capability chain is deleted child-first and by name. It cannot ride the
+ * `players` delete: `capability_roles` carries no foreign key at all, and a
+ * database created from the pre-2026-10 copy of `schema.sql` has no foreign
+ * key on `capability_ratings` either, so deleting `players` left both behind
+ * and the next push collided with its own leftovers. Their rows are keyed by
+ * (account, player, discipline) rather than by community, so the scope is the
+ * community's players *plus* players this account no longer has at all — the
+ * second arm sweeps rows an earlier broken push already orphaned. Another
+ * community's players are untouched.
  */
 function stmtClearCommunity(add: Add, accountId: string, communityId: string): void {
+  const clearCapabilities = (table: "capability_roles" | "capability_ratings" | "player_capabilities"): void =>
+    add(
+      `DELETE FROM ${table} WHERE account_id = ? AND (player_id IN (SELECT id FROM players WHERE account_id = ? AND community_id = ?) OR player_id NOT IN (SELECT id FROM players WHERE account_id = ?))`,
+      accountId,
+      accountId,
+      communityId,
+      accountId,
+    );
+  clearCapabilities("capability_roles");
+  clearCapabilities("capability_ratings");
+  clearCapabilities("player_capabilities");
   add("DELETE FROM players WHERE account_id = ? AND community_id = ?", accountId, communityId);
   add("DELETE FROM split_sessions WHERE account_id = ? AND community_id = ?", accountId, communityId);
   add("DELETE FROM saved_squads WHERE account_id = ? AND community_id = ?", accountId, communityId);

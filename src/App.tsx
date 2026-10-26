@@ -121,7 +121,7 @@ export default function App() {
     players: roster.players,
     sessions: sessions.sessions,
     savePlayer: roster.savePlayer,
-    sessionStore,
+    saveSession: sessions.saveSession,
     notify,
   });
 
@@ -186,7 +186,7 @@ export default function App() {
     viewTournament,
     view,
     activeCommunityId: activeCommunity?.id ?? null,
-    sessionStore,
+    saveSession: sessions.saveSession,
     saveTournament: tournaments.saveTournament,
     saveSquad: savedSquads.saveSquad,
     notify,
@@ -224,7 +224,7 @@ export default function App() {
     squads: savedSquads.squads,
     savePlayer: roster.savePlayer,
     saveCommunity: communityStore.saveCommunity,
-    saveSession: sessionStore.saveSession,
+    saveSession: sessions.saveSession,
     saveTournament: tournamentStore.saveTournament,
     saveDiscipline: catalog.saveDiscipline,
     saveSquad: squadStore.saveSavedSquad,
@@ -415,7 +415,7 @@ export default function App() {
           persisted={persisted}
           squadsLoading={savedSquads.loading}
           disciplinesLoading={catalog.loading}
-          sessionStore={sessionStore}
+          saveSession={sessions.saveSession}
           accountSync={accountSync}
           pushController={pushController}
           themePref={themePref}

@@ -311,9 +311,12 @@ export async function takeChallenge(
 
 /**
  * First write for this community against the normalized rows: create the
- * revision row at 1, or refuse when one already exists. The caller batches
- * this ahead of `collectDecompose`'s statements so the insert and the rows
- * commit together.
+ * revision row at 1. A plain INSERT, deliberately — the primary key is the
+ * gate. A community that already has a revision fails the constraint, and the
+ * caller's batch rolls back whole, so the loser leaves no rows behind.
+ * `INSERT OR IGNORE` would let the batch run on, and `collectDecompose`'s
+ * guard (`revision = 1`) is satisfied by a community still at its first
+ * revision: the second adoption would overwrite the first one's rows.
  */
 export function collectInsertRevision(
   db: Database,
@@ -323,7 +326,7 @@ export function collectInsertRevision(
 ): Statement {
   return db
     .prepare(
-      "INSERT OR IGNORE INTO community_revisions (account_id, community_id, revision, updated_at) VALUES (?, ?, 1, ?)",
+      "INSERT INTO community_revisions (account_id, community_id, revision, updated_at) VALUES (?, ?, 1, ?)",
     )
     .bind(accountId, communityId, now);
 }

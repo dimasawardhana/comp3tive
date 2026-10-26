@@ -88,13 +88,24 @@ interface ButtonBox {
   label: string;
 }
 
+/**
+ * Every rendered `.btn`. A button inside a panel that is `hidden` (the AI
+ * assistant's closed chat) measures 0x0 and is not a control anyone meets, so
+ * a zero-height box is filtered out: this file is about the height a thumb
+ * finds, and a control that is not painted has no height to be wrong about.
+ */
 const readButtons = (page: Page): Promise<ButtonBox[]> =>
   page.evaluate(() =>
-    [...document.querySelectorAll<HTMLButtonElement>(".btn")].map((b) => ({
-      cls: b.className,
-      height: b.getBoundingClientRect().height,
-      label: (b.textContent ?? "").replace(/\s+/g, " ").trim(),
-    })),
+    [...document.querySelectorAll<HTMLButtonElement>(".btn")]
+      .filter((b) => {
+        const box = b.getBoundingClientRect();
+        return box.height > 0 && box.width > 0;
+      })
+      .map((b) => ({
+        cls: b.className,
+        height: b.getBoundingClientRect().height,
+        label: (b.textContent ?? "").replace(/\s+/g, " ").trim(),
+      })),
   );
 
 /** Settle the webfont, and prove it settled, before anything is measured. */

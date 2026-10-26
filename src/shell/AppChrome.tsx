@@ -6,6 +6,7 @@ import { NAV_ITEMS, SETTINGS_ITEM, screenTitle } from "./nav-items";
 import type { IconName } from "./nav-items";
 import { Toasts } from "../ui/Toasts";
 import { ConfirmButton } from "../ui/ConfirmButton";
+import AiAssistant from "./AiAssistant";
 import type { ToastType } from "./useToasts";
 
 export interface AppChromeProps {
@@ -303,7 +304,10 @@ function CommunitySwitcher(props: {
 /**
  * The shell around every screen: skip link, the Open-plane sidebar (product,
  * community switcher, five destinations, utilities), the phone's 48px top bar
- * with its full-screen menu sheet, the handheld tab bar, and the live region.
+ * with its full-screen menu sheet, the handheld tab bar, the live region, and the
+ * assistant's balloon. It owns the two things that open and close inside the
+ * chrome, the phone menu sheet and the assistant panel, and nothing outside the
+ * chrome reads either.
  */
 export function AppChrome(props: AppChromeProps) {
   const { railPref, viewStack, activeCommunity, communityDeleteWarning } = props;
@@ -391,7 +395,7 @@ export function AppChrome(props: AppChromeProps) {
       </div>
 
       <Toasts toasts={props.toasts} />
-
+      <AiAssistant />
       <nav className="bottom-nav" aria-label="Primary">
         {NAV_ITEMS.map((item) => {
           const isActive = rootMode === item.mode;

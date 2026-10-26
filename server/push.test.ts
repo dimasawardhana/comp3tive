@@ -22,10 +22,14 @@ import { hashSessionToken } from "./tokens";
  * after them) turns the loser's rows live and this file red.
  */
 const SCHEMA = readFileSync(new URL("./schema.sql", import.meta.url), "utf8");
+// The read path is `reassemble`, which reads the normalized (v2) tables; the
+// deployed setup applies both files in order, so the test does too.
+const SCHEMA_V2 = readFileSync(new URL("./schema-v2.sql", import.meta.url), "utf8");
 
 async function freshDb(): Promise<Database> {
   const db = sqliteDatabase();
   await db.exec(SCHEMA);
+  await db.exec(SCHEMA_V2);
   return db;
 }
 
@@ -66,6 +70,48 @@ function doc(marker: string): string {
     tournaments: [],
     savedSquads: [],
     disciplines: [],
+  });
+}
+
+/**
+ * A v5 document with one player carrying a capability: ratings and an
+ * eligible role, so all three capability tables get a row.
+ */
+function docWithCapability(marker: string, pace: number): string {
+  return JSON.stringify({
+    version: 5,
+    exportedAt: "2026-10-15T00:00:00.000Z",
+    communities: [{ id: "c1", name: `from-${marker}`, createdAt: 1000 }],
+    disciplines: [
+      {
+        id: "futsal",
+        name: "Futsal",
+        shortName: "FUT",
+        roles: [{ id: "keeper", name: "Keeper" }],
+        attributes: [{ id: "pace", name: "Pace" }],
+        strengthModel: { kind: "mean" },
+        team: { minTeamSize: 1, maxTeamSize: 5, rolesRequired: true },
+      },
+    ],
+    players: [
+      {
+        id: "p1",
+        communityId: "c1",
+        name: "One",
+        createdAt: 1,
+        capabilities: [
+          {
+            disciplineId: "futsal",
+            attributeRatings: { pace },
+            eligibleRoles: ["keeper"],
+            preferredRole: "keeper",
+          },
+        ],
+      },
+    ],
+    sessions: [],
+    tournaments: [],
+    savedSquads: [],
   });
 }
 
@@ -119,6 +165,34 @@ describe("POST /api/documents/push", () => {
     // And it writes nothing: no revision row, no rows, no blob.
     expect(await getRevisionOrNull(db, "a1", "c1")).toBeNull();
     expect(await reassemble(db, "a1", "c1")).toBeNull();
+  });
+
+  it("replaces a community's capabilities on the next push, through the guarded batch", async () => {
+    const db = await freshDb();
+    await storage.insertAccount(db, { id: "a1", handle: "handle-a1", email: "a@example.com", createdAt: 1000 });
+    const env = { DB: db } as never;
+    const seed = await sessionFor(db, "a1");
+    const adopted = await handler.fetch(
+      adoptRequest(seed, { communityId: "c1", payload: docWithCapability("first", 4) }),
+      env,
+    );
+    expect(adopted.status, JSON.stringify(await adopted.json())).toBe(200);
+
+    // Same ids, same capability: every replaced row has to be deleted before
+    // the identical row is inserted, and the capability tables carry no
+    // community column, so they do not ride the `players` delete. In
+    // production this batch answered 500 with a UNIQUE violation.
+    const token = await sessionFor(db, "a1");
+    const pushed = await handler.fetch(
+      pushRequest(token, { communityId: "c1", expectedVersion: 1, payload: docWithCapability("second", 5) }),
+      env,
+    );
+    expect(pushed.status, JSON.stringify(await pushed.json())).toBe(200);
+
+    const back = await reassemble(db, "a1", "c1");
+    expect(back?.players[0]?.capabilities).toEqual([
+      { disciplineId: "futsal", attributeRatings: { pace: 5 }, eligibleRoles: ["keeper"], preferredRole: "keeper" },
+    ]);
   });
 
   it("requires a session", async () => {

@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import type { Community, Player, Session } from "../domain/types";
-import type { RosterStore, SessionStore } from "../storage/types";
+import type { RosterStore } from "../storage/types";
 import type { ToastType } from "./useToasts";
 
 /**
@@ -23,11 +23,10 @@ import type { ToastType } from "./useToasts";
  * makes it one message per record type per page load. That is why the refs are
  * not simply dropped in favour of notifying unconditionally.
  *
- * **`roster` and `sessionStore` are both passed, and they are not the same
- * thing**: `roster.savePlayer` re-reads through the live list, while the session
- * write goes straight to the store because `useSessions` exposes no save. That
- * asymmetry is pre-existing and is preserved rather than tidied — tidying it is
- * a behaviour change this extraction is not allowed to make.
+ * **Both writes go through the live hooks** (`roster.savePlayer`,
+ * `sessions.saveSession`): each re-reads through the list it belongs to, so an
+ * adopted record appears in the roster and in History on the next render
+ * instead of waiting for a reload.
  */
 export interface LegacyAdoptionDeps {
   activeCommunity: Community | null;
@@ -35,12 +34,12 @@ export interface LegacyAdoptionDeps {
   players: Player[];
   sessions: Session[];
   savePlayer: RosterStore["savePlayer"];
-  sessionStore: SessionStore;
+  saveSession: (s: Session) => Promise<void>;
   notify: (text: string, type?: ToastType) => void;
 }
 
 export function useLegacyAdoption(deps: LegacyAdoptionDeps): void {
-  const { activeCommunity, communities, players, sessions, savePlayer, sessionStore, notify } = deps;
+  const { activeCommunity, communities, players, sessions, savePlayer, saveSession, notify } = deps;
   /** One toast per record type, however many renders the failing write retries. */
   const playerWarned = useRef(false);
   const sessionWarned = useRef(false);
@@ -60,7 +59,7 @@ export function useLegacyAdoption(deps: LegacyAdoptionDeps): void {
     }
     for (const s of sessions) {
       if (!known(s.communityId)) {
-        void sessionStore.saveSession({ ...s, communityId: activeCommunity.id }).catch(() => {
+        void saveSession({ ...s, communityId: activeCommunity.id }).catch(() => {
           if (!sessionWarned.current) {
             sessionWarned.current = true;
             notify("Some saved sessions could not be moved into this community.", "error");
@@ -68,5 +67,5 @@ export function useLegacyAdoption(deps: LegacyAdoptionDeps): void {
         });
       }
     }
-  }, [activeCommunity, communities, players, sessions, savePlayer, sessionStore, notify]);
+  }, [activeCommunity, communities, players, sessions, savePlayer, saveSession, notify]);
 }

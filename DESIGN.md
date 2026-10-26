@@ -113,6 +113,24 @@ do the visible work. **The floor is 12px**, and two rules used to break it
 - Elevation is a step in tone (`--surface` to `--surface-2` to `--surface-alt`) or
   a 1px `--hairline`. A shadow exists only on real overlays: menu, dialog, toast.
 
+### AI assistant
+- A **balloon at the bottom-right corner**, clearing the tab bar (`--tabbar-h`) and, on desktop,
+  sitting on the app card's 24px bottom inset (`src/index.css:2725`)
+- The corner is shared with the split/match sticky action bars (`src/split.css:789`), so the
+  balloon overlays the right end of the bar on those screens. Measured at 390: the balloon covers
+  48px of the 262px primary, leaving the label and the rest of the button live. Accepted, not
+  overlooked — the alternative was a launcher in the middle of the right edge
+- It sits on the app card's edge (`max(16px, calc((100vw - 640px) / 2 + 16px))`, 1200 above 1024),
+  so on a wide monitor it stays beside the content instead of drifting to the window edge
+- Ink-filled circle, 52px; open, it keeps its place and turns into the close chip (`aria-expanded`)
+- The panel opens **to the left of the balloon**, 380px wide, absolutely positioned off the chip
+  with its bottom flush to the chip's and growing upward, so opening it cannot move the chip; its
+  `max-height` is everything above the chip less 16px, so a short viewport shortens the panel
+  rather than pushing it off the top. No modal overlay and no focus trap: it is a panel you can
+  ignore while the roster stays usable
+- The transcript renders with `.ai-who` labels ("YOU" / "ASSISTANT"), turns on `--surface-2`, tool
+  calls as hairline chips, and the empty state in `--text-2` copy
+
 ## The signature moment
 
 **The split result.** Team cards in their bib colour, each with its strength

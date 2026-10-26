@@ -115,6 +115,18 @@ export function serviceWorkerBuild(outDir = resolve(import.meta.dirname, "dist")
   };
 }
 
+/**
+ * Where the Worker listens during development.
+ *
+ * `npm run dev` serves the documents and nothing else; the API is a separate
+ * process (`wrangler dev`). Without the proxy below, every `/api/*` call from the
+ * dev server 404s and the Account panel reports "That did not work" — the
+ * failure that made passkey sign-in look broken locally. The variable exists
+ * because the port collides: a `wrangler dev` already sitting on 8787 can be
+ * moved aside and pointed at here instead of being killed.
+ */
+const WORKER_ORIGIN = process.env.WRANGLER_ORIGIN ?? "http://127.0.0.1:8787";
+
 export default defineConfig({
   // Two documents, not a router (ADR-0006): the Landing Page at `/`, the app at `/app`.
   // `mpa` removes the SPA fallback, so an unmatched path 404s instead of being
@@ -129,6 +141,19 @@ export default defineConfig({
         landing: resolve(import.meta.dirname, "index.html"),
         app: resolve(import.meta.dirname, "app/index.html"),
       },
+    },
+  },
+  // The API is a second process, so proxying it is what keeps `npm run dev`
+  // same-origin. That is not cosmetic: WebAuthn binds a credential to the origin
+  // the browser sees, and `server/webauthn.ts` derives the Relying Party from the
+  // request, so an unproxied `/api` on another port fails every ceremony.
+  // `changeOrigin` stays false — it forwards the browser's own `Host`, which is
+  // the value the Worker reads. `/join` is here because the join page is
+  // Worker-served HTML and the app links to it at `location.origin`.
+  server: {
+    proxy: {
+      "/api": { target: WORKER_ORIGIN, changeOrigin: false },
+      "/join": { target: WORKER_ORIGIN, changeOrigin: false },
     },
   },
   test: {

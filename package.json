@@ -8,6 +8,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:worker": "wrangler dev",
     "build": "tsc -b && vite build",
     "types": "wrangler types --include-runtime=false",
     "preview": "vite preview",

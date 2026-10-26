@@ -31,14 +31,17 @@ import {
  * remembers — a credential id is a primary key, (issuer, subject) is a primary
  * key — and a hand-written mock would accept every one of them.
  *
- * The schema is read from `schema.sql`, the same file `wrangler d1 execute
- * --file` applies, so there is one definition of the tables.
+ * Both schema files are read and applied in the order `npm run db:apply` uses:
+ * `schema.sql` (identity) then `schema-v2.sql` (the store). A fresh database
+ * needs both, so the "creates every table" assertion below covers the union.
  */
 const SCHEMA = readFileSync(new URL("./schema.sql", import.meta.url), "utf8");
+const SCHEMA_V2 = readFileSync(new URL("./schema-v2.sql", import.meta.url), "utf8");
 
 async function freshDb(): Promise<Database> {
   const db = sqliteDatabase();
   await db.exec(SCHEMA);
+  await db.exec(SCHEMA_V2);
   return db;
 }
 
@@ -75,10 +78,14 @@ describe("the schema applies", () => {
       "communities",
       "community_revisions",
       "credentials",
+      "discipline_attribute_labels",
       "discipline_attributes",
       "discipline_roles",
       "disciplines",
       "federated_identities",
+      "join_code_disciplines",
+      "join_codes",
+      "join_registrations",
       "match_games",
       "player_capabilities",
       "players",
@@ -94,6 +101,23 @@ describe("the schema applies", () => {
   it("is idempotent, so applying it twice is not a deploy failure", async () => {
     const db = await freshDb();
     await expect(db.exec(SCHEMA)).resolves.toBeUndefined();
+    await expect(db.exec(SCHEMA_V2)).resolves.toBeUndefined();
+  });
+
+  it("gives a table one definition, not a stale copy in the other file", async () => {
+    const db = await freshDb();
+    // `player_capabilities` used to be duplicated, and the copy in
+    // `schema.sql` ran first and carried a self-referential foreign key. A
+    // self-FK is satisfied by the row being inserted, so it silently beat the
+    // real one and the capability chain lost its cascade to `players`. The
+    // tables now live in one file; this pins the cascade the second push needs.
+    const fks = await db
+      .prepare("SELECT \"table\", on_delete FROM pragma_foreign_key_list('player_capabilities')")
+      .all<{ table: string; on_delete: string }>();
+    expect(fks).toEqual([
+      { table: "players", on_delete: "CASCADE" },
+      { table: "players", on_delete: "CASCADE" },
+    ]);
   });
 });
 

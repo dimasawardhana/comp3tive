@@ -82,7 +82,7 @@ function doc(): string {
           { id: "r-keeper", name: "Keeper" },
           { id: "r-anchor", name: "Anchor" },
         ],
-        attributes: [{ id: "a-fit", name: "Fitness" }],
+        attributes: [{ id: "a-fit", name: "Fitness", labels: { 1: "Rookie", 5: "Pro" } }],
         strengthModel: { kind: "mean" },
         team: { minTeamSize: 3, maxTeamSize: 5, rolesRequired: false },
       },
@@ -174,7 +174,11 @@ describe("GET /api/join/:code (public)", () => {
     expect(response.status).toBe(200);
     const body = (await response.json()) as {
       community: { name: string };
-      disciplines: Array<{ name: string; roles: string[]; attributes: Array<{ name: string; min: number; max: number }> }>;
+      disciplines: Array<{
+        name: string;
+        roles: string[];
+        attributes: Array<{ name: string; min: number; max: number; labels: Record<string, string> }>;
+      }>;
     };
     expect(body.community.name).toBe("Sunday League");
     // The catalog is the ACCOUNT's (schema-v2's decision): the seed
@@ -185,7 +189,7 @@ describe("GET /api/join/:code (public)", () => {
     const last = body.disciplines[body.disciplines.length - 1];
     expect(last.name).toBe("Futsal");
     expect([...last.roles].sort()).toEqual(["Anchor", "Keeper"]);
-    expect(last.attributes).toContainEqual({ name: "Fitness", min: 1, max: 5 });
+    expect(last.attributes).toContainEqual({ name: "Fitness", min: 1, max: 5, labels: { 1: "Rookie", 5: "Pro" } });
   });
 
   it("404s an unknown code", async () => {
