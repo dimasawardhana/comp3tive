@@ -12,7 +12,6 @@ import type {
   TournamentFormat,
   SeriesLength,
 } from "../domain/types";
-import type { SessionStore } from "../storage/types";
 import { buildBracket, applyResult, undoLastGame } from "../tournament/bracket";
 import { fairSplit, buildSettings, suggestTeamCount, poolFromPlayers } from "../solver/solver";
 import { capabilityFor, teamName } from "../session/flow";
@@ -102,7 +101,8 @@ export interface SplitFlowDeps {
   /** `split()` reads the live view to name the split it is about to push. */
   view: View;
   activeCommunityId: Id | null;
-  sessionStore: SessionStore;
+  /** Writes through the `useSessions` hook, so History re-renders without a reload. */
+  saveSession: (s: Session) => Promise<void>;
   saveTournament: (t: Tournament) => Promise<void>;
   saveSquad: (s: SavedSquad) => Promise<void>;
   notify: (text: string, type?: ToastType) => void;
@@ -156,7 +156,7 @@ export function useSplitFlow(deps: SplitFlowDeps): SplitFlowResult {
     viewTournament,
     view,
     activeCommunityId,
-    sessionStore,
+    saveSession,
     saveTournament,
     saveSquad,
     notify,
@@ -255,7 +255,7 @@ export function useSplitFlow(deps: SplitFlowDeps): SplitFlowResult {
     // persist via the bracket only; session/squad re-splits are synthetic.
     if (splitFlowRule(setup.source).persistsSession) {
       try {
-        await sessionStore.saveSession(session);
+        await saveSession(session);
         markDirty(activeCommunityId);
       } catch {
         // Non-fatal: still show the split if persistence failed.

@@ -8,7 +8,6 @@ import type {
   Session,
   Tournament,
 } from "../domain/types";
-import type { SessionStore } from "../storage/types";
 import type { HubMode, View } from "./useNavigation";
 import {
   splitFlowRule,
@@ -82,7 +81,8 @@ export interface ScreenSwitchProps {
   persisted: boolean | null;
 
   // ---- stores and services the screens call into directly ----
-  sessionStore: SessionStore;
+  /** Writes through the `useSessions` hook, so History re-renders without a reload. */
+  saveSession: (s: Session) => Promise<void>;
   /** The Account lifecycle (ticket 05), forwarded to the Settings screen's panel. */
   accountSync: AccountSync;
   /** The push controller, for the Settings screen's "Sync now" button. */
@@ -185,7 +185,7 @@ export function ScreenSwitch(props: ScreenSwitchProps) {
     disciplinesLoading,
     nudge,
     persisted,
-    sessionStore,
+    saveSession,
     notify,
     goBack,
     gotoHub,
@@ -345,7 +345,7 @@ export function ScreenSwitch(props: ScreenSwitchProps) {
             // Tournament splits persist via the bracket (no Session pollution).
             if (splitFlowRule(activeSplit.source).persistsSession) {
               const updatedSession = { ...activeSplit.session, result };
-              await sessionStore.saveSession(updatedSession);
+              await saveSession(updatedSession);
               markDirty(updatedSession.communityId);
             }
           }}
