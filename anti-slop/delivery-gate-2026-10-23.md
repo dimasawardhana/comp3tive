@@ -8,7 +8,7 @@ Every PASS below names the check that produced it. A row without evidence is not
 | Gate | Result |
 |---|---|
 | antislop Delivery Gate | PASS (this document) |
-| `inspect.mjs --app` at 1440 / 768 / 390 | **0 FAIL**, 2 WARN |
+| `inspect.mjs --app` at 1440 / 768 / 390 | **0 FAIL**, 1 WARN |
 | `inspect.mjs` (page) at 1440 / 768 / 390 | **0 FAIL**, 2 WARN |
 | `lint.mjs --app src` | **0 FAIL**, 9 WARN |
 | contrast (`contrast-check.py`, 23 pairs, both themes) | all PASS, lowest 4.96:1 |
@@ -23,7 +23,7 @@ Every PASS below names the check that produced it. A row without evidence is not
 
 | Rule | Answer | Evidence |
 |---|---|---|
-| R-02 em dash in visible copy | **NO** | `src/emDash.test.ts` 7/7. 554 dashes exist in `src/`, all in code comments, which R-02 and `DESIGN.md` carve out. The landing's five endorsed entries and the three discipline descriptions were rewritten dash-free and their ledger entries struck. |
+| R-02 em dash in visible copy | **NO** | `src/emDash.test.ts` 7/7. 535 em-dash characters exist in `src/` at this commit, all in code comments, which R-02 and `DESIGN.md` carve out. The landing's five endorsed entries and the three discipline descriptions were rewritten dash-free and their ledger entries struck. |
 | R-03 mobile overflow / broken layout | **NO** | At 390px `document.scrollWidth === clientWidth` (390/390). Split cards stack at 322px each. Gate measured 390 on every screen. |
 | R-17 unsourced statistics | **NO** | No statistic appears anywhere. Counts render from the community's own lists; a fresh community prints 0. |
 | R-18 fictional testimonials | **NO** | There is no testimonials section. |
@@ -31,9 +31,9 @@ Every PASS below names the check that produced it. A row without evidence is not
 | R-24 nav links to nowhere | **NO** | Five destinations plus Settings, each landing on a real screen. Click-through below. |
 | R-25 contrast below AA | **NO** | 23 pairs measured, lowest 4.96:1 (`--accent` on `--surface`). The one historical failure (white on `--bib-a` at 1.60:1) is fixed at the token: text on a bib is now `--bib-ink`, 5.23:1 to 10.95:1. |
 | R-26 dead controls | **NO** | Click-through below. The disabled "Split match" on first run was removed rather than shipped dead. |
-| R-27 missing states | **NO** | Every screen has empty and zero; `loading` renders on the History and Settings paths; the split's failure path renders "Solver failed" in a status line. |
+| R-27 missing states | **PARTIAL** | Every screen has empty and zero; History and Squads render a `loading` line; Settings has no loading branch and no `loading` prop. Roster, Games and Dashboard have no loading state either. The split's failure path does render "Solver failed" in a status line. So R-27 is **partially** closed, not closed. |
 | R-28 generic FAQ | **NO** | No FAQ exists on any surface. |
-| R-32 keyboard / focus | **NO** | Skip link first in DOM; `:focus-visible` ring declared once in `index.css:812`; swap-mode rows are `role=button` + `tabindex=0` and respond to Enter and Space (verified); the phone sheet closes on Escape and returns focus. |
+| R-32 keyboard / focus | **NO** | Skip link first in DOM; `:focus-visible` rules declared 20 times across the three stylesheets (13 in index.css, 5 in split.css, 2 in landing.css); swap-mode rows are `role=button` + `tabindex=0` and respond to Enter and Space (verified); the phone sheet closes on Escape and returns focus. |
 | R-33 patched via script | **NO** | All changes are source edits. No patch script exists for CSS. |
 | R-34 one theme broken | **NO** | Both themes exercised: tokens declare every pair, and Dark/Light chips were clicked and confirmed to flip `data-theme` with all pairs still passing. |
 | R-35 delivered without running | **NO** | Click-through list below, produced by driving the app in a browser. |
@@ -147,7 +147,7 @@ Driven in a real browser against `http://localhost:5173`.
 **Lint (9):**
 - 4 shadow hits, all real overlays (`.squad-menu`, `.dropdown-menu`, `.modal-card`, `.toast`) or the inset selection ring.
 - 4 `.kicker` mentions, now only in comments that explain why there is no kicker (the class itself is deleted; the one live use became `.status-label`).
-- 1 em-dash count note: 68 dashes across the tree, all in code comments.
+- 1 em-dash count note: the lint rule counts 535 em-dash characters in `src/`, all in code comments, which R-02 carves out.
 
 ## Closing
 
@@ -175,7 +175,7 @@ Two further defects were introduced and caught during the fix:
   because the rows were centred inside the 762px block. The block is now
   start-aligned and its rows fill from the top.
 
-**Final measurements.** App gate: **0 FAIL, 0 WARN** at 1440/768/390. The
+**Final measurements.** App gate: **0 FAIL, 1 WARN** at 1440/768/390. The surviving warning is `hero-void` at 33% on the first-run screen: the block now fills the canvas from the title down, prints its real counts, and carries the steps and the catalog, but a brand-new account still ends at roughly two-thirds of the viewport. That is an honest empty state rather than an unfilled canvas, and it is recorded here as the one warning this revamp did not close. The
 first-run screen now prints its counts as real zeros in the same divided strip a
 populated account gets, carries the four steps and the discipline catalog with
 each discipline's roles, and fills the canvas from the title down.

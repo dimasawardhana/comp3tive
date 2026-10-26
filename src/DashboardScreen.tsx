@@ -115,15 +115,15 @@ export function DashboardScreen({
           <div className="dashboard-stats dashboard-stats--zero">
             <div className="tournament-meta-card dashboard-stat">
               <span className="tournament-meta-card-label">Players</span>
-              <span className="tournament-meta-card-value">0</span>
+              <span className="tournament-meta-card-value">{players.length}</span>
             </div>
             <div className="tournament-meta-card dashboard-stat">
               <span className="tournament-meta-card-label">Saved squads</span>
-              <span className="tournament-meta-card-value">0</span>
+              <span className="tournament-meta-card-value">{squads.length}</span>
             </div>
             <div className="tournament-meta-card dashboard-stat">
               <span className="tournament-meta-card-label">Tournaments</span>
-              <span className="tournament-meta-card-value">0</span>
+              <span className="tournament-meta-card-value">{tournamentCount}</span>
             </div>
           </div>
           <div className="empty dashboard-empty">

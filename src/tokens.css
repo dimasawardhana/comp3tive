@@ -53,9 +53,7 @@
 
   /* --- Status --- */
   --ok: #247b50;
-  --ok-soft: #dcfae5;
   --danger: #c4242a;
-  --danger-soft: #ffedea;
 
   /* --- Selection --- */
   --chip-on: #111827;
@@ -128,9 +126,7 @@
   --bib-e: #c9a227;
   --bib-ink: #1c1917;
   --ok: #3fc07a;
-  --ok-soft: #172a1d;
   --danger: #ff6b6b;
-  --danger-soft: #2c1416;
   --chip-on: #fafafa;
   --chip-on-text: #0a0a0a;
   --panel: #191919;
@@ -158,9 +154,7 @@
     --whistle-ink: #0a0a0a;
     --bib-ink: #1c1917;
     --ok: #3fc07a;
-    --ok-soft: #172a1d;
     --danger: #ff6b6b;
-    --danger-soft: #2c1416;
     --chip-on: #fafafa;
     --chip-on-text: #0a0a0a;
     --panel: #191919;

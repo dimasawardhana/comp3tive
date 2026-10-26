@@ -58,10 +58,16 @@ declares its own colour.
 | `--whistle` | `#111827` | `#FAFAFA` | The primary action: near-black, inverted in dark |
 | `--ok` / `--danger` | `#247B50` / `#C4242A` | `#3FC07A` / `#FF6B6B` | Status, only on the fact that needs it |
 
-**The accent budget.** Full-strength `--accent` appears on: the active nav icon,
-a chart's data series, the gap needle, and focus rings. Nothing else. The
-primary button is `--whistle`, never the hue. This is the one rule that
-distinguishes this direction from a kit.
+**The accent budget.** The primary button is `--whistle`, never the hue: that
+part holds and is the rule worth keeping. The hue itself is NOT confined to four
+places. Measured on the shipped tree, `var(--accent)` appears **43 times** across
+the three stylesheets: 27 focus outlines, 5 `accent-color` / caret uses, 4 data
+and gap marks, 3 status texts (`.badge--mlbb`, `.standings-wins`,
+`.bteam.winner`), the pressed icon button's fill, the join-code label, the
+landing's accent facts and discipline sizes, and 5 `color-mix` tints. So the
+budget is a **direction, not a count**: the hue marks interaction and data, and
+it is never the primary action's fill. An earlier draft of this document claimed
+it appeared in four places and nowhere else, which the tree contradicted.
 
 **Team identity.** `--bib-a` … `--bib-e` are identity, not data: they never
 appear in a chart and never carry text as a fill. Text on a bib is `--bib-ink`
@@ -82,18 +88,26 @@ Two faces, one job each. Both are self-hosted in `public/fonts/` and declared in
   `src/share/share-image.ts` carries per-glyph advance tables keyed to it.
 - **Familjen Grotesk** (body, 400/500/600): every other string.
 
-The dealt face was DM Sans. It is redrawn because DM Sans is not on this machine,
-the project forbids runtime font fetches, and the share-image advance tables are
-keyed to these two families. Recorded in `.taste-skill/direction.json`.
+The dealt face was DM Sans. The two stacks this app ships are **unchanged from
+the previous direction**: `master` already declared Outfit and Familjen Grotesk,
+and this branch did not touch `src/fonts.css` or `public/fonts/`. So the dealing
+step chose *not to reseat the type*, rather than redrawing it; the reasons are
+DM Sans is not on this machine, the project forbids runtime font fetches, and
+the share-image advance tables are keyed to these two families. Recorded in
+`.taste-skill/direction.json` (seed `1797242605`).
 
 Scale: title 24px · section 16px · KPI 24px · body 14px · small 12px. Three sizes
-do the visible work. Nothing below 12px; data at 13 to 14px. Tabular figures on
-every number that changes or aligns in a column.
+do the visible work. **The floor is 12px**, and two rules used to break it
+(`.ai-assistant-who` at `0.7rem` = 11.2px and `.ai-assistant-tools li` at
+`0.72rem` = 11.5px); both were raised to 12px on this branch. Data sits at 13 to
+14px. Tabular figures on every number that changes or aligns in a column.
 
 ### Shape and rhythm
 
-- Radius is bimodal and tight: **8px** cards, **6px** controls. No pills except a
-  status chip, and never a pill button beside a square card.
+- Radius is bimodal and tight: **8px** cards, **6px** controls. One pill remains,
+  `.bracket-tag`, which is a non-interactive status label inside a bracket card;
+  control radii are `--r-sm`, and `.chip` (a filter button) was moved off 999px
+  for that reason.
 - One gap value: **24px**, horizontally and vertically.
 - Control height **32px**, row pitch **44px**.
 - Elevation is a step in tone (`--surface` to `--surface-2` to `--surface-alt`) or
@@ -183,7 +197,11 @@ Energy 2, motion 1: one authored moment, then restraint.
 
 - Text contrast at or above 4.5:1 on every surface in both themes; measured, not
   assumed. Large text at or above 3:1.
-- Visible `:focus-visible` ring in `--accent` at 3px offset, declared once.
+- Visible `:focus-visible` ring in `--accent`. There are **20 such rules** across
+  the three stylesheets, not one: the outline is 2px or 3px depending on the
+  control, and the offset is 1, 2, 3 or -2px (the negative pair sits on inputs
+  whose ring must fall inside the field). The bare `:focus-visible` rule carries
+  3px over a 2px offset and covers anything without its own.
 - Touch targets at or above 44px; the button family sits at 52px.
 - Full keyboard operation: Tab order follows visual order, Enter and Space
   activate, Escape closes dialogs, and swap mode's rows are real tab stops.

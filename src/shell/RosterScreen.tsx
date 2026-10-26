@@ -652,21 +652,31 @@ export function RosterScreen(props: RosterScreenProps) {
         </div>
       )}
 
-      {/* Discipline filter chips + clear, on one line */}
+      {/* Discipline filters. Each carries the count of players who can play
+          it, computed from the roster before the filter is applied: the count
+          is what makes the row a filter rather than a set of labels, and it
+          must not change as the reader narrows the list. A discipline nobody
+          plays still prints a real 0 rather than disappearing. */}
       {disciplines.length > 0 && (
         <div className="roster-filters">
           <div className="chips">
-            {disciplines.map((d) => (
-              <button
-                key={d.id}
-                type="button"
-                className="chip"
-                aria-pressed={filterIds.includes(d.id)}
-                onClick={() => toggleFilter(d.id)}
-              >
-                {d.shortName}
-              </button>
-            ))}
+            {disciplines.map((d) => {
+              const count = players.filter((p) =>
+                p.capabilities.some((c) => c.disciplineId === d.id),
+              ).length;
+              return (
+                <button
+                  key={d.id}
+                  type="button"
+                  className="chip"
+                  aria-pressed={filterIds.includes(d.id)}
+                  onClick={() => toggleFilter(d.id)}
+                >
+                  {d.shortName}
+                  <span className="chip-count">{count}</span>
+                </button>
+              );
+            })}
           </div>
           {filterIds.length > 0 && (
             <button className="btn btn-ghost small" onClick={clearFilters}>Clear filters</button>
@@ -988,6 +998,7 @@ export function RosterScreen(props: RosterScreenProps) {
                     >
                       <div className="who">
                         <div className="name">{player.name}</div>
+                        {player.notes && <div className="note">{player.notes}</div>}
                         <div className="badges">
                           {player.capabilities.map(cap => {
                             const discipline = disciplinesById.get(cap.disciplineId);
