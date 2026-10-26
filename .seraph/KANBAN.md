@@ -3,18 +3,6 @@
 _Written by Seraph. Do not edit — this file is replaced on every change._
 _Render format 3._
 
-## Backlog
-
-### TASK-130 · AI chatbot in the app
-
-> **Goal:** Organizers can ask an AI assistant questions about their players/teams and get answers grounded in their data, via tool calls over the Account-scoped API.
-- priority: high
-- claimed by: hermes (session `hermes-dimas-ai-20261023`, until 2026-10-23T04:52:59Z)
-- updated: 2026-10-23T04:22:59Z
-
-> **Done when:** A chat UI in the app talks to /api/ai/chat; the Worker route calls an LLM with tool schemas for roster/leaderboard/history queries; tool calls execute server-side with account scoping; answers cite real data; unit tests cover the tool layer.
-
-
 ## Done
 
 ### TASK-101 · Announce entering swap mode to assistive tech
@@ -125,6 +113,54 @@ _Render format 3._
 - priority: high
 - updated: 2026-10-22T15:52:12Z
 
+### TASK-130 · AI chatbot in the app
+
+> **Goal:** Organizers can ask an AI assistant questions about their players/teams and get answers grounded in their data, via tool calls over the Account-scoped API.
+- priority: high
+- updated: 2026-10-23T04:57:06Z
+
+### TASK-131 · UIUX-01 Baseline: capture before-state and audit
+
+> **Goal:** Establish the measured before-state of every surface so the PR can show before/after side by side.
+- priority: high
+- updated: 2026-10-23T12:55:45Z
+
+### TASK-132 · UIUX-02 Tokens, fonts and DESIGN.md on Accent Ladder
+
+> **Goal:** Replace the Paper & Pencil token set with the dealt Accent Ladder system keyed to the brand amber, and make DESIGN.md describe the shipped design truthfully.
+- priority: high
+- updated: 2026-10-23T13:12:23Z
+
+### TASK-133 · UIUX-03 Landing page revamp (/ page run)
+
+> **Goal:** Rebuild the public landing page as a page (not an app screen) in the new direction, sharing tokens and face with the app.
+- priority: high
+- updated: 2026-10-23T19:46:00Z
+
+### TASK-134 · UIUX-04 Split and Match revamp (signature moment)
+
+> **Goal:** Rebuild the split result and match screens so the gap needle and team strength are the product's identity motif, and make the split readable on a phone with 14 people waiting.
+- priority: high
+- updated: 2026-10-23T19:46:00Z
+
+### TASK-135 · UIUX-05 Shell and navigation revamp
+
+> **Goal:** Rebuild the app shell on the dealt Open-plane sidebar, fold Settings out of the bottom bar, and keep the six hubs reachable on a phone.
+- priority: high
+- updated: 2026-10-23T19:46:00Z
+
+### TASK-136 · UIUX-06 Hub screens: Dashboard, Roster, Games, History, Squads, Settings
+
+> **Goal:** Rebuild the six hub screens on the new tokens, each answering one question first with its main job one click away, on the dealt list and detail blueprints.
+- priority: high
+- updated: 2026-10-23T19:45:33Z
+
+### TASK-138 · UIUX-08 Verification: three gates and click-through
+
+> **Goal:** Prove the revamp with the antislop Delivery Gate, the taste-skill inspector, measured contrast in both themes, and a recorded click-through of every control.
+- priority: high
+- updated: 2026-10-23T20:08:46Z
+
 ### TASK-105 · Debt 26: decide the App.tsx line count, or close the row
 
 > **Goal:** Debt 26: decide the App.tsx line count, or close the row
@@ -184,6 +220,18 @@ _Render format 3._
 > **Goal:** Replace the segmented button group on the roster toolbar with a single dropdown button holding Add Player, Import players and Download CSV template, to save horizontal space.
 - priority: medium
 - updated: 2026-10-22T18:57:56Z
+
+### TASK-137 · UIUX-07 Motion layer: signature move, entrance stagger, feedback
+
+> **Goal:** Add the motion layer the taste skill requires: one signature move, a staggered entrance per section, feedback on every control, and a reduced-motion fallback that keeps all content.
+- priority: medium
+- updated: 2026-10-23T19:51:15Z
+
+### TASK-139 · UIUX-09 Records and PR to master
+
+> **Goal:** Update the documents the revamp falsifies and open the reviewed PR into master with before and after side by side.
+- priority: medium
+- updated: 2026-10-23T20:40:28Z
 
 ### TASK-107 · Cover the roster editor's refusal with a test
 
