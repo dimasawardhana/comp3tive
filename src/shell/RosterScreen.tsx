@@ -650,11 +650,17 @@ export function RosterScreen(props: RosterScreenProps) {
            * (TASK-139): the job this toolbar exists for — adding a player —
            * sat one click behind an "Actions" label that named none of its
            * items, and every item in it was already a full sentence. Now the
-           * primary is the first control on the row with its written label,
-           * and the two secondary jobs — importing a file and opening the CSV
-           * reference — are icon buttons, the shell's own pattern: a glyph
-           * from the shared library, an aria-label in the copy's words, and
-           * a title for the mouse.
+           * primary is the first control on the row with its written label.
+           *
+           * The two secondary jobs — importing a file and the CSV reference —
+           * carry a glyph AND their word (TASK-140). They were glyph-only for
+           * one revision, and it failed on screen for a reason no test could
+           * see: the icon library's `import` and `download` paths were
+           * identical, so the row showed two indistinguishable arrows and the
+           * only legible word on it was "Export". A word next to each glyph
+           * means the row survives an icon being redrawn wrong, and it names
+           * the artifact — a CSV template is a spreadsheet, which is why the
+           * template control draws a table and not a downward arrow.
            *
            * The template button toggles the format panel rather than only
            * opening it. Unlike the menu it replaced, the button stays on the
@@ -677,17 +683,18 @@ export function RosterScreen(props: RosterScreenProps) {
             </button>
             <button
               type="button"
-              className="icon-btn"
+              className="btn btn-ghost roster-file-btn"
               data-testid="roster-import-players"
               aria-label="Import players"
               title="Import players"
               onClick={() => fileInputRef.current?.click()}
             >
               <Icon name="import" size={16} />
+              Import
             </button>
             <button
               type="button"
-              className="icon-btn"
+              className="btn btn-ghost roster-file-btn"
               data-testid="download-csv-template"
               aria-label="Download CSV template"
               title="Download CSV template"
@@ -695,7 +702,8 @@ export function RosterScreen(props: RosterScreenProps) {
               aria-controls="csv-format-panel"
               onClick={() => setCsvPanelOpen(!csvPanelOpen)}
             >
-              <Icon name="download" size={16} />
+              <Icon name="table" size={16} />
+              CSV template
             </button>
             <input
               ref={fileInputRef}

@@ -1567,21 +1567,34 @@ h1 {
 }
 
 /*
- * The toolbar's icon buttons. The secondary jobs — import, CSV reference — are
- * glyphs with an aria-label and a title (TASK-139 folded the Actions dropdown
- * into direct controls). They sit at the family height beside the primary on
- * the desktop row, and a step under it on the phone, where the row must fit
- * `Add player`, both glyphs and Export inside 350px. The glyph itself is
- * 16px, the family's drawing size — the button is the touch target, the
- * glyph is not.
+ * The toolbar's file group — Import and CSV template — as labelled buttons
+ * rather than bare glyphs (TASK-140). The glyphs alone were not legible:
+ * `import` and `download` in `src/ui/Icon.tsx` were byte-identical paths, so
+ * the row rendered a primary and two identical mysteries. A word beside each
+ * glyph makes the row explain itself at a glance, and the glyph becomes
+ * recognition rather than the only information. The template button carries
+ * the `table` glyph, not a download arrow: the artifact is a spreadsheet, and
+ * "any file, pointing down" was exactly the ambiguity to remove.
  */
-.roster-toolbar .icon-btn {
-  width: 52px;
-  height: 52px;
+.roster-file-btn {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 15px 14px;
 }
-.icon-btn svg {
+.roster-file-btn svg {
   width: 16px;
   height: 16px;
+  flex: 0 0 auto;
+}
+/* The primary's glyph sits on the text's baseline, not beside a text-align
+   centre that a flex box no longer honours. */
+.roster-toolbar > .btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
 }
 
 /* The storage note. Sits immediately before the Export button in the source —
@@ -1600,6 +1613,45 @@ h1 {
   text-align: right;
 }
 @media (max-width: 640px) {
+  /*
+   * Three deliberate lines instead of one row plus a stray sentence: the
+   * primary takes the full width on its own, the three secondary actions share
+   * the next line at equal widths, and the standing storage note closes the
+   * block. Measured at 350px of content: the secondary trio is Import (~95) +
+   * CSV template (~125) + Export (84) = 304 inside 350 with two 8px gaps, so
+   * nothing wraps mid-label. `order` does all of this — the audited DOM order
+   * (spacer, note, Export) is untouched, which is the contract the node test in
+   * `RosterScreen.durability.test.ts` pins.
+   */
+  .roster-toolbar > .btn-primary {
+    order: 1;
+    flex: 1 1 100%;
+  }
+  .roster-file-btn {
+    order: 2;
+    flex: 1 1 auto;
+    /* 44px, the DESIGN.md touch floor, rather than the family's 52: the trio
+       shares a line and the roster needs the vertical space more than the
+       secondary row needs height. */
+    min-height: 44px;
+    height: 44px;
+    padding: 0 12px;
+    font-size: 14px;
+  }
+  .roster-toolbar > .btn-ghost:not(.roster-file-btn) {
+    order: 3;
+    /* Export shares the trio's line, so it shares its height and padding —
+       a 52px button between two 44px ones reads as a mistake even though both
+       heights are legal tiers. Its class string is untouched: the durability
+       test pins `<button class="btn btn-ghost">Export</button>` exactly. */
+    min-height: 44px;
+    height: 44px;
+    padding: 0 12px;
+    font-size: 14px;
+  }
+  .roster-toolbar > .csv-format-panel {
+    order: 4;
+  }
   .durability-note {
     /* `order` re-lays the row without touching the source: the note reads
        after the buttons visually but keeps its audited DOM position —
@@ -1607,10 +1659,6 @@ h1 {
     order: 10;
     flex: 1 1 100%;
     text-align: left;
-  }
-  .roster-toolbar .icon-btn {
-    width: 48px;
-    height: 48px;
   }
 }
 

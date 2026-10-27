@@ -26,6 +26,7 @@ export type IconName =
   | "panel"
   | "import"
   | "download"
+  | "table"
   | "sun"
   | "moon"
   | "half"
@@ -117,13 +118,27 @@ const ICONS: Record<IconName, ReactNode> = {
       <path d="M5 14.6v3.2a1.4 1.4 0 0 0 1.4 1.4h11.2a1.4 1.4 0 0 0 1.4-1.4v-3.2" />
     </>
   ),
-  /* Download: the tray mirror. The arrow leaves the line and lands in the
-     tray, so the pair reads as one verb pointed two ways. */
+  /* Download: an arrow landing on a baseline, no tray. It used to be a
+     byte-for-byte copy of `import` — the comment claimed a "tray mirror" while
+     the paths were identical, so the roster's import and template buttons
+     rendered the same glyph and neither told the user anything. A tray means
+     "into the app"; a baseline means "onto your disk". One verb, one shape. */
   download: (
     <>
-      <path d="M12 4.6v9.2" />
-      <path d="M8.4 10.4 12 13.8l3.6-3.4" />
-      <path d="M5 14.6v3.2a1.4 1.4 0 0 0 1.4 1.4h11.2a1.4 1.4 0 0 0 1.4-1.4v-3.2" />
+      <path d="M12 4.4v10.2" />
+      <path d="M8.2 11 12 14.8 15.8 11" />
+      <path d="M5.6 19.4h12.8" />
+    </>
+  ),
+  /* Table: a spreadsheet grid — two rows and a column divider. The CSV
+     template is a spreadsheet before it is a download, and this shape says so
+     at 16px where a file-with-arrow could mean any file at all. */
+  table: (
+    <>
+      <rect x="3.8" y="5" width="16.4" height="14" rx="1.8" />
+      <path d="M3.8 9.8h16.4" />
+      <path d="M3.8 14.4h16.4" />
+      <path d="M10.2 9.8V19" />
     </>
   ),
   /* Light: the sun, eight rays at 45 degrees. */
