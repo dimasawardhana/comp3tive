@@ -31,8 +31,11 @@ test("the roster calls the group a community, not a squad", async ({ page }) => 
   // the only state that renders it. Phase C moves this string into
   // src/shell/RosterScreen.tsx — carry it verbatim, do not re-derive it.
   await expect(page.locator(".empty .big")).toHaveText("No players in this community");
-  // And the CTA below it speaks about the roster, not a squad ("Split the
-  // roster"; likewise moved by Phase C).
-  await expect(page.locator(".cta-label")).toContainText("Split the roster");
+  // And the CTA below it speaks about the roster, not a squad ("Split match
+  // splits the roster"; likewise moved by Phase C). The bold phrase mirrors
+  // the button's own label, so the label and the control it names are the
+  // same words on every screen that has both.
+  await expect(page.locator(".cta-label")).toContainText("Split match");
+  await expect(page.locator(".cta-label")).toContainText("roster");
   await expect(page.locator(".cta-label")).not.toContainText("squad");
 });

@@ -73,7 +73,7 @@ test("editing an older player does not move them up the teasers", async ({ page 
 test("creating a player stamps it, so it leads the teasers", async ({ page }) => {
   await gotoHubSeeded(page, world(), "Home");
   await hubButton(page, "Roster").click();
-  await rosterAction(page, "+ Add Player");
+  await rosterAction(page, "Add player");
 
   const modal = page.locator(".modal-card");
   await expect(modal.locator(".modal-title")).toHaveText("Add player");

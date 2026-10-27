@@ -103,8 +103,21 @@ async function openSessionSplit(page: Page): Promise<void> {
  * and the balloon as its own box, which is a 52px circle whether it is a
  * launcher or a close chip. A `hidden` panel measures 0x0 and is filtered the
  * same way `button-family.spec.ts` filters it.
+ *
+ * The rects are plain `{ top, right, … }` records, not DOMRect instances:
+ * `page.evaluate` serializes across the process boundary and a DOMRect comes
+ * back as its own plain shape, so the declared type must be the serialized
+ * shape or `tsc` fails on the assignment the runner would carry out fine.
  */
-const readOverlap = (page: Page): Promise<{ barButtons: DOMRect[]; balloon: DOMRect | null; lift: string }> =>
+interface SideRect {
+  top: number;
+  right: number;
+  bottom: number;
+  left: number;
+  width: number;
+  height: number;
+}
+const readOverlap = (page: Page): Promise<{ barButtons: SideRect[]; balloon: SideRect | null; lift: string }> =>
   page.evaluate(() => {
     const rects = (el: Element) => {
       const r = el.getBoundingClientRect();
@@ -121,7 +134,7 @@ const readOverlap = (page: Page): Promise<{ barButtons: DOMRect[]; balloon: DOMR
   });
 
 /** Two boxes intersect when they overlap on both axes, with 1px of rounding slop. */
-const intersects = (a: DOMRect, b: DOMRect): boolean =>
+const intersects = (a: SideRect, b: SideRect): boolean =>
   a.left < b.right - 1 && b.left < a.right - 1 && a.top < b.bottom - 1 && b.top < a.bottom - 1;
 
 test.describe("the AI balloon and the sticky action bars", () => {

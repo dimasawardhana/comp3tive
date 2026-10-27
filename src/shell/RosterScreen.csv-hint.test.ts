@@ -3,7 +3,6 @@ import { csvRowsToPlayers, parsePlayerCsv } from "../data/player-import";
 import { CSV_TEMPLATE } from "../data/csv-template";
 import { BADMINTON_DISCIPLINE, SEED_DISCIPLINES } from "../domain/seed";
 import type { Discipline } from "../domain/types";
-import { ROSTER_ACTIONS } from "../shell/RosterScreen";
 import { renderRoster } from "../test-support/renderRoster";
 
 /**
@@ -200,13 +199,14 @@ describe("the roster's CSV column hint", () => {
   });
 
   it("names the control that reads the file, by the label that control carries", () => {
-    // The menu's items are a module constant, so the label contract is
-    // assertable while the menu is closed: `renderToStaticMarkup` cannot
-    // click the toggle open. The sentence tells a user to press Import
-    // players, so the constant has to carry exactly that label — and the
-    // screen's markup has to be built from the same constant, or the two
-    // could drift while both this file and the screen passed their tests.
-    expect(ROSTER_ACTIONS.map((a) => a.label)).toContain("Import players");
+    // The workflow sentence tells a user to "press Import players and pick
+    // that file", so the screen must carry a control whose accessible name is
+    // exactly that string. It is an icon button (TASK-139 folded the old
+    // dropdown into direct controls), so the name is the aria-label — and the
+    // label and the copy are asserted against each other here, the same
+    // contract the module constant used to carry.
+    const html = renderRoster({ disciplines: SEED_DISCIPLINES });
+    expect(html).toContain('aria-label="Import players"');
     // Fails if either side is renamed alone — which is how copy drifts away
     // from the screen it is talking about.
   });
@@ -218,11 +218,11 @@ describe("the roster's CSV column hint", () => {
     // user gesture. So there is no path by which the file the app just wrote
     // comes back into it on its own, and the workflow sentence says so.
     expect([...html.matchAll(/<input[^>]*type="file"/g)]).toHaveLength(1);
-    // The menu that carries the controls is closed until its toggle opens it,
-    // and the toggle is a plain button — a click, not a form submission or a
-    // hover. A second file input would be a second, unnamed door into the
-    // importer; a submit toggle would navigate the page instead of opening it.
-    const toggle = /<button[^>]*data-testid="roster-actions-button"[^>]*>/.exec(html);
-    expect(toggle?.[0]).toContain('type="button"');
+    // The input is opened by the import icon button, which is a plain button —
+    // a click, not a form submission or a hover. A second file input would be
+    // a second, unnamed door into the importer; a submit button would navigate
+    // the page instead of opening the picker.
+    const importer = /<button[^>]*data-testid="roster-import-players"[^>]*>/.exec(html);
+    expect(importer?.[0]).toContain('type="button"');
   });
 });

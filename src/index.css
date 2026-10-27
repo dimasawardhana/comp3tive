@@ -227,8 +227,8 @@ body {
 .settings-section {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  margin-bottom: 18px;
+  gap: 8px;
+  margin-bottom: 24px;
 }
 /* The section label the Settings rows and the join panel share. Sentence case at
    13px, the same register as a nav label: this is a grouping, not a kicker. */
@@ -240,13 +240,25 @@ body {
 }
 .settings-options {
   display: flex;
-  gap: 6px;
+  gap: 8px;
   flex-wrap: wrap;
 }
+/*
+ * The chip: one choice in a segmented row, at the touch floor the button
+ * family grants text controls (TASK-139). It stopped stretching (`flex: 0 0
+ * auto` where it grew before) — a 300px "Auto" on the desktop's 990px row
+ * read as three wide slabs, and a segmented control's job is to show three
+ * choices of the same kind, which the stretch undid. The glyph rides beside
+ * the label, aria-hidden, inheriting currentColor so the active chip inverts
+ * it the way it inverts the text.
+ */
 .settings-chip {
-  flex: 1 1 auto;
-  min-width: 0;
-  padding: 6px 10px;
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 44px;
+  padding: 6px 14px;
   border: 1.5px solid var(--hairline);
   border-radius: var(--r-sm);
   background: var(--surface-2);
@@ -256,6 +268,11 @@ body {
   font-weight: 600;
   cursor: pointer;
   transition: background 0.12s, color 0.12s, border-color 0.12s;
+}
+.settings-chip svg {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
 }
 .settings-chip:hover {
   color: var(--text);
@@ -1330,6 +1347,14 @@ h1 {
   flex-wrap: wrap;
   gap: 8px;
 }
+/* The panel's buttons stay their natural width (TASK-139): with the family's
+   `flex: 1` a lone primary on the desktop's 990px row grew to 610px — the
+   panel's widest element, wider than the screen it lists. Signing in is one
+   choice among three here, not a banner. They still wrap, so the phone rows
+   are unchanged. */
+.account-actions .btn {
+  flex: 0 1 auto;
+}
 .account-google-fallback {
   /* Empty (and invisible) until One Tap is suppressed and Google renders its
      own button here; then it aligns with the row above it. */
@@ -1536,32 +1561,57 @@ h1 {
   align-items: center;
   gap: 8px;
 }
-/* One row per cluster, so a wrap happens between groups rather than inside
-   them: the add/import buttons stay together and the backup/export pair stays
-   together however narrow the screen gets. */
-.roster-toolbar-group {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
-}
 .roster-toolbar-spacer {
   flex: 1 1 auto;
   min-width: 8px;
 }
 
-/* The storage note. Sits immediately before the Export button, after the
-   toolbar's spacer, so the sentence about backing up and the control that
-   does it are one visual group. Small and muted because it is a standing
+/*
+ * The toolbar's icon buttons. The secondary jobs — import, CSV reference — are
+ * glyphs with an aria-label and a title (TASK-139 folded the Actions dropdown
+ * into direct controls). They sit at the family height beside the primary on
+ * the desktop row, and a step under it on the phone, where the row must fit
+ * `Add player`, both glyphs and Export inside 350px. The glyph itself is
+ * 16px, the family's drawing size — the button is the touch target, the
+ * glyph is not.
+ */
+.roster-toolbar .icon-btn {
+  width: 52px;
+  height: 52px;
+}
+.icon-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* The storage note. Sits immediately before the Export button in the source —
+   the sentence about backing up and the control that does it are one group,
+   and the node test pins that order. Small and muted because it is a standing
    status, not an event: it is on screen every time the roster is, and a status
    that shouted would be one people learn to skip. The 13rem basis keeps it to
-   a couple of lines beside the button and lets the button keep its place. */
+   a couple of lines beside the button on the desktop row; on the phone it
+   takes the row the wrap gives it — full width, left-aligned, set below the
+   controls rather than squeezed between them. */
 .durability-note {
   font-size: 12px;
   line-height: 1.35;
   color: var(--text-2);
   flex: 0 1 13rem;
   text-align: right;
+}
+@media (max-width: 640px) {
+  .durability-note {
+    /* `order` re-lays the row without touching the source: the note reads
+       after the buttons visually but keeps its audited DOM position —
+       between the spacer and Export — in the HTML. */
+    order: 10;
+    flex: 1 1 100%;
+    text-align: left;
+  }
+  .roster-toolbar .icon-btn {
+    width: 48px;
+    height: 48px;
+  }
 }
 
 /* The filter row: chips and the clear button share one line, so clearing is
@@ -1576,68 +1626,10 @@ h1 {
   flex: 1 1 auto;
 }
 
-/* The actions dropdown. One control, one menu: the toolbar holds two buttons
-   on any screen width. The toggle keeps the primary treatment, because every
-   item in the menu is a way to grow the roster and the button that opens
-   them is the page's main affordance. */
-.dropdown {
-  position: relative;
-  display: inline-flex;
-}
-.dropdown-toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-}
-.dropdown-caret {
-  display: inline-flex;
-  align-items: center;
-  line-height: 1;
-  opacity: 0.8;
-}
-.dropdown-menu {
-  position: absolute;
-  top: calc(100% + 6px);
-  left: 0;
-  z-index: 30;
-  min-width: 15rem;
-  display: flex;
-  flex-direction: column;
-  padding: 6px;
-  gap: 2px;
-  background: var(--surface-2);
-  border: 1.5px solid var(--hairline);
-  border-radius: 10px;
-  box-shadow: var(--shadow);
-}
-.dropdown-item {
-  display: block;
-  width: 100%;
-  text-align: left;
-  min-height: 44px;
-  padding: 10px 14px;
-  font-family: var(--font-body);
-  font-size: 14px;
-  font-weight: 500;
-  background: none;
-  border: none;
-  border-radius: 7px;
-  color: var(--text);
-  cursor: pointer;
-}
-.dropdown-item:hover {
-  background: var(--panel-card, rgba(0, 0, 0, 0.05));
-}
-.dropdown-item--primary {
-  color: var(--chip-on-text);
-  background: var(--chip-on);
-  font-weight: 700;
-  margin-bottom: 4px;
-}
-.dropdown-item--primary:hover {
-  background: var(--chip-on);
-  filter: brightness(1.05);
-}
+/* The actions dropdown these rules served is gone (TASK-139): the toolbar's
+   jobs are direct buttons now, so there is no menu to position, no caret to
+   draw and no overflow item to style — and the one overlay shadow the menu
+   cast leaves with it. */
 
 /* The CSV format panel. Opened from the template button, closed by it again:
    reference copy on demand, so the page flow holds zero rows of it when the
@@ -1813,6 +1805,19 @@ h1 {
   font-size: 12px;
   line-height: 1.45;
   color: var(--text-2);
+}
+/* On the phone the note takes the width it needs and the two buttons share
+   the row under it at equal size, one family at one height (the count button
+   stopped riding at `.small`'s 34px beside a 52px primary — under the touch
+   floor and visibly mismatched). Desktop keeps the natural sizes: note left,
+   buttons right, no stretching. */
+@media (max-width: 640px) {
+  .roster-select-bar .btn {
+    flex: 1 1 0;
+  }
+  .roster-select-bar .roster-select-note {
+    flex: 1 1 100%;
+  }
 }
 
 /* A row that carries a checkbox. The stripe, the padding and the hover stay on
@@ -3201,8 +3206,7 @@ h1 {
    query and is cut by the universal reduced-motion rule in `tokens.css`. */
 .btn:active,
 .nav-link:active,
-.rail-link:active,
-.dropdown-item:active {
+.rail-link:active {
   transform: translateY(1px);
 }
 

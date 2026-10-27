@@ -173,21 +173,19 @@ export async function gotoHubSeeded(page: Page, world: SeedWorld, hub: HubName):
 }
 
 /**
- * Open the Roster's action menu and pick one of its items.
+ * Press one of the Roster toolbar's controls by its accessible name.
  *
- * The roster toolbar is one "Actions" dropdown holding Add Player, Import
- * players and Download CSV template (TASK-129), so a spec that wants "Add
- * Player" has to open the menu first. The menu is `role="menu"` and its items
- * are `role="menuitem"`, so this resolves by accessible name rather than by
- * position.
+ * The toolbar's actions are direct buttons (TASK-139 folded the old Actions
+ * dropdown away): "Add player" is the primary, and importing and the CSV
+ * template are icon buttons that resolve by aria-label. Resolving by name
+ * rather than position is unchanged — it is the same contract the menu items
+ * carried, one hop shorter.
  */
 export async function rosterAction(
   page: Page,
   label: string,
 ): Promise<void> {
-  await page.getByTestId("roster-actions-button").click();
-  await expect(page.locator('[role="menu"][aria-label="Roster actions"]')).toBeVisible();
-  await page.getByRole("menuitem", { name: label, exact: true }).click();
+  await page.getByRole("button", { name: label, exact: true }).click();
 }
 
 /** The stat card on the Dashboard whose label matches <label>. */

@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import type { Community, Discipline, Id, Player } from "../domain/types";
 import { PageHeader } from "../ui/PageHeader";
 import { Screen } from "../ui/Screen";
+import { Icon } from "../ui/Icon";
 import { PlayerEditModal } from "../roster/PlayerEditModal";
 import { BulkRateModal, rateConfirmation } from "../roster/BulkRateModal";
 import type { ImportReport, ImportSkip, PendingMerge } from "./usePlayerImport";
@@ -213,21 +214,6 @@ const CSV_FORMAT_COPY: readonly string[] = [
   "Fill the template in and save it, then press Import players and pick that file. Nothing here is read until you choose it.",
   "CSV columns, in this order: name, discipline, strength. Any value with a comma in it goes in quotes. The last example row in the template shows one in the name column.",
   "Strength is a number from 1 to 5. Leave it blank and it is read as 3; text there skips the row.",
-];
-
-/**
- * The actions menu's items, in the order they are offered.
- *
- * Module-level so the label contract is testable while the menu itself is
- * closed: `renderToStaticMarkup` cannot click, so a label that only existed
- * inside the open menu was a label no node test could reach. The ids are
- * stable keys, not CSS hooks — the tests assert on `label`, the same string
- * the copy names.
- */
-export const ROSTER_ACTIONS: ReadonlyArray<{ id: string; label: string }> = [
-  { id: "add-player", label: "+ Add Player" },
-  { id: "import-players", label: "Import players" },
-  { id: "download-csv-template", label: "Download CSV template" },
 ];
 
 /** `1 player row` / `3 player rows`, so no sentence in the panel miscounts. */
@@ -509,39 +495,14 @@ export function RosterScreen(props: RosterScreenProps) {
    */
   const [selection, setSelection] = useState<Selection>(NO_SELECTION);
   const [rateOpen, setRateOpen] = useState(false);
-  /** The actions menu: closed until the Actions button asks for it. */
-  const [menuOpen, setMenuOpen] = useState(false);
   /**
-   * The CSV format panel: closed until the menu item asks for it — except on
-   * an empty roster, where the organizer is about to need it and has nothing
-   * below to push out of the way. `players` is a prop, so this initial value
-   * is a one-time reading of the roster the screen was born with; toggling
-   * afterwards is the menu item's business.
+   * The CSV format panel: closed until the template button asks for it —
+   * except on an empty roster, where the organizer is about to need it and has
+   * nothing below to push out of the way. `players` is a prop, so this initial
+   * value is a one-time reading of the roster the screen was born with;
+   * toggling afterwards is the button's business.
    */
   const [csvPanelOpen, setCsvPanelOpen] = useState(players.length === 0);
-  /**
-   * The menu closes on a click anywhere outside it. The ref is the dropdown's
-   * own box, so a click on the toggle itself is handled by React's state
-   * toggle and not double-handled here; Escape is the keyboard's way out.
-   */
-  const dropdownRef = useRef<HTMLDivElement | null>(null);
-  useEffect(() => {
-    if (!menuOpen) return;
-    const onPointerDown = (e: PointerEvent): void => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
-        setMenuOpen(false);
-      }
-    };
-    const onKeyDown = (e: KeyboardEvent): void => {
-      if (e.key === "Escape") setMenuOpen(false);
-    };
-    document.addEventListener("pointerdown", onPointerDown);
-    document.addEventListener("keydown", onKeyDown);
-    return () => {
-      document.removeEventListener("pointerdown", onPointerDown);
-      document.removeEventListener("keydown", onKeyDown);
-    };
-  }, [menuOpen]);
   const selectedIds = idsIn(selection, activeCommunity?.id);
   const selectedPlayers = selectedIn(selection, activeCommunity?.id, visiblePlayers);
   const allSelected = visiblePlayers.length > 0 && selectedPlayers.length === visiblePlayers.length;
@@ -685,84 +646,67 @@ export function RosterScreen(props: RosterScreenProps) {
       )}
               
           {/*
-           * Player actions, as one dropdown. A single control keeps the
-           * toolbar to two buttons on any screen width: the menu carries the
-           * three ways a roster grows, and the primary — adding a player —
-           * stays a first-class item at the top of the menu rather than
-           * hidden behind a second click when the user is on the empty
-           * roster they are about to fill. The format panel opens from the
-           * menu item instead of a caret, so the reference copy and the
-           * download it explains arrive together.
+           * Player actions, as direct toolbar controls. The dropdown is gone
+           * (TASK-139): the job this toolbar exists for — adding a player —
+           * sat one click behind an "Actions" label that named none of its
+           * items, and every item in it was already a full sentence. Now the
+           * primary is the first control on the row with its written label,
+           * and the two secondary jobs — importing a file and opening the CSV
+           * reference — are icon buttons, the shell's own pattern: a glyph
+           * from the shared library, an aria-label in the copy's words, and
+           * a title for the mouse.
+           *
+           * The template button toggles the format panel rather than only
+           * opening it. Unlike the menu it replaced, the button stays on the
+           * page beside the panel it opens, so a second press meaning "put
+           * that away" is what the user can already see happening. It keeps
+           * aria-expanded / aria-controls, so the disclosure contract is
+           * unchanged; on an empty roster the panel still starts open, and
+           * the first press closes it — an action the user is watching, not
+           * one that undoes a promise the button never made.
            */}
           <div className="roster-toolbar">
-            <div className="dropdown" ref={dropdownRef}>
-              <button
-                type="button"
-                className="btn btn-primary dropdown-toggle"
-                data-testid="roster-actions-button"
-                aria-haspopup="menu"
-                aria-expanded={menuOpen}
-                onClick={() => setMenuOpen(!menuOpen)}
-              >
-                Actions
-                <span className="dropdown-caret" aria-hidden="true">
-                  <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M6 9l6 6 6-6" />
-                  </svg>
-                </span>
-              </button>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".json,.csv,.txt"
-                onChange={(e) => {
-                  const f = e.target.files?.[0];
-                  if (f) void props.importFile(f);
-                }}
-                style={{ display: "none" }}
-              />
-              {menuOpen && (
-                <div className="dropdown-menu" role="menu" aria-label="Roster actions">
-                  {ROSTER_ACTIONS.map((action) => (
-                    <button
-                      key={action.id}
-                      type="button"
-                      role="menuitem"
-                      className={`dropdown-item${action.id === "add-player" ? " dropdown-item--primary" : ""}`}
-                      data-testid={action.id === "download-csv-template" ? "download-csv-template" : undefined}
-                      aria-expanded={action.id === "download-csv-template" ? csvPanelOpen : undefined}
-                      aria-controls={action.id === "download-csv-template" ? "csv-format-panel" : undefined}
-                      onClick={() => {
-                        if (action.id === "add-player") {
-                          setMenuOpen(false);
-                          props.onAddPlayer();
-                        } else if (action.id === "import-players") {
-                          setMenuOpen(false);
-                          fileInputRef.current?.click();
-                        } else {
-                          // Opening the format panel is an open command, never
-                          // a toggle: on an empty roster the panel starts
-                          // open, so a toggle here would close the thing the
-                          // item just promised to show. The menu closes with
-                          // it — every other item ends the menu, and leaving
-                          // it open would put the menu between the user and
-                          // the panel that just opened underneath it. It also
-                          // keeps the panel's DOM stable: as a sibling of the
-                          // menu in the same parent, a menu that closed later
-                          // (e.g. the outside-click handler) would shift the
-                          // panel's position in React's children array and
-                          // remount it under a press already in flight.
-                          setMenuOpen(false);
-                          setCsvPanelOpen(true);
-                        }
-                      }}
-                    >
-                      {action.label}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
+            <button
+              type="button"
+              className="btn btn-primary"
+              data-testid="roster-add-player"
+              onClick={props.onAddPlayer}
+            >
+              <Icon name="plus" size={16} />
+              Add player
+            </button>
+            <button
+              type="button"
+              className="icon-btn"
+              data-testid="roster-import-players"
+              aria-label="Import players"
+              title="Import players"
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <Icon name="import" size={16} />
+            </button>
+            <button
+              type="button"
+              className="icon-btn"
+              data-testid="download-csv-template"
+              aria-label="Download CSV template"
+              title="Download CSV template"
+              aria-expanded={csvPanelOpen}
+              aria-controls="csv-format-panel"
+              onClick={() => setCsvPanelOpen(!csvPanelOpen)}
+            >
+              <Icon name="download" size={16} />
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".json,.csv,.txt"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) void props.importFile(f);
+              }}
+              style={{ display: "none" }}
+            />
             {csvPanelOpen && (
               <div className="csv-format-panel" id="csv-format-panel">
                 {CSV_FORMAT_COPY.map((text) => (
@@ -789,16 +733,14 @@ export function RosterScreen(props: RosterScreenProps) {
               </div>
             )}
             <div className="roster-toolbar-spacer" />
-            <div className="roster-toolbar-group">
-              <span className="durability-note">
-                {props.persisted === true && "This browser reported persistent storage for this app on this visit. Keep a backup anyway."}
-                {props.persisted === false && "This browser reports this app's data is not stored persistently. Keep a backup."}
-                {props.persisted === null && "This app could not confirm persistent storage here. Keep a backup."}
-              </span>
-              <button className="btn btn-ghost" onClick={props.onExport}>
-                Export
-              </button>
-            </div>
+            <span className="durability-note">
+              {props.persisted === true && "This browser reported persistent storage for this app on this visit. Keep a backup anyway."}
+              {props.persisted === false && "This browser reports this app's data is not stored persistently. Keep a backup."}
+              {props.persisted === null && "This app could not confirm persistent storage here. Keep a backup."}
+            </span>
+            <button className="btn btn-ghost" onClick={props.onExport}>
+              Export
+            </button>
           </div>
 
           {/*
@@ -949,7 +891,8 @@ export function RosterScreen(props: RosterScreenProps) {
                 style={{ marginTop: 14 }}
                 onClick={props.onAddPlayer}
               >
-                + Add the first player
+                <Icon name="plus" size={16} />
+                Add the first player
               </button>
             </div>
           ) : (
@@ -1022,7 +965,7 @@ export function RosterScreen(props: RosterScreenProps) {
 
           <div className="cta-bar">
             <div className="cta-label">
-              Ready to play? <strong>Split the roster</strong> and check the balance.
+              Ready to play? <strong>Split match</strong> splits the roster so both sides get a game.
             </div>
             <button
               type="button"

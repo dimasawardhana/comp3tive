@@ -1,23 +1,12 @@
 import type { HubMode, View } from "./useNavigation";
 
 /**
- * Every icon the shell draws, by name. The shapes live in `AppChrome.tsx`
- * beside the one component that draws them; this file holds only the identity,
- * so the nav table stays data.
+ * Every icon the shell draws, by name. The shapes and the one component that
+ * draws them live in `src/ui/Icon.tsx`, shared with the screens' own icon
+ * buttons; this file holds only the identity, so the nav table stays data.
  */
-export type IconName =
-  | "home"
-  | "roster"
-  | "games"
-  | "history"
-  | "squads"
-  | "settings"
-  | "plus"
-  | "menu"
-  | "close"
-  | "check"
-  | "caret"
-  | "panel";
+export type { IconName } from "../ui/Icon";
+import type { IconName } from "../ui/Icon";
 
 /** A destination that holds a slot in the navigation. Settings is a real
  *  destination but a utility, so it is not one of the five. */

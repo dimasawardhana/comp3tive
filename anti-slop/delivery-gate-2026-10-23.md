@@ -182,3 +182,39 @@ each discipline's roles, and fills the canvas from the title down.
 
 Verified after the change: `tsc` 0, `vitest` 984/984, `e2e` **127/127**,
 `build` clean, page gate unchanged at 0 FAIL.
+
+---
+
+## Correction (2026-10-27): the roster Actions dropdown was withdrawn
+
+The R-35 click-through above records "Roster toolbar Actions → menu opens with
++ Add Player / Import players / Download CSV template". That control no longer
+exists, and the change is deliberate, not a regression the report missed:
+
+- The split-button dropdown (`roster-actions-button`, `aria-haspopup="menu"`)
+  was replaced by three direct controls on the toolbar — **Add player**
+  (`roster-add-player`, primary), **Import** (`roster-import-players`), and
+  **CSV template** (`download-csv-template`, which keeps its own
+  `aria-expanded` disclosure for the format panel). The toolbar is a single
+  row again and measures 92px at 390px, down from 112px behind the menu.
+- The hand-me-down indirectness was real: two clicks and an overlay to reach
+  the actions a first-time user needs most, and a menu layer between the CSV
+  panel and the toolbar that both the inspector and the e2e selectors had to
+  reach through. The gate's own principles — one obvious control per intent,
+  first action visible — argue against the menu, and the selection bar (rate
+  + select-all) had already moved onto the rows it acts on in the same spirit.
+- The shell's hand-drawn icon set moved from `AppChrome.tsx` to a shared
+  `src/ui/Icon.tsx` so the screens' own icon buttons draw the same 16px/1.5
+  shapes as the nav; `nav-items.ts` re-exports `IconName` and stays data.
+- The selection bar's select-all keeps its recorded `.small` (34px) tier; an
+  intermediate cut of the rework dropped the class and the button-family audit
+  caught it (`the roster's select-all lost the .small tier`). Restored; the
+  audit is the reason the tier survives.
+
+**Re-verified after the change (2026-10-27):** `tsc` 0, `vitest` **988/988**
+(71 files, under Node 22 — the default Node 20 on this machine cannot load
+`node:sqlite`, which reads as 24 unrelated failures if you skip that),
+`build` clean, e2e full suite green, and the app gate at **0 FAIL, 0 WARN**
+(1440/768/390) with the recorded `font-not-dealt` redraw allowed. The
+`hero-void` warning from the October-24 correction no longer fires on the
+current tree.

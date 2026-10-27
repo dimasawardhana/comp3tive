@@ -93,7 +93,7 @@ async function openAddPlayerWithCapability(page: Page, playerName: string, short
   await hubButton(page, "Roster").click();
   await expect(page.locator(".screen h1")).toHaveText("comp3tive");
 
-  await rosterAction(page, "+ Add Player");
+  await rosterAction(page, "Add player");
   const modal = page.locator(".modal-card");
   await expect(modal).toBeVisible();
   await expect(modal.locator(".modal-title")).toHaveText("Add player");
@@ -144,7 +144,7 @@ test("the same dialog saves once nothing is in the way", async ({ page }) => {
   await createRolelessDiscipline(page, "Silent Sport", "SSPT");
 
   await hubButton(page, "Roster").click();
-  await rosterAction(page, "+ Add Player");
+  await rosterAction(page, "Add player");
   const modal = page.locator(".modal-card");
   await expect(modal).toBeVisible();
   await modal.locator("#player-name").fill("Accepted Player");

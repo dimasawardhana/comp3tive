@@ -30,10 +30,11 @@ const world = (): SeedWorld => ({
 test("saved squad flow: save from split, list, use in tournament", async ({ page }) => {
   await gotoHubSeeded(page, world(), "Roster");
   await expect(page.locator(".squad-select-value")).toBeVisible({ timeout: 5000 });
-  // The roster is up with its toolbar. The add action lives inside the Actions
-  // menu, so the toolbar button is the honest "screen is ready" probe; opening
-  // Add Player here would raise a modal this flow does not want.
-  await expect(page.getByTestId("roster-actions-button")).toBeVisible({ timeout: 5000 });
+  // The roster is up with its toolbar. The add action is the toolbar's direct
+  // primary button (TASK-139 folded the old Actions menu away), so the button
+  // is the honest "screen is ready" probe; pressing it here would raise a
+  // modal this flow does not want.
+  await expect(page.getByTestId("roster-add-player")).toBeVisible({ timeout: 5000 });
   await expect(page.getByText("Alpha")).toBeVisible({ timeout: 5000 });
   await expect(page.getByText("Juliet")).toBeVisible({ timeout: 5000 });
 

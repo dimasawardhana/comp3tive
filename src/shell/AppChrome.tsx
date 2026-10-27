@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from "react";
-import type { ReactNode } from "react";
 import type { Community, Id } from "../domain/types";
 import type { HubMode, View } from "./useNavigation";
 import { NAV_ITEMS, SETTINGS_ITEM, screenTitle } from "./nav-items";
 import type { IconName } from "./nav-items";
 import { Toasts } from "../ui/Toasts";
 import { ConfirmButton } from "../ui/ConfirmButton";
+import { Icon } from "../ui/Icon";
 import AiAssistant from "./AiAssistant";
 import type { ToastType } from "./useToasts";
 
@@ -30,106 +30,6 @@ export interface AppChromeProps {
   toasts: Array<{ id: string; text: string; type: ToastType }>;
   /** The screen switch, rendered inside `<main className="shell-main">`. */
   children: React.ReactNode;
-}
-
-/**
- * The shell's icons, drawn here rather than imported. Sixteen-pixel outline
- * shapes on a 24-unit grid at 1.5 stroke, so every one of them shares a weight
- * with the two faces and none of them arrives from a library that would give
- * the app someone else's look.
- */
-const ICONS: Record<IconName, ReactNode> = {
-  home: (
-    <>
-      <path d="M4 10.4 12 4l8 6.4" />
-      <path d="M6.2 9.6V19a1 1 0 0 0 1 1h9.6a1 1 0 0 0 1-1V9.6" />
-      <path d="M9.8 20v-5.2h4.4V20" />
-    </>
-  ),
-  roster: (
-    <>
-      <circle cx="9.2" cy="8.4" r="2.7" />
-      <path d="M4 19.4a5.2 5.2 0 0 1 10.4 0" />
-      <path d="M15.8 6.1a2.6 2.6 0 0 1 0 4.9" />
-      <path d="M16.6 14.4a4.6 4.6 0 0 1 3.4 4.4" />
-    </>
-  ),
-  games: (
-    <>
-      <path d="M8.2 4h7.6v4.4a3.8 3.8 0 0 1-7.6 0Z" />
-      <path d="M8.2 5.4H5.4v1.4a3.2 3.2 0 0 0 3.1 3.2" />
-      <path d="M15.8 5.4h2.8v1.4a3.2 3.2 0 0 1-3.1 3.2" />
-      <path d="M12 12.2v3.6" />
-      <path d="M8.6 19.6h6.8" />
-    </>
-  ),
-  history: (
-    <>
-      <circle cx="12" cy="12" r="8" />
-      <path d="M12 7.4V12l3.1 1.9" />
-    </>
-  ),
-  squads: (
-    <>
-      <path d="M12 4 20 8.4 12 12.8 4 8.4Z" />
-      <path d="M4 12.2 12 16.6 20 12.2" />
-      <path d="M4 16 12 20.4 20 16" />
-    </>
-  ),
-  settings: (
-    <>
-      <path d="M3.8 8.4h7.4" />
-      <path d="M15.6 8.4h4.6" />
-      <circle cx="13.4" cy="8.4" r="2.2" />
-      <path d="M3.8 15.6h4.6" />
-      <path d="M12.8 15.6h7.4" />
-      <circle cx="10.6" cy="15.6" r="2.2" />
-    </>
-  ),
-  plus: (
-    <>
-      <path d="M12 5.2v13.6" />
-      <path d="M5.2 12h13.6" />
-    </>
-  ),
-  menu: (
-    <>
-      <path d="M4 7h16" />
-      <path d="M4 12h16" />
-      <path d="M4 17h16" />
-    </>
-  ),
-  close: (
-    <>
-      <path d="M6.4 6.4 17.6 17.6" />
-      <path d="M17.6 6.4 6.4 17.6" />
-    </>
-  ),
-  check: <path d="M5.2 12.4 10 17.2 18.8 7.2" />,
-  caret: <path d="M7.6 10.2 12 14.6l4.4-4.4" />,
-  panel: (
-    <>
-      <rect x="3.6" y="4.6" width="16.8" height="14.8" rx="2" />
-      <path d="M9.4 4.6v14.8" />
-    </>
-  ),
-};
-
-function Icon({ name }: { name: IconName }) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-      focusable="false"
-    >
-      {ICONS[name]}
-    </svg>
-  );
 }
 
 /**
