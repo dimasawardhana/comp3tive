@@ -17,11 +17,12 @@ import { apiFetch } from "../account/session";
  * than pretending to think.
  *
  * The balloon clears the tab bar and sits on the app card's bottom inset; the
- * panel hangs off its left edge and grows upward. On the split and match
- * screens the sticky action bars (`src/split.css:789`) occupy that same corner,
- * so the balloon overlays the right end of the bar — a 48px bite out of a
- * 262px-wide primary on a 390 screen, with the label and the rest of the button
- * still live. That overlap is the accepted cost of the corner placement.
+ * panel hangs off its left edge and grows upward. The split and match screens
+ * park a sticky action bar in that same corner (`src/split.css:779`), and the
+ * bar holds the screen's primary action — so the balloon measures the bar and
+ * lifts itself above its top edge (the `--ai-bar-h` effect below) instead of
+ * covering the right end of it, which the first cut accepted as a 48px bite
+ * out of a 262px-wide primary on a 390 screen.
  */
 
 interface ToolCallTrace {
@@ -108,6 +109,7 @@ export default function AiAssistant() {
   const listRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const launcherRef = useRef<HTMLButtonElement>(null);
+  const rootRef = useRef<HTMLDivElement>(null);
 
   // Opening puts the caret in the question box: the user pressed a chat
   // button, so the next keystroke is a question. Closing hands focus back to
@@ -115,6 +117,47 @@ export default function AiAssistant() {
   useEffect(() => {
     if (open) inputRef.current?.focus();
   }, [open]);
+
+  // The split and match screens park a sticky action bar in the same corner
+  // the balloon occupies, and that bar holds the screen's primary action, so
+  // the balloon has to yield: it measures the bar and publishes its height as
+  // `--ai-bar-h`, which `.ai-chat` (src/index.css) adds to its own bottom
+  // offset. The bar's height is not a constant — the labels wrap at 390 — so
+  // a ResizeObserver keeps the lift true as the bar changes shape, and a
+  // MutationObserver on the screen region catches the bar mounting and
+  // unmounting as the user moves between screens.
+  useEffect(() => {
+    const root = rootRef.current;
+    const main = document.getElementById("main");
+    if (!root || !main) return;
+
+    let barObserver: ResizeObserver | null = null;
+
+    const watch = () => {
+      barObserver?.disconnect();
+      barObserver = null;
+      const bar = main.querySelector<HTMLElement>(".split-bar, .match-bar");
+      if (!bar) {
+        root.style.setProperty("--ai-bar-h", "0px");
+        return;
+      }
+      const publish = () => {
+        const height = Math.ceil(bar.getBoundingClientRect().height);
+        root.style.setProperty("--ai-bar-h", height > 0 ? `${height}px` : "0px");
+      };
+      publish();
+      barObserver = new ResizeObserver(publish);
+      barObserver.observe(bar);
+    };
+
+    watch();
+    const screenObserver = new MutationObserver(watch);
+    screenObserver.observe(main, { childList: true, subtree: true });
+    return () => {
+      screenObserver.disconnect();
+      barObserver?.disconnect();
+    };
+  }, []);
 
   const scrollToEnd = useCallback(() => {
     requestAnimationFrame(() => listRef.current?.scrollTo({ top: listRef.current.scrollHeight, behavior: "smooth" }));
@@ -148,7 +191,7 @@ export default function AiAssistant() {
   );
 
   return (
-    <div className="ai-chat">
+    <div className="ai-chat" ref={rootRef}>
       <section
         id="ai-panel"
         className="ai-panel"

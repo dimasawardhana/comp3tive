@@ -2911,17 +2911,21 @@ h1 {
 
 /* ── AI assistant (TASK-130) ─────────────────────────────────────────── */
 /* The balloon floats at the right end of the bottom edge. It clears the tab bar
-   (`--tabbar-h`, which is where `.split-bar`/`.match-bar` stack) so it never
-   covers the nav itself, and on desktop it sits on the app card's own bottom
-   inset. `right` follows the card's edge too (max-width 640 below 1024, 1200
-   above) so the balloon stays beside the content instead of drifting out to the
-   window edge on a wide monitor.
+   (`--tabbar-h`) so it never covers the nav itself, and on desktop it sits on
+   the app card's own bottom inset. `right` follows the card's edge too
+   (max-width 640 below 1024, 1200 above) so the balloon stays beside the
+   content instead of drifting out to the window edge on a wide monitor.
 
-   The cost is deliberate and visible: on Split and Match the sticky action bar
-   occupies that same corner above the tab bar, so the balloon covers the right
-   end of it while you are on those screens. Closing the panel and ignoring the
-   balloon leaves the bar's own buttons reachable; the balloon never takes the
-   click that starts a split. */
+   Split and Match park a sticky action bar in that same corner, and the bar
+   holds the screen's primary action — so the balloon yields to it rather than
+   the other way round. AiAssistant measures the bar and publishes its height
+   as `--ai-bar-h` (ResizeObserver, see src/shell/AiAssistant.tsx), and the
+   bottom offset lifts by exactly that: the balloon's bottom edge keeps the
+   same 16px gap to the bar's top edge that it keeps to the tab bar's. On
+   screens without a bar the variable is 0px and the placement is the plain
+   corner one. The desktop inset ignores the lift on purpose: from 1024 the
+   balloon sits 24px up while the bar's buttons start at 76px, so the two only
+   touch padding, never a label. */
 .ai-chat {
   position: fixed;
   right: max(16px, calc((100vw - 640px) / 2 + 16px));
@@ -2930,7 +2934,8 @@ h1 {
      community menu (58) and the modal overlay (100). */
   z-index: 55;
   /* The panel is a child, so it reads this for its own max-height. */
-  --ai-bottom: calc(var(--tabbar-h) + 16px);
+  --ai-bar-h: 0px;
+  --ai-bottom: calc(var(--tabbar-h) + var(--ai-bar-h) + 16px);
 }
 @media (min-width: 1024px) {
   .ai-chat {
