@@ -58,6 +58,19 @@ const NOOP_PROPS: Omit<RosterScreenProps, "activeCommunity"> = {
 /** The roster's HTML, with only the props a test names. */
 export function renderRoster(overrides: Partial<RosterScreenProps> = {}): string {
   return renderToStaticMarkup(
-    createElement(RosterScreen, { activeCommunity: ROSTER_COMMUNITY, ...NOOP_PROPS, ...overrides }),
+    createElement(RosterScreen, {
+      activeCommunity: ROSTER_COMMUNITY,
+      // The two files that render this screen both read copy that lives in the
+      // CSV format panel, and `renderToStaticMarkup` runs no effects and has no
+      // browser to press the template button in. Opening the panel here is what
+      // keeps those assertions about the copy rather than about the disclosure:
+      // the button's own semantics (aria-expanded, aria-controls, the toggle)
+      // are `e2e/tests/roster/fast-entry.spec.ts`'s to check, in a browser.
+      // Any caller can still pass `csvPanelOpenByDefault: false` to see the
+      // panel shut.
+      csvPanelOpenByDefault: true,
+      ...NOOP_PROPS,
+      ...overrides,
+    }),
   );
 }

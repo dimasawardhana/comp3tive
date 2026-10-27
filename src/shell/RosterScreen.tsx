@@ -35,6 +35,23 @@ export interface RosterScreenProps {
   onDeletePlayer: (id: Id) => Promise<void>;
   onCloseEditor: () => void;
   /**
+   * The CSV format panel's initial state, and only its initial state — the
+   * screen owns the value from mount on and the template button toggles it.
+   *
+   * Left unset the panel starts closed (TASK-141). An open panel on a
+   * first-run roster put a 275px wall of CSV sentences between the toolbar and
+   * "No players in this community", which at 390 landed at y682, below the
+   * fold; the button now says what it holds, so the reference is a press away
+   * instead of standing in the doorway.
+   *
+   * The copy-vs-parser tests in `RosterScreen.csv-hint.test.ts` need the panel
+   * rendered and have no browser to press anything, so `renderRoster` opens it.
+   * That is the argument for this being a prop at all — it is a disclosure's
+   * default, not a test hook: a screen that wanted the panel open (a first-run
+   * flow that starts on the import path) would set the same thing.
+   */
+  csvPanelOpenByDefault?: boolean;
+  /**
    * The browser's persistence verdict for this origin, forwarded from
    * `useDurability`. Tri-state on purpose, and the three cases are three
    * different policies:
@@ -496,13 +513,18 @@ export function RosterScreen(props: RosterScreenProps) {
   const [selection, setSelection] = useState<Selection>(NO_SELECTION);
   const [rateOpen, setRateOpen] = useState(false);
   /**
-   * The CSV format panel: closed until the template button asks for it —
-   * except on an empty roster, where the organizer is about to need it and has
-   * nothing below to push out of the way. `players` is a prop, so this initial
-   * value is a one-time reading of the roster the screen was born with;
-   * toggling afterwards is the button's business.
+   * The CSV format panel: closed until the template button asks for it, or
+   * open from the first frame if the caller says so through
+   * `csvPanelOpenByDefault` (see that prop for why it exists).
+   *
+   * It used to start open whenever the roster was empty, on the theory that a
+   * first-time organizer is about to need the column contract. On screen that
+   * was the wrong trade (TASK-141): the open panel put a 275px wall of CSV
+   * sentences between the toolbar and the page's own message, and at 390 the
+   * sentence that actually mattered — "No players in this community" — landed
+   * at y682, below the fold.
    */
-  const [csvPanelOpen, setCsvPanelOpen] = useState(players.length === 0);
+  const [csvPanelOpen, setCsvPanelOpen] = useState(props.csvPanelOpenByDefault ?? false);
   const selectedIds = idsIn(selection, activeCommunity?.id);
   const selectedPlayers = selectedIn(selection, activeCommunity?.id, visiblePlayers);
   const allSelected = visiblePlayers.length > 0 && selectedPlayers.length === visiblePlayers.length;
@@ -664,13 +686,23 @@ export function RosterScreen(props: RosterScreenProps) {
            *
            * The template button toggles the format panel rather than only
            * opening it. Unlike the menu it replaced, the button stays on the
-           * page beside the panel it opens, so a second press meaning "put
-           * that away" is what the user can already see happening. It keeps
-           * aria-expanded / aria-controls, so the disclosure contract is
-           * unchanged; on an empty roster the panel still starts open, and
-           * the first press closes it — an action the user is watching, not
-           * one that undoes a promise the button never made.
+           * page directly above the panel it opens, so a second press meaning
+           * "put that away" is what the user can already see happening. It
+           * keeps aria-expanded / aria-controls, so the disclosure contract is
+           * unchanged, and the panel itself now renders as a block under this
+           * row rather than inside it (TASK-141 — inside the row it pushed
+           * Export and the storage note onto lines of their own).
            */}
+          {/*
+           * The toolbar and the format panel it discloses are ONE block.
+           *
+           * `.screen` is a flex column with a 22px gap, so a sibling panel sat
+           * 34px below the row that opened it — far enough to read as unrelated
+           * content rather than as the detail behind the CSV template control.
+           * This wrapper owns the disclosure's own 8px gap, and the panel's
+           * place in it is stated by source order rather than by CSS `order`.
+           */}
+          <div className="roster-actions">
           <div className="roster-toolbar">
             <button
               type="button"
@@ -715,31 +747,6 @@ export function RosterScreen(props: RosterScreenProps) {
               }}
               style={{ display: "none" }}
             />
-            {csvPanelOpen && (
-              <div className="csv-format-panel" id="csv-format-panel">
-                {CSV_FORMAT_COPY.map((text) => (
-                  <p className="import-hint" key={text.slice(0, 24)}>{text}</p>
-                ))}
-                {disciplines.length > 0 && (
-                  <>
-                    <p className="import-hint">Discipline must be one of:</p>
-                    <ul className="import-hint-list">
-                      {disciplines.map((d) => (
-                        <li key={d.id}>{disciplineSpelling(d)}</li>
-                      ))}
-                    </ul>
-                  </>
-                )}
-                <button
-                  type="button"
-                  className="btn btn-ghost small"
-                  data-testid="csv-panel-download"
-                  onClick={downloadCsvTemplate}
-                >
-                  Download template
-                </button>
-              </div>
-            )}
             <div className="roster-toolbar-spacer" />
             <span className="durability-note">
               {props.persisted === true && "This browser reported persistent storage for this app on this visit. Keep a backup anyway."}
@@ -749,6 +756,51 @@ export function RosterScreen(props: RosterScreenProps) {
             <button className="btn btn-ghost" onClick={props.onExport}>
               Export
             </button>
+          </div>
+
+          {/*
+           * The format reference, OUTSIDE the toolbar's flex row (TASK-141).
+           *
+           * It used to be the last child of `.roster-toolbar`, which is a
+           * wrapping flex row: the panel's `flex-basis: 100%` pushed it onto a
+           * line of its own and everything after it — the spacer, the storage
+           * note, Export — flowed around it. Measured on a first-run roster at
+           * 1280, the note sat at y339 inside the panel's vertical span while
+           * Export dropped alone to y483, 208px below its own row; at 390 the
+           * open panel was a 275px wall between the actions and the note, and
+           * it pushed "No players in this community" to y682 — below the fold
+           * on the one page whose whole message is that sentence.
+           *
+           * As a block under the toolbar, the panel is what it looks like: the
+           * detail behind the CSV template control, which stays on the row
+           * directly above it, still reporting aria-expanded and still naming
+           * this node through aria-controls.
+           */}
+          {csvPanelOpen && (
+            <div className="csv-format-panel" id="csv-format-panel">
+              {CSV_FORMAT_COPY.map((text) => (
+                <p className="import-hint" key={text.slice(0, 24)}>{text}</p>
+              ))}
+              {disciplines.length > 0 && (
+                <>
+                  <p className="import-hint">Discipline must be one of:</p>
+                  <ul className="import-hint-list">
+                    {disciplines.map((d) => (
+                      <li key={d.id}>{disciplineSpelling(d)}</li>
+                    ))}
+                  </ul>
+                </>
+              )}
+              <button
+                type="button"
+                className="btn btn-ghost small"
+                data-testid="csv-panel-download"
+                onClick={downloadCsvTemplate}
+              >
+                Download template
+              </button>
+            </div>
+          )}
           </div>
 
           {/*
@@ -891,17 +943,18 @@ export function RosterScreen(props: RosterScreenProps) {
               
           {/* Player list */}
           {players.length === 0 ? (
+            /*
+             * The empty state is a message, not a second toolbar (TASK-141).
+             * It used to carry its own "Add the first player" primary, so a
+             * first-run roster showed two primary buttons that called the same
+             * handler — one in the toolbar directly above, one here — 200px
+             * apart with a wall of CSV sentences between them. The toolbar's
+             * "Add player" is the affordance; this block says what the user is
+             * looking at and what an empty roster means.
+             */
             <div className="empty">
               <div className="big">No players in this community</div>
-              <p>Add the first player manually, or import a JSON / CSV roster.</p>
-              <button
-                className="btn btn-primary"
-                style={{ marginTop: 14 }}
-                onClick={props.onAddPlayer}
-              >
-                <Icon name="plus" size={16} />
-                Add the first player
-              </button>
+              <p>Add the first player with the button above, or import a JSON / CSV roster.</p>
             </div>
           ) : (
             <div className="roster">

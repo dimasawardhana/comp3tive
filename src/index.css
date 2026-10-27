@@ -1555,6 +1555,23 @@ h1 {
 }
 
 
+/*
+ * The roster's action block: the toolbar row, and the CSV format panel it
+ * discloses directly beneath it.
+ *
+ * These two are one unit of the page, but `.screen` is a flex column with a
+ * 22px gap between children, so as siblings they sat 34px apart (panel
+ * `margin-top: 8px` on top of the screen's own gap) — far enough that the panel
+ * read as separate content rather than as the detail behind the control that
+ * opened it. The wrapper states the relationship once: the toolbar, then an 8px
+ * gap, then the disclosure. The panel keeps no margin of its own.
+ */
+.roster-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
 .roster-toolbar {
   display: flex;
   flex-wrap: wrap;
@@ -1649,9 +1666,6 @@ h1 {
     padding: 0 12px;
     font-size: 14px;
   }
-  .roster-toolbar > .csv-format-panel {
-    order: 4;
-  }
   .durability-note {
     /* `order` re-lays the row without touching the source: the note reads
        after the buttons visually but keeps its audited DOM position —
@@ -1681,10 +1695,15 @@ h1 {
 
 /* The CSV format panel. Opened from the template button, closed by it again:
    reference copy on demand, so the page flow holds zero rows of it when the
-   user is not asking. Anchored under the toolbar, full measure, hairline box
-   like the import report. */
+   user is not asking. A block under the toolbar rather than a child of it
+   (TASK-141): as a flex child with `flex-basis: 100%` it forced its own line
+   and the toolbar's remaining items — the storage note and Export — flowed
+   around it, which at 1280 left Export alone on a line 208px below the row it
+   belonged to. Capped in measure so the reference reads as a panel rather than
+   a page-wide band, in the same hairline box as the import report; the 8px that
+   separates it from the toolbar is `.roster-actions`' column gap, so this box
+   carries no margin of its own. */
 .csv-format-panel {
-  flex-basis: 100%;
   max-width: 80ch;
   border: 1px solid var(--hairline);
   border-radius: 10px;
