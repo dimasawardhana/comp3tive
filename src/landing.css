@@ -285,9 +285,10 @@ body {
   grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
 }
 
-/* A team is a tone step from the page ground: white on #F9FAFB. No border, no
-   shadow. The dot is the team's identity, and its name is spelled out beside
-   it, so colour is never the only carrier. */
+/* A team is a tone step from the page ground (light: white on #F9FAFB; dark:
+   #111111 on #0a0a0a, the tokens.css pair). No border, no shadow. The dot is
+   the team's identity, and its name is spelled out beside it, so colour is
+   never the only carrier. */
 .deal-team {
   border-radius: var(--r-md);
   background: var(--surface-2);
@@ -311,10 +312,28 @@ body {
   color: var(--text);
 }
 
+/* The landing zone, made visible. The team's five anchors are both the
+   geometry the chips are measured from and the seats the deal fills, so they
+   carry a quiet fill: the hairline tone itself (about 1.2:1 on the card in
+   both schemes) reads as an empty seat and never competes with the chip that
+   lands on it. Kept as a plain var() fill on purpose — a color-mix here
+   computes to color(srgb …) notation that the inspect gate's colour parser
+   (and older engines) read as transparent, so the gate measured a void no
+   matter what the screen showed. A chip is exactly its anchor's box, so a
+   landed chip covers its seat pixel for pixel, and clearing the board reveals
+   seats, not a blank card. Measured without the fill at 1440px: the card was
+   a 26px head over 235px of nothing (card y362-643, head text ends y395) — a
+   void the gap rule warns on, and a static reader's first impression of the
+   deal's resting state. */
 .deal-slots {
   list-style: none;
   display: grid;
   gap: 8px;
+}
+
+.deal-slots .deal-anchor {
+  border-radius: var(--r-sm);
+  background: var(--hairline);
 }
 
 .deal-chips {
@@ -725,6 +744,15 @@ body {
   flex-direction: column;
   gap: 8px;
   min-width: 0;
+  /* The row stretches every card to the tallest, and the lists in this card
+     wrap differently per discipline (Mobile Legends carries 5 roles and 4
+     attributes; Futsal and Badminton carry fewer). Pinning the team size to
+     the foot with margin-top:auto left one hole: measured at 1440px, 62px of
+     nothing between the attribute list and the foot row in the two shorter
+     cards. Sharing the slack over all four gaps instead (space-between) keeps
+     every band under 40px: 15px per gap at 61px of slack at 1440px, less on a
+     two- or one-column layout where the row barely stretches. */
+  justify-content: space-between;
 }
 
 .landing-discipline-name {
@@ -756,7 +784,8 @@ body {
   font-size: 13px;
   font-weight: 600;
   color: var(--accent);
-  margin-top: auto;
+  /* Pinned by the card's space-between, not a margin: an auto margin here
+     would eat all the stretch before the other gaps get their share. */
   padding-top: 8px;
 }
 

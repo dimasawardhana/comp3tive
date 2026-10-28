@@ -535,6 +535,18 @@
       "updated_at": "2026-10-23T20:40:28Z"
     },
     {
+      "id": "TASK-140",
+      "title": "Landing hero: remove the blank band inside the hero team cards (panel-void)",
+      "goal": "A visitor loading the landing page sees the hero team cards filled with content rather than a ~235px reserved blank band, without disturbing the deal placement TASK-142 shipped.",
+      "acceptance": "inspect.mjs on the built landing page runs with its output recorded (panel-void resolved, or any residual finding kept with a measured reason); the blank-band height is measured at 1280x900 before and after with a DOM-rect probe; tsc 0, vitest under Node 22 green, build clean, full e2e green; landing.css comments updated with the new measured numbers, DESIGN.md only if the change is a direction change.",
+      "status": "done",
+      "triage": "ready-for-agent",
+      "priority": "medium",
+      "claim": null,
+      "created_at": "2026-10-28T02:51:49Z",
+      "updated_at": "2026-10-28T03:49:51Z"
+    },
+    {
       "id": "TASK-107",
       "title": "Cover the roster editor's refusal with a test",
       "goal": "Cover the roster editor's refusal with a test",
