@@ -4,8 +4,10 @@
 
    Composition: THE LEDGER, DEALT. Every claim is a row: the product's own verb
    in a narrow left spine, the worked evidence in the wide field beside it. The
-   first row is the product running (the real SplitScreen on the app's ink
-   panel), and the deal that produced those teams sits directly under it.
+   first row opens with the deal, which is the mechanism and the only thing on
+   the page that moves on load, and then shows the screen that deal produced:
+   the real SplitScreen on the app's ink panel, directly under it. The deal goes
+   first because a signature move below the fold is a still picture.
 
    Two rules do the visual work here, and both come from DESIGN.md:
    - separation is space and a step in tone, never a rule and never a shadow.
@@ -219,16 +221,24 @@ body {
 
 /* ---------- the deal ---------- */
 
-/* The deal is the second half of the Split row: the panel above shows the
-   result, this shows the mechanism that produced it. Named, so it reads as the
-   next thing to look at rather than a second copy of the panel. */
+/* The deal opens the Split row's field: the mechanism first, then the screen it
+   produced. Named, so it reads as a thing to watch rather than as a second copy
+   of the panel under it.
+
+   The margins are load-bearing, not taste. The statement closes at y303 on a
+   1280x900 screen, so whatever this heading and its tail cost is what the stage
+   starts at. The old 36px lead-in plus 29px of heading plus 16px of tail put the
+   stage at y384 and the settled teams at y902, past the fold, once the panel was
+   no longer above it. Held to 10px + 29 + 16 the stage opens at y358, so the
+   whole deal (stage, caption, pause control) closes at y876 inside a 900 screen,
+   and the teams have landed by y621, which keeps the payoff in view even at 720. */
 .landing-deal-head {
   font-family: var(--font-display);
   font-size: 19px;
   font-weight: 600;
   letter-spacing: -0.01em;
   color: var(--text);
-  margin-top: clamp(24px, 2.8vw, 36px);
+  margin-top: clamp(6px, 0.8vw, 10px);
   margin-bottom: 16px;
 }
 
@@ -449,6 +459,10 @@ body {
   background: var(--panel);
   border-radius: var(--r-lg);
   padding: clamp(16px, 2vw, 22px);
+  /* The panel now follows the deal, so it has to open the gap the deal's own
+     lead-in used to open. Space, not a rule: the panel is already a step in
+     tone, and a divider between two objects is a line this page does not draw. */
+  margin-top: clamp(32px, 4vw, 48px);
 }
 
 .landing-hero .split-screen {

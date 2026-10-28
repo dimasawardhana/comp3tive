@@ -20,7 +20,7 @@ The type was redrawn from the dealt DM Sans to Outfit + Familjen Grotesk (see
 |---|---|---|
 | **ENERGY** 2 | present, not loud | Used mid-conversation with 14 people waiting, not browsed |
 | **RHYTHM** 2 | a few breaks | Six hubs must not read as the same screen, but none is a poster |
-| **MOTION** 1 | hover, focus, one signature move | Motion here means "the split landed", not decoration |
+| **MOTION** 1 | hover, focus, one signature move | Motion here means "the split landed", not decoration. The move lives on the Landing Page's deal, and it has to be inside the first viewport: a signature move below the fold is a still picture |
 
 ## Why this direction
 
@@ -183,8 +183,10 @@ screens share a layout.
 `/` is a page, not an app screen, and it is read in one pass. It shares the
 palette and the two faces, and its structure is the product's own verb in a
 narrow left rail with the measured evidence in the wide field beside it. The
-hero carries the live split component, so the product demonstrates itself rather
-than describing itself. It carries exactly one action.
+first row opens with the deal, which is the mechanism and the only thing on the
+page that moves on load, and then shows the live split component it produced.
+The product demonstrates itself rather than describing itself, and it does so
+above the fold. It carries exactly one action.
 
 ## Copy voice
 
@@ -205,11 +207,28 @@ Energy 2, motion 1: one authored moment, then restraint.
 
 - The signature move is the split landing: cards settle and the needle travels
   once. Transform and opacity only.
+- On the Landing Page that move is the deal in `src/landingDeal.tsx`: ten rated
+  chips leaving the pool for the teams the solver assigned, staggered 85ms over
+  a five-phase loop whose durations come from the same constants the transitions
+  are written from. It is placed **above** the live SplitScreen panel, and it
+  must stay there. It was below it, and measured at y979 on a 1280x900 screen:
+  the one authored moment on the page started 79px past the fold, so the first
+  viewport was a still picture of a page that advertises motion. Moving it up
+  cost two margins and changed no animation. The dial did not move: this is the
+  move MOTION 1 already promised, finally happening where it can be seen.
+- Below 900px the deal cannot share the first screen with the headline and the
+  panel, so the promise narrows to what fits: the pool and the first chip's
+  whole flight stay in view, and the rest is one scroll away. Do not shrink the
+  chip pitch to close that gap; 38px of chip and 8px of air is what keeps ten
+  names readable while they move.
 - Every section's heading, then text, then data enter staggered 60 to 90ms,
   rising 16 to 32px, triggered once.
 - Every control has press, hover and focus feedback.
 - Under `prefers-reduced-motion` everything renders visible and static. The
   block lives in `src/tokens.css` so both surfaces inherit it.
+- `e2e/tests/landing/motion.spec.ts` holds all of the above to numbers: the fold
+  position at scroll 0, the chip's start and landing boxes on a phone, and a
+  sweep of `document.getAnimations()` for any transitioned layout property.
 
 ## Accessibility floor
 

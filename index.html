@@ -129,9 +129,18 @@
                 </div>
               </div>
             </div>
-            <div id="landing-hero" class="landing-hero" data-ui aria-label="Live split result"></div>
+            <!-- The mechanism first, the screen it produced second. The deal is
+                 the page's one signature move (DESIGN.md § Motion) and the only
+                 thing here that moves on load. It used to sit under the live
+                 panel, which put it at y979 on a 1280x900 screen: the one
+                 authored moment on the page started 79px below the fold, so a
+                 visitor saw a still picture and had to scroll to find out the
+                 product animates. Above the panel it starts at y348 and finishes
+                 inside the first viewport. The panel is unchanged and still
+                 directly below, because it is what the deal is a picture of. -->
             <h3 class="landing-deal-head">Ten players, dealt</h3>
             <div id="landing-deal" class="landing-deal" data-ui></div>
+            <div id="landing-hero" class="landing-hero" data-ui aria-label="Live split result"></div>
           </div>
         </section>
 
