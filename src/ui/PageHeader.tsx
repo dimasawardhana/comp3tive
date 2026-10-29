@@ -1,27 +1,33 @@
 import type { ReactNode } from "react";
 
 interface Props {
-  /** Small label above the title. Omit when the title already says it. */
-  kicker?: string;
   title: string;
   /** One line of context. Omit when the screen has nothing useful to add. */
   lede?: ReactNode;
   /** Breadcrumb rendered above the title for drill-down screens. */
   crumbs?: ReactNode;
+  /** The screen's most frequent job, rendered beside the title. */
+  action?: ReactNode;
 }
 
 /**
- * The masthead every screen shares. Screens previously hand-rolled this
- * four different ways (kicker+h1+lede, h1+lede, breadcrumb+h1+subtitle), which
- * is why headings drifted in size and spacing between pages.
+ * The masthead every screen shares: an `h1` and, optionally, crumbs, one lede
+ * line and the screen's primary action.
+ *
+ * There is deliberately no kicker. A small label above a heading either repeats
+ * the heading or carries a category the heading should have said itself, and
+ * both are how a screen ends up with an eyebrow that means nothing. If a screen
+ * needs context, it goes in the `lede`.
  */
-export function PageHeader({ kicker, title, lede, crumbs }: Props) {
+export function PageHeader({ title, lede, crumbs, action }: Props) {
   return (
-    <header className="page-header">
+    <header className={action ? "page-header page-header--with-action" : "page-header"}>
       {crumbs}
-      {kicker && <div className="kicker">{kicker}</div>}
-      <h1>{title}</h1>
-      {lede && <div className="lede">{lede}</div>}
+      <div className="page-header-main">
+        <h1>{title}</h1>
+        {lede && <p className="lede">{lede}</p>}
+      </div>
+      {action && <div className="page-header-action">{action}</div>}
     </header>
   );
 }

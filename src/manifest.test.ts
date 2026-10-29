@@ -197,12 +197,12 @@ describe("the web app manifest", () => {
     // The icons are opaque truecolour PNGs (no alpha channel), so the launch
     // splash is this colour with the tile on it. Any other value shows a hard
     // paper square floating in a differently coloured field.
-    expect(manifest.background_color).toBe("#FAF8F5");
-    // One static value, so it is the light theme's --surface: the paper
-    // `.topbar-wrap` paints, which leaves no seam between the status strip and
-    // the app's own bar. Not --accent: amber is this design's "do this now"
-    // colour (--whistle and --danger share it) and the OS strip is permanent.
-    expect(manifest.theme_color).toBe("#FAF8F5");
+    expect(manifest.background_color).toBe("#F9FAFB");
+    // One static value, so it is the light theme's --surface: the ground the
+    // shell paints, which leaves no seam between the status strip and the app's
+    // own bar. Not --accent: the hue is this design's data colour and the OS
+    // strip is permanent.
+    expect(manifest.theme_color).toBe("#F9FAFB");
     for (const field of ["theme_color", "background_color"]) {
       expect(tokenColours.has((manifest[field] as string).toLowerCase()), field).toBe(true);
     }

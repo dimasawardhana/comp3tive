@@ -65,7 +65,7 @@ export function MatchScreen(props: Props) {
               >
                 <div className="game-name">{d.name}</div>
                 <div className="game-sub">{gameSub(d)}</div>
-                {isActive && <div className="game-check" aria-hidden="true">✓</div>}
+                {isActive && <div className="game-check">Selected</div>}
               </button>
             );
           })}

@@ -233,6 +233,12 @@ _Render format 3._
 - priority: medium
 - updated: 2026-10-23T20:40:28Z
 
+### TASK-140 · Landing hero: remove the blank band inside the hero team cards (panel-void)
+
+> **Goal:** A visitor loading the landing page sees the hero team cards filled with content rather than a ~235px reserved blank band, without disturbing the deal placement TASK-142 shipped.
+- priority: medium
+- updated: 2026-10-28T03:49:51Z
+
 ### TASK-107 · Cover the roster editor's refusal with a test
 
 > **Goal:** Cover the roster editor's refusal with a test

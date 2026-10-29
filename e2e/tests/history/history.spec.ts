@@ -10,7 +10,7 @@ const world = (): SeedWorld => ({
   activeCommunityId: "comm-history",
 });
 
-test("history: layout padding + kicker + lede + empty state", async ({ page }) => {
+test("history: layout padding + title + lede + empty state", async ({ page }) => {
   await gotoHubSeeded(page, world(), "History");
 
   // 1. .screen wrapper exists with proper padding
@@ -23,12 +23,12 @@ test("history: layout padding + kicker + lede + empty state", async ({ page }) =
   expect(padding.top).toBeGreaterThanOrEqual(12);
   expect(padding.left).toBeGreaterThanOrEqual(12);
 
-  // 2. Title "History" with kicker
+  // 2. Title "History". There is deliberately no kicker: an eyebrow above the
+  // heading either repeated it or carried a category the heading should have
+  // said itself, so the masthead is an h1 and one lede line.
   const h1 = page.locator(".screen h1");
   await expect(h1).toHaveText("History");
-  const kicker = page.locator(".screen .kicker").first();
-  await expect(kicker).toBeVisible();
-  await expect(kicker).toHaveText("Game tape");
+  await expect(page.locator(".screen .kicker")).toHaveCount(0);
 
   // 3. Lede description
   await expect(page.locator(".screen .lede")).toBeVisible();

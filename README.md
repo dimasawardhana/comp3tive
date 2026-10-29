@@ -140,7 +140,7 @@ capture-and-verify tool; treat its output as a diagnostic, not an asset.
 |---|---|
 | `CONTEXT.md` | The glossary — authoritative |
 | `PRODUCT.md` | The product brief |
-| `DESIGN.md` | The design direction ("Paper & Pencil") |
+| `DESIGN.md` | The design direction ("Accent Ladder") |
 | `CLAUDE.md` | What an agent should read first |
 | `contracts.md` | The cross-phase contract: phase order and file ownership |
 | `docs/adr/` | Eight numbered decisions |

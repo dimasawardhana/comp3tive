@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { gotoSeeded, hubButton, type SeedWorld } from "../../support/seed";
+import { gotoSeeded, hubButton, openSettings, type SeedWorld } from "../../support/seed";
 
 const world = (): SeedWorld => ({
   communities: [{ id: "comm-settings", name: "Settings Test", createdAt: 100 }],
@@ -16,9 +16,9 @@ const world = (): SeedWorld => ({
 test("settings screen: theme + layout + account fully functional", async ({ page }) => {
   await gotoSeeded(page, world());
 
-  // 1. The Settings hub button is visible and lands on the screen.
-  await hubButton(page, "Settings").click();
-  await expect(page.locator(".screen h1")).toHaveText("Settings");
+  // 1. Settings is a destination, reachable from the sidebar footer on desktop
+  // and from the menu sheet on a phone; openSettings handles both.
+  await openSettings(page);
 
   // 2. Theme chips: Light/Dark/Auto all visible
   const lightChip = page.locator(".settings-chip", { hasText: "Light" });
@@ -58,12 +58,12 @@ test("settings screen: theme + layout + account fully functional", async ({ page
   expect(stored.theme).toBe("light");
   expect(stored.layout).toBe("mobile");
 
-  // 8. Reload page → settings persist, and the hub still lands on the screen
+  // 8. Reload page → settings persist, and Settings is still reachable. The
+  // reload returns to the Dashboard, so the nav starts from there again.
   await page.reload();
   await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
   await expect(page.locator("html")).toHaveAttribute("data-layout", "mobile");
-  await hubButton(page, "Settings").click();
-  await expect(page.locator(".screen h1")).toHaveText("Settings");
+  await openSettings(page);
 
   // 9. The Account section lives here now, not on the Dashboard. Signed out,
   // its buttons are the three sign-in paths, and no "Sync now" appears (that

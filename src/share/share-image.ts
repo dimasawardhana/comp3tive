@@ -29,21 +29,18 @@ export interface LayoutShareImageInput {
  * to be written out; the file is the source of truth and
  * `share-image.test.ts` re-reads it and fails if a hex here stops being a token.
  *
- * The poster is the **light** theme in both the app's themes, on purpose. It is
- * a file, not a view: it is dropped into a chat, a print queue, or a gallery,
- * and none of those can answer a media query, so "one image for both themes"
- * means one fixed palette rather than a runtime read. Light is that palette
- * because it is the one the sheet declares first (`:9`) and the one the word in
- * the app's own markup is drawn in (`index.html:58`). Reading the sheet's first
- * block is not the same as reading the right one: `:42-48` re-declares the
- * whole surface set for dark, and `:47` moves `--accent` to `#ea580c`, so a
- * poster built from the wrong block ships the wrong amber.
+ * The poster cannot answer a media query and a canvas cannot resolve
+ * `var(--accent)`, so it carries one fixed palette. These are the LIGHT values
+ * from `src/tokens.css` (the block the sheet declares first), copied by hand
+ * because a `ctx.fillStyle` is a literal string. `src/share/share-image.test.ts`
+ * reads `src/tokens.css` and fails if any of these drifts from the sheet, which
+ * is what keeps a file that is not a view from silently desynchronising.
  */
-const PAPER = "#FAF8F5"; // --surface
-const INK = "#1C1917"; // --text
-const SLATE = "#57534E"; // --text-2
+const PAPER = "#F9FAFB"; // --surface
+const INK = "#111827"; // --text
+const SLATE = "#5F6672"; // --text-2
 const AMBER = "#C2410C"; // --accent
-const HAIRLINE = "#E7E3DC"; // --hairline
+const HAIRLINE = "#E5E7EB"; // --hairline
 
 /**
  * The bib hexes, keyed by `BIB`'s own keys rather than by position, so the order

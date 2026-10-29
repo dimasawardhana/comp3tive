@@ -199,7 +199,9 @@ export function SplitDeal({ roster, result, discipline }: Props) {
   return (
     <figure className="deal">
       <div className="deal-stage" ref={stageRef} data-dealt={dealt} data-phase={phase} data-cycle={cycle}>
-        {/* Geometry only: these cells hold the layout the chips travel between. */}
+        {/* The anchors hold the layout the chips travel between, and a team's
+            five are visible seats (see .deal-slots in landing.css): the deal's
+            landing zone reads as a board, not as blank card. */}
         <div className="deal-anchors" aria-hidden="true">
           <ul className="deal-pool">
             {roster.map((player, index) => (

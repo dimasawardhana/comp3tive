@@ -49,7 +49,7 @@
  */
 import { expect, test } from "@playwright/test";
 import type { Page } from "@playwright/test";
-import { gotoHubSeeded, hubButton, type SeedWorld } from "../../support/seed";
+import { gotoHubSeeded, hubButton, type SeedWorld, rosterAction } from "../../support/seed";
 
 const world = (): SeedWorld => ({
   communities: [{ id: "comm-refuse", name: "Refusal Crew", createdAt: 100 }],
@@ -93,7 +93,7 @@ async function openAddPlayerWithCapability(page: Page, playerName: string, short
   await hubButton(page, "Roster").click();
   await expect(page.locator(".screen h1")).toHaveText("comp3tive");
 
-  await page.getByRole("button", { name: "+ Add Player" }).click();
+  await rosterAction(page, "Add player");
   const modal = page.locator(".modal-card");
   await expect(modal).toBeVisible();
   await expect(modal.locator(".modal-title")).toHaveText("Add player");
@@ -144,7 +144,7 @@ test("the same dialog saves once nothing is in the way", async ({ page }) => {
   await createRolelessDiscipline(page, "Silent Sport", "SSPT");
 
   await hubButton(page, "Roster").click();
-  await page.getByRole("button", { name: "+ Add Player" }).click();
+  await rosterAction(page, "Add player");
   const modal = page.locator(".modal-card");
   await expect(modal).toBeVisible();
   await modal.locator("#player-name").fill("Accepted Player");

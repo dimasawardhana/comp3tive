@@ -63,9 +63,9 @@
  *
  * | state | reached by | actions |
  * | --- | --- | --- |
- * | five, reopened from History | History → a seeded session | `← History`, `Save squad`, `Share`, `Swap`, `Re-roll` |
- * | five, from a tournament draft | Games → new tournament → Split your teams | `← Match setup`, `Save squad`, `Share`, `Swap`, `Save teams to tournament →` |
- * | three, share and swap withheld | History → a one-team result, the "Solver failed" screen | `← History`, `Save squad`, `Re-roll` |
+ * | five, reopened from History | History → a seeded session | `History`, `Save squad`, `Share`, `Swap`, `Re-roll` |
+ * | five, from a tournament draft | Games → new tournament → Split your teams | `Match setup`, `Save squad`, `Share`, `Swap`, `Save teams to tournament` |
+ * | three, share and swap withheld | History → a one-team result, the "Solver failed" screen | `History`, `Save squad`, `Re-roll` |
  * | two, the Landing Page hero | the root document | `Swap`, `Re-roll` |
  * | four, `onBack` absent | probed, see below | `Save squad`, `Share`, `Swap`, `Re-roll` |
  * | one, swap mode | the `Swap` button, see below | `Done swapping` |
@@ -315,7 +315,7 @@ const readBar = (page: Page): Promise<BarReading> => page.evaluate(() => {
  * matched **by label** and not by position, secondaries first and one primary
  * last — the order `SplitScreen` renders them. Matching by label rather than
  * taking the first N is what lets "four actions, `onBack` absent" ask for
- * `Save squad` and not inherit `← History` from the row it was composed from.
+ * `Save squad` and not inherit `History` from the row it was composed from.
  * See the header for what a probe is and is not.
  */
 async function probeBar(page: Page, labels: readonly string[]): Promise<void> {
@@ -396,19 +396,22 @@ const STATES: readonly State[] = [
   {
     name: "five actions, a session reopened from History",
     open: (page) => openSession(page, 0),
-    labels: ["← History", "Save squad", "Share", "Swap", "Re-roll"],
+    labels: ["History", "Save squad", "Share", "Swap", "Re-roll"],
     lines: { 390: 2, 1280: 1 },
   },
   {
     name: "five actions, from a tournament draft",
     open: openTournamentSplit,
-    labels: ["← Match setup", "Save squad", "Share", "Swap", "Save teams to tournament →"],
-    lines: { 390: 3, 1280: 1 },
+    labels: ["Match setup", "Save squad", "Share", "Swap", "Save teams to tournament"],
+    // Two lines, not three: the decorative arrow came off the primary's label,
+    // and four characters was the difference between wrapping and not. The
+    // widest bar the app can render now fits in the same two lines as the rest.
+    lines: { 390: 2, 1280: 1 },
   },
   {
     name: "three actions, the solver-failure screen withholds Share and Swap",
     open: (page) => openSession(page, 1),
-    labels: ["← History", "Save squad", "Re-roll"],
+    labels: ["History", "Save squad", "Re-roll"],
     lines: { 390: 1, 1280: 1 },
   },
   {
@@ -477,11 +480,10 @@ test.describe("the split screen's action bar", () => {
         );
 
         // The line count is the shape, and it is per state rather than global:
-        // the tournament bar needs three lines at 390 where the History bar
-        // needs two, and a single global number would be one of those two lying.
-        // A fifth action pushed the widest bar from two lines to three; that is
-        // the bar growing, not a label being cut, and pinning it is how the
-        // next fifth action has to argue about it.
+        // each state pins its own number, so a change in any one is a red test
+        // rather than a silent reflow. The tournament bar used to need three
+        // lines at 390; dropping the decorative arrow from its primary label
+        // brought it back to two, which is the same shape as the History bar.
         const lines = new Set(read.actions.map((a) => a.top)).size;
         expect(lines, `${where}: the bar is ${lines} line(s) tall, expected ${state.lines[width as 390 | 1280]}`).toBe(
           state.lines[width as 390 | 1280],
@@ -643,14 +645,17 @@ test.describe("the split screen's action bar", () => {
     // the component writes is the name the user finds, at both widths.
     await page.setViewportSize({ width: 390, height: 844 });
     await openSession(page, 0);
-    for (const label of ["← History", "Save squad", "Share", "Swap", "Re-roll"]) {
-      await expect(page.getByRole("button", { name: label, exact: true }), label).toBeVisible();
+    // Scoped to the action bar: "History" is also a nav destination now that
+    // the bar's back label carries no arrow, so an unscoped role lookup matches
+    // two controls and a strict-mode violation would be a false alarm.
+    for (const label of ["History", "Save squad", "Share", "Swap", "Re-roll"]) {
+      await expect(page.locator(".split-bar").getByRole("button", { name: label, exact: true }), label).toBeVisible();
     }
     // The tournament bar's primary is the widest label in the app, and the one
     // an overflow fix is most tempted to shorten. It is pinned by name at the
     // width where the bar wraps.
     await openTournamentSplit(page);
-    await expect(page.getByRole("button", { name: "Save teams to tournament →", exact: true })).toBeVisible();
+    await expect(page.locator(".split-bar").getByRole("button", { name: "Save teams to tournament", exact: true })).toBeVisible();
     const read = await readBar(page);
     expect(read.document.scrollWidth, "the tournament bar at 390: the document sideways-scrolls").toBeLessThanOrEqual(
       read.document.clientWidth,

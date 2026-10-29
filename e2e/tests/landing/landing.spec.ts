@@ -20,7 +20,7 @@ import { FORMAT_LABEL, SELECTABLE_FORMATS } from "../../../src/ui/constants";
 import type { Page } from "@playwright/test";
 
 /** The Landing Page's own h1; the app's is "Dashboard" (or another screen title). */
-const LANDING_H1 = "Pick the players. Get the fairest teams it can prove.";
+const LANDING_H1 = "Fairest teams it can prove";
 
 /** `FORMAT_LABEL` widened to string keys, so a format can be looked up by name. */
 const LABELS: Record<string, string> = FORMAT_LABEL;
@@ -396,8 +396,8 @@ test.describe("Landing Page", () => {
 
     expect(dark).not.toBe(light);
     // The app's own tokens, not the Landing Page's copies of them.
-    expect(light).toBe("rgb(250, 248, 245)");
-    expect(dark).toBe("rgb(28, 25, 23)");
+    expect(light).toBe("rgb(249, 250, 251)");
+    expect(dark).toBe("rgb(10, 10, 10)");
   });
 });
 

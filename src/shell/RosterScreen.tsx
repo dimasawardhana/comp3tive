@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import type { Community, Discipline, Id, Player } from "../domain/types";
 import { PageHeader } from "../ui/PageHeader";
 import { Screen } from "../ui/Screen";
+import { Icon } from "../ui/Icon";
 import { PlayerEditModal } from "../roster/PlayerEditModal";
 import { BulkRateModal, rateConfirmation } from "../roster/BulkRateModal";
 import type { ImportReport, ImportSkip, PendingMerge } from "./usePlayerImport";
@@ -33,6 +34,23 @@ export interface RosterScreenProps {
   onSavePlayer: (player: Player) => Promise<void>;
   onDeletePlayer: (id: Id) => Promise<void>;
   onCloseEditor: () => void;
+  /**
+   * The CSV format panel's initial state, and only its initial state — the
+   * screen owns the value from mount on and the template button toggles it.
+   *
+   * Left unset the panel starts closed (TASK-141). An open panel on a
+   * first-run roster put a 275px wall of CSV sentences between the toolbar and
+   * "No players in this community", which at 390 landed at y682, below the
+   * fold; the button now says what it holds, so the reference is a press away
+   * instead of standing in the doorway.
+   *
+   * The copy-vs-parser tests in `RosterScreen.csv-hint.test.ts` need the panel
+   * rendered and have no browser to press anything, so `renderRoster` opens it.
+   * That is the argument for this being a prop at all — it is a disclosure's
+   * default, not a test hook: a screen that wanted the panel open (a first-run
+   * flow that starts on the import path) would set the same thing.
+   */
+  csvPanelOpenByDefault?: boolean;
   /**
    * The browser's persistence verdict for this origin, forwarded from
    * `useDurability`. Tri-state on purpose, and the three cases are three
@@ -213,21 +231,6 @@ const CSV_FORMAT_COPY: readonly string[] = [
   "Fill the template in and save it, then press Import players and pick that file. Nothing here is read until you choose it.",
   "CSV columns, in this order: name, discipline, strength. Any value with a comma in it goes in quotes. The last example row in the template shows one in the name column.",
   "Strength is a number from 1 to 5. Leave it blank and it is read as 3; text there skips the row.",
-];
-
-/**
- * The actions menu's items, in the order they are offered.
- *
- * Module-level so the label contract is testable while the menu itself is
- * closed: `renderToStaticMarkup` cannot click, so a label that only existed
- * inside the open menu was a label no node test could reach. The ids are
- * stable keys, not CSS hooks — the tests assert on `label`, the same string
- * the copy names.
- */
-export const ROSTER_ACTIONS: ReadonlyArray<{ id: string; label: string }> = [
-  { id: "add-player", label: "+ Add Player" },
-  { id: "import-players", label: "Import players" },
-  { id: "download-csv-template", label: "Download CSV template" },
 ];
 
 /** `1 player row` / `3 player rows`, so no sentence in the panel miscounts. */
@@ -509,39 +512,19 @@ export function RosterScreen(props: RosterScreenProps) {
    */
   const [selection, setSelection] = useState<Selection>(NO_SELECTION);
   const [rateOpen, setRateOpen] = useState(false);
-  /** The actions menu: closed until the Actions button asks for it. */
-  const [menuOpen, setMenuOpen] = useState(false);
   /**
-   * The CSV format panel: closed until the menu item asks for it — except on
-   * an empty roster, where the organizer is about to need it and has nothing
-   * below to push out of the way. `players` is a prop, so this initial value
-   * is a one-time reading of the roster the screen was born with; toggling
-   * afterwards is the menu item's business.
+   * The CSV format panel: closed until the template button asks for it, or
+   * open from the first frame if the caller says so through
+   * `csvPanelOpenByDefault` (see that prop for why it exists).
+   *
+   * It used to start open whenever the roster was empty, on the theory that a
+   * first-time organizer is about to need the column contract. On screen that
+   * was the wrong trade (TASK-141): the open panel put a 275px wall of CSV
+   * sentences between the toolbar and the page's own message, and at 390 the
+   * sentence that actually mattered — "No players in this community" — landed
+   * at y682, below the fold.
    */
-  const [csvPanelOpen, setCsvPanelOpen] = useState(players.length === 0);
-  /**
-   * The menu closes on a click anywhere outside it. The ref is the dropdown's
-   * own box, so a click on the toggle itself is handled by React's state
-   * toggle and not double-handled here; Escape is the keyboard's way out.
-   */
-  const dropdownRef = useRef<HTMLDivElement | null>(null);
-  useEffect(() => {
-    if (!menuOpen) return;
-    const onPointerDown = (e: PointerEvent): void => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
-        setMenuOpen(false);
-      }
-    };
-    const onKeyDown = (e: KeyboardEvent): void => {
-      if (e.key === "Escape") setMenuOpen(false);
-    };
-    document.addEventListener("pointerdown", onPointerDown);
-    document.addEventListener("keydown", onKeyDown);
-    return () => {
-      document.removeEventListener("pointerdown", onPointerDown);
-      document.removeEventListener("keydown", onKeyDown);
-    };
-  }, [menuOpen]);
+  const [csvPanelOpen, setCsvPanelOpen] = useState(props.csvPanelOpenByDefault ?? false);
   const selectedIds = idsIn(selection, activeCommunity?.id);
   const selectedPlayers = selectedIn(selection, activeCommunity?.id, visiblePlayers);
   const allSelected = visiblePlayers.length > 0 && selectedPlayers.length === visiblePlayers.length;
@@ -623,7 +606,6 @@ export function RosterScreen(props: RosterScreenProps) {
   return (
     <Screen>
       <PageHeader
-        kicker="Match sheet"
         title="comp3tive"
         lede={
           activeCommunity && (
@@ -653,21 +635,31 @@ export function RosterScreen(props: RosterScreenProps) {
         </div>
       )}
 
-      {/* Discipline filter chips + clear, on one line */}
+      {/* Discipline filters. Each carries the count of players who can play
+          it, computed from the roster before the filter is applied: the count
+          is what makes the row a filter rather than a set of labels, and it
+          must not change as the reader narrows the list. A discipline nobody
+          plays still prints a real 0 rather than disappearing. */}
       {disciplines.length > 0 && (
         <div className="roster-filters">
           <div className="chips">
-            {disciplines.map((d) => (
-              <button
-                key={d.id}
-                type="button"
-                className="chip"
-                aria-pressed={filterIds.includes(d.id)}
-                onClick={() => toggleFilter(d.id)}
-              >
-                {d.shortName}
-              </button>
-            ))}
+            {disciplines.map((d) => {
+              const count = players.filter((p) =>
+                p.capabilities.some((c) => c.disciplineId === d.id),
+              ).length;
+              return (
+                <button
+                  key={d.id}
+                  type="button"
+                  className="chip"
+                  aria-pressed={filterIds.includes(d.id)}
+                  onClick={() => toggleFilter(d.id)}
+                >
+                  {d.shortName}
+                  <span className="chip-count">{count}</span>
+                </button>
+              );
+            })}
           </div>
           {filterIds.length > 0 && (
             <button className="btn btn-ghost small" onClick={clearFilters}>Clear filters</button>
@@ -676,116 +668,139 @@ export function RosterScreen(props: RosterScreenProps) {
       )}
               
           {/*
-           * Player actions, as one dropdown. A single control keeps the
-           * toolbar to two buttons on any screen width: the menu carries the
-           * three ways a roster grows, and the primary — adding a player —
-           * stays a first-class item at the top of the menu rather than
-           * hidden behind a second click when the user is on the empty
-           * roster they are about to fill. The format panel opens from the
-           * menu item instead of a caret, so the reference copy and the
-           * download it explains arrive together.
+           * Player actions, as direct toolbar controls. The dropdown is gone
+           * (TASK-139): the job this toolbar exists for — adding a player —
+           * sat one click behind an "Actions" label that named none of its
+           * items, and every item in it was already a full sentence. Now the
+           * primary is the first control on the row with its written label.
+           *
+           * The two secondary jobs — importing a file and the CSV reference —
+           * carry a glyph AND their word (TASK-140). They were glyph-only for
+           * one revision, and it failed on screen for a reason no test could
+           * see: the icon library's `import` and `download` paths were
+           * identical, so the row showed two indistinguishable arrows and the
+           * only legible word on it was "Export". A word next to each glyph
+           * means the row survives an icon being redrawn wrong, and it names
+           * the artifact — a CSV template is a spreadsheet, which is why the
+           * template control draws a table and not a downward arrow.
+           *
+           * The template button toggles the format panel rather than only
+           * opening it. Unlike the menu it replaced, the button stays on the
+           * page directly above the panel it opens, so a second press meaning
+           * "put that away" is what the user can already see happening. It
+           * keeps aria-expanded / aria-controls, so the disclosure contract is
+           * unchanged, and the panel itself now renders as a block under this
+           * row rather than inside it (TASK-141 — inside the row it pushed
+           * Export and the storage note onto lines of their own).
            */}
+          {/*
+           * The toolbar and the format panel it discloses are ONE block.
+           *
+           * `.screen` is a flex column with a 22px gap, so a sibling panel sat
+           * 34px below the row that opened it — far enough to read as unrelated
+           * content rather than as the detail behind the CSV template control.
+           * This wrapper owns the disclosure's own 8px gap, and the panel's
+           * place in it is stated by source order rather than by CSS `order`.
+           */}
+          <div className="roster-actions">
           <div className="roster-toolbar">
-            <div className="dropdown" ref={dropdownRef}>
+            <button
+              type="button"
+              className="btn btn-primary"
+              data-testid="roster-add-player"
+              onClick={props.onAddPlayer}
+            >
+              <Icon name="plus" size={16} />
+              Add player
+            </button>
+            <button
+              type="button"
+              className="btn btn-ghost roster-file-btn"
+              data-testid="roster-import-players"
+              aria-label="Import players"
+              title="Import players"
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <Icon name="import" size={16} />
+              Import
+            </button>
+            <button
+              type="button"
+              className="btn btn-ghost roster-file-btn"
+              data-testid="download-csv-template"
+              aria-label="Download CSV template"
+              title="Download CSV template"
+              aria-expanded={csvPanelOpen}
+              aria-controls="csv-format-panel"
+              onClick={() => setCsvPanelOpen(!csvPanelOpen)}
+            >
+              <Icon name="table" size={16} />
+              CSV template
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".json,.csv,.txt"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) void props.importFile(f);
+              }}
+              style={{ display: "none" }}
+            />
+            <div className="roster-toolbar-spacer" />
+            <span className="durability-note">
+              {props.persisted === true && "This browser reported persistent storage for this app on this visit. Keep a backup anyway."}
+              {props.persisted === false && "This browser reports this app's data is not stored persistently. Keep a backup."}
+              {props.persisted === null && "This app could not confirm persistent storage here. Keep a backup."}
+            </span>
+            <button className="btn btn-ghost" onClick={props.onExport}>
+              Export
+            </button>
+          </div>
+
+          {/*
+           * The format reference, OUTSIDE the toolbar's flex row (TASK-141).
+           *
+           * It used to be the last child of `.roster-toolbar`, which is a
+           * wrapping flex row: the panel's `flex-basis: 100%` pushed it onto a
+           * line of its own and everything after it — the spacer, the storage
+           * note, Export — flowed around it. Measured on a first-run roster at
+           * 1280, the note sat at y339 inside the panel's vertical span while
+           * Export dropped alone to y483, 208px below its own row; at 390 the
+           * open panel was a 275px wall between the actions and the note, and
+           * it pushed "No players in this community" to y682 — below the fold
+           * on the one page whose whole message is that sentence.
+           *
+           * As a block under the toolbar, the panel is what it looks like: the
+           * detail behind the CSV template control, which stays on the row
+           * directly above it, still reporting aria-expanded and still naming
+           * this node through aria-controls.
+           */}
+          {csvPanelOpen && (
+            <div className="csv-format-panel" id="csv-format-panel">
+              {CSV_FORMAT_COPY.map((text) => (
+                <p className="import-hint" key={text.slice(0, 24)}>{text}</p>
+              ))}
+              {disciplines.length > 0 && (
+                <>
+                  <p className="import-hint">Discipline must be one of:</p>
+                  <ul className="import-hint-list">
+                    {disciplines.map((d) => (
+                      <li key={d.id}>{disciplineSpelling(d)}</li>
+                    ))}
+                  </ul>
+                </>
+              )}
               <button
                 type="button"
-                className="btn btn-primary dropdown-toggle"
-                data-testid="roster-actions-button"
-                aria-haspopup="menu"
-                aria-expanded={menuOpen}
-                onClick={() => setMenuOpen(!menuOpen)}
+                className="btn btn-ghost small"
+                data-testid="csv-panel-download"
+                onClick={downloadCsvTemplate}
               >
-                Actions
-                <span className="dropdown-caret" aria-hidden="true">▾</span>
-              </button>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".json,.csv,.txt"
-                onChange={(e) => {
-                  const f = e.target.files?.[0];
-                  if (f) void props.importFile(f);
-                }}
-                style={{ display: "none" }}
-              />
-              {menuOpen && (
-                <div className="dropdown-menu" role="menu" aria-label="Roster actions">
-                  {ROSTER_ACTIONS.map((action) => (
-                    <button
-                      key={action.id}
-                      type="button"
-                      role="menuitem"
-                      className={`dropdown-item${action.id === "add-player" ? " dropdown-item--primary" : ""}`}
-                      data-testid={action.id === "download-csv-template" ? "download-csv-template" : undefined}
-                      aria-expanded={action.id === "download-csv-template" ? csvPanelOpen : undefined}
-                      aria-controls={action.id === "download-csv-template" ? "csv-format-panel" : undefined}
-                      onClick={() => {
-                        if (action.id === "add-player") {
-                          setMenuOpen(false);
-                          props.onAddPlayer();
-                        } else if (action.id === "import-players") {
-                          setMenuOpen(false);
-                          fileInputRef.current?.click();
-                        } else {
-                          // Opening the format panel is an open command, never
-                          // a toggle: on an empty roster the panel starts
-                          // open, so a toggle here would close the thing the
-                          // item just promised to show. The menu closes with
-                          // it — every other item ends the menu, and leaving
-                          // it open would put the menu between the user and
-                          // the panel that just opened underneath it. It also
-                          // keeps the panel's DOM stable: as a sibling of the
-                          // menu in the same parent, a menu that closed later
-                          // (e.g. the outside-click handler) would shift the
-                          // panel's position in React's children array and
-                          // remount it under a press already in flight.
-                          setMenuOpen(false);
-                          setCsvPanelOpen(true);
-                        }
-                      }}
-                    >
-                      {action.label}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-            {csvPanelOpen && (
-              <div className="csv-format-panel" id="csv-format-panel">
-                {CSV_FORMAT_COPY.map((text) => (
-                  <p className="import-hint" key={text.slice(0, 24)}>{text}</p>
-                ))}
-                {disciplines.length > 0 && (
-                  <>
-                    <p className="import-hint">Discipline must be one of:</p>
-                    <ul className="import-hint-list">
-                      {disciplines.map((d) => (
-                        <li key={d.id}>{disciplineSpelling(d)}</li>
-                      ))}
-                    </ul>
-                  </>
-                )}
-                <button
-                  type="button"
-                  className="btn btn-ghost small"
-                  data-testid="csv-panel-download"
-                  onClick={downloadCsvTemplate}
-                >
-                  Download template
-                </button>
-              </div>
-            )}
-            <div className="roster-toolbar-spacer" />
-            <div className="roster-toolbar-group">
-              <span className="durability-note">
-                {props.persisted === true && "This browser reported persistent storage for this app on this visit. Keep a backup anyway."}
-                {props.persisted === false && "This browser reports this app's data is not stored persistently. Keep a backup."}
-                {props.persisted === null && "This app could not confirm persistent storage here. Keep a backup."}
-              </span>
-              <button className="btn btn-ghost" onClick={props.onExport}>
-                Export
+                Download template
               </button>
             </div>
+          )}
           </div>
 
           {/*
@@ -928,17 +943,18 @@ export function RosterScreen(props: RosterScreenProps) {
               
           {/* Player list */}
           {players.length === 0 ? (
+            /*
+             * The empty state is a message, not a second toolbar (TASK-141).
+             * It used to carry its own "Add the first player" primary, so a
+             * first-run roster showed two primary buttons that called the same
+             * handler — one in the toolbar directly above, one here — 200px
+             * apart with a wall of CSV sentences between them. The toolbar's
+             * "Add player" is the affordance; this block says what the user is
+             * looking at and what an empty roster means.
+             */
             <div className="empty">
-              <div className="kicker">Empty bench</div>
               <div className="big">No players in this community</div>
-              <p>Add the first player manually, or import a JSON / CSV roster.</p>
-              <button
-                className="btn btn-primary"
-                style={{ marginTop: 14 }}
-                onClick={props.onAddPlayer}
-              >
-                + Add the first player
-              </button>
+              <p>Add the first player with the button above, or import a JSON / CSV roster.</p>
             </div>
           ) : (
             <div className="roster">
@@ -953,7 +969,7 @@ export function RosterScreen(props: RosterScreenProps) {
                   <div
                     key={player.id}
                     className="row row-clickable row-has-select"
-                    style={{ "--stripe": bibVar } as React.CSSProperties}
+                    style={{ "--stripe": bibVar, "--i": i } as React.CSSProperties}
                   >
                     {/*
                      * The checkbox is a *sibling* of the row's button, not a
@@ -984,12 +1000,9 @@ export function RosterScreen(props: RosterScreenProps) {
                         }
                       }}
                     >
-                      <span className="lineup-no">{String(i + 1).padStart(2, "0")}</span>
                       <div className="who">
                         <div className="name">{player.name}</div>
-                        {player.notes && (
-                          <div className="note">{player.notes}</div>
-                        )}
+                        {player.notes && <div className="note">{player.notes}</div>}
                         <div className="badges">
                           {player.capabilities.map(cap => {
                             const discipline = disciplinesById.get(cap.disciplineId);
@@ -1013,7 +1026,7 @@ export function RosterScreen(props: RosterScreenProps) {
 
           <div className="cta-bar">
             <div className="cta-label">
-              Ready to play? <strong>Split the roster</strong> and check the balance.
+              Ready to play? <strong>Split match</strong> splits the roster so both sides get a game.
             </div>
             <button
               type="button"

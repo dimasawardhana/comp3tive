@@ -30,7 +30,11 @@ const world = (): SeedWorld => ({
 test("saved squad flow: save from split, list, use in tournament", async ({ page }) => {
   await gotoHubSeeded(page, world(), "Roster");
   await expect(page.locator(".squad-select-value")).toBeVisible({ timeout: 5000 });
-  await expect(page.getByText("+ Add Player")).toBeVisible({ timeout: 5000 });
+  // The roster is up with its toolbar. The add action is the toolbar's direct
+  // primary button (TASK-139 folded the old Actions menu away), so the button
+  // is the honest "screen is ready" probe; pressing it here would raise a
+  // modal this flow does not want.
+  await expect(page.getByTestId("roster-add-player")).toBeVisible({ timeout: 5000 });
   await expect(page.getByText("Alpha")).toBeVisible({ timeout: 5000 });
   await expect(page.getByText("Juliet")).toBeVisible({ timeout: 5000 });
 
@@ -75,8 +79,10 @@ test("saved squad flow: save from split, list, use in tournament", async ({ page
   expect(detailNames.length).toBe(10);
   expect(detailNames.every((n) => names.includes(n))).toBe(true);
 
-  // Back to the list.
-  await page.getByRole("button", { name: "← Squads" }).click();
+  // Back to the Squads hub. Scoped to the rail nav: the action bar's back
+  // button can also read "Squads", and the intent here is the destination
+  // rather than the local back step.
+  await page.locator(".rail-nav").getByRole("button", { name: "Squads", exact: true }).click();
 
   // Create a 2-team MLBB Series tournament.
   await hubButton(page, "Games").click();

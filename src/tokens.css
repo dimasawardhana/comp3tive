@@ -1,6 +1,9 @@
 @import "./fonts.css";
 
-/* Design system: "Paper & Pencil" (per DESIGN.md). Warm paper, quiet ink, one amber accent for live action. */
+/* Design system: "Accent Ladder" (dealt sheet, seed 318235376). One hue at full
+   strength on small marks only; its pale tints carry every area. Palette
+   redrawn from the dealt raspberry to the brand amber (#C2410C, brand/README.md)
+   because the ladder is meant to be built from the product's own hue. */
 
 /* Single source of truth for every design token. Consumed by the app
    (src/index.css) and the Landing Page (src/landing.css) so the two
@@ -11,109 +14,155 @@
 :root {
   /* The app follows the OS (see the `prefers-color-scheme` block below), and this
      tells the user agent so: form controls, scrollbars and the canvas under the
-     page stop being hard-wired light. It is not cosmetic housekeeping — the
-     installed window on iOS reads `apple-touch-icon` and not the manifest, and iOS
-     reads no manifest `theme_color` at all, so this declaration is what gives the
-     status bar on a home-screen app something to match against. */
+     page stop being hard-wired light. */
   color-scheme: light dark;
-  --surface: #faf8f5; /* paper - warm white, like blank paper */
-  --surface-2: #ffffff; /* elevated */
-  --hairline: #e7e3dc; /* slightly warm hairline */
-  --text: #1c1917; /* ink */
-  --text-2: #57534e; /* muted slate */
-  --accent: #c2410c; /* amber - focus, links, info */
-  --accent-ink: #ffffff;
-  --whistle: #c2410c; /* amber - the one "do this now" color */
+
+  /* --- Accent ladder: full hue on marks, tints on areas --- */
+  --accent: #c2410c; /* the one hue: data, the live action, focus */
+  --accent-soft: #fdf1ea; /* pale tint: selected rows, the user's chat bubble */
+  --accent-track: #f8dccd; /* the tint behind a progress or gap track */
+  --accent-ink: #ffffff; /* text on a full-hue fill (5.18:1) */
+  --accent-deep: #7c2d12; /* dark ink OF the hue, for text on --accent-soft (8.45:1) */
+
+  /* --- Surfaces: one ground, one surface, one raised step. No shadow at rest. --- */
+  --surface: #f9fafb; /* page ground */
+  --surface-2: #ffffff; /* cards and panels */
+  --surface-alt: #f3f4f6; /* raised step: table headers, inset panels */
+  --hairline: #e5e7eb; /* the one border tone (~1.2:1 on the ground) */
+  --border: #d1d5db; /* controls, one step stronger */
+
+  /* --- Ink --- */
+  --text: #111827; /* 16.98:1 on the ground */
+  --text-1: var(--text);
+  --text-2: #5f6672; /* 5.54:1 on the ground, 5.78:1 on a card */
+  --muted: var(--text-2);
+
+  /* --- The action. Near-black, not the accent: the hue is for data. --- */
+  --whistle: #111827;
   --whistle-ink: #ffffff;
+
+  /* --- Team identity. These are identity, not data: they stay out of charts.
+     --bib-ink is the ONLY text colour that clears 4.5:1 on all five in both
+     themes (5.23:1 to 10.95:1); white on them fails at 1.60:1 to 3.35:1. --- */
   --bib-a: #ffc400;
   --bib-b: #ff4f9a;
   --bib-c: #4e8fdb;
   --bib-d: #6faf8e;
   --bib-e: #c9a227;
-  --ok: #6faf8e; /* balanced state = green, not amber */
-  --danger: #c2410c;
-  --chip-on: #1c1917; /* monochrome selection */
-  --chip-on-text: #faf8f5;
-  --panel: #1c1917; /* ink panel (split screen backdrop) */
-  --panel-text: #faf8f5;
-  --panel-card: rgba(250, 248, 245, 0.06);
-  --track: rgba(250, 248, 245, 0.25);
-  --tick: rgba(250, 248, 245, 0.4);
+  --bib-ink: #1c1917;
+
+  /* --- Status --- */
+  --ok: #247b50;
+  --danger: #c4242a;
+
+  /* --- Selection --- */
+  --chip-on: #111827;
+  --chip-on-text: #ffffff;
+
+  /* --- The split panel: a raised dark surface, not a second theme --- */
+  --panel: #111827;
+  --panel-text: #f9fafb;
+  --panel-card: rgba(249, 250, 251, 0.06);
+  --track: rgba(249, 250, 251, 0.25);
+  --tick: rgba(249, 250, 251, 0.4);
+
   /* Type. The two faces are self-hosted (`src/fonts.css`); everything after
-     them is the deliberate fall-back, and it matters more now than it did when
-     a CDN miss cost a slow first paint. Same-origin, a wrong path is a silent
-     404: no error, no console line, and the app renders in the fall-back
-     forever. So the stack is written out rather than left as a bare
-     `sans-serif` — `system-ui` first, because it is the closest thing to
-     Familjen Grotesk's grotesk on the platform; the named faces after it for
-     user agents with no `system-ui`; the generic last, so an old one still
-     gets a sans rather than a serif. Outfit's chain matches: it is a geometric
-     sans, and a serif fall-back under a geometric headline is the one that
-     reads as a different product. `src/share/share-image.ts` cannot read a
-     custom property — a `ctx.font` is a literal string — so it repeats these
-     two lists, and `src/share/share-image.test.ts` fails if they drift. */
+     them is the deliberate fall-back, and it matters: same-origin, a wrong path
+     is a silent 404 and the app renders in the fall-back forever. `system-ui`
+     first, because it is the closest thing to a grotesk on the platform.
+     `src/share/share-image.ts` cannot read a custom property (a `ctx.font` is a
+     literal string) and carries per-glyph advance tables keyed to these two
+     families; `src/share/share-image.test.ts` fails if the stacks drift. The
+     dealt sheet asked for DM Sans, redrawn to these two because DM Sans is not
+     on this machine and the project forbids runtime font fetches. */
   --font-display: "Outfit", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --font-body: "Familjen Grotesk", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  --shadow: 0 1px 2px rgba(28, 25, 23, 0.04), 0 4px 12px rgba(28, 25, 23, 0.08);
-  --r-lg: 16px;
-  --r-md: 12px;
-  --r-sm: 8px;
+
+  /* --- Shape: bimodal radius, tight here. 8 for cards, 6 for controls. --- */
+  --r-lg: 8px;
+  --r-md: 8px;
+  --r-sm: 6px;
+
+  /* --- Rhythm: one gap, one control height, one row pitch. --- */
+  --gap: 24px;
+  --control-height: 32px;
+  --row-height: 44px;
+
+  /* --- Type scale. Three sizes do the visible work. --- */
+  --fs-title: 24px;
+  --fs-section: 16px;
+  --fs-kpi: 24px;
+  --fs-body: 14px;
+  --fs-small: 12px;
+
+  /* Only real overlays cast: a menu, a dialog, a toast. Never a resting card. */
+  --shadow: 0 1px 2px rgba(17, 24, 39, 0.04), 0 4px 12px rgba(17, 24, 39, 0.08);
+
   /* Height of the sticky tab bar. Sticky action bars stack directly above it,
      so the two never fight over the same offset. */
   --tabbar-h: calc(64px + env(safe-area-inset-bottom));
 }
 :root[data-theme="dark"] {
-  --surface: #1c1917;
-  --surface-2: #23201c;
-  --hairline: #332f2a;
-  --text: #faf8f5;
-  --text-2: #a8a29e;
-  --accent: #ea580c;
-  --accent-ink: #10131a;
-  --whistle: #ea580c;
-  --whistle-ink: #10131a;
+  --accent: #f97316; /* the hue lifted for a true-black ground (7.06:1) */
+  --accent-soft: #24140a;
+  --accent-track: #3a1f0e;
+  --accent-ink: #0a0a0a;
+  --accent-deep: #fdba74; /* 10.72:1 on --accent-soft's floor */
+  --surface: #0a0a0a; /* true black, not navy or slate */
+  --surface-2: #111111; /* one lightness step; no border, no shadow */
+  --surface-alt: #191919;
+  --hairline: #262626;
+  --border: #363636;
+  --text: #fafafa; /* 18.97:1 */
+  --text-1: var(--text);
+  --text-2: #b4b4b4; /* 9.55:1 on the ground, 8.48:1 on a card */
+  --muted: var(--text-2);
+  --whistle: #fafafa; /* inverted: white fill, black label */
+  --whistle-ink: #0a0a0a;
   --bib-a: #ffc400;
   --bib-b: #ff4f9a;
   --bib-c: #4e8fdb;
   --bib-d: #6faf8e;
   --bib-e: #c9a227;
-  --ok: #6faf8e;
-  --danger: #ea580c;
-  --chip-on: #faf8f5;
-  --chip-on-text: #1c1917;
-  --panel: #23201c;
-  --panel-text: #faf8f5;
-  --panel-card: rgba(250, 248, 245, 0.08);
-  --track: rgba(250, 248, 245, 0.3);
-  --tick: rgba(250, 248, 245, 0.45);
-  --shadow: 0 1px 2px rgba(0, 0, 0, 0.2), 0 4px 12px rgba(0, 0, 0, 0.35);
+  --bib-ink: #1c1917;
+  --ok: #3fc07a;
+  --danger: #ff6b6b;
+  --chip-on: #fafafa;
+  --chip-on-text: #0a0a0a;
+  --panel: #191919;
+  --panel-text: #fafafa;
+  --panel-card: rgba(250, 250, 250, 0.08);
+  --track: rgba(250, 250, 250, 0.3);
+  --tick: rgba(250, 250, 250, 0.45);
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 4px 12px rgba(0, 0, 0, 0.55);
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --surface: #1c1917;
-    --surface-2: #23201c;
-    --hairline: #332f2a;
-    --text: #faf8f5;
-    --text-2: #a8a29e;
-    --accent: #ea580c;
-    --accent-ink: #10131a;
-    --whistle: #ea580c;
-    --whistle-ink: #10131a;
-    --bib-a: #ffc400;
-    --bib-b: #ff4f9a;
-    --bib-c: #4e8fdb;
-    --bib-d: #6faf8e;
-    --bib-e: #c9a227;
-    --ok: #6faf8e;
-    --danger: #ea580c;
-    --chip-on: #faf8f5;
-    --chip-on-text: #1c1917;
-    --panel: #23201c;
-    --panel-text: #faf8f5;
-    --panel-card: rgba(250, 248, 245, 0.08);
-    --track: rgba(250, 248, 245, 0.3);
-    --tick: rgba(250, 248, 245, 0.45);
-    --shadow: 0 1px 2px rgba(0, 0, 0, 0.2), 0 4px 12px rgba(0, 0, 0, 0.35);
+    --accent: #f97316;
+    --accent-soft: #24140a;
+    --accent-track: #3a1f0e;
+    --accent-ink: #0a0a0a;
+    --accent-deep: #fdba74;
+    --surface: #0a0a0a;
+    --surface-2: #111111;
+    --surface-alt: #191919;
+    --hairline: #262626;
+    --border: #363636;
+    --text: #fafafa;
+    --text-2: #b4b4b4;
+    --whistle: #fafafa;
+    --whistle-ink: #0a0a0a;
+    --bib-ink: #1c1917;
+    --ok: #3fc07a;
+    --danger: #ff6b6b;
+    --chip-on: #fafafa;
+    --chip-on-text: #0a0a0a;
+    --panel: #191919;
+    --panel-text: #fafafa;
+    --panel-card: rgba(250, 250, 250, 0.08);
+    --track: rgba(250, 250, 250, 0.3);
+    --tick: rgba(250, 250, 250, 0.45);
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 4px 12px rgba(0, 0, 0, 0.55);
   }
 }
 

@@ -242,21 +242,6 @@ const sweep = (): Dash[] => {
  */
 const ENDORSED: readonly Endorsed[] = [
   {
-    file: "src/landing.tsx",
-    copy: "Indoor football on a smaller pitch — fast, technical, and built around tight spaces.",
-    because: "one of the three DISCIPLINES desc strings; the set moves together (DESIGN.md:206)",
-  },
-  {
-    file: "src/landing.tsx",
-    copy: "5v5 MOBA — roles define your lane, and the strength model accounts for every attribute.",
-    because: "one of the three DISCIPLINES desc strings; the set moves together (DESIGN.md:206)",
-  },
-  {
-    file: "src/landing.tsx",
-    copy: "Doubles on a badminton court — pairs balanced by strength, one at the front and one at the back.",
-    because: "one of the three DISCIPLINES desc strings; the set moves together (DESIGN.md:206)",
-  },
-  {
     file: "src/domain/DisciplineEditModal.tsx",
     copy: "Built-in discipline — editable on this device. Restoring a backup returns it to the app's own definition, and it cannot be deleted.",
     because: "the only visible line in the modal (DESIGN.md:202)",
@@ -290,24 +275,14 @@ const ENDORSED: readonly Endorsed[] = [
   {
     file: "src/share/share-image.ts",
     copy: "—",
-    at: 148,
+    at: 145,
     because: "not copy at all: a glyph advance width, so the poster can lay out a pasted name",
   },
   {
     file: "src/share/share-image.ts",
     copy: "—",
-    at: 177,
+    at: 174,
     because: "not copy at all: the same table at a larger size",
-  },
-  {
-    file: "index.html",
-    copy: "gap between the teams — the needle in the live split screen below.",
-    because: "visible body copy on the Landing Page (DESIGN.md:202)",
-  },
-  {
-    file: "index.html",
-    copy: "Series, single elimination, Swiss, or round robin — recorded as you play, on the same",
-    because: "visible body copy on the Landing Page (DESIGN.md:202)",
   },
   {
     file: "public/404.html",
@@ -416,7 +391,7 @@ describe("the em-dash rule, held against the whole shipped surface", () => {
     // asserted, and so is one file it is known to read.
     const found = sweep();
     expect(found.length).toBeGreaterThan(0);
-    expect(found.map((hit) => hit.file)).toContain("index.html");
+    expect(found.map((hit) => hit.file)).toContain("public/404.html");
     expect(sourceFiles().length).toBeGreaterThan(50);
     for (const document of documents) expect(read(document)).not.toBe("");
   });

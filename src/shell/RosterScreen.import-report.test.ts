@@ -483,7 +483,7 @@ describe("the import report's two notes", () => {
     // The note is a claim about `parsePlayerCsv`, and this is the assertion that
     // keeps it one. Fails if the parser ever reads a fourth column — at which
     // point the note becomes a lie and this file is what says so.
-    const { rows, skipped } = parsePlayerCsv("name,discipline,strength\nAndi,futsal,4,andi@example.com");
+    const { rows, skipped } = parsePlayerCsv("name,discipline,strength\nAndi,futsal,4,andi@thursdaycrew.test");
     expect(rows).toHaveLength(1);
     expect(rows[0]).toMatchObject({ line: 2, name: "Andi", discipline: "futsal", strength: 4 });
     expect(skipped).toEqual([]);

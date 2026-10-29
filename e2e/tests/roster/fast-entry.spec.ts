@@ -38,13 +38,35 @@ const world = (): SeedWorld => ({
   activeCommunityId: "comm-fast",
 });
 
-const openMenuAndDownload = async (page: Page): Promise<Download> => {
-  // The template control lives in the actions dropdown: open the menu
-  // first, then press the item. The menu item toggles the format panel
-  // rather than downloading, so the download itself comes from the panel
-  // — the reference copy and the file it explains arrive together.
-  await page.getByTestId("roster-actions-button").click();
-  await page.getByTestId("download-csv-template").click();
+/**
+ * Press the CSV template control until the format panel is open.
+ *
+ * The panel starts closed (TASK-141) and the button is a toggle, so this reads
+ * `aria-expanded` first: a blind click on an already-open panel would fold it
+ * away and take the download control with it. Shared by every case below that
+ * needs to read the column contract.
+ */
+const openTemplatePanel = async (page: Page): Promise<void> => {
+  const template = page.getByTestId("download-csv-template");
+  if ((await template.getAttribute("aria-expanded")) === "false") {
+    await template.click();
+  }
+  // The panel is addressed by its id: the template button names it through
+  // `aria-controls`, and a `data-testid` on the same node would be a second
+  // name for one element. The download control inside it does carry a testid,
+  // because `csv-panel-download` is a distinct thing from the panel.
+  await expect(page.locator("#csv-format-panel")).toBeVisible();
+};
+
+const openTemplatePanelAndDownload = async (page: Page): Promise<Download> => {
+  // The template control is a direct toolbar button (TASK-139 folded the old
+  // Actions menu away). It toggles the format panel rather than downloading,
+  // so the download itself comes from the panel — the reference copy and the
+  // file it explains arrive together. The panel starts closed (TASK-141), and
+  // the button reports aria-expanded, so this presses it only when the panel
+  // is genuinely shut: a blind click would fold an open panel away and take
+  // the download control with it.
+  await openTemplatePanel(page);
   const download = page.waitForEvent("download");
   await page.getByTestId("csv-panel-download").click();
   const file = await download;
@@ -57,6 +79,9 @@ test("the column contract is on the page, and the template downloads", async ({ 
   // Four sentences, in this order, and a list under the fourth. The list is
   // rendered from the discipline catalog rather than written out, so it is what
   // changes when a sport is added; here it is the seed three, one element each.
+  // The panel is a disclosure and starts closed (TASK-141), so it is opened
+  // first: what this case is about is the copy inside it, not the disclosure.
+  await openTemplatePanel(page);
   const hints = page.locator(".import-hint");
   await expect(hints).toHaveCount(4);
   await expect(hints.nth(0)).toContainText("press Import players and pick that file");
@@ -69,7 +94,7 @@ test("the column contract is on the page, and the template downloads", async ({ 
     "Badminton",
   ]);
 
-  const file = await openMenuAndDownload(page);
+  const file = await openTemplatePanelAndDownload(page);
 
   // The name is part of the file's usefulness: a blank form and a filled-in
   // roster in the same Downloads folder have to be tellable apart, and the
@@ -93,7 +118,7 @@ test("downloading the template does not put a player on the roster", async ({ pa
   await gotoHubSeeded(page, world(), "Roster");
   await expect(page.locator(".roster .row")).toHaveCount(0);
 
-  await openMenuAndDownload(page);
+  await openTemplatePanelAndDownload(page);
 
   // **This case is weaker than its name, and it is kept for what it does rule
   // out, not for what it looks like it rules out.** A count of zero resolves the

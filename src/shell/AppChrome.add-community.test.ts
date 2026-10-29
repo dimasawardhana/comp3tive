@@ -59,24 +59,25 @@ describe("the shell's props, and the one the shell does not take", () => {
   });
 
   it("keeps the fact the removed doc stated, on the prop that survives", () => {
-    // App does own the gate, and that is worth knowing: it is why the ✚ is a
-    // plain button with no `aria-expanded`, and why the gate at
+    // App does own the gate, and that is worth knowing: it is why the add
+    // control is a plain button with no `aria-expanded`, and why the gate at
     // `src/App.tsx:426` is not going to move into the chrome. The doc moved with
     // the truth rather than being deleted along with the lie.
-    expect(source()).toContain("The ✚ form lives in App's `<main>`, so its visibility is App's to toggle.");
+    expect(source()).toContain("The new-community form lives in App's `<main>`");
     expect(source()).toContain("the chrome never learns the answer");
   });
 
-  it("gives the ✚ no expanded state, because there is no state to report", () => {
+  it("gives the add control no expanded state, because there is no state to report", () => {
     // The specific mistake the removed prop invited. An `aria-expanded` on the
-    // ✚ would be a false claim told to a screen reader rather than merely a dead
-    // prop, so it is worth a test rather than a reviewer's memory.
+    // add control would be a false claim told to a screen reader rather than
+    // merely a dead prop, so it is worth a test rather than a reviewer's
+    // memory.
     //
-    // Scoped to the ✚ and not to the file: the community menu and the settings
-    // popover are menus **this** component owns the open state of, so their
-    // `aria-expanded` is true and stays. The ✚ opens a form App renders outside
-    // the chrome, and that asymmetry is exactly what the removed prop papered
-    // over by pretending the chrome knew.
+    // Scoped to the add control and not to the file: the community menu and the
+    // settings popover are menus **this** component owns the open state of, so
+    // their `aria-expanded` is true and stays. The add control opens a form App
+    // renders outside the chrome, and that asymmetry is exactly what the
+    // removed prop papered over by pretending the chrome knew.
     const addButton = /<button\s+type="button"\s+className="icon-btn"\s+aria-label="New community"[\s\S]*?>/.exec(source());
     expect(addButton?.[0]).toBeDefined();
     expect(addButton?.[0]).not.toContain("aria-expanded");

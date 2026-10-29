@@ -208,11 +208,12 @@ test("the landing page opens with no network", async ({ page, context }) => {
   await context.setOffline(true);
   await page.reload({ waitUntil: "load" });
 
-  // The shipped h1, verbatim: B14 scoped it to "it can prove" (an unqualified
-  // optimality claim is false — the screen says "Best gap found."), so the
-  // pre-B14 string can never be produced by the app and would fail here.
+  // The shipped h1, verbatim. The headline is a title rather than a sentence:
+  // the old one ran to ten words and wrapped to three lines on a phone, so the
+  // measurement claim moved into the lede under it and the title kept the
+  // product's one promise.
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
-    "Pick the players. Get the fairest teams it can prove.",
+    "Fairest teams it can prove",
   );
   await context.setOffline(false);
 });
@@ -307,7 +308,7 @@ test("a whole tournament runs with no network", async ({ page, context }) => {
   await expect(page.locator(".match-setup")).toBeVisible({ timeout: 10_000 });
   await page.getByTestId("split-button").click();
   await expect(page.locator(".split-screen")).toBeVisible({ timeout: 30_000 });
-  await page.getByRole("button", { name: "Save teams to tournament →" }).click();
+  await page.getByRole("button", { name: "Save teams to tournament" }).click();
 
   await page.locator(".standings, [data-testid='review-panel']").first().waitFor();
   if ((await page.getByTestId("review-panel").count()) > 0) {

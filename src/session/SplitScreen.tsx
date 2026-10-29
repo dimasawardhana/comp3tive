@@ -72,7 +72,6 @@ function TeamCard({ team, discipline, roster, swapMode, pick, onPick }: TeamCard
     <div className={`team ${BIB[team.index % BIB.length] ?? "a"}`}>
       <div className="tname">
         <span className="tname-label">{teamName(team.index)}</span>
-        <span className="tname-avg">{team.avgStrength.toFixed(1)}</span>
       </div>
       <ul>
         {team.slots.map((slot) => {
@@ -178,26 +177,34 @@ function BenchAdvisory({ result, discipline, roster }: { result: SplitResult; di
   );
 }
 
+/**
+ * One scale for the gap, in both shapes it is drawn in.
+ *
+ * The needle leans up to 28 degrees and saturates at a 0.62-point gap; the
+ * phone's band fills by the same fraction of that lean. Written once because
+ * the failure mode of two scales is a figure that means one thing at 1280 and
+ * another at 390, and nothing on either screen would say so.
+ */
+function gapLean(result: SplitResult, balanced: boolean): number {
+  if (balanced || result.teams.length < 2) return 0;
+  return Math.min(28, result.gap * 45);
+}
+
 function GapMeter({ result, balanced, discipline, roster }: { result: SplitResult; balanced: boolean; discipline: Discipline; roster: Player[] }) {
   const gap = result.gap;
-  const deg =
-    balanced || result.teams.length < 2
-      ? 0
-      : (result.teams[0].avgStrength > result.teams[1].avgStrength ? -1 : 1) * Math.min(28, gap * 45);
+  const lean = gapLean(result, balanced);
+  const degrees = (result.teams[0]?.avgStrength ?? 0) > (result.teams[1]?.avgStrength ?? 0) ? -lean : lean;
   const leader = result.teams.length > 0 ? result.teams.reduce((a, b) => (a.avgStrength > b.avgStrength ? a : b)) : null;
-
   return (
     <>
-      <div className="scale">
+      <div className="scale" aria-hidden="true">
         <div className="track">
           <div className="tick left" />
           <div className="tick center" />
           <div className="tick right" />
           <div className="pivot" />
-          <div className={`needle ${balanced ? "balanced" : ""}`} style={{ transform: `translateX(-50%) rotate(${deg}deg)` }} />
+          <div className={`needle ${balanced ? "balanced" : ""}`} style={{ transform: `translateX(-50%) rotate(${degrees}deg)` }} />
         </div>
-        <div className="num left">{gap.toFixed(1)}</div>
-        <div className="num right">{gap.toFixed(1)}</div>
       </div>
       <div className="readout">
         {balanced ? (
@@ -295,6 +302,8 @@ export function SplitScreen({ session, discipline, roster, onPersistResult, onSu
 
   const result = editable;
   const balanced = result.gap <= 0.1;
+  // The phone band's fill, from the same scale the needle leans on.
+  const barWidth = Math.round((gapLean(result, balanced) / 28) * 100);
   const flags = describeFlags(result, discipline, roster);
   const displayFlags =
     flags.length > 0 ? flags : balanced ? ["All roles covered. Fair game."] : [];
@@ -411,7 +420,15 @@ export function SplitScreen({ session, discipline, roster, onPersistResult, onSu
 
       {swapMode && (
         <div className="swap-banner" role="status">
-          <span className="swap-banner-icon" aria-hidden="true">⇄</span>
+          {/* The two-way mark is decoration on a sentence that already says what
+              to do, so it is hidden from the live region. Drawn as an SVG
+              rather than a glyph so it inherits the ink and does not depend on
+              a font carrying U+21C4. */}
+          <span className="swap-banner-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M4 8h13l-3-3M20 16H7l3 3" />
+            </svg>
+          </span>
           <span>
             {pick
               ? `Now tap a player on the other team to swap with ${nameOf(roster, pick.playerId)}`
@@ -425,8 +442,14 @@ export function SplitScreen({ session, discipline, roster, onPersistResult, onSu
           <div className="vs">
             <TeamCard {...teamCardProps(result.teams[0])} />
             <div className="mid">
-              <span className="tag">VS</span>
-              <span className="tag tag-gap">{balanced ? "OK" : result.gap.toFixed(1)}</span>
+              <span className="tag">vs</span>
+              {/* The phone's needle: the same 0 to 28 degrees of lean as the
+                  meter below, drawn as a fill between the two stacked cards.
+                  Hidden above 640px, where the meter itself has the room. */}
+              <span className="gap-bar" aria-hidden="true">
+                <span style={{ width: `${barWidth}%` }} />
+              </span>
+              <span className="tag tag-gap">{result.gap.toFixed(1)}</span>
             </div>
             <TeamCard {...teamCardProps(result.teams[1])} />
           </div>
@@ -453,7 +476,7 @@ export function SplitScreen({ session, discipline, roster, onPersistResult, onSu
         </div>
       ) : (
         <div className="empty">
-          <div className="kicker">Solver failed</div>
+          <div className="status-label">Solver failed</div>
           <div className="big">Couldn&apos;t build teams</div>
           <p>Not enough eligible players for this game. Adjust the pool or change the discipline.</p>
         </div>
@@ -478,7 +501,7 @@ export function SplitScreen({ session, discipline, roster, onPersistResult, onSu
       <div className="bar split-bar">
         {onBack && !swapMode && (
           <button type="button" className="btn btn-ghost" onClick={onBack} data-testid="back-button">
-            ← {backLabel}
+            {backLabel}
           </button>
         )}
         {onSaveSquad && !swapMode && (
@@ -552,7 +575,7 @@ export function SplitScreen({ session, discipline, roster, onPersistResult, onSu
             disabled={result.teams.length < 2}
             onClick={() => onSubmitTournament(result.teams)}
           >
-            Save teams to tournament →
+            Save teams to tournament
           </button>
         ) : (
           <button

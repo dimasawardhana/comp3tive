@@ -19,7 +19,7 @@
           location.replace("/app/");
         }
       } catch (e) {
-        /* storage blocked — show the page */
+        /* storage blocked show the page */
       }
     </script>
     <!-- Type is self-hosted (src/fonts.css); the files are content-hashed, so
@@ -41,41 +41,43 @@
       href="/fonts/familjen-grotesk-latin-414d5dfe.woff2"
     />
     <!-- The installable surface. `theme-color` is the OS chrome and is one static
-         value, so it is the light theme's --surface: the same paper the sticky
-         topbar paints, so the status strip and the app's own bar are one surface
-         with no seam. It is deliberately NOT --accent; amber is this design's
-         "do this now" colour (--whistle, --danger share it) and a permanent bar
-         of it above a hairline-ruled paper UI would spend it as wallpaper.
-         `apple-touch-icon` points at the maskable tile, not icon-192, for SIZE and
-         not for survival: iOS rounds the tile to a squircle at full bleed and both
-         tiles come through it whole, but every tile is drawn to the same ink
-         extent, so this is the one that carries the larger glyph. `rel="icon"`
-         also stops the /favicon.ico miss that 404s onto the 404 page on every
-         load. Task 12 owns the install copy. -->
+         value, so it is the light theme's --surface: the same ground the page
+         paints, so the status strip and the page are one surface with no seam.
+         It is deliberately NOT --accent; the hue marks data and identity, and a
+         permanent bar of it above the page would spend it as wallpaper.
+         `apple-touch-icon` points at the maskable tile, not icon-192, for SIZE
+         and not for survival: iOS rounds the tile to a squircle at full bleed
+         and both tiles come through it whole, but every tile is drawn to the
+         same ink extent, so this is the one that carries the larger glyph.
+         `rel="icon"` also stops the /favicon.ico miss that 404s onto the 404
+         page on every load. Task 12 owns the install copy. -->
     <link rel="manifest" href="/manifest.webmanifest" />
-    <meta name="theme-color" content="#FAF8F5" />
+    <meta name="theme-color" content="#F9FAFB" />
     <link rel="icon" href="/icons/icon-192.png" sizes="192x192" />
     <link rel="apple-touch-icon" href="/icons/maskable-512.png" />
     <link rel="stylesheet" href="/src/landing.css" />
   </head>
   <body>
     <!-- LANDING CONTRACT
-         THESIS: the ledger. Every claim about this tool is a row: the product's
-         own verb in a narrow rail, the measured evidence in the wide field
-         beside it. It refuses the category's hero-metric stack and its
+         THESIS: the ledger, dealt. Every claim about this tool is a row: the
+         product's own verb in a narrow rail, the worked evidence in the wide
+         field beside it. It refuses the category's hero-metric stack and its
          three-card feature grid.
-         OWN-WORLD: Paper & Pencil — warm paper #FAF8F5, ink #1C1917, one amber
-         #C2410C mark, Outfit display over Familjen Grotesk body, 12-16px radii,
-         hairline rules instead of shadows. Inherited from DESIGN.md, unchanged.
-         FIRST VIEWPORT: a two-track ledger row. The rail states SPLIT above the
-         real numbers the solver produced (10 players, 2 teams, gap 0.10). The
-         field holds the live SplitScreen at full width, so the first thing read
-         is the mechanism working.
-         SIGNATURE: the ledger rail. A left spine of verbs and tabular numerals
-         that repeats down the page, giving claims a spine the incumbent lacked.
-         PATH: wordmark, thesis row (SPLIT), then EDIT, PLAY and DISCIPLINES rows
-         carrying the interaction, the bracket, and the roster model. Close on
-         the single action.
+         OWN-WORLD: Accent Ladder. Ground #F9FAFB, cards #FFFFFF, ink #111827,
+         one amber #C2410C on data and identity only, the action in near-black.
+         Outfit display over Familjen Grotesk body, 8px cards, 6px controls, no
+         shadow at rest, no rules. See DESIGN.md.
+         FIRST VIEWPORT: the statement (h1 in the left column, the supporting
+         sentence and the page's one action in the right), then the Split row:
+         the rail states the numbers the solver produced and the field holds the
+         live split screen at full width, so the first thing read is the
+         mechanism working rather than a picture of it.
+         SIGNATURE: the ledger rail. A left spine of the product's own verbs,
+         set as real headings, with tabular numerals beneath them and the worked
+         evidence to their right.
+         PATH: wordmark, statement and action, then Split (live result, then the
+         deal that produced it), Edit, Play, Roster, and a close that states what
+         opening the app gets you.
     -->
     <main class="landing">
       <header class="landing-masthead">
@@ -93,19 +95,11 @@
         </svg>
       </header>
 
-      <div class="landing-ledger">
-        <div class="landing-intro">
-          <h1>Pick the players. Get the fairest teams it can prove.</h1>
-          <p class="landing-lede">
-            comp3tive splits your roster into teams with the smallest strength gap it can prove, weighing
-            every role, and naming who is covering when one runs short. Futsal, MLBB, badminton, then
-            the tournament on those teams.
-          </p>
-        </div>
 
+      <div class="landing-ledger">
         <section class="landing-row landing-row-hero" aria-labelledby="landing-row-split">
           <div class="landing-rail">
-            <p class="landing-rail-label" id="landing-row-split">Split</p>
+            <h2 class="landing-rail-label" id="landing-row-split">Split</h2>
             <dl class="landing-rail-facts">
               <div class="landing-fact">
                 <dt>Players</dt>
@@ -117,23 +111,43 @@
               </div>
               <div class="landing-fact landing-fact-accent">
                 <dt>Gap</dt>
-                <dd><span data-landing-gap>0.10</span></dd>
+                <dd><span data-landing-gap>0.1</span></dd>
               </div>
             </dl>
           </div>
           <div class="landing-field">
-            <div id="landing-deal"></div>
-            <div id="landing-hero" class="landing-hero" aria-label="Split result"></div>
-            <p class="landing-field-note">
-              Ten rated players, two teams. The solver places every one of them, then measures the
-              gap between the teams — the needle in the live split screen below.
-            </p>
+            <div class="landing-statement">
+              <h1>Fairest teams it can prove</h1>
+              <div class="landing-statement-support">
+                <p class="landing-lede">
+                  comp3tive splits your roster into teams with the smallest strength gap it can
+                  prove, weighing every role and naming who is covering when one runs short.
+                </p>
+                <div class="landing-statement-action">
+                  <a class="cta" href="/app/">Open comp3tive</a>
+                  <p class="landing-action-note">Free to use. An account is optional. Runs in your browser.</p>
+                </div>
+              </div>
+            </div>
+            <!-- The mechanism first, the screen it produced second. The deal is
+                 the page's one signature move (DESIGN.md § Motion) and the only
+                 thing here that moves on load. It used to sit under the live
+                 panel, which put it at y979 on a 1280x900 screen: the one
+                 authored moment on the page started 79px below the fold, so a
+                 visitor saw a still picture and had to scroll to find out the
+                 product animates. Above the panel it starts at y348 and finishes
+                 inside the first viewport. The panel is unchanged and still
+                 directly below, because it is what the deal is a picture of. -->
+            <h3 class="landing-deal-head">Ten players, dealt</h3>
+            <div id="landing-deal" class="landing-deal" data-ui></div>
+            <div id="landing-hero" class="landing-hero" data-ui aria-label="Live split result"></div>
           </div>
         </section>
 
+
         <section class="landing-row" aria-labelledby="landing-row-edit">
           <div class="landing-rail">
-            <p class="landing-rail-label" id="landing-row-edit">Edit</p>
+            <h2 class="landing-rail-label" id="landing-row-edit">Edit</h2>
             <dl class="landing-rail-facts">
               <div class="landing-fact">
                 <dt>Re-rolls</dt>
@@ -156,7 +170,7 @@
 
         <section class="landing-row" aria-labelledby="landing-row-play">
           <div class="landing-rail">
-            <p class="landing-rail-label" id="landing-row-play">Play</p>
+            <h2 class="landing-rail-label" id="landing-row-play">Play</h2>
             <dl class="landing-rail-facts">
               <div class="landing-fact">
                 <dt>Formats</dt>
@@ -170,16 +184,16 @@
           </div>
           <div class="landing-field">
             <p class="landing-claim">
-              Series, single elimination, Swiss, or round robin — recorded as you play, on the same
-              teams the solver just balanced.
+              Four formats: series, single elimination, Swiss, or round robin. Recorded as you play,
+              on the same teams the solver just balanced.
             </p>
-            <div id="landing-play"></div>
+            <div id="landing-play" data-ui></div>
           </div>
         </section>
 
         <section class="landing-row" aria-labelledby="landing-row-disciplines">
           <div class="landing-rail">
-            <p class="landing-rail-label" id="landing-row-disciplines">Roster</p>
+            <h2 class="landing-rail-label" id="landing-row-disciplines">Roster</h2>
             <dl class="landing-rail-facts">
               <div class="landing-fact">
                 <dt>Disciplines</dt>
@@ -193,38 +207,27 @@
           </div>
           <div class="landing-field">
             <p class="landing-claim">
-              A player carries a rating and a set of roles per discipline. The split reads both, and
-              says who is covering when a team runs short a role.
+              A player carries a rating and roles per discipline. The split reads both, and names
+              who is covering when a team runs short.
             </p>
-            <div id="landing-disciplines"></div>
+            <div id="landing-disciplines" data-ui></div>
+          </div>
+        </section>
+
+        <section class="landing-close" aria-labelledby="landing-row-close">
+          <div class="landing-rail">
+            <h2 class="landing-rail-label" id="landing-row-close">Open</h2>
+          </div>
+          <div class="landing-field">
+            <ul class="landing-trust">
+              <li>The screen says when the gap is the best it found, not proven.</li>
+              <li>Your data stays on your device by default, and an account is optional.</li>
+              <li>Free to use. An account is optional. Runs in your browser.</li>
+              <li>Once comp3tive has run with a network, it opens and runs a tournament with no signal.</li>
+            </ul>
           </div>
         </section>
       </div>
-
-      <section class="landing-close" aria-labelledby="landing-row-close">
-        <div class="landing-rail">
-          <p class="landing-rail-label" id="landing-row-close">Open</p>
-        </div>
-        <div class="landing-field">
-          <ul class="landing-trust">
-            <li>The screen says when the gap is the best it found, not proven.</li>
-            <li>Your data stays on your device by default, and an account is optional.</li>
-            <li>Free to use. An account is optional. Runs in your browser.</li>
-            <li>Once comp3tive has run with a network, it opens and runs a tournament with no signal.</li>
-          </ul>
-          <div class="landing-action">
-            <a class="cta" href="/app/">
-              <span>Open comp3tive</span>
-              <span class="cta-icon" aria-hidden="true">
-                <svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M3.5 8h9M8.5 4l4 4-4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-              </span>
-            </a>
-            <p class="landing-action-note">Free to use. An account is optional. Runs in your browser.</p>
-          </div>
-        </div>
-      </section>
 
       <footer class="landing-footer">
         comp3tive: the fairest teams it can prove, for futsal nights, MLBB sessions, and

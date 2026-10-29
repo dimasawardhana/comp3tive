@@ -33,7 +33,8 @@ import { DB_VERSION } from "../../src/storage/indexed-db";
 /** Re-exported for specs that read IndexedDB themselves (e.g. persistence probes). */
 export { DB_VERSION };
 
-/** The six hub destinations, matching NAV_ITEMS (src/shell/nav-items.ts). */
+/** Every destination a spec can reach by name: the five hubs in their bar, plus
+ *  Settings, which is a utility rather than a sixth slot. */
 export type HubName = "Home" | "Roster" | "Games" | "History" | "Squads" | "Settings";
 
 export interface SeedWorld {
@@ -133,21 +134,58 @@ export async function gotoSeeded(page: Page, world: SeedWorld): Promise<void> {
 
 /**
  * Click a hub by its accessible name. Each nav button's accessible name IS its
- * visible label: the icon span carries aria-hidden="true" (src/App.tsx:1273), so
- * the glyph is excluded. Exactly one element matches per name at both widths,
- * because the inactive layout is display: none and therefore absent from the
- * accessibility tree (src/index.css:1677-1679). No media-query awareness, no
- * nth() index — and so no index left to go stale.
+ * visible label: the SVG icon is `aria-hidden`, so only the text is in the
+ * name. Exactly one element matches per name at both widths, because the
+ * inactive layout is `display: none` and therefore absent from the
+ * accessibility tree. No media-query awareness and no nth() index, so there is
+ * no index left to go stale.
  */
 export function hubButton(page: Page, name: HubName): Locator {
   return page.getByRole("button", { name, exact: true });
 }
 
+/**
+ * Open Settings, whichever surface holds it at this width.
+ *
+ * Settings is a destination but not one of the five hubs, so it does not hold a
+ * slot in the bottom bar. On desktop it is the sidebar footer button; on a
+ * phone it is inside the menu sheet. This helper is the one place that
+ * difference lives, so a spec does not have to know the viewport.
+ */
+export async function openSettings(page: Page): Promise<void> {
+  if (await hubButton(page, "Settings").count() === 0) {
+    await page.locator(".topbar-menu").click();
+    await expect(page.locator("#phone-menu")).toBeVisible();
+  }
+  await hubButton(page, "Settings").click();
+  await expect(page.locator(".screen h1")).toHaveText("Settings");
+}
+
 /** Seed, then load the app, then land on a hub by its accessible name. */
 export async function gotoHubSeeded(page: Page, world: SeedWorld, hub: HubName): Promise<void> {
   await gotoSeeded(page, world);
+  if (hub === "Settings") {
+    await openSettings(page);
+    return;
+  }
   await hubButton(page, hub).click();
   await expect(page.locator(".screen h1")).toBeVisible();
+}
+
+/**
+ * Press one of the Roster toolbar's controls by its accessible name.
+ *
+ * The toolbar's actions are direct buttons (TASK-139 folded the old Actions
+ * dropdown away): "Add player" is the primary, and importing and the CSV
+ * template are icon buttons that resolve by aria-label. Resolving by name
+ * rather than position is unchanged — it is the same contract the menu items
+ * carried, one hop shorter.
+ */
+export async function rosterAction(
+  page: Page,
+  label: string,
+): Promise<void> {
+  await page.getByRole("button", { name: label, exact: true }).click();
 }
 
 /** The stat card on the Dashboard whose label matches <label>. */

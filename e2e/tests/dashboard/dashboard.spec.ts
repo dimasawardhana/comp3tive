@@ -20,16 +20,18 @@ const twoCommunities = (): SeedWorld => ({
   activeCommunityId: "comm-alpha",
 });
 
-test("fresh load lands on the Dashboard with the six hub tabs", async ({ page }) => {
+test("fresh load lands on the Dashboard with the five hub tabs", async ({ page }) => {
   await gotoSeeded(page, twoCommunities());
 
   // ADR-0005: the view stack root is the dashboard view; every fresh load lands here.
   await expect(page.locator(".screen h1")).toHaveText("Dashboard");
 
-  // The six-slot layout. The nav buttons carry no aria-label: their accessible
-  // name IS their visible label (the icon span is aria-hidden), which is what
-  // hubButton resolves. Exactly one control matches each name at this width.
-  for (const hub of ["Home", "Roster", "Games", "History", "Squads", "Settings"] as const) {
+  // Five slots. Settings is a destination but a utility, so it is not one of
+  // them: it lives in the sidebar footer and in the phone menu sheet, which
+  // `openSettings` in the seed helpers covers. The nav buttons carry no
+  // aria-label: their accessible name IS their visible label (the icon is
+  // aria-hidden), which is what hubButton resolves.
+  for (const hub of ["Home", "Roster", "Games", "History", "Squads"] as const) {
     await expect(hubButton(page, hub)).toHaveCount(1);
     await expect(hubButton(page, hub)).toBeVisible();
   }
@@ -116,16 +118,20 @@ test("dashboard stat cards are community-scoped and update on community switch",
   await page.locator(".squad-menu-item", { hasText: "Beta Guild" }).click();
   await expect(page.locator(".squad-select-value")).toHaveText("Beta Guild");
 
-  // Beta has no players: the guided empty state replaces the stat cards, and
-  // the lede names the newly active community.
+  // Beta has no players: it shows the first-run state, and the lede names the
+  // newly active community. The counts are still printed, as zeros: an app
+  // screen keeps its frame and prints a real zero rather than hiding the strip,
+  // which is what makes the numbers believable once they arrive.
   await expect(page.locator(".screen h1")).toHaveText("Dashboard");
   await expect(lede).toContainText("Beta Guild");
-  await expect(page.locator(".dashboard-stats")).not.toBeVisible();
   await expect(page.locator(".dashboard-empty")).toBeVisible();
   await expect(page.locator(".dashboard-empty .big")).toHaveText("Run your first split");
+  expect(await statValue(page, "Players")).toBe("0");
+  expect(await statValue(page, "Saved squads")).toBe("0");
+  expect(await statValue(page, "Tournaments")).toBe("0");
 });
 
-test("a fresh community shows the guided empty state instead of stat cards", async ({ page }) => {
+test("a fresh community shows the guided empty state with its zero counts", async ({ page }) => {
   // One community, zero players: the first-run state on the landing hub.
   await gotoSeeded(page, {
     communities: [{ id: "comm-fresh", name: "Fresh Start", createdAt: 100 }],
@@ -140,14 +146,23 @@ test("a fresh community shows the guided empty state instead of stat cards", asy
   await expect(page.locator(".dashboard-empty")).toBeVisible();
   await expect(page.locator(".dashboard-empty .big")).toHaveText("Run your first split");
   await expect(page.locator(".dashboard-empty")).toContainText("Add players to the roster");
-  // The stat cards are gone (zero cards would otherwise read as empty zeros).
-  await expect(page.locator(".dashboard-stats")).not.toBeVisible();
+  // The counts are present and honestly zero, in the same strip a populated
+  // account gets: the frame is what the numbers grow into.
+  await expect(page.locator(".dashboard-stats")).toBeVisible();
+  expect(await statValue(page, "Players")).toBe("0");
+  expect(await statValue(page, "Saved squads")).toBe("0");
+  expect(await statValue(page, "Tournaments")).toBe("0");
 
-  // Without players nothing can be split yet: the primary CTA is disabled and
-  // the guided empty state offers the add-players entry instead.
-  const split = page.getByRole("button", { name: "Split match", exact: true });
-  await expect(split).toBeDisabled();
+  // Without players there is nothing to split, so the screen does not offer the
+  // action at all: a disabled button with no way to satisfy it is a dead
+  // control, and the empty state already names the step that unblocks it.
+  await expect(page.getByRole("button", { name: "Split match", exact: true })).toHaveCount(0);
   await expect(page.locator(".dashboard-empty .btn-primary")).toHaveText("+ Add players");
+
+  // The screen answers "what next" in full rather than leaving one card in an
+  // empty canvas: the steps after the roster ride alongside it.
+  await expect(page.locator(".dashboard-first-run-next")).toBeVisible();
+  await expect(page.locator(".dashboard-next-list li")).toHaveCount(4);
 
   // Home still marks the dashboard as current (the dashboard is the root hub).
   await expect(hubButton(page, "Home")).toHaveAttribute("aria-current", "page");

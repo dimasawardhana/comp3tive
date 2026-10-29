@@ -88,13 +88,24 @@ interface ButtonBox {
   label: string;
 }
 
+/**
+ * Every rendered `.btn`. A button inside a panel that is `hidden` (the AI
+ * assistant's closed chat) measures 0x0 and is not a control anyone meets, so
+ * a zero-height box is filtered out: this file is about the height a thumb
+ * finds, and a control that is not painted has no height to be wrong about.
+ */
 const readButtons = (page: Page): Promise<ButtonBox[]> =>
   page.evaluate(() =>
-    [...document.querySelectorAll<HTMLButtonElement>(".btn")].map((b) => ({
-      cls: b.className,
-      height: b.getBoundingClientRect().height,
-      label: (b.textContent ?? "").replace(/\s+/g, " ").trim(),
-    })),
+    [...document.querySelectorAll<HTMLButtonElement>(".btn")]
+      .filter((b) => {
+        const box = b.getBoundingClientRect();
+        return box.height > 0 && box.width > 0;
+      })
+      .map((b) => ({
+        cls: b.className,
+        height: b.getBoundingClientRect().height,
+        label: (b.textContent ?? "").replace(/\s+/g, " ").trim(),
+      })),
   );
 
 /** Settle the webfont, and prove it settled, before anything is measured. */
@@ -174,11 +185,11 @@ test.describe("the button family", () => {
     await withFamilyFont(page);
 
     const bar = await readButtons(page);
-    const row = bar.filter((b) => ["← Squads", "Re-split", "New tournament with these teams", "Delete"].includes(b.label));
+    const row = bar.filter((b) => ["Squads", "Re-split", "New tournament with these teams", "Delete"].includes(b.label));
     // Four is not a guess: the Squads detail's action row is the only one in the
     // app carrying three variants at once, and a row that lost a button would
     // quietly stop being the case this file is about.
-    expect(row.map((b) => b.label)).toEqual(["← Squads", "Re-split", "New tournament with these teams", "Delete"]);
+    expect(row.map((b) => b.label)).toEqual(["Squads", "Re-split", "New tournament with these teams", "Delete"]);
     for (const button of row) {
       expect(button.height, `${button.cls} "${button.label}"`).toBe(52);
     }
@@ -198,7 +209,13 @@ test.describe("the button family", () => {
         // The two heights the document names, and nothing between or outside
         // them. A variant that arrives with the wrong padding fails here rather
         // than in a thumb.
-        expect([52, 34], `${hub}: ${button.cls} "${button.label}"`).toContain(button.height);
+        //
+        // Rounded, because `getBoundingClientRect` returns fractional CSS pixels
+        // on a scaled display and 52.0000038 is the family height, not a
+        // different tier. The intent is the tier, not the float.
+        expect([52, 34], `${hub}: ${button.cls} "${button.label}"`).toContain(
+          Math.round(button.height),
+        );
         expect(button.cls, `${hub}: a bare .btn would render at 50px`).not.toBe("btn");
       }
     }

@@ -141,7 +141,7 @@ describe("the split bar's swap entry point", () => {
     // later edit that pushes `Swap` past the primary is a red test rather than a
     // silently different bar.
     expect(labels(bar({ onBack: () => {}, onSaveSquad: () => {}, share: { communityName: "Swap Crew" } }))).toEqual([
-      "← Match setup",
+      "Match setup",
       "Save squad",
       "Share",
       "Swap",
@@ -175,7 +175,7 @@ describe("the split bar's swap entry point", () => {
     // the row happens to be showing.
     const labelsInBar = labels(bar({ onSubmitTournament: () => {} }));
     expect(labelsInBar).toContain("Swap");
-    expect(labelsInBar[labelsInBar.length - 1]).toBe("Save teams to tournament →");
+    expect(labelsInBar[labelsInBar.length - 1]).toBe("Save teams to tournament");
   });
 
   it("adds no copy that turns a measurement into a promise", () => {
